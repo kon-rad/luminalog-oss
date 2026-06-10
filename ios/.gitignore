@@ -15,3 +15,6 @@ build/
 
 # Secrets — Firebase config is never committed (app runs in demo mode without it)
 GoogleService-Info.plist
+
+# Keep dependency pins
+!LuminaLog.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
