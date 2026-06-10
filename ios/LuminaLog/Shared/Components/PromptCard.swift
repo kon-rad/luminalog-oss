@@ -86,28 +86,31 @@ struct PromptCard: View {
     // MARK: List item
 
     private var listItemBody: some View {
-        HStack(alignment: .center, spacing: Spacing.m) {
-            Text("\u{201C}\(question)\u{201D}")
-                .font(.system(.body, design: .serif).italic())
-                .foregroundStyle(Color.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        Button(action: action) {
+            HStack(alignment: .center, spacing: Spacing.m) {
+                Text("\u{201C}\(question)\u{201D}")
+                    .font(.promptQuoteCompact)
+                    .foregroundStyle(Color.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-            Button(action: action) {
+                // Decorative affordance — the whole row is the button.
                 Image(systemName: "arrow.right")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.accentWarm)
                     .frame(width: 44, height: 44)
                     .background(Circle().fill(Color.accentWarm.opacity(0.15)))
+                    .accessibilityHidden(true)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Journal about this prompt")
+            .padding(Spacing.m)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                    .fill(Color.cardBackground)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous))
         }
-        .padding(Spacing.m)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
-                .fill(Color.cardBackground)
-        )
+        .buttonStyle(.plain)
+        .accessibilityLabel("Journal about this prompt: \(question)")
     }
 }
 

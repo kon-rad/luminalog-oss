@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 // MARK: - JournalType presentation
 
@@ -25,29 +24,13 @@ extension JournalType {
         }
     }
 
-    /// Per-type tint — warm hues in the accent family that read in both modes.
+    /// Per-type tint — theme tokens (see Theme.swift).
     var tint: Color {
         switch self {
-        case .text:
-            return .accentWarm
-        case .voice:
-            return Color(uiColor: UIColor { traits in
-                traits.userInterfaceStyle == .dark
-                    ? UIColor(red: 0.88, green: 0.50, blue: 0.50, alpha: 1.0)
-                    : UIColor(red: 0.76, green: 0.34, blue: 0.36, alpha: 1.0) // warm rose
-            })
-        case .video:
-            return Color(uiColor: UIColor { traits in
-                traits.userInterfaceStyle == .dark
-                    ? UIColor(red: 0.74, green: 0.56, blue: 0.82, alpha: 1.0)
-                    : UIColor(red: 0.52, green: 0.36, blue: 0.60, alpha: 1.0) // warm plum
-            })
-        case .image:
-            return Color(uiColor: UIColor { traits in
-                traits.userInterfaceStyle == .dark
-                    ? UIColor(red: 0.66, green: 0.72, blue: 0.42, alpha: 1.0)
-                    : UIColor(red: 0.42, green: 0.50, blue: 0.26, alpha: 1.0) // warm olive
-            })
+        case .text: return .tintText
+        case .voice: return .tintVoice
+        case .video: return .tintVideo
+        case .image: return .tintImage
         }
     }
 }

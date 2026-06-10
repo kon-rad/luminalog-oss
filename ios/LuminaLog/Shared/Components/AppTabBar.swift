@@ -58,6 +58,8 @@ struct AppTabBar: View {
         .background(alignment: .top) {
             barBackground
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isTabBar)
     }
 
     // MARK: Pieces
@@ -89,6 +91,9 @@ struct AppTabBar: View {
         .buttonStyle(.plain)
         .accessibilityLabel(tab.title)
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        .accessibilityShowsLargeContentViewer {
+            Label(tab.title, systemImage: tab.systemImage)
+        }
     }
 
     /// Raised circular "+" — vertically offset so its center sits on the
@@ -110,6 +115,9 @@ struct AppTabBar: View {
         .frame(maxWidth: .infinity)
         .offset(y: -Self.barHeight / 2)
         .accessibilityLabel("Create journal entry")
+        .accessibilityShowsLargeContentViewer {
+            Label("Create journal entry", systemImage: "plus")
+        }
     }
 }
 

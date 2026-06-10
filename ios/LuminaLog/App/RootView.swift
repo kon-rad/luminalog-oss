@@ -15,14 +15,18 @@ struct RootView: View {
                 .ignoresSafeArea()
 
             // Placeholder feature views — replaced by Tasks 4–9.
-            switch selectedTab {
-            case .home:
+            // All tabs stay mounted so scroll positions and NavigationStack
+            // paths survive tab switches; only the selected one is visible.
+            tabContent(for: .home) {
                 TabPlaceholder(title: "Home", systemImage: "house")
-            case .journal:
+            }
+            tabContent(for: .journal) {
                 TabPlaceholder(title: "Journal", systemImage: "book")
-            case .chats:
+            }
+            tabContent(for: .chats) {
                 TabPlaceholder(title: "Chats", systemImage: "bubble.left.and.bubble.right")
-            case .profile:
+            }
+            tabContent(for: .profile) {
                 TabPlaceholder(title: "Profile", systemImage: "person")
             }
         }
@@ -43,6 +47,20 @@ struct RootView: View {
         .fullScreenCover(isPresented: $isPresentingCreate) {
             CreatePlaceholderView()
         }
+    }
+
+    /// Keeps a tab's view in the hierarchy while hiding it when unselected,
+    /// preserving per-tab state (scroll offsets, navigation paths).
+    @ViewBuilder
+    private func tabContent<Content: View>(
+        for tab: AppTab,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        let isSelected = selectedTab == tab
+        content()
+            .opacity(isSelected ? 1 : 0)
+            .allowsHitTesting(isSelected)
+            .accessibilityHidden(!isSelected)
     }
 }
 

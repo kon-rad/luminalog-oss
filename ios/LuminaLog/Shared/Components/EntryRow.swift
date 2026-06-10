@@ -28,7 +28,7 @@ struct EntryRow: View {
                     .foregroundStyle(Color.textSecondary)
 
                 Text(entry.title)
-                    .font(.system(.headline, design: .serif).weight(.semibold))
+                    .font(.entryTitle)
                     .foregroundStyle(Color.textPrimary)
                     .lineLimit(1)
 

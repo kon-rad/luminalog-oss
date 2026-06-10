@@ -16,18 +16,6 @@ struct AIActionButton: View {
     let state: AIActionState
     let action: () -> Void
 
-    init(
-        title: String,
-        loadingTitle: String,
-        state: AIActionState,
-        action: @escaping () -> Void
-    ) {
-        self.title = title
-        self.loadingTitle = loadingTitle
-        self.state = state
-        self.action = action
-    }
-
     var body: some View {
         VStack(spacing: Spacing.s) {
             if state == .failed {

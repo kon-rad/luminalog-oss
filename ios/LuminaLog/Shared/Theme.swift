@@ -46,6 +46,35 @@ extension Color {
             ? UIColor(red: 0.65, green: 0.61, blue: 0.57, alpha: 1.0)
             : UIColor(red: 0.45, green: 0.41, blue: 0.38, alpha: 1.0)
     })
+
+    // MARK: Journal-type tints
+    //
+    // Per-type tints for journal entry type pills — warm hues in the accent
+    // family that read in both light and dark modes.
+
+    /// Tint for text entries — the standard warm accent.
+    static let tintText = accentWarm
+
+    /// Tint for voice entries — warm rose.
+    static let tintVoice = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.88, green: 0.50, blue: 0.50, alpha: 1.0)
+            : UIColor(red: 0.76, green: 0.34, blue: 0.36, alpha: 1.0)
+    })
+
+    /// Tint for video entries — warm plum.
+    static let tintVideo = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.74, green: 0.56, blue: 0.82, alpha: 1.0)
+            : UIColor(red: 0.52, green: 0.36, blue: 0.60, alpha: 1.0)
+    })
+
+    /// Tint for image entries — warm olive.
+    static let tintImage = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.66, green: 0.72, blue: 0.42, alpha: 1.0)
+            : UIColor(red: 0.42, green: 0.50, blue: 0.26, alpha: 1.0)
+    })
 }
 
 // MARK: - Typography
@@ -63,6 +92,12 @@ extension Font {
 
     /// Serif italic style for prompts and reflective quotes.
     static let promptQuote = Font.system(.title3, design: .serif).italic()
+
+    /// Compact serif italic for prompt list rows.
+    static let promptQuoteCompact = Font.system(.body, design: .serif).italic()
+
+    /// Serif headline for entry titles in lists.
+    static let entryTitle = Font.system(.headline, design: .serif).weight(.semibold)
 
     /// Bold rounded-feel numerals for stats (streaks, word counts).
     static let statValue = Font.system(.title2, design: .default).weight(.bold)
