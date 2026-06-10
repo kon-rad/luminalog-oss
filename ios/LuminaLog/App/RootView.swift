@@ -24,16 +24,27 @@ struct RootView: View {
                     journals: services.journals,
                     profiles: services.profiles,
                     ai: services.ai,
+                    media: services.media,
                     onStartJournaling: { prompt in
                         createRequest = CreateEntryRequest(promptText: prompt)
                     },
                     onShowMore: {
                         selectedTab = .journal
+                    },
+                    onPrompt: { request in
+                        createRequest = request
                     }
                 )
             }
             tabContent(for: .journal) {
-                JournalListView(journals: services.journals)
+                JournalListView(
+                    journals: services.journals,
+                    ai: services.ai,
+                    media: services.media,
+                    onPrompt: { request in
+                        createRequest = request
+                    }
+                )
             }
             tabContent(for: .chats) {
                 TabPlaceholder(title: "Chats", systemImage: "bubble.left.and.bubble.right")

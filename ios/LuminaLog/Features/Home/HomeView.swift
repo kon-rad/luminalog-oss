@@ -10,19 +10,32 @@ struct HomeView: View {
     let onStartJournaling: (String?) -> Void
     /// Switches the shell to the Journal tab ("Show more").
     let onShowMore: () -> Void
+    /// Opens the Create flow from a detail-screen prompt card.
+    let onPrompt: (CreateEntryRequest) -> Void
+
+    // Retained for the Journal Detail navigation destination.
+    private let journals: JournalRepository
+    private let ai: AIService
+    private let media: MediaUploader
 
     init(
         journals: JournalRepository,
         profiles: ProfileRepository,
         ai: AIService,
+        media: MediaUploader,
         onStartJournaling: @escaping (String?) -> Void,
-        onShowMore: @escaping () -> Void
+        onShowMore: @escaping () -> Void,
+        onPrompt: @escaping (CreateEntryRequest) -> Void
     ) {
         _viewModel = StateObject(
             wrappedValue: HomeViewModel(journals: journals, profiles: profiles, ai: ai)
         )
+        self.journals = journals
+        self.ai = ai
+        self.media = media
         self.onStartJournaling = onStartJournaling
         self.onShowMore = onShowMore
+        self.onPrompt = onPrompt
     }
 
     var body: some View {
@@ -41,7 +54,13 @@ struct HomeView: View {
             .background(Color.appBackground.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: JournalDetailRoute.self) { route in
-                JournalDetailPlaceholderView(entryId: route.entryId)
+                JournalDetailView(
+                    entryId: route.entryId,
+                    journals: journals,
+                    ai: ai,
+                    media: media,
+                    onPrompt: onPrompt
+                )
             }
         }
         .task {
@@ -225,8 +244,10 @@ private struct HomePreview: View {
             journals: MockJournalRepository(),
             profiles: MockProfileRepository(),
             ai: MockAIService(),
+            media: MockMediaUploader(),
             onStartJournaling: { _ in },
-            onShowMore: {}
+            onShowMore: {},
+            onPrompt: { _ in }
         )
     }
 }

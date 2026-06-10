@@ -6,8 +6,25 @@ struct JournalListView: View {
 
     @StateObject private var viewModel: JournalListViewModel
 
-    init(journals: JournalRepository) {
+    /// Opens the Create flow from a detail-screen prompt card.
+    let onPrompt: (CreateEntryRequest) -> Void
+
+    // Retained for the Journal Detail navigation destination.
+    private let journals: JournalRepository
+    private let ai: AIService
+    private let media: MediaUploader
+
+    init(
+        journals: JournalRepository,
+        ai: AIService,
+        media: MediaUploader,
+        onPrompt: @escaping (CreateEntryRequest) -> Void
+    ) {
         _viewModel = StateObject(wrappedValue: JournalListViewModel(journals: journals))
+        self.journals = journals
+        self.ai = ai
+        self.media = media
+        self.onPrompt = onPrompt
     }
 
     var body: some View {
@@ -30,7 +47,13 @@ struct JournalListView: View {
                 prompt: "Search your journal"
             )
             .navigationDestination(for: JournalDetailRoute.self) { route in
-                JournalDetailPlaceholderView(entryId: route.entryId)
+                JournalDetailView(
+                    entryId: route.entryId,
+                    journals: journals,
+                    ai: ai,
+                    media: media,
+                    onPrompt: onPrompt
+                )
             }
         }
         .task {
@@ -156,14 +179,27 @@ private struct FilterChip: View {
 // MARK: - Previews
 
 #Preview("Light") {
-    JournalListView(journals: MockJournalRepository())
+    JournalListPreview()
 }
 
 #Preview("Dark") {
-    JournalListView(journals: MockJournalRepository())
+    JournalListPreview()
         .preferredColorScheme(.dark)
 }
 
 #Preview("Empty") {
-    JournalListView(journals: MockJournalRepository(entries: []))
+    JournalListPreview(entries: [])
+}
+
+private struct JournalListPreview: View {
+    var entries: [JournalEntry] = MockData.journalEntries
+
+    var body: some View {
+        JournalListView(
+            journals: MockJournalRepository(entries: entries),
+            ai: MockAIService(),
+            media: MockMediaUploader(),
+            onPrompt: { _ in }
+        )
+    }
 }
