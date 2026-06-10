@@ -260,7 +260,7 @@ struct JournalDetailView: View {
     private func insightsTab(_ entry: JournalEntry) -> some View {
         if let insights = entry.insights {
             VStack(alignment: .leading, spacing: Spacing.l) {
-                ForEach(Self.paragraphs(of: insights.text), id: \.self) { paragraph in
+                ForEach(Array(Self.paragraphs(of: insights.text).enumerated()), id: \.offset) { _, paragraph in
                     Text(paragraph)
                         .font(.journalBody)
                         .foregroundStyle(Color.textPrimary)
@@ -310,7 +310,7 @@ struct JournalDetailView: View {
     private func promptsTab(_ entry: JournalEntry) -> some View {
         if let prompts = entry.prompts, !prompts.items.isEmpty {
             VStack(alignment: .leading, spacing: Spacing.s) {
-                ForEach(prompts.items, id: \.self) { prompt in
+                ForEach(Array(prompts.items.enumerated()), id: \.offset) { _, prompt in
                     PromptCard.listItem(question: prompt) {
                         onPrompt(CreateEntryRequest(promptText: prompt))
                     }

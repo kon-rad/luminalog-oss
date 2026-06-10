@@ -6,10 +6,11 @@ import OSLog
 /// guards.
 ///
 /// Persistence note: after every successful generation the result is written
-/// back onto the entry via `repository.save`. The production proxy ALSO
-/// persists server-side (spec §4.1); this client-side save is for instant UI
-/// consistency and for demo mode, where `MockAIService` does not write back
-/// to the repository. The save is an idempotent overwrite either way.
+/// back via `repository.updateAIFields`, which updates only the generated
+/// field and fails (rather than recreating the document) when the entry was
+/// deleted mid-generation. The production proxy ALSO persists server-side
+/// (spec §4.1); this client-side write is for instant UI consistency and for
+/// demo mode, where `MockAIService` does not write back to the repository.
 @MainActor
 final class JournalDetailViewModel: ObservableObject {
 
@@ -20,11 +21,12 @@ final class JournalDetailViewModel: ObservableObject {
     /// The live entry — nil before the first emission and after deletion.
     @Published private(set) var entry: JournalEntry?
 
-    /// True once the first stream emission has landed (so the view can tell
-    /// "loading" apart from "entry not found").
     @Published private(set) var summaryState: AIActionState = .idle
     @Published private(set) var insightsState: AIActionState = .idle
     @Published private(set) var promptsState: AIActionState = .idle
+
+    /// True once the first stream emission has landed (so the view can tell
+    /// "loading" apart from "entry not found").
     @Published private(set) var hasLoaded = false
 
     let entryId: String
@@ -99,7 +101,7 @@ final class JournalDetailViewModel: ObservableObject {
         summaryState = .loading
         do {
             let generation = try await ai.generateSummary(journalId: entryId)
-            try await persist { $0.summary = generation }
+            try await persist(summary: generation)
             summaryState = .idle
         } catch {
             Self.logger.error("generateSummary failed: \(error.localizedDescription, privacy: .public)")
@@ -114,7 +116,7 @@ final class JournalDetailViewModel: ObservableObject {
         insightsState = .loading
         do {
             let generation = try await ai.generateInsights(journalId: entryId)
-            try await persist { $0.insights = generation }
+            try await persist(insights: generation)
             insightsState = .idle
         } catch {
             Self.logger.error("generateInsights failed: \(error.localizedDescription, privacy: .public)")
@@ -129,7 +131,7 @@ final class JournalDetailViewModel: ObservableObject {
         promptsState = .loading
         do {
             let items = try await ai.generatePrompts(journalId: entryId)
-            try await persist { $0.prompts = AIPrompts(items: items) }
+            try await persist(prompts: AIPrompts(items: items))
             promptsState = .idle
         } catch {
             Self.logger.error("generatePrompts failed: \(error.localizedDescription, privacy: .public)")
@@ -139,12 +141,36 @@ final class JournalDetailViewModel: ObservableObject {
 
     // MARK: - Persistence
 
-    /// Applies `mutate` to the latest entry snapshot, updates local state for
-    /// instant UI, and writes through to the repository (see class docs).
-    private func persist(_ mutate: (inout JournalEntry) -> Void) async throws {
+    /// Writes the newly generated field(s) through to the repository
+    /// (field-scoped, so a deleted entry is never recreated), then mirrors
+    /// them onto the local snapshot for instant UI (see class docs).
+    ///
+    /// A not-found failure means the entry was deleted mid-generation: the
+    /// result is dropped silently — the live stream has already (or will)
+    /// set `entry` to nil, so the view shows "Entry not found".
+    private func persist(
+        summary: AIGeneration? = nil,
+        insights: AIGeneration? = nil,
+        prompts: AIPrompts? = nil
+    ) async throws {
         guard var updated = entry else { return }
-        mutate(&updated)
+        do {
+            try await journals.updateAIFields(
+                id: entryId,
+                summary: summary,
+                insights: insights,
+                prompts: prompts
+            )
+        } catch JournalRepositoryError.entryNotFound {
+            Self.logger.notice("""
+            entry \(self.entryId, privacy: .private) deleted mid-generation; \
+            dropping AI result instead of recreating it
+            """)
+            return
+        }
+        if let summary { updated.summary = summary }
+        if let insights { updated.insights = insights }
+        if let prompts { updated.prompts = prompts }
         entry = updated
-        try await journals.save(updated)
     }
 }

@@ -50,6 +50,11 @@ struct SummaryCard: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("AI summary: \(text)")
         .accessibilityHint(isExpanded ? "Tap to collapse" : "Tap to expand")
+        .accessibilityActions {
+            if showsRegenerate, !isRegenerating {
+                Button("Regenerate", action: onRegenerate)
+            }
+        }
     }
 
     private var header: some View {

@@ -66,6 +66,21 @@ final class MockJournalRepository: JournalRepository {
         broadcast(changedId: entry.id)
     }
 
+    func updateAIFields(
+        id: String,
+        summary: AIGeneration?,
+        insights: AIGeneration?,
+        prompts: AIPrompts?
+    ) async throws {
+        guard let index = store.firstIndex(where: { $0.id == id }) else {
+            throw JournalRepositoryError.entryNotFound(id: id)
+        }
+        if let summary { store[index].summary = summary }
+        if let insights { store[index].insights = insights }
+        if let prompts { store[index].prompts = prompts }
+        broadcast(changedId: id)
+    }
+
     func delete(id: String) async throws {
         store.removeAll { $0.id == id }
         broadcast(changedId: id)

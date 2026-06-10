@@ -9,7 +9,8 @@ import SwiftUI
 // MARK: - Image
 
 /// One journal-page photo, resolved via the media uploader. Failures render
-/// a styled placeholder frame instead of a broken image.
+/// a styled placeholder frame instead of a broken image. Tapping a loaded
+/// photo opens a full-screen zoomable viewer (design §4).
 struct EntryImageView: View {
 
     let item: MediaItem
@@ -17,6 +18,7 @@ struct EntryImageView: View {
 
     @State private var url: URL?
     @State private var resolveFailed = false
+    @State private var showsViewer = false
 
     /// Aspect ratio from stored dimensions; portrait-page default otherwise.
     private var aspectRatio: CGFloat {
@@ -37,6 +39,13 @@ struct EntryImageView: View {
                         image
                             .resizable()
                             .scaledToFit()
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                showsViewer = true
+                            }
+                            .accessibilityLabel("Journal photo")
+                            .accessibilityHint("Opens the photo full screen")
+                            .accessibilityAddTraits(.isButton)
                     case .failure:
                         placeholder
                     case .empty:
@@ -50,6 +59,11 @@ struct EntryImageView: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous))
+        .fullScreenCover(isPresented: $showsViewer) {
+            if let url {
+                ImageZoomViewer(url: url)
+            }
+        }
         .task {
             do {
                 url = try await media.viewURL(for: item.s3Key)
@@ -141,7 +155,7 @@ struct AudioPlayerCard: View {
             controller.load(url: url, fallbackDuration: item.durationSec)
         }
         .onDisappear {
-            controller.pause()
+            controller.teardown()
         }
     }
 

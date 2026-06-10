@@ -291,6 +291,43 @@ final class JournalDetailViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.entry?.summary?.text, "spy summary")
     }
 
+    // MARK: - Deletion safety
+
+    @MainActor
+    func testDeleteMidGenerationDoesNotResurrectEntry() async throws {
+        let entry = makeEntry(summary: AIGeneration(text: "s", model: "m"))
+        let repo = MockJournalRepository(entries: [entry])
+        let ai = SpyAIService()
+        ai.delayNanos = 100_000_000
+
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
+        await viewModel.start()
+
+        // Delete the entry while the generation is still in flight.
+        async let generation: Void = viewModel.generateInsights()
+        try await Task.sleep(nanoseconds: 30_000_000)
+        try await repo.delete(id: "entry-1")
+        await generation
+
+        let stored = try await storedEntry(id: "entry-1", in: repo)
+        XCTAssertNil(stored, "Persisting an AI field must never recreate a deleted entry")
+        XCTAssertEqual(viewModel.insightsState, .idle, "Not-found persistence is a silent no-op")
+    }
+
+    @MainActor
+    func testMissingEntryDoesNotAutoGenerateSummary() async {
+        let repo = MockJournalRepository(entries: [])
+        let ai = SpyAIService()
+
+        let viewModel = JournalDetailViewModel(entryId: "missing", journals: repo, ai: ai)
+        await viewModel.start()
+
+        XCTAssertTrue(viewModel.hasLoaded)
+        XCTAssertNil(viewModel.entry)
+        XCTAssertEqual(ai.summaryCalls, 0, "A nil stream emission must not trigger summary generation")
+        XCTAssertEqual(viewModel.summaryState, .idle)
+    }
+
     // MARK: - Live updates
 
     @MainActor

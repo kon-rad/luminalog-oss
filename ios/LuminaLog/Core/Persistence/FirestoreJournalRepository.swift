@@ -98,6 +98,28 @@ final class FirestoreJournalRepository: JournalRepository {
         try await journals.document(entry.id).setData(entry.firestoreData)
     }
 
+    func updateAIFields(
+        id: String,
+        summary: AIGeneration?,
+        insights: AIGeneration?,
+        prompts: AIPrompts?
+    ) async throws {
+        var payload: [String: Any] = [:]
+        if let summary { payload["summary"] = summary.firestoreData }
+        if let insights { payload["insights"] = insights.firestoreData }
+        if let prompts { payload["prompts"] = prompts.firestoreData }
+        guard !payload.isEmpty else { return }
+        do {
+            // `updateData` fails on a missing document — unlike `setData`,
+            // it can never resurrect a deleted entry.
+            try await journals.document(id).updateData(payload)
+        } catch let error as NSError
+            where error.domain == FirestoreErrorDomain
+                && error.code == FirestoreErrorCode.notFound.rawValue {
+            throw JournalRepositoryError.entryNotFound(id: id)
+        }
+    }
+
     func delete(id: String) async throws {
         try await journals.document(id).delete()
     }

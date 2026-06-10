@@ -1,5 +1,19 @@
 import Foundation
 
+/// Errors surfaced by `JournalRepository` implementations.
+enum JournalRepositoryError: LocalizedError {
+    /// The targeted entry does not exist (e.g. it was deleted while an
+    /// update was in flight).
+    case entryNotFound(id: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .entryNotFound(let id):
+            return "Journal entry \(id) does not exist."
+        }
+    }
+}
+
 /// Read/write access to the user's journal entries
 /// (`journals` top-level collection, filtered by `userId`).
 @MainActor
@@ -27,6 +41,16 @@ protocol JournalRepository: AnyObject {
 
     /// Create or overwrite an entry.
     func save(_ entry: JournalEntry) async throws
+
+    /// Updates ONLY the provided non-nil AI fields on an existing entry.
+    /// Throws `JournalRepositoryError.entryNotFound` if the document does
+    /// not exist — it must NEVER recreate a deleted entry.
+    func updateAIFields(
+        id: String,
+        summary: AIGeneration?,
+        insights: AIGeneration?,
+        prompts: AIPrompts?
+    ) async throws
 
     func delete(id: String) async throws
 }
