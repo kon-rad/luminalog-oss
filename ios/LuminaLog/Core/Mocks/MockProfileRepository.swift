@@ -34,6 +34,10 @@ final class MockProfileRepository: ProfileRepository {
         broadcast()
     }
 
+    func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws {
+        // No-op: the mock is seeded with `MockData.profile` at init.
+    }
+
     func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {
         guard var profile = storedProfile else { throw AuthServiceError.notSignedIn }
         let timezone = TimeZone(identifier: profile.timezone) ?? .current

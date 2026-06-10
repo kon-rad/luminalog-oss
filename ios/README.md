@@ -56,6 +56,39 @@ logs a direct creation link on first failure — or add it to
 |------------|---------------------------------|
 | `journals` | `userId` ASC, `createdAt` DESC  |
 
+## Authentication
+
+With Firebase configured, the sign-in screen offers **Sign in with Apple** and
+**Google Sign-In**. Without it (demo mode) both providers are hidden and an
+"Explore in Demo Mode" button signs in with the local mocks.
+
+### Enabling Google Sign-In
+
+Google Sign-In needs the **reversed client id** from your
+`GoogleService-Info.plist` registered as a URL scheme so the OAuth redirect
+returns to the app. The id is per-project and the plist is not committed, so it
+is not hardcoded — wire it up manually:
+
+1. Open your `GoogleService-Info.plist` and copy the `REVERSED_CLIENT_ID` value
+   (looks like `com.googleusercontent.apps.1234567890-abc...`).
+2. In `project.yml`, set the `GOOGLE_REVERSED_CLIENT_ID` build setting on the
+   `LuminaLog` target to that value (it defaults to empty, which leaves the URL
+   scheme inert).
+3. Re-run `xcodegen generate`.
+
+The `CFBundleURLTypes` entry in `project.yml` references
+`$(GOOGLE_REVERSED_CLIENT_ID)`, and `LuminaLogApp` forwards opened URLs to
+`GIDSignIn.sharedInstance.handle(_:)`. The OAuth client id itself is read at
+runtime from `FirebaseApp.app()?.options.clientID` — no extra config needed.
+
+### Sign in with Apple
+
+The target carries the `com.apple.developer.applesignin` entitlement
+(`LuminaLog/Resources/LuminaLog.entitlements`, generated from `project.yml`).
+Building for a **device** requires a paid Apple Developer team with the
+"Sign in with Apple" capability enabled for the bundle id. Simulator builds
+with `CODE_SIGNING_ALLOWED=NO` are unaffected.
+
 ## Project layout
 
 ```

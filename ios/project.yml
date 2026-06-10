@@ -46,6 +46,14 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         ENABLE_USER_SCRIPT_SANDBOXING: false
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Set to the REVERSED_CLIENT_ID from your GoogleService-Info.plist to
+        # enable the Google Sign-In redirect (see README "Enabling Google Sign-In").
+        GOOGLE_REVERSED_CLIENT_ID: ""
+    entitlements:
+      path: LuminaLog/Resources/LuminaLog.entitlements
+      properties:
+        com.apple.developer.applesignin:
+          - Default
     info:
       path: LuminaLog/Resources/Info.plist
       properties:
@@ -62,6 +70,12 @@ targets:
         NSPhotoLibraryAddUsageDescription: "LuminaLog can save photos and videos from your journal entries back to your photo library."
         ITSAppUsesNonExemptEncryption: false
         LUMINALOG_API_URL: "http://localhost:3200"
+        # Google Sign-In redirect scheme. Resolves to the GOOGLE_REVERSED_CLIENT_ID
+        # build setting above — empty (inert) until configured per the README.
+        CFBundleURLTypes:
+          - CFBundleURLName: GoogleSignIn
+            CFBundleURLSchemes:
+              - $(GOOGLE_REVERSED_CLIENT_ID)
 
   LuminaLogTests:
     type: bundle.unit-test

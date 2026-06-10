@@ -55,6 +55,27 @@ final class FirestoreProfileRepository: ProfileRepository {
         try await userRef(uid).setData(profile.firestoreData, merge: true)
     }
 
+    func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws {
+        guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
+        let ref = userRef(uid)
+        let snapshot = try await ref.getDocument()
+        // Never overwrite an existing document — returning users keep their
+        // biography, stats, and any proxy-written fields.
+        guard !snapshot.exists else { return }
+
+        let seed = UserProfile(
+            id: uid,
+            displayName: displayName ?? "",
+            email: email ?? "",
+            photoURL: photoURL,
+            biography: "",
+            createdAt: Date(),
+            timezone: TimeZone.current.identifier,
+            stats: UserProfile.Stats()
+        )
+        try await ref.setData(seed.firestoreData)
+    }
+
     func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {
         guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
         let ref = userRef(uid)

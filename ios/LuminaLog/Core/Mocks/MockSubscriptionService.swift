@@ -33,8 +33,13 @@ final class MockSubscriptionService: SubscriptionService {
         }
     }
 
+    /// Every `setUser` argument in call order — lets tests assert that the
+    /// session keeps the subscription identity in sync with auth changes.
+    private(set) var setUserCalls: [String?] = []
+
     func setUser(_ uid: String?) async {
-        // No-op in demo mode — there is no external subscription identity.
+        // Demo mode has no external subscription identity; just record the call.
+        setUserCalls.append(uid)
     }
 
     func purchase(productId: String) async throws {
