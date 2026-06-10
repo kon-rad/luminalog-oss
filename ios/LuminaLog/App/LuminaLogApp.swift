@@ -20,7 +20,7 @@ struct LuminaLogApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
                 .environmentObject(services)
                 .tint(.accentWarm)
         }
