@@ -5,8 +5,10 @@ import SwiftUI
 /// hides the bar while the keyboard is visible.
 struct RootView: View {
 
+    @EnvironmentObject private var services: AppServices
+
     @State private var selectedTab: AppTab = .home
-    @State private var isPresentingCreate = false
+    @State private var createRequest: CreateEntryRequest?
     @State private var isKeyboardVisible = false
 
     var body: some View {
@@ -14,14 +16,24 @@ struct RootView: View {
             Color.appBackground
                 .ignoresSafeArea()
 
-            // Placeholder feature views — replaced by Tasks 4–9.
             // All tabs stay mounted so scroll positions and NavigationStack
             // paths survive tab switches; only the selected one is visible.
+            // Chats/Profile placeholders are replaced by Tasks 8–9.
             tabContent(for: .home) {
-                TabPlaceholder(title: "Home", systemImage: "house")
+                HomeView(
+                    journals: services.journals,
+                    profiles: services.profiles,
+                    ai: services.ai,
+                    onStartJournaling: { prompt in
+                        createRequest = CreateEntryRequest(promptText: prompt)
+                    },
+                    onShowMore: {
+                        selectedTab = .journal
+                    }
+                )
             }
             tabContent(for: .journal) {
-                TabPlaceholder(title: "Journal", systemImage: "book")
+                JournalListView(journals: services.journals)
             }
             tabContent(for: .chats) {
                 TabPlaceholder(title: "Chats", systemImage: "bubble.left.and.bubble.right")
@@ -33,7 +45,7 @@ struct RootView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !isKeyboardVisible {
                 AppTabBar(selectedTab: $selectedTab) {
-                    isPresentingCreate = true
+                    createRequest = CreateEntryRequest()
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -44,8 +56,8 @@ struct RootView: View {
                 DemoModeChip()
             }
         }
-        .fullScreenCover(isPresented: $isPresentingCreate) {
-            CreatePlaceholderView()
+        .fullScreenCover(item: $createRequest) { request in
+            CreatePlaceholderView(request: request)
         }
     }
 
@@ -64,7 +76,7 @@ struct RootView: View {
     }
 }
 
-// MARK: - Placeholders (replaced by Tasks 4–9)
+// MARK: - Placeholders (replaced by Tasks 6–9)
 
 private struct TabPlaceholder: View {
     let title: String
@@ -86,8 +98,11 @@ private struct TabPlaceholder: View {
 }
 
 /// Full-screen placeholder for the Create flow (built in Task 7).
+/// Shows the seeded prompt so the Home CTA hand-off is visible already.
 private struct CreatePlaceholderView: View {
     @Environment(\.dismiss) private var dismiss
+
+    let request: CreateEntryRequest
 
     var body: some View {
         ZStack {
@@ -101,6 +116,14 @@ private struct CreatePlaceholderView: View {
                 Text("Create — coming in Task 7")
                     .font(.sectionHeader)
                     .foregroundStyle(Color.textPrimary)
+
+                if let prompt = request.promptText {
+                    Text("\u{201C}\(prompt)\u{201D}")
+                        .font(.promptQuoteCompact)
+                        .foregroundStyle(Color.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Spacing.l)
+                }
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -138,9 +161,11 @@ private struct DemoModeChip: View {
 
 #Preview("Light") {
     RootView()
+        .environmentObject(AppServices.mocks())
 }
 
 #Preview("Dark") {
     RootView()
+        .environmentObject(AppServices.mocks())
         .preferredColorScheme(.dark)
 }

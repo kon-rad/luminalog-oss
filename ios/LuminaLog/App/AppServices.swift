@@ -64,9 +64,15 @@ final class AppServices: ObservableObject {
     }
 
     /// All-mock wiring — demo mode, previews, and tests.
+    ///
+    /// Screenshot/dev hook: launching with the `-demo-signed-in` argument
+    /// (e.g. `xcrun simctl launch booted com.luminalog.app -demo-signed-in`)
+    /// starts the mock auth already signed in, so automation lands directly
+    /// on Home without tapping through the sign-in screen.
     static func mocks() -> AppServices {
-        AppServices(
-            auth: MockAuthService(),
+        let startSignedIn = ProcessInfo.processInfo.arguments.contains("-demo-signed-in")
+        return AppServices(
+            auth: MockAuthService(signedIn: startSignedIn),
             journals: MockJournalRepository(),
             profiles: MockProfileRepository(),
             chats: MockChatRepository(),

@@ -43,6 +43,20 @@ The real `GoogleService-Info.plist` is **never committed** (it is gitignored).
 The switch lives in `LuminaLog/App/AppConfig.swift`
 (`AppConfig.isFirebaseConfigured`).
 
+### Screenshots/dev: skip sign-in with `-demo-signed-in`
+
+In demo mode the app normally starts on the sign-in screen. For screenshot
+automation (or just faster dev loops), launch with the `-demo-signed-in`
+argument and the mock auth starts already signed in, landing directly on Home:
+
+```sh
+xcrun simctl launch booted com.luminalog.app -demo-signed-in
+```
+
+In Xcode, add `-demo-signed-in` under *Scheme → Run → Arguments Passed On
+Launch*. The hook lives in `AppServices.mocks()` and only affects mock wiring —
+it does nothing when Firebase is configured.
+
 ### Firestore composite index
 
 The journals query (`userId ==` + `order by createdAt desc` on the `journals`
