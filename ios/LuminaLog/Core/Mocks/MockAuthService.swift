@@ -1,6 +1,7 @@
 import Foundation
 
 /// In-memory `AuthService` for demo mode — starts signed in as the demo user.
+@MainActor
 final class MockAuthService: AuthService {
 
     private(set) var currentUserId: String?
@@ -15,7 +16,11 @@ final class MockAuthService: AuthService {
             let key = UUID()
             continuations[key] = continuation
             continuation.onTermination = { [weak self] _ in
-                self?.continuations[key] = nil
+                // onTermination runs off the main actor; hop back before
+                // touching main-actor state.
+                Task { @MainActor in
+                    self?.continuations[key] = nil
+                }
             }
             continuation.yield(currentUserId)
         }

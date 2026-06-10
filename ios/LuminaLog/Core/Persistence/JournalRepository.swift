@@ -2,10 +2,15 @@ import Foundation
 
 /// Read/write access to the user's journal entries
 /// (`journals` top-level collection, filtered by `userId`).
+@MainActor
 protocol JournalRepository: AnyObject {
 
     /// Live-updating stream of the most recent entries (newest first).
     /// Emits the current value immediately, then on every change.
+    ///
+    /// Streams never throw: backend errors are logged and the stream stays
+    /// silent until the next good snapshot. Streams capture the user at
+    /// creation and must be re-created on auth changes.
     func recentEntries(limit: Int) -> AsyncStream<[JournalEntry]>
 
     /// One page of entries strictly older than `after` (newest first).
@@ -14,6 +19,10 @@ protocol JournalRepository: AnyObject {
 
     /// Live-updating stream of a single entry; emits nil if it does not exist
     /// or is deleted.
+    ///
+    /// Streams never throw: backend errors are logged and the stream stays
+    /// silent until the next good snapshot. Streams capture the user at
+    /// creation and must be re-created on auth changes.
     func entry(id: String) -> AsyncStream<JournalEntry?>
 
     /// Create or overwrite an entry.

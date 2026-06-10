@@ -90,6 +90,7 @@ final class StreakCalculatorTests: XCTestCase {
         XCTAssertEqual(next.streakCount, 4)
     }
 
+    @MainActor
     func testMockProfileRepositoryRecordEntrySavedAppliesStreakAndWords() async throws {
         var profile = MockData.profile
         profile.timezone = timezone.identifier

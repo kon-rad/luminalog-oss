@@ -2,6 +2,7 @@ import Foundation
 
 /// Dependency container holding one implementation per service protocol.
 /// Built once at launch and injected into the SwiftUI environment.
+@MainActor
 final class AppServices: ObservableObject {
 
     let auth: AuthService

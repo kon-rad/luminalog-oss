@@ -1,6 +1,7 @@
 import Foundation
 
 /// `AIService` backed by the proxy API (routes per spec §4.1).
+@MainActor
 final class ProxyAIService: AIService {
 
     private let api: ProxyAPIClient

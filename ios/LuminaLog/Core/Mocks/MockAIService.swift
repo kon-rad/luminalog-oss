@@ -2,6 +2,7 @@ import Foundation
 
 /// Canned-but-plausible `AIService` for demo mode. Generations take ~1s so
 /// loading states are visible; chat replies stream word-by-word.
+@MainActor
 final class MockAIService: AIService {
 
     private let generationDelay: UInt64
@@ -40,16 +41,23 @@ final class MockAIService: AIService {
         let delay = wordDelay
         return AsyncThrowingStream { continuation in
             let task = Task {
-                // A brief "thinking" pause before the first token.
-                try await Task.sleep(nanoseconds: 600_000_000)
-                var isFirst = true
-                for word in reply.split(separator: " ") {
-                    try Task.checkCancellation()
-                    continuation.yield(isFirst ? String(word) : " " + word)
-                    isFirst = false
-                    try await Task.sleep(nanoseconds: delay)
+                do {
+                    // A brief "thinking" pause before the first token.
+                    try await Task.sleep(nanoseconds: 600_000_000)
+                    var isFirst = true
+                    for word in reply.split(separator: " ") {
+                        try Task.checkCancellation()
+                        continuation.yield(isFirst ? String(word) : " " + word)
+                        isFirst = false
+                        try await Task.sleep(nanoseconds: delay)
+                    }
+                    continuation.finish()
+                } catch is CancellationError {
+                    // Consumer walked away — end quietly.
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
                 }
-                continuation.finish()
             }
             continuation.onTermination = { _ in task.cancel() }
         }

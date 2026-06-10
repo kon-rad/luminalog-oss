@@ -17,6 +17,7 @@ enum SubscriptionError: LocalizedError {
 ///
 /// Only instantiated when a RevenueCat API key is present in Info.plist
 /// (`REVENUECAT_API_KEY`); otherwise DI falls back to the mock.
+@MainActor
 final class RevenueCatSubscriptionService: SubscriptionService {
 
     /// The single entitlement defined in the spec (§2.5).
@@ -40,6 +41,26 @@ final class RevenueCatSubscriptionService: SubscriptionService {
                 continuation.finish()
             }
             continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Align the RevenueCat identity with the signed-in Firebase user.
+    ///
+    /// Honest caveat: configure-time `appUserID` only captures whoever was
+    /// signed in at launch. The identity is truly aligned only once this is
+    /// wired to auth-state changes (sign-in → `setUser(uid)`, sign-out →
+    /// `setUser(nil)`), which happens in the auth task (Task 4).
+    func setUser(_ uid: String?) async {
+        guard Purchases.isConfigured else { return }
+        do {
+            if let uid {
+                _ = try await Purchases.shared.logIn(uid)
+            } else {
+                _ = try await Purchases.shared.logOut()
+            }
+        } catch {
+            // logOut throws for already-anonymous users; identity errors are
+            // non-fatal — the entitlement stream keeps reflecting reality.
         }
     }
 

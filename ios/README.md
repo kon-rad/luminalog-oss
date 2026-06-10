@@ -43,6 +43,19 @@ The real `GoogleService-Info.plist` is **never committed** (it is gitignored).
 The switch lives in `LuminaLog/App/AppConfig.swift`
 (`AppConfig.isFirebaseConfigured`).
 
+### Firestore composite index
+
+The journals query (`userId ==` + `order by createdAt desc` on the `journals`
+collection) requires a Firestore **composite index**. Without it the snapshot
+listener fails (the error is logged under the `firestore` OSLog category) and
+the journal list stays empty. Create it in the Firebase console — Firestore
+logs a direct creation link on first failure — or add it to
+`firestore.indexes.json`:
+
+| Collection | Fields                          |
+|------------|---------------------------------|
+| `journals` | `userId` ASC, `createdAt` DESC  |
+
 ## Project layout
 
 ```

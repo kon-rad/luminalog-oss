@@ -1,6 +1,7 @@
 import Foundation
 
 /// In-memory `ChatRepository` for demo mode and tests.
+@MainActor
 final class MockChatRepository: ChatRepository {
 
     private var chatStore: [Chat]
@@ -24,7 +25,11 @@ final class MockChatRepository: ChatRepository {
             let key = UUID()
             chatContinuations[key] = continuation
             continuation.onTermination = { [weak self] _ in
-                self?.chatContinuations[key] = nil
+                // onTermination runs off the main actor; hop back before
+                // touching main-actor state.
+                Task { @MainActor in
+                    self?.chatContinuations[key] = nil
+                }
             }
             continuation.yield(chatStore)
         }
@@ -35,7 +40,11 @@ final class MockChatRepository: ChatRepository {
             let key = UUID()
             messageContinuations[key] = (chatId, continuation)
             continuation.onTermination = { [weak self] _ in
-                self?.messageContinuations[key] = nil
+                // onTermination runs off the main actor; hop back before
+                // touching main-actor state.
+                Task { @MainActor in
+                    self?.messageContinuations[key] = nil
+                }
             }
             continuation.yield(messageStore[chatId] ?? [])
         }

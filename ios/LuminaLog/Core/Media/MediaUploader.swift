@@ -2,6 +2,7 @@ import Foundation
 
 /// Uploads media files and resolves display URLs — S3 presigned URLs via the
 /// proxy in production, local files in demo mode.
+@MainActor
 protocol MediaUploader: AnyObject {
 
     /// Upload a local file and return its stored `MediaItem`.

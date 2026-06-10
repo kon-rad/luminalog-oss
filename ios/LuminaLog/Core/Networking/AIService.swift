@@ -2,6 +2,7 @@ import Foundation
 
 /// All AI features — backed by the proxy API in production
 /// (routes per spec §4.1), canned responses in demo mode.
+@MainActor
 protocol AIService: AnyObject {
 
     /// Generate (and server-side persist) a summary for an entry.

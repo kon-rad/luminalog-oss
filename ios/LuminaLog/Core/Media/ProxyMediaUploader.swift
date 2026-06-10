@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import UIKit
+import UniformTypeIdentifiers
 
 /// Errors specific to media upload.
 enum MediaUploaderError: LocalizedError {
@@ -18,7 +19,9 @@ enum MediaUploaderError: LocalizedError {
 }
 
 /// `MediaUploader` backed by the proxy's S3 presign routes (spec §4.1, §5.3):
-/// request a presigned PUT, upload the bytes, return the stored `MediaItem`.
+/// request a presigned PUT, upload the file (streamed from disk, never fully
+/// loaded into memory), return the stored `MediaItem`.
+@MainActor
 final class ProxyMediaUploader: MediaUploader {
 
     private let api: ProxyAPIClient
@@ -26,7 +29,6 @@ final class ProxyMediaUploader: MediaUploader {
 
     /// In-memory cache of short-TTL view URLs keyed by s3Key.
     private var viewURLCache: [String: (url: URL, expiresAt: Date)] = [:]
-    private let cacheLock = NSLock()
 
     init(api: ProxyAPIClient, session: URLSession = .shared) {
         self.api = api
@@ -68,14 +70,15 @@ final class ProxyMediaUploader: MediaUploader {
     // MARK: - MediaUploader
 
     func upload(fileURL: URL, kind: MediaKind, journalId: String) async throws -> MediaItem {
-        let data = try Data(contentsOf: fileURL)
+        let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
+        let byteCount = (attributes[.size] as? NSNumber)?.intValue ?? 0
         let ext = fileURL.pathExtension.isEmpty ? Self.defaultExtension(for: kind)
                                                 : fileURL.pathExtension
 
         let response: UploadURLsResponse = try await api.post(
             path: "/v1/s3/upload-urls",
             body: UploadURLsRequest(files: [
-                .init(kind: kind.rawValue, ext: ext, bytes: data.count, journalId: journalId)
+                .init(kind: kind.rawValue, ext: ext, bytes: byteCount, journalId: journalId)
             ])
         )
         guard let presigned = response.files.first else {
@@ -84,7 +87,9 @@ final class ProxyMediaUploader: MediaUploader {
 
         var request = URLRequest(url: presigned.uploadUrl)
         request.httpMethod = "PUT"
-        let (_, uploadResponse) = try await session.upload(for: request, from: data)
+        request.setValue(Self.mimeType(forExtension: ext), forHTTPHeaderField: "Content-Type")
+        // Stream the file from disk so large videos never sit in memory.
+        let (_, uploadResponse) = try await session.upload(for: request, fromFile: fileURL)
         if let http = uploadResponse as? HTTPURLResponse,
            !(200..<300).contains(http.statusCode) {
             throw MediaUploaderError.uploadFailed(statusCode: http.statusCode)
@@ -100,8 +105,7 @@ final class ProxyMediaUploader: MediaUploader {
             path: "/v1/s3/view-urls",
             body: ViewURLsRequest(s3Keys: [s3Key])
         )
-        guard let entry = response.urls.first(where: { $0.s3Key == s3Key })
-                ?? response.urls.first else {
+        guard let entry = response.urls.first(where: { $0.s3Key == s3Key }) else {
             throw MediaUploaderError.noViewURL
         }
 
@@ -113,15 +117,11 @@ final class ProxyMediaUploader: MediaUploader {
     // MARK: - Helpers
 
     private func cachedViewURL(for s3Key: String) -> URL? {
-        cacheLock.lock()
-        defer { cacheLock.unlock() }
         guard let cached = viewURLCache[s3Key], cached.expiresAt > Date() else { return nil }
         return cached.url
     }
 
     private func cacheViewURL(_ url: URL, for s3Key: String, expiresAt: Date) {
-        cacheLock.lock()
-        defer { cacheLock.unlock() }
         viewURLCache[s3Key] = (url, expiresAt)
     }
 
@@ -131,6 +131,12 @@ final class ProxyMediaUploader: MediaUploader {
         case .video: return "mp4"
         case .audio: return "m4a"
         }
+    }
+
+    /// MIME type for the upload's `Content-Type` header, derived from the
+    /// file extension via UTType.
+    private static func mimeType(forExtension ext: String) -> String {
+        UTType(filenameExtension: ext)?.preferredMIMEType ?? "application/octet-stream"
     }
 
     /// Build a `MediaItem`, probing local metadata (dimensions, duration).

@@ -1,9 +1,14 @@
 import Foundation
 
 /// Read/write access to the signed-in user's profile (`users/{uid}`).
+@MainActor
 protocol ProfileRepository: AnyObject {
 
     /// Live-updating stream of the user profile; nil while it does not exist.
+    ///
+    /// Streams never throw: backend errors are logged and the stream stays
+    /// silent until the next good snapshot. Streams capture the user at
+    /// creation and must be re-created on auth changes.
     func profile() -> AsyncStream<UserProfile?>
 
     /// Persist profile edits (displayName, biography, photo, dailyPrompt, ...).

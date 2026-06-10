@@ -2,8 +2,11 @@ import XCTest
 @testable import LuminaLog
 
 /// The mock repository must re-emit on its streams when data changes.
+/// Tests run on the main actor because the mocks are `@MainActor` (matching
+/// the service protocols).
 final class MockJournalRepositoryTests: XCTestCase {
 
+    @MainActor
     func testSaveEmitsUpdatedRecentEntries() async throws {
         let existing = JournalEntry(
             id: "old",
@@ -42,6 +45,7 @@ final class MockJournalRepositoryTests: XCTestCase {
         XCTAssertEqual(afterDelete?.map(\.id), ["old"])
     }
 
+    @MainActor
     func testEntryStreamEmitsOnUpdate() async throws {
         let entry = JournalEntry(
             id: "e1",
@@ -65,6 +69,7 @@ final class MockJournalRepositoryTests: XCTestCase {
         XCTAssertEqual(next??.title, "After")
     }
 
+    @MainActor
     func testPaginationReturnsOnlyOlderEntries() async throws {
         let now = Date()
         let entries = (0..<5).map { index in

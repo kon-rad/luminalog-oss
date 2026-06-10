@@ -1,8 +1,12 @@
 import Foundation
+import OSLog
 import FirebaseFirestore
 
 /// `ProfileRepository` backed by `users/{uid}` (spec §3).
+@MainActor
 final class FirestoreProfileRepository: ProfileRepository {
+
+    private static let logger = Logger(subsystem: "com.luminalog.app", category: "firestore")
 
     private let db: Firestore
     private let auth: AuthService
@@ -25,8 +29,16 @@ final class FirestoreProfileRepository: ProfileRepository {
                 continuation.finish()
                 return
             }
-            let listener = self.userRef(uid).addSnapshotListener { snapshot, _ in
-                guard let snapshot else { return }
+            let listener = self.userRef(uid).addSnapshotListener { snapshot, error in
+                guard let snapshot else {
+                    // Keep the stream alive; the listener recovers on the
+                    // next good snapshot (see protocol stream convention).
+                    Self.logger.error("""
+                    profile listener error (users/\(uid, privacy: .private)): \
+                    \(error?.localizedDescription ?? "unknown", privacy: .public)
+                    """)
+                    return
+                }
                 if let data = snapshot.data() {
                     continuation.yield(UserProfile(documentId: snapshot.documentID, data: data))
                 } else {

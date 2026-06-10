@@ -3,7 +3,9 @@ import Foundation
 /// Supplies the Firebase ID token attached to every proxy request.
 /// A protocol so the client is testable without Firebase.
 protocol TokenProvider: AnyObject {
-    func idToken() async throws -> String
+    /// Returns a valid ID token, forcing a refresh against the auth backend
+    /// when `forceRefresh` is true (used to recover from HTTP 401s).
+    func idToken(forceRefresh: Bool) async throws -> String
 }
 
 /// Errors surfaced by `ProxyAPIClient`.
@@ -25,7 +27,8 @@ enum ProxyAPIError: LocalizedError {
 }
 
 /// Thin JSON/SSE client for the LuminaLog proxy API (spec §4).
-/// Attaches `Authorization: Bearer <Firebase ID token>` to every call.
+/// Attaches `Authorization: Bearer <Firebase ID token>` to every call and
+/// retries exactly once with a force-refreshed token on HTTP 401.
 final class ProxyAPIClient {
 
     private let baseURL: URL
@@ -65,7 +68,14 @@ final class ProxyAPIClient {
 
     private func postData(path: String, body: some Encodable) async throws -> Data {
         let request = try await makeRequest(path: path, body: body)
-        let (data, response) = try await session.data(for: request)
+        var (data, response) = try await session.data(for: request)
+
+        // On 401, retry exactly once with a force-refreshed token.
+        if (response as? HTTPURLResponse)?.statusCode == 401 {
+            let retryRequest = try await makeRequest(path: path, body: body, forceRefresh: true)
+            (data, response) = try await session.data(for: retryRequest)
+        }
+
         try Self.validate(response: response, data: data)
         return data
     }
@@ -81,7 +91,17 @@ final class ProxyAPIClient {
                     var request = try await self.makeRequest(path: path, body: body)
                     request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
 
-                    let (bytes, response) = try await self.session.bytes(for: request)
+                    var (bytes, response) = try await self.session.bytes(for: request)
+
+                    // On 401, retry exactly once with a force-refreshed token.
+                    if (response as? HTTPURLResponse)?.statusCode == 401 {
+                        var retryRequest = try await self.makeRequest(
+                            path: path, body: body, forceRefresh: true
+                        )
+                        retryRequest.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+                        (bytes, response) = try await self.session.bytes(for: retryRequest)
+                    }
+
                     if let http = response as? HTTPURLResponse,
                        !(200..<300).contains(http.statusCode) {
                         throw ProxyAPIError.httpError(statusCode: http.statusCode, body: "")
@@ -106,14 +126,20 @@ final class ProxyAPIClient {
 
     // MARK: - Helpers
 
-    private func makeRequest(path: String, body: some Encodable) async throws -> URLRequest {
-        guard let url = URL(string: path, relativeTo: baseURL) else {
-            throw ProxyAPIError.invalidURL(path)
-        }
+    private func makeRequest(
+        path: String,
+        body: some Encodable,
+        forceRefresh: Bool = false
+    ) async throws -> URLRequest {
+        // Append to the base URL's path so a base URL with a path prefix
+        // (e.g. https://api.example.com/luminalog) is preserved. Route
+        // constants use a leading "/" which appendingPathComponent handles.
+        let component = path.hasPrefix("/") ? String(path.dropFirst()) : path
+        let url = baseURL.appendingPathComponent(component)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let token = try await tokenProvider.idToken()
+        let token = try await tokenProvider.idToken(forceRefresh: forceRefresh)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.httpBody = try encoder.encode(body)
         return request

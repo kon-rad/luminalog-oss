@@ -2,6 +2,7 @@ import Foundation
 
 /// In-memory `ProfileRepository` for demo mode and tests.
 /// Uses the same `StreakCalculator` as the Firestore implementation.
+@MainActor
 final class MockProfileRepository: ProfileRepository {
 
     private var storedProfile: UserProfile?
@@ -18,7 +19,11 @@ final class MockProfileRepository: ProfileRepository {
             let key = UUID()
             continuations[key] = continuation
             continuation.onTermination = { [weak self] _ in
-                self?.continuations[key] = nil
+                // onTermination runs off the main actor; hop back before
+                // touching main-actor state.
+                Task { @MainActor in
+                    self?.continuations[key] = nil
+                }
             }
             continuation.yield(storedProfile)
         }

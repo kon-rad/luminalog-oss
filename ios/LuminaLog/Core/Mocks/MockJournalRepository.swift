@@ -2,6 +2,7 @@ import Foundation
 
 /// In-memory `JournalRepository` for demo mode and tests.
 /// Streams re-emit whenever the backing store changes.
+@MainActor
 final class MockJournalRepository: JournalRepository {
 
     private var store: [JournalEntry]
@@ -20,7 +21,11 @@ final class MockJournalRepository: JournalRepository {
             let key = UUID()
             listContinuations[key] = (limit, continuation)
             continuation.onTermination = { [weak self] _ in
-                self?.listContinuations[key] = nil
+                // onTermination runs off the main actor; hop back before
+                // touching main-actor state.
+                Task { @MainActor in
+                    self?.listContinuations[key] = nil
+                }
             }
             continuation.yield(Array(store.prefix(limit)))
         }
@@ -41,7 +46,11 @@ final class MockJournalRepository: JournalRepository {
             let key = UUID()
             entryContinuations[key] = (id, continuation)
             continuation.onTermination = { [weak self] _ in
-                self?.entryContinuations[key] = nil
+                // onTermination runs off the main actor; hop back before
+                // touching main-actor state.
+                Task { @MainActor in
+                    self?.entryContinuations[key] = nil
+                }
             }
             continuation.yield(store.first { $0.id == id })
         }

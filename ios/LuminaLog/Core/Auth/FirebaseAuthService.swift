@@ -5,6 +5,7 @@ import FirebaseAuth
 ///
 /// The interactive Apple/Google sign-in handshakes are wired up in the auth
 /// UI task; until then those methods throw `notImplemented`.
+@MainActor
 final class FirebaseAuthService: AuthService {
 
     var currentUserId: String? {
@@ -49,10 +50,18 @@ final class FirebaseAuthService: AuthService {
 /// `TokenProvider` that vends the signed-in Firebase user's ID token.
 final class FirebaseTokenProvider: TokenProvider {
 
-    func idToken() async throws -> String {
+    func idToken(forceRefresh: Bool) async throws -> String {
         guard let user = Auth.auth().currentUser else {
             throw AuthServiceError.notSignedIn
         }
-        return try await user.getIDToken()
+        return try await withCheckedThrowingContinuation { continuation in
+            user.getIDTokenForcingRefresh(forceRefresh) { token, error in
+                if let token {
+                    continuation.resume(returning: token)
+                } else {
+                    continuation.resume(throwing: error ?? AuthServiceError.notSignedIn)
+                }
+            }
+        }
     }
 }

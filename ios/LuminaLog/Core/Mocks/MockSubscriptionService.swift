@@ -1,6 +1,7 @@
 import Foundation
 
 /// In-memory `SubscriptionService` for demo mode — purchases succeed instantly.
+@MainActor
 final class MockSubscriptionService: SubscriptionService {
 
     private var entitlement: Entitlement
@@ -22,10 +23,18 @@ final class MockSubscriptionService: SubscriptionService {
             let key = UUID()
             continuations[key] = continuation
             continuation.onTermination = { [weak self] _ in
-                self?.continuations[key] = nil
+                // onTermination runs off the main actor; hop back before
+                // touching main-actor state.
+                Task { @MainActor in
+                    self?.continuations[key] = nil
+                }
             }
             continuation.yield(entitlement)
         }
+    }
+
+    func setUser(_ uid: String?) async {
+        // No-op in demo mode — there is no external subscription identity.
     }
 
     func purchase(productId: String) async throws {

@@ -16,6 +16,7 @@ enum AuthServiceError: LocalizedError {
 }
 
 /// Authentication session — Firebase Auth in production, an in-memory mock in demo mode.
+@MainActor
 protocol AuthService: AnyObject {
 
     /// The signed-in user's uid, or nil when signed out.

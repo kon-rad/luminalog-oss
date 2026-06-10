@@ -1,9 +1,13 @@
 import Foundation
+import OSLog
 import FirebaseFirestore
 
 /// `ChatRepository` backed by `chats/{chatId}` and its `messages`
 /// subcollection (spec §3).
+@MainActor
 final class FirestoreChatRepository: ChatRepository {
+
+    private static let logger = Logger(subsystem: "com.luminalog.app", category: "firestore")
 
     private let db: Firestore
     private let auth: AuthService
@@ -33,8 +37,17 @@ final class FirestoreChatRepository: ChatRepository {
             let listener = self.chatsRef
                 .whereField("userId", isEqualTo: uid)
                 .order(by: "lastMessageAt", descending: true)
-                .addSnapshotListener { snapshot, _ in
-                    guard let snapshot else { return }
+                .addSnapshotListener { snapshot, error in
+                    guard let snapshot else {
+                        // Keep the stream alive; the listener recovers on the
+                        // next good snapshot (see protocol stream convention).
+                        Self.logger.error("""
+                        chats listener error (chats where userId == \(uid, privacy: .private) \
+                        order by lastMessageAt desc): \
+                        \(error?.localizedDescription ?? "unknown", privacy: .public)
+                        """)
+                        return
+                    }
                     let chats = snapshot.documents.compactMap {
                         Chat(documentId: $0.documentID, data: $0.data())
                     }
@@ -48,8 +61,17 @@ final class FirestoreChatRepository: ChatRepository {
         AsyncStream { continuation in
             let listener = self.messagesRef(chatId: chatId)
                 .order(by: "createdAt", descending: false)
-                .addSnapshotListener { snapshot, _ in
-                    guard let snapshot else { return }
+                .addSnapshotListener { snapshot, error in
+                    guard let snapshot else {
+                        // Keep the stream alive; the listener recovers on the
+                        // next good snapshot (see protocol stream convention).
+                        Self.logger.error("""
+                        messages listener error (chats/\(chatId, privacy: .private)/messages \
+                        order by createdAt asc): \
+                        \(error?.localizedDescription ?? "unknown", privacy: .public)
+                        """)
+                        return
+                    }
                     let messages = snapshot.documents.compactMap {
                         ChatMessage(documentId: $0.documentID, data: $0.data())
                     }

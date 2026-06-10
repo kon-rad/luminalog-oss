@@ -1,9 +1,16 @@
 import Foundation
+import OSLog
 import FirebaseFirestore
 
 /// `JournalRepository` backed by the top-level `journals` collection,
 /// always filtered by the signed-in user's id (spec §3).
+///
+/// Note: the recent-entries query (`userId ==` + `order by createdAt desc`)
+/// requires a Firestore composite index (see README).
+@MainActor
 final class FirestoreJournalRepository: JournalRepository {
+
+    private static let logger = Logger(subsystem: "com.luminalog.app", category: "firestore")
 
     private let db: Firestore
     private let auth: AuthService
@@ -30,8 +37,17 @@ final class FirestoreJournalRepository: JournalRepository {
                 .whereField("userId", isEqualTo: uid)
                 .order(by: "createdAt", descending: true)
                 .limit(to: limit)
-                .addSnapshotListener { snapshot, _ in
-                    guard let snapshot else { return }
+                .addSnapshotListener { snapshot, error in
+                    guard let snapshot else {
+                        // Keep the stream alive; the listener recovers on the
+                        // next good snapshot (see protocol stream convention).
+                        Self.logger.error("""
+                        recentEntries listener error (journals where userId == \(uid, privacy: .private) \
+                        order by createdAt desc limit \(limit)): \
+                        \(error?.localizedDescription ?? "unknown", privacy: .public)
+                        """)
+                        return
+                    }
                     let entries = snapshot.documents.compactMap {
                         JournalEntry(documentId: $0.documentID, data: $0.data())
                     }
@@ -58,8 +74,16 @@ final class FirestoreJournalRepository: JournalRepository {
     func entry(id: String) -> AsyncStream<JournalEntry?> {
         AsyncStream { continuation in
             let listener = self.journals.document(id)
-                .addSnapshotListener { snapshot, _ in
-                    guard let snapshot else { return }
+                .addSnapshotListener { snapshot, error in
+                    guard let snapshot else {
+                        // Keep the stream alive; the listener recovers on the
+                        // next good snapshot (see protocol stream convention).
+                        Self.logger.error("""
+                        entry listener error (journals/\(id, privacy: .private)): \
+                        \(error?.localizedDescription ?? "unknown", privacy: .public)
+                        """)
+                        return
+                    }
                     if let data = snapshot.data() {
                         continuation.yield(JournalEntry(documentId: snapshot.documentID, data: data))
                     } else {

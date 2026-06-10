@@ -2,6 +2,7 @@ import Foundation
 
 /// `MediaUploader` for demo mode: "uploads" by copying the file into the
 /// app's Documents directory and uses the local path as the s3Key.
+@MainActor
 final class MockMediaUploader: MediaUploader {
 
     private let directory: URL
