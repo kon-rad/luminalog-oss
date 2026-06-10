@@ -88,7 +88,10 @@ struct CreateEntryView: View {
             Task { await loadLibraryVideo(item) }
         }
         .confirmationDialog("Discard this entry?", isPresented: $showDiscardDialog, titleVisibility: .visible) {
-            Button("Discard", role: .destructive) { dismiss() }
+            Button("Discard", role: .destructive) {
+                viewModel.cleanupTempFiles()
+                dismiss()
+            }
             Button("Keep Editing", role: .cancel) {}
         } message: {
             Text("Your writing and attachments will be lost.")
@@ -118,14 +121,19 @@ struct CreateEntryView: View {
                 if let pendingVideo { viewModel.attachVideo(pendingVideo) }
                 pendingVideo = nil
             }
-            Button("Cancel", role: .cancel) { pendingVideo = nil }
+            Button("Cancel", role: .cancel) {
+                if let pendingVideo {
+                    viewModel.discardUnattachedVideo(pendingVideo)
+                }
+                pendingVideo = nil
+            }
         } message: {
             Text("A video entry replaces attached photos and voice recordings.")
         }
         .alert("Replace the recording?", isPresented: $confirmReplaceRecording) {
             Button("Re-record", role: .destructive) {
-                viewModel.attachments.removeAudio()
-                Task { await recorder.start() }
+                viewModel.removeAudio()
+                startRecording()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -168,6 +176,7 @@ struct CreateEntryView: View {
                     if viewModel.hasUnsavedContent {
                         showDiscardDialog = true
                     } else {
+                        viewModel.cleanupTempFiles()
                         dismiss()
                     }
                 } label: {
@@ -315,9 +324,9 @@ struct CreateEntryView: View {
                 AttachmentStrip(
                     attachments: viewModel.attachments,
                     isDisabled: viewModel.isSaving,
-                    onRemovePhoto: { viewModel.attachments.removePhoto(id: $0) },
-                    onRemoveVideo: { viewModel.attachments.removeVideo() },
-                    onRemoveAudio: { viewModel.attachments.removeAudio() }
+                    onRemovePhoto: { viewModel.removePhoto(id: $0) },
+                    onRemoveVideo: { viewModel.removeVideo() },
+                    onRemoveAudio: { viewModel.removeAudio() }
                 )
                 .padding(.bottom, Spacing.s)
             }
@@ -353,7 +362,18 @@ struct CreateEntryView: View {
             return
         }
         viewModel.stopDictation()
-        Task { await recorder.start() }
+        startRecording()
+    }
+
+    /// Starts the recorder and surfaces a non-permission start failure via
+    /// the inline notice (permission denials show the Settings alert).
+    private func startRecording() {
+        Task {
+            let started = await recorder.start()
+            if !started, !recorder.permissionDenied {
+                viewModel.attachmentNotice = "Recording couldn't start. Please try again."
+            }
+        }
     }
 
     private func addPickedPhotos(_ dataItems: [Data]) {
@@ -368,10 +388,18 @@ struct CreateEntryView: View {
 
     private func loadLibraryPhotos(_ items: [PhotosPickerItem]) async {
         var dataItems: [Data] = []
+        var failureCount = 0
         for item in items {
             if let data = try? await item.loadTransferable(type: Data.self) {
                 dataItems.append(data)
+            } else {
+                failureCount += 1
             }
+        }
+        if failureCount > 0 {
+            viewModel.attachmentNotice = failureCount == 1
+                ? "1 photo couldn't be added."
+                : "\(failureCount) photos couldn't be added."
         }
         addPickedPhotos(dataItems)
     }

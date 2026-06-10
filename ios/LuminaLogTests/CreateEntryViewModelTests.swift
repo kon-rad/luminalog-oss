@@ -47,15 +47,39 @@ final class CreateEntryViewModelTests: XCTestCase {
         struct UploadError: Error {}
 
         private(set) var uploads: [(kind: MediaKind, journalId: String)] = []
+        /// Total `upload` calls, including failed ones.
+        private(set) var uploadCalls = 0
         var shouldFail = false
+        /// 0-based call indexes that throw (for partial-failure scenarios).
+        var failingCalls: Set<Int> = []
 
         func upload(fileURL: URL, kind: MediaKind, journalId: String) async throws -> MediaItem {
-            if shouldFail { throw UploadError() }
+            let call = uploadCalls
+            uploadCalls += 1
+            if shouldFail || failingCalls.contains(call) { throw UploadError() }
             uploads.append((kind, journalId))
             return MediaItem(s3Key: "spy/\(kind.rawValue)/\(uploads.count)", kind: kind)
         }
         func viewURL(for s3Key: String) async throws -> URL {
             URL(fileURLWithPath: "/dev/null")
+        }
+    }
+
+    /// Records `extractAudio` calls and returns a scripted URL.
+    @MainActor
+    private final class SpyAudioExtractor {
+        private(set) var extractedFrom: [URL] = []
+        var result: URL
+        var error: Error?
+
+        init(result: URL) {
+            self.result = result
+        }
+
+        func extract(_ url: URL) async throws -> URL {
+            extractedFrom.append(url)
+            if let error { throw error }
+            return result
         }
     }
 
@@ -70,6 +94,7 @@ final class CreateEntryViewModelTests: XCTestCase {
         let media: SpyMediaUploader
         let speech: MockSpeechTranscriber
         let ocr: MockOCRService
+        let extractor: SpyAudioExtractor
 
         init(promptText: String? = nil) {
             journals = MockJournalRepository(entries: [])
@@ -78,6 +103,11 @@ final class CreateEntryViewModelTests: XCTestCase {
             media = SpyMediaUploader()
             speech = MockSpeechTranscriber()
             ocr = MockOCRService()
+            let extractor = SpyAudioExtractor(
+                result: FileManager.default.temporaryDirectory
+                    .appendingPathComponent("extracted-\(UUID().uuidString).m4a")
+            )
+            self.extractor = extractor
             viewModel = CreateEntryViewModel(
                 request: CreateEntryRequest(promptText: promptText),
                 dependencies: CreateEntryDependencies(
@@ -87,7 +117,8 @@ final class CreateEntryViewModelTests: XCTestCase {
                     ai: ai,
                     media: media,
                     speech: speech,
-                    ocr: ocr
+                    ocr: ocr,
+                    extractAudio: { try await extractor.extract($0) }
                 )
             )
         }
@@ -208,6 +239,79 @@ final class CreateEntryViewModelTests: XCTestCase {
         XCTAssertEqual(entry.media.map(\.kind), [.audio], "Media still uploads on STT failure")
     }
 
+    // MARK: - Video save (audio extraction + STT)
+
+    @MainActor
+    func testVideoSaveExtractsAudioAndTranscribes() async throws {
+        let harness = Harness()
+        harness.speech.fileTranscript = "We hiked the ridge at dawn."
+        let videoURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).mov")
+        harness.viewModel.attachVideo(VideoAttachment(url: videoURL, durationSec: 31))
+
+        await harness.viewModel.save()
+
+        let entry = try await harness.savedEntry()
+        XCTAssertEqual(harness.extractor.extractedFrom, [videoURL], "Audio is extracted from the attached video")
+        XCTAssertEqual(
+            harness.speech.transcribedFileURLs,
+            [harness.extractor.result],
+            "STT runs on the extracted audio file"
+        )
+        XCTAssertEqual(entry.type, .video)
+        XCTAssertEqual(entry.content, "We hiked the ridge at dawn.")
+        XCTAssertEqual(entry.transcriptStatus, .ready)
+        XCTAssertEqual(entry.media.map(\.kind), [.video])
+        XCTAssertEqual(entry.media.first?.durationSec, 31)
+    }
+
+    // MARK: - Temp file lifecycle
+
+    @MainActor
+    func testRemoveAudioDeletesBackingFile() async throws {
+        let harness = Harness()
+        let url = tempAudioURL()
+        try Data([0x01]).write(to: url)
+        harness.viewModel.attachAudio(AudioAttachment(url: url, durationSec: 3))
+
+        harness.viewModel.removeAudio()
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
+        XCTAssertTrue(harness.viewModel.attachments.isEmpty)
+    }
+
+    @MainActor
+    func testSaveSuccessCleansUpStagedTempFiles() async throws {
+        let harness = Harness()
+        let photo = PhotoAttachment(imageData: Data([0x01]))
+        harness.viewModel.addPhotos([photo])
+
+        await harness.viewModel.save()
+
+        XCTAssertTrue(harness.viewModel.didSave)
+        let photoTempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(photo.id.uuidString).jpg")
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: photoTempURL.path),
+            "The photo's temporary upload file is deleted after a successful save"
+        )
+    }
+
+    @MainActor
+    func testCleanupTempFilesDeletesAttachmentBackingFiles() async throws {
+        let harness = Harness()
+        let url = tempAudioURL()
+        try Data([0x01]).write(to: url)
+        harness.viewModel.attachAudio(AudioAttachment(url: url, durationSec: 4))
+
+        harness.viewModel.cleanupTempFiles()
+
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: url.path),
+            "Discarding the draft deletes the recording's backing file"
+        )
+    }
+
     // MARK: - Upload failure
 
     @MainActor
@@ -230,6 +334,37 @@ final class CreateEntryViewModelTests: XCTestCase {
         let entry = try await harness.savedEntry()
         XCTAssertTrue(harness.viewModel.didSave)
         XCTAssertEqual(harness.media.uploads.first?.journalId, entry.id)
+    }
+
+    @MainActor
+    func testRetryOnlyReuploadsFailedItemsAndSkipsRederivation() async throws {
+        let harness = Harness()
+        harness.ocr.scriptedTexts = ["Page one.", "Page two."]
+        harness.viewModel.addPhotos([
+            PhotoAttachment(imageData: Data([0x01])),
+            PhotoAttachment(imageData: Data([0x02])),
+        ])
+        harness.media.failingCalls = [1] // first photo uploads, second fails
+
+        await harness.viewModel.save()
+        XCTAssertNotNil(harness.viewModel.saveError)
+        XCTAssertEqual(harness.media.uploadCalls, 2)
+        XCTAssertEqual(harness.ocr.recognizeCalls, 2)
+
+        await harness.viewModel.save()
+
+        let entry = try await harness.savedEntry()
+        XCTAssertTrue(harness.viewModel.didSave)
+        XCTAssertEqual(
+            harness.media.uploadCalls, 3,
+            "Retry re-uploads only the photo that failed; the cached upload is reused"
+        )
+        XCTAssertEqual(entry.media.count, 2)
+        XCTAssertEqual(entry.content, "Page one.\n\nPage two.")
+        XCTAssertEqual(
+            harness.ocr.recognizeCalls, 2,
+            "Derived content is cached across retries — OCR doesn't run again"
+        )
     }
 
     // MARK: - Type determination rules

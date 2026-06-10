@@ -43,7 +43,10 @@ final class AudioRecorderController: NSObject, ObservableObject {
                 AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
             ]
             let recorder = try AVAudioRecorder(url: url, settings: settings)
-            guard recorder.record() else { return false }
+            guard recorder.record() else {
+                deactivateSession()
+                return false
+            }
 
             self.recorder = recorder
             isRecording = true
@@ -56,8 +59,15 @@ final class AudioRecorderController: NSObject, ObservableObject {
             }
             return true
         } catch {
+            // Don't hold the activated session when the start failed.
+            deactivateSession()
             return false
         }
+    }
+
+    private func deactivateSession() {
+        try? AVAudioSession.sharedInstance()
+            .setActive(false, options: .notifyOthersOnDeactivation)
     }
 
     /// Stops recording and returns the finished attachment (nil when nothing

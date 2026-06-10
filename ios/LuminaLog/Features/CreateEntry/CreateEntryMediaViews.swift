@@ -243,6 +243,7 @@ struct MediaRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(isRecording ? "Stop recording" : "Record voice entry")
+            .accessibilityValue(isRecording ? recordingLabel : "")
 
             if !isRecording {
                 Button(action: onPhoto) {

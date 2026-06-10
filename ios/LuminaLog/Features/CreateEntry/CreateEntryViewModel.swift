@@ -14,6 +14,9 @@ struct CreateEntryDependencies {
     let media: MediaUploader
     let speech: SpeechTranscriber
     let ocr: OCRService
+    /// Extracts a video's audio track to a temp file for transcription.
+    /// Injected so tests can exercise the video save path without AVFoundation.
+    let extractAudio: (URL) async throws -> URL
 
     init(
         auth: AuthService,
@@ -22,7 +25,8 @@ struct CreateEntryDependencies {
         ai: AIService,
         media: MediaUploader,
         speech: SpeechTranscriber,
-        ocr: OCRService
+        ocr: OCRService,
+        extractAudio: @escaping (URL) async throws -> URL = AudioExtractor.extractAudio(from:)
     ) {
         self.auth = auth
         self.journals = journals
@@ -31,6 +35,7 @@ struct CreateEntryDependencies {
         self.media = media
         self.speech = speech
         self.ocr = ocr
+        self.extractAudio = extractAudio
     }
 
     init(services: AppServices) {
@@ -58,6 +63,7 @@ final class CreateEntryViewModel: ObservableObject {
     /// Save-progress phases shown while inputs are disabled.
     enum SavingPhase: String {
         case transcribing = "Transcribing…"
+        case readingText = "Reading text…"
         case uploading = "Uploading…"
         case saving = "Saving…"
     }
@@ -103,6 +109,18 @@ final class CreateEntryViewModel: ObservableObject {
     private var dictationSessionId = UUID()
     /// Exposed for tests to await the fire-and-forget index request.
     private(set) var indexTask: Task<Void, Never>?
+
+    // MARK: Save caches & temp-file tracking
+
+    /// Successful uploads keyed by attachment id so a save retry only
+    /// re-uploads the items that actually failed.
+    private var uploadedItems: [UUID: MediaItem] = [:]
+    /// Derived (content, transcript status) cached against a fingerprint of
+    /// the typed text + attachments so a retry doesn't redo OCR/STT.
+    private var derivedCache: (fingerprint: String, content: String, status: TranscriptStatus?)?
+    /// Temp files created for this draft (photo upload files, extracted
+    /// audio); deleted after save success or on discard.
+    private var stagedTempURLs: Set<URL> = []
 
     init(request: CreateEntryRequest, dependencies: CreateEntryDependencies) {
         let trimmedPrompt = request.promptText?
@@ -192,17 +210,91 @@ final class CreateEntryViewModel: ObservableObject {
 
     // MARK: - Attachment intents
 
+    /// Video/audio attachments are backed by temp files this flow created
+    /// (camera/library copies, recorder output), so removing or replacing an
+    /// attachment deletes its backing file immediately.
+
     func addPhotos(_ photos: [PhotoAttachment]) {
         guard !photos.isEmpty else { return }
-        attachmentNotice = attachments.addPhotos(photos)
+        let displacedAudioURL = attachments.audio?.url
+        if let notice = attachments.addPhotos(photos) {
+            attachmentNotice = notice
+        }
+        // Photos win over audio: when the rule dropped the recording, delete
+        // its backing file too.
+        if attachments.audio == nil, let displacedAudioURL {
+            deleteTempFile(at: displacedAudioURL)
+        }
     }
 
     func attachVideo(_ video: VideoAttachment) {
+        if let old = attachments.video?.url, old != video.url {
+            deleteTempFile(at: old)
+        }
+        if let oldAudio = attachments.audio?.url {
+            deleteTempFile(at: oldAudio)
+        }
         attachments.setVideo(video)
     }
 
     func attachAudio(_ audio: AudioAttachment) {
-        attachmentNotice = attachments.setAudio(audio)
+        let previousURL = attachments.audio?.url
+        let notice = attachments.setAudio(audio)
+        attachmentNotice = notice
+        if notice != nil {
+            // The recording wasn't kept (photos/video take priority).
+            deleteTempFile(at: audio.url)
+        } else if let previousURL, previousURL != audio.url {
+            deleteTempFile(at: previousURL)
+        }
+    }
+
+    func removePhoto(id: UUID) {
+        attachments.removePhoto(id: id)
+    }
+
+    func removeVideo() {
+        if let url = attachments.video?.url {
+            deleteTempFile(at: url)
+        }
+        attachments.removeVideo()
+    }
+
+    func removeAudio() {
+        if let url = attachments.audio?.url {
+            deleteTempFile(at: url)
+        }
+        attachments.removeAudio()
+    }
+
+    /// Deletes the backing file of a picked video that was never attached
+    /// (the user declined the replace confirmation).
+    func discardUnattachedVideo(_ video: VideoAttachment) {
+        deleteTempFile(at: video.url)
+    }
+
+    // MARK: - Temp file lifecycle
+
+    /// Deletes every staged temp file this draft created (photo upload files,
+    /// extracted audio) plus the backing files of still-attached video/audio.
+    /// Called after a successful save and on cancel/discard.
+    func cleanupTempFiles() {
+        var urls = stagedTempURLs
+        if let video = attachments.video { urls.insert(video.url) }
+        if let audio = attachments.audio { urls.insert(audio.url) }
+        for url in urls {
+            try? FileManager.default.removeItem(at: url)
+        }
+        stagedTempURLs.removeAll()
+    }
+
+    private func trackTempFile(_ url: URL) {
+        stagedTempURLs.insert(url)
+    }
+
+    private func deleteTempFile(at url: URL) {
+        try? FileManager.default.removeItem(at: url)
+        stagedTempURLs.remove(url)
     }
 
     // MARK: - Save pipeline (spec §5.1)
@@ -221,7 +313,11 @@ final class CreateEntryViewModel: ObservableObject {
         let type = attachments.entryType
 
         do {
-            savingPhase = type == .text ? .saving : .transcribing
+            switch type {
+            case .text: savingPhase = .saving
+            case .image: savingPhase = .readingText
+            case .voice, .video: savingPhase = .transcribing
+            }
             let derived = await deriveContent(type: type)
 
             if !attachments.isEmpty { savingPhase = .uploading }
@@ -256,6 +352,7 @@ final class CreateEntryViewModel: ObservableObject {
             indexTask = Task { await ai.requestIndex(journalId: entry.id) }
 
             savingPhase = nil
+            cleanupTempFiles()
             didSave = true
         } catch {
             savingPhase = nil
@@ -270,7 +367,29 @@ final class CreateEntryViewModel: ObservableObject {
     /// Canonical content per type (spec §5.1 step 2). STT/OCR failures don't
     /// block saving: the entry keeps the typed text with
     /// `transcriptStatus: .failed` so transcription can be retried later.
+    /// The result is cached against the current text/attachment fingerprint
+    /// so a save retry (after an upload failure) doesn't redo OCR/STT.
     private func deriveContent(type: JournalType) async -> (content: String, status: TranscriptStatus?) {
+        let fingerprint = contentFingerprint(type: type)
+        if let cached = derivedCache, cached.fingerprint == fingerprint {
+            return (cached.content, cached.status)
+        }
+        let derived = await computeDerivedContent(type: type)
+        derivedCache = (fingerprint, derived.content, derived.status)
+        return derived
+    }
+
+    /// Identifies the inputs of `deriveContent` — invalidates the cache
+    /// whenever the typed text or the attachment set changes.
+    private func contentFingerprint(type: JournalType) -> String {
+        var parts: [String] = [type.rawValue, trimmedText]
+        parts.append(contentsOf: attachments.photos.map(\.id.uuidString))
+        if let video = attachments.video { parts.append(video.id.uuidString) }
+        if let audio = attachments.audio { parts.append(audio.id.uuidString) }
+        return parts.joined(separator: "|")
+    }
+
+    private func computeDerivedContent(type: JournalType) async -> (content: String, status: TranscriptStatus?) {
         let typed = trimmedText
 
         switch type {
@@ -300,7 +419,8 @@ final class CreateEntryViewModel: ObservableObject {
             do {
                 let audioURL: URL
                 if type == .video, let video = attachments.video {
-                    audioURL = try await AudioExtractor.extractAudio(from: video.url)
+                    audioURL = try await deps.extractAudio(video.url)
+                    trackTempFile(audioURL)
                 } else if let audio = attachments.audio {
                     audioURL = audio.url
                 } else {
@@ -325,30 +445,48 @@ final class CreateEntryViewModel: ObservableObject {
     // MARK: Uploads
 
     /// Sequential uploads; any failure aborts the save (Retry/Cancel alert).
+    /// Successful uploads are cached by attachment id so a retry only
+    /// re-uploads the items that failed.
     private func uploadAttachments() async throws -> [MediaItem] {
         var items: [MediaItem] = []
         for photo in attachments.photos {
+            if let cached = uploadedItems[photo.id] {
+                items.append(cached)
+                continue
+            }
             let fileURL = try photo.writeToTemporaryFile()
+            trackTempFile(fileURL)
             var item = try await deps.media.upload(
                 fileURL: fileURL, kind: .image, journalId: draftId
             )
             item.width = photo.pixelWidth
             item.height = photo.pixelHeight
+            uploadedItems[photo.id] = item
             items.append(item)
         }
         if let video = attachments.video {
-            var item = try await deps.media.upload(
-                fileURL: video.url, kind: .video, journalId: draftId
-            )
-            item.durationSec = video.durationSec
-            items.append(item)
+            if let cached = uploadedItems[video.id] {
+                items.append(cached)
+            } else {
+                var item = try await deps.media.upload(
+                    fileURL: video.url, kind: .video, journalId: draftId
+                )
+                item.durationSec = video.durationSec
+                uploadedItems[video.id] = item
+                items.append(item)
+            }
         }
         if let audio = attachments.audio {
-            var item = try await deps.media.upload(
-                fileURL: audio.url, kind: .audio, journalId: draftId
-            )
-            item.durationSec = audio.durationSec
-            items.append(item)
+            if let cached = uploadedItems[audio.id] {
+                items.append(cached)
+            } else {
+                var item = try await deps.media.upload(
+                    fileURL: audio.url, kind: .audio, journalId: draftId
+                )
+                item.durationSec = audio.durationSec
+                uploadedItems[audio.id] = item
+                items.append(item)
+            }
         }
         return items
     }

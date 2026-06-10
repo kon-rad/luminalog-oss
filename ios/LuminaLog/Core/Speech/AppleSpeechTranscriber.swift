@@ -19,6 +19,13 @@ final class AppleSpeechTranscriber: NSObject, SpeechTranscriber {
     private var liveRequest: SFSpeechAudioBufferRecognitionRequest?
     private var liveTask: SFSpeechRecognitionTask?
     private var liveContinuation: AsyncThrowingStream<String, Error>.Continuation?
+    /// Tracks whether the input-node tap is installed so teardown can always
+    /// remove it (installing a second tap on bus 0 raises an NSException).
+    private var tapInstalled = false
+
+    /// File transcription is abandoned (with `.recognitionFailed`) after this
+    /// long so a stuck recognizer can't hang the save pipeline forever.
+    private static let fileTranscriptionTimeout: TimeInterval = 120
 
     var isAvailable: Bool {
         recognizer?.isAvailable ?? false
@@ -74,16 +81,25 @@ final class AppleSpeechTranscriber: NSObject, SpeechTranscriber {
                 inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
                     request.append(buffer)
                 }
+                tapInstalled = true
                 audioEngine.prepare()
                 try audioEngine.start()
             } catch {
                 Self.logger.error("Audio engine start failed: \(error)")
+                // Fully unwind partial setup (tap/engine/session) so the next
+                // dictation attempt can install its tap cleanly.
+                teardownAudio()
                 continuation.finish(throwing: SpeechTranscriberError.audioEngineFailed)
                 return
             }
 
             liveRequest = request
             liveContinuation = continuation
+            // If the consumer cancels or abandons the stream, tear the whole
+            // session down so the microphone isn't left hot.
+            continuation.onTermination = { [weak self] _ in
+                Task { @MainActor in self?.endLiveSession(error: nil) }
+            }
             liveTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
                 if let result {
                     continuation.yield(result.bestTranscription.formattedString)
@@ -101,16 +117,15 @@ final class AppleSpeechTranscriber: NSObject, SpeechTranscriber {
         endLiveSession(error: nil)
     }
 
-    /// Stops the engine and finishes the stream exactly once. Errors arriving
-    /// after a deliberate stop (e.g. the task's cancellation error) are
-    /// ignored because the continuation is already cleared.
+    /// Stops the engine and finishes the stream exactly once. Idempotent and
+    /// robust to partial setup, so it is safe from the failure path, stream
+    /// termination, and repeated stop calls. Errors arriving after a
+    /// deliberate stop (e.g. the task's cancellation error) are ignored
+    /// because the continuation is already cleared.
     private func endLiveSession(error: Error?) {
-        guard liveContinuation != nil || liveTask != nil else { return }
+        guard liveContinuation != nil || liveTask != nil || tapInstalled else { return }
 
-        if audioEngine.isRunning {
-            audioEngine.stop()
-        }
-        audioEngine.inputNode.removeTap(onBus: 0)
+        teardownAudio()
         liveRequest?.endAudio()
         liveTask?.cancel()
         liveTask = nil
@@ -125,7 +140,18 @@ final class AppleSpeechTranscriber: NSObject, SpeechTranscriber {
                 continuation.finish()
             }
         }
+    }
 
+    /// Stops the engine, removes the tap (only when installed), and releases
+    /// the audio session. Safe to call at any point of partial setup.
+    private func teardownAudio() {
+        if audioEngine.isRunning {
+            audioEngine.stop()
+        }
+        if tapInstalled {
+            audioEngine.inputNode.removeTap(onBus: 0)
+            tapInstalled = false
+        }
         try? AVAudioSession.sharedInstance()
             .setActive(false, options: .notifyOthersOnDeactivation)
     }
@@ -146,22 +172,81 @@ final class AppleSpeechTranscriber: NSObject, SpeechTranscriber {
             request.requiresOnDeviceRecognition = true
         }
 
-        let guard_ = ResumeGuard()
-        return try await withCheckedThrowingContinuation { continuation in
-            recognizer.recognitionTask(with: request) { result, error in
-                if let error {
-                    if guard_.claim() {
-                        Self.logger.error("File recognition failed: \(error)")
-                        continuation.resume(throwing: SpeechTranscriberError.recognitionFailed)
-                    }
-                    return
-                }
-                guard let result, result.isFinal else { return }
-                if guard_.claim() {
-                    continuation.resume(returning: result.bestTranscription.formattedString)
-                }
+        // Race recognition against a timeout; whichever loses is cancelled.
+        // A timeout throws `.recognitionFailed`, which the save pipeline
+        // degrades to a `.failed` transcript status (the entry still saves).
+        return try await withThrowingTaskGroup(of: String.self) { group in
+            group.addTask { @MainActor in
+                try await Self.runRecognition(recognizer: recognizer, request: request)
             }
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(Self.fileTranscriptionTimeout * 1_000_000_000))
+                Self.logger.error("File recognition timed out after \(Self.fileTranscriptionTimeout)s")
+                throw SpeechTranscriberError.recognitionFailed
+            }
+            defer { group.cancelAll() }
+            guard let transcript = try await group.next() else {
+                throw SpeechTranscriberError.recognitionFailed
+            }
+            return transcript
         }
+    }
+
+    /// Runs one file-recognition task, cancelling the underlying
+    /// `SFSpeechRecognitionTask` when the surrounding Swift task is cancelled
+    /// (Speech then reports an error, which resumes the continuation).
+    @MainActor
+    private static func runRecognition(
+        recognizer: SFSpeechRecognizer,
+        request: SFSpeechURLRecognitionRequest
+    ) async throws -> String {
+        let guard_ = ResumeGuard()
+        let box = RecognitionTaskBox()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                let task = recognizer.recognitionTask(with: request) { result, error in
+                    if let error {
+                        if guard_.claim() {
+                            Self.logger.error("File recognition failed: \(error)")
+                            continuation.resume(throwing: SpeechTranscriberError.recognitionFailed)
+                        }
+                        return
+                    }
+                    guard let result, result.isFinal else { return }
+                    if guard_.claim() {
+                        continuation.resume(returning: result.bestTranscription.formattedString)
+                    }
+                }
+                box.store(task)
+            }
+        } onCancel: {
+            box.cancel()
+        }
+    }
+}
+
+/// Thread-safe holder for an `SFSpeechRecognitionTask` so a cancellation
+/// handler (which may run before or after the task is created, on any thread)
+/// can always cancel it exactly once.
+private final class RecognitionTaskBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var task: SFSpeechRecognitionTask?
+    private var cancelled = false
+
+    func store(_ task: SFSpeechRecognitionTask) {
+        lock.lock()
+        self.task = task
+        let shouldCancel = cancelled
+        lock.unlock()
+        if shouldCancel { task.cancel() }
+    }
+
+    func cancel() {
+        lock.lock()
+        cancelled = true
+        let task = self.task
+        lock.unlock()
+        task?.cancel()
     }
 }
 
