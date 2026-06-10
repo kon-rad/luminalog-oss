@@ -22,6 +22,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>LUMINALOG_API_URL</key>
+	<string>http://localhost:3200</string>
 	<key>NSCameraUsageDescription</key>
 	<string>LuminaLog uses the camera so you can capture photos and videos as part of your journal entries.</string>
 	<key>NSMicrophoneUsageDescription</key>

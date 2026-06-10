@@ -5,6 +5,9 @@ import FirebaseCore
 @main
 struct LuminaLogApp: App {
 
+    // Built lazily by SwiftUI after `init()` has configured Firebase.
+    @StateObject private var services = AppServices.live()
+
     init() {
         let logger = Logger(subsystem: "com.luminalog.app", category: "startup")
         if AppConfig.isFirebaseConfigured {
@@ -18,6 +21,7 @@ struct LuminaLogApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(services)
                 .tint(.accentWarm)
         }
     }

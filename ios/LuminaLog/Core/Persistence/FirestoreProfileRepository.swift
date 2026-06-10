@@ -1,0 +1,75 @@
+import Foundation
+import FirebaseFirestore
+
+/// `ProfileRepository` backed by `users/{uid}` (spec §3).
+final class FirestoreProfileRepository: ProfileRepository {
+
+    private let db: Firestore
+    private let auth: AuthService
+
+    init(auth: AuthService, db: Firestore = .firestore()) {
+        self.auth = auth
+        self.db = db
+    }
+
+    private func userRef(_ uid: String) -> DocumentReference {
+        db.collection("users").document(uid)
+    }
+
+    // MARK: - ProfileRepository
+
+    func profile() -> AsyncStream<UserProfile?> {
+        AsyncStream { continuation in
+            guard let uid = self.auth.currentUserId else {
+                continuation.yield(nil)
+                continuation.finish()
+                return
+            }
+            let listener = self.userRef(uid).addSnapshotListener { snapshot, _ in
+                guard let snapshot else { return }
+                if let data = snapshot.data() {
+                    continuation.yield(UserProfile(documentId: snapshot.documentID, data: data))
+                } else {
+                    continuation.yield(nil)
+                }
+            }
+            continuation.onTermination = { _ in listener.remove() }
+        }
+    }
+
+    func update(_ profile: UserProfile) async throws {
+        guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
+        // Merge so proxy-written fields are never clobbered by a stale client copy.
+        try await userRef(uid).setData(profile.firestoreData, merge: true)
+    }
+
+    func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {
+        guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
+        let ref = userRef(uid)
+
+        _ = try await db.runTransaction { transaction, errorPointer in
+            let snapshot: DocumentSnapshot
+            do {
+                snapshot = try transaction.getDocument(ref)
+            } catch {
+                errorPointer?.pointee = error as NSError
+                return nil
+            }
+
+            let data = snapshot.data() ?? [:]
+            let current = UserProfile.Stats(data: data["stats"] as? [String: Any] ?? [:])
+            let timezone = (data["timezone"] as? String).flatMap(TimeZone.init(identifier:))
+                ?? .current
+
+            var next = StreakCalculator.nextStats(
+                current: current,
+                entryDate: date,
+                timezone: timezone
+            )
+            next.totalWords = current.totalWords + wordCountDelta
+
+            transaction.setData(["stats": next.firestoreData], forDocument: ref, merge: true)
+            return nil
+        }
+    }
+}

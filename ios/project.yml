@@ -60,6 +60,19 @@ targets:
         NSPhotoLibraryUsageDescription: "LuminaLog accesses your photo library so you can attach photos and videos to your journal entries."
         NSPhotoLibraryAddUsageDescription: "LuminaLog can save photos and videos from your journal entries back to your photo library."
         ITSAppUsesNonExemptEncryption: false
+        LUMINALOG_API_URL: "http://localhost:3200"
+
+  LuminaLogTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: LuminaLogTests
+    dependencies:
+      - target: LuminaLog
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luminalog.app.tests
+        GENERATE_INFOPLIST_FILE: true
 
 schemes:
   LuminaLog:
@@ -68,5 +81,8 @@ schemes:
         LuminaLog: all
     run:
       config: Debug
+    test:
+      targets:
+        - LuminaLogTests
     archive:
       config: Release
