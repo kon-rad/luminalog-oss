@@ -68,7 +68,7 @@ struct RootView: View {
             }
         }
         .fullScreenCover(item: $createRequest) { request in
-            CreatePlaceholderView(request: request)
+            CreateEntryView(request: request, services: services)
         }
     }
 
@@ -104,52 +104,6 @@ private struct TabPlaceholder: View {
             Text("Coming soon.")
                 .font(.uiBody)
                 .foregroundStyle(Color.textSecondary)
-        }
-    }
-}
-
-/// Full-screen placeholder for the Create flow (built in Task 7).
-/// Shows the seeded prompt so the Home CTA hand-off is visible already.
-private struct CreatePlaceholderView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    let request: CreateEntryRequest
-
-    var body: some View {
-        ZStack {
-            Color.appBackground
-                .ignoresSafeArea()
-
-            VStack(spacing: Spacing.m) {
-                Image(systemName: "square.and.pencil")
-                    .font(.system(size: 40, weight: .light))
-                    .foregroundStyle(Color.accentWarm.opacity(0.8))
-                Text("Create — coming in Task 7")
-                    .font(.sectionHeader)
-                    .foregroundStyle(Color.textPrimary)
-
-                if let prompt = request.promptText {
-                    Text("\u{201C}\(prompt)\u{201D}")
-                        .font(.promptQuoteCompact)
-                        .foregroundStyle(Color.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, Spacing.l)
-                }
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.textSecondary)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(Color.secondaryBackground))
-            }
-            .buttonStyle(.plain)
-            .padding(Spacing.m)
-            .accessibilityLabel("Close")
         }
     }
 }

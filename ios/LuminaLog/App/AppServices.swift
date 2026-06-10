@@ -12,6 +12,8 @@ final class AppServices: ObservableObject {
     let ai: AIService
     let media: MediaUploader
     let subscriptions: SubscriptionService
+    let speech: SpeechTranscriber
+    let ocr: OCRService
 
     init(
         auth: AuthService,
@@ -20,7 +22,9 @@ final class AppServices: ObservableObject {
         chats: ChatRepository,
         ai: AIService,
         media: MediaUploader,
-        subscriptions: SubscriptionService
+        subscriptions: SubscriptionService,
+        speech: SpeechTranscriber,
+        ocr: OCRService
     ) {
         self.auth = auth
         self.journals = journals
@@ -29,6 +33,8 @@ final class AppServices: ObservableObject {
         self.ai = ai
         self.media = media
         self.subscriptions = subscriptions
+        self.speech = speech
+        self.ocr = ocr
     }
 
     /// Production wiring when Firebase is configured; full mock wiring in
@@ -59,7 +65,9 @@ final class AppServices: ObservableObject {
             chats: FirestoreChatRepository(auth: auth),
             ai: ProxyAIService(api: api),
             media: ProxyMediaUploader(api: api),
-            subscriptions: subscriptions
+            subscriptions: subscriptions,
+            speech: AppleSpeechTranscriber(),
+            ocr: VisionOCRService()
         )
     }
 
@@ -78,7 +86,13 @@ final class AppServices: ObservableObject {
             chats: MockChatRepository(),
             ai: MockAIService(),
             media: MockMediaUploader(),
-            subscriptions: MockSubscriptionService()
+            subscriptions: MockSubscriptionService(),
+            // Speech + OCR run fully on-device with no backend, so demo mode
+            // gets the REAL implementations — dictation and OCR work without
+            // Firebase. MockSpeechTranscriber/MockOCRService are for unit
+            // tests only (deterministic scripted output).
+            speech: AppleSpeechTranscriber(),
+            ocr: VisionOCRService()
         )
     }
 }
