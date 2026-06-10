@@ -98,6 +98,10 @@ final class FirestoreChatRepository: ChatRepository {
         try await batch.commit()
     }
 
+    func updateChatTitle(id: String, title: String) async throws {
+        try await chatsRef.document(id).updateData(["title": title])
+    }
+
     func deleteChat(id: String) async throws {
         // Delete messages in pages, then the chat doc. (A proxy-side cascade
         // can replace this if message counts grow large.)

@@ -68,6 +68,12 @@ final class MockChatRepository: ChatRepository {
         broadcastChats()
     }
 
+    func updateChatTitle(id: String, title: String) async throws {
+        guard let index = chatStore.firstIndex(where: { $0.id == id }) else { return }
+        chatStore[index].title = title
+        broadcastChats()
+    }
+
     func deleteChat(id: String) async throws {
         chatStore.removeAll { $0.id == id }
         messageStore[id] = nil

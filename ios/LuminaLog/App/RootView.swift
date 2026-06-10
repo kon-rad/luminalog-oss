@@ -7,7 +7,12 @@ struct RootView: View {
 
     @EnvironmentObject private var services: AppServices
 
-    @State private var selectedTab: AppTab = .home
+    // Screenshot/dev hook (companion to `-demo-signed-in`, see AppServices):
+    // launching with `-demo-tab-<name>` (e.g. `-demo-tab-chats`) opens that
+    // tab directly so automation can capture any tab without UI scripting.
+    @State private var selectedTab: AppTab = AppTab.allCases.first {
+        ProcessInfo.processInfo.arguments.contains("-demo-tab-\($0.rawValue)")
+    } ?? .home
     @State private var createRequest: CreateEntryRequest?
     @State private var isKeyboardVisible = false
 
@@ -18,7 +23,7 @@ struct RootView: View {
 
             // All tabs stay mounted so scroll positions and NavigationStack
             // paths survive tab switches; only the selected one is visible.
-            // Chats/Profile placeholders are replaced by Tasks 8–9.
+            // The Profile placeholder is replaced by Task 9.
             tabContent(for: .home) {
                 HomeView(
                     journals: services.journals,
@@ -47,7 +52,12 @@ struct RootView: View {
                 )
             }
             tabContent(for: .chats) {
-                TabPlaceholder(title: "Chats", systemImage: "bubble.left.and.bubble.right")
+                ChatListView(
+                    chats: services.chats,
+                    ai: services.ai,
+                    speech: services.speech,
+                    voice: services.voice
+                )
             }
             tabContent(for: .profile) {
                 TabPlaceholder(title: "Profile", systemImage: "person")
@@ -87,7 +97,7 @@ struct RootView: View {
     }
 }
 
-// MARK: - Placeholders (replaced by Tasks 6–9)
+// MARK: - Placeholders (replaced by Task 9)
 
 private struct TabPlaceholder: View {
     let title: String

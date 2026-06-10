@@ -14,6 +14,7 @@ final class AppServices: ObservableObject {
     let subscriptions: SubscriptionService
     let speech: SpeechTranscriber
     let ocr: OCRService
+    let voice: VoiceCallService
 
     init(
         auth: AuthService,
@@ -24,7 +25,8 @@ final class AppServices: ObservableObject {
         media: MediaUploader,
         subscriptions: SubscriptionService,
         speech: SpeechTranscriber,
-        ocr: OCRService
+        ocr: OCRService,
+        voice: VoiceCallService
     ) {
         self.auth = auth
         self.journals = journals
@@ -35,6 +37,7 @@ final class AppServices: ObservableObject {
         self.subscriptions = subscriptions
         self.speech = speech
         self.ocr = ocr
+        self.voice = voice
     }
 
     /// Production wiring when Firebase is configured; full mock wiring in
@@ -67,7 +70,8 @@ final class AppServices: ObservableObject {
             media: ProxyMediaUploader(api: api),
             subscriptions: subscriptions,
             speech: AppleSpeechTranscriber(),
-            ocr: VisionOCRService()
+            ocr: VisionOCRService(),
+            voice: VapiVoiceCallService(api: api)
         )
     }
 
@@ -79,11 +83,12 @@ final class AppServices: ObservableObject {
     /// on Home without tapping through the sign-in screen.
     static func mocks() -> AppServices {
         let startSignedIn = ProcessInfo.processInfo.arguments.contains("-demo-signed-in")
+        let chats = MockChatRepository()
         return AppServices(
             auth: MockAuthService(signedIn: startSignedIn),
             journals: MockJournalRepository(),
             profiles: MockProfileRepository(),
-            chats: MockChatRepository(),
+            chats: chats,
             ai: MockAIService(),
             media: MockMediaUploader(),
             subscriptions: MockSubscriptionService(),
@@ -92,7 +97,10 @@ final class AppServices: ObservableObject {
             // Firebase. MockSpeechTranscriber/MockOCRService are for unit
             // tests only (deterministic scripted output).
             speech: AppleSpeechTranscriber(),
-            ocr: VisionOCRService()
+            ocr: VisionOCRService(),
+            // The scripted demo call persists its transcript through the
+            // same chat repository the Chats tab reads from.
+            voice: MockVoiceCallService(chats: chats)
         )
     }
 }

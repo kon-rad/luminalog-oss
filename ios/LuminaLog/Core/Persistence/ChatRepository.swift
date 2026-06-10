@@ -24,6 +24,9 @@ protocol ChatRepository: AnyObject {
     /// Append a message and advance the chat's `lastMessageAt`.
     func appendMessage(_ message: ChatMessage, to chatId: String) async throws
 
+    /// Rename a chat (e.g. titling a new chat after its first user message).
+    func updateChatTitle(id: String, title: String) async throws
+
     /// Delete a chat and its messages.
     func deleteChat(id: String) async throws
 }
