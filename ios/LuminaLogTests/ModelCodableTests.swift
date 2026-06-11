@@ -80,11 +80,36 @@ final class ModelCodableTests: XCTestCase {
             timezone: "America/Los_Angeles",
             stats: UserProfile.Stats(streakCount: 12, lastEntryDate: updated, totalWords: 24_310),
             dailyPrompt: UserProfile.DailyPrompt(text: "What would you protect three empty hours for?",
-                                                 date: created)
+                                                 date: created,
+                                                 sourceEntryIds: ["entry-1", "entry-2"])
         )
 
         let data = try encoder.encode(profile)
         let decoded = try decoder.decode(UserProfile.self, from: data)
         XCTAssertEqual(decoded, profile)
+        XCTAssertEqual(decoded.dailyPrompt?.sourceEntryIds, ["entry-1", "entry-2"])
+    }
+
+    func testChatMessageRoundTripWithSources() throws {
+        let message = ChatMessage(
+            id: "msg-1",
+            role: .assistant,
+            text: "You wrote about the lake twice last month.",
+            createdAt: created,
+            sources: [
+                MessageSource(journalId: "entry-1", snippet: "The dread before…"),
+                MessageSource(journalId: "entry-2", snippet: "Back at the lake."),
+            ]
+        )
+
+        let data = try encoder.encode(message)
+        let decoded = try decoder.decode(ChatMessage.self, from: data)
+        XCTAssertEqual(decoded, message)
+
+        // nil sources stay nil through a round trip.
+        let plain = ChatMessage(id: "msg-2", role: .user, text: "Hi", createdAt: created)
+        let plainDecoded = try decoder.decode(ChatMessage.self, from: try encoder.encode(plain))
+        XCTAssertEqual(plainDecoded, plain)
+        XCTAssertNil(plainDecoded.sources)
     }
 }

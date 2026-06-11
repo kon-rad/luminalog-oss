@@ -40,6 +40,9 @@ final class JournalListViewModel: ObservableObject {
     @Published private(set) var entries: [JournalEntry] = []
     @Published private(set) var isLoadingFirstPage = true
     @Published private(set) var isLoadingNextPage = false
+    /// True when the first page failed to load — the view shows an error
+    /// state with Retry instead of "No entries yet".
+    @Published private(set) var loadFailed = false
     @Published var searchText = ""
     @Published var filter: TypeFilter = .all
 
@@ -76,10 +79,20 @@ final class JournalListViewModel: ObservableObject {
         do {
             let page = try await journals.entries(after: nil, limit: pageSize)
             hasMorePages = page.count == pageSize
+            loadFailed = false
             mergeLatest(page)
         } catch {
             Self.logger.error("first page failed: \(error.localizedDescription, privacy: .public)")
+            loadFailed = true
         }
+    }
+
+    /// Retries the failed first page (the live stream from `start()` keeps
+    /// running and clears the error on its own if it recovers first).
+    func retryFirstPage() async {
+        guard loadFailed, !isLoadingFirstPage else { return }
+        isLoadingFirstPage = true
+        await loadFirstPage()
     }
 
     /// Mirrors `recentEntries` so creates/edits/deletes show up live.
@@ -96,9 +109,18 @@ final class JournalListViewModel: ObservableObject {
     // MARK: - Pagination
 
     /// Call when `entry` (the last displayed row) appears.
+    ///
+    /// With an active filter/search, a fetched page can add zero new
+    /// *displayed* rows — `onAppear` then never fires again and pagination
+    /// stalls. Keep fetching until the visible list grows, bounded to 3
+    /// auto-chained pages per trigger to avoid runaway fetching.
     func loadNextPageIfNeeded(after entry: JournalEntry) async {
         guard entry.id == displayedEntries.last?.id else { return }
-        await loadNextPage()
+        for _ in 0..<3 {
+            let displayedBefore = displayedEntries.count
+            await loadNextPage()
+            guard hasMorePages, displayedEntries.count == displayedBefore else { return }
+        }
     }
 
     func loadNextPage() async {
@@ -132,6 +154,9 @@ final class JournalListViewModel: ObservableObject {
     /// kept as-is; deletions of those older entries are not reflected until
     /// the screen is recreated (acceptable for v1).
     private func mergeLatest(_ latest: [JournalEntry]) {
+        // Any emission is authoritative good data (the streams stay silent
+        // on backend errors), so it clears a failed first page.
+        loadFailed = false
         let latestIds = Set(latest.map(\.id))
         let windowStart = latest.last?.createdAt
         let older = entries.filter { entry in

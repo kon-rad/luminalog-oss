@@ -11,10 +11,6 @@ import GoogleSignIn
 @MainActor
 final class FirebaseAuthService: AuthService {
 
-    /// Kept alive for the duration of an in-flight Apple sign-in; the
-    /// ASAuthorizationController delegate is not retained by the controller.
-    private var appleCoordinator: AppleSignInCoordinator?
-
     var currentUserId: String? {
         Auth.auth().currentUser?.uid
     }
@@ -50,9 +46,12 @@ final class FirebaseAuthService: AuthService {
         request.requestedScopes = [.fullName, .email]
         request.nonce = Self.sha256(rawNonce)
 
-        let coordinator = AppleSignInCoordinator()
-        appleCoordinator = coordinator
-        defer { appleCoordinator = nil }
+        guard let anchor = Self.keyWindow() else {
+            throw AuthServiceError.missingPresenter
+        }
+        // The local strong reference keeps the coordinator alive across the
+        // await (ASAuthorizationController does not retain its delegate).
+        let coordinator = AppleSignInCoordinator(anchor: anchor)
 
         let authorization: ASAuthorization
         do {
@@ -160,6 +159,14 @@ final class AppleSignInCoordinator: NSObject,
 
     private var continuation: CheckedContinuation<ASAuthorization, Error>?
 
+    /// The window the provider sheet presents from, validated by the caller
+    /// before the flow starts (no detached-anchor fallback).
+    private let anchor: ASPresentationAnchor
+
+    init(anchor: ASPresentationAnchor) {
+        self.anchor = anchor
+    }
+
     @MainActor
     func performRequest(_ request: ASAuthorizationAppleIDRequest) async throws -> ASAuthorization {
         try await withCheckedThrowingContinuation { continuation in
@@ -188,10 +195,7 @@ final class AppleSignInCoordinator: NSObject,
     }
 
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        // Called on the main thread by AuthenticationServices.
-        MainActor.assumeIsolated {
-            FirebaseAuthService.keyWindow() ?? ASPresentationAnchor()
-        }
+        anchor
     }
 }
 

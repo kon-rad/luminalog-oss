@@ -61,8 +61,8 @@ final class ChatViewModel: ObservableObject {
     /// can't cause a second rename.
     private var hasUpdatedTitle = false
 
-    /// Exposed for tests to await dictation-stream consumption.
-    private(set) var dictationTask: Task<Void, Never>?
+    /// The in-flight dictation stream consumer; cancelled in deinit.
+    private var dictationTask: Task<Void, Never>?
     /// Identifies the current dictation session so a finishing old session
     /// can never clobber the state/text of a newer one.
     private var dictationSessionId = UUID()

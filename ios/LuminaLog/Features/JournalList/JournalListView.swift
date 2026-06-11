@@ -67,6 +67,14 @@ struct JournalListView: View {
     private var content: some View {
         if viewModel.isLoadingFirstPage {
             skeletonRows
+        } else if viewModel.loadFailed && viewModel.entries.isEmpty {
+            EmptyStateView(
+                systemImage: "wifi.exclamationmark",
+                title: "Couldn't load your journal",
+                message: "Something went wrong loading your entries. Check your connection and try again.",
+                actionTitle: "Retry",
+                action: { Task { await viewModel.retryFirstPage() } }
+            )
         } else if viewModel.entries.isEmpty {
             EmptyStateView(
                 systemImage: "book.closed",

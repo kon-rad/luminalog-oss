@@ -197,11 +197,17 @@ extension UserProfile.DailyPrompt {
 
     init?(data: [String: Any]?) {
         guard let data, let text = data["text"] as? String else { return nil }
-        self.init(text: text, date: timestamp(data["date"]) ?? Date())
+        self.init(
+            text: text,
+            date: timestamp(data["date"]) ?? Date(),
+            sourceEntryIds: data["sourceEntryIds"] as? [String]
+        )
     }
 
     var firestoreData: [String: Any] {
-        ["text": text, "date": Timestamp(date: date)]
+        var data: [String: Any] = ["text": text, "date": Timestamp(date: date)]
+        if let sourceEntryIds { data["sourceEntryIds"] = sourceEntryIds }
+        return data
     }
 }
 
@@ -247,19 +253,39 @@ extension ChatMessage {
             let role = MessageRole(rawValue: roleRaw),
             let text = data["text"] as? String
         else { return nil }
+        let sources = (data["sources"] as? [[String: Any]])?
+            .compactMap(MessageSource.init(data:))
         self.init(
             id: documentId,
             role: role,
             text: text,
-            createdAt: timestamp(data["createdAt"]) ?? Date()
+            createdAt: timestamp(data["createdAt"]) ?? Date(),
+            sources: sources
         )
     }
 
     var firestoreData: [String: Any] {
-        [
+        var data: [String: Any] = [
             "role": role.rawValue,
             "text": text,
             "createdAt": Timestamp(date: createdAt),
         ]
+        if let sources { data["sources"] = sources.map(\.firestoreData) }
+        return data
+    }
+}
+
+extension MessageSource {
+
+    init?(data: [String: Any]) {
+        guard
+            let journalId = data["journalId"] as? String,
+            let snippet = data["snippet"] as? String
+        else { return nil }
+        self.init(journalId: journalId, snippet: snippet)
+    }
+
+    var firestoreData: [String: Any] {
+        ["journalId": journalId, "snippet": snippet]
     }
 }

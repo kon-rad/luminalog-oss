@@ -13,6 +13,10 @@ final class ProfileViewModel: ObservableObject {
     /// nothing is truncated or blocked.
     static let bioSoftLimit = 500
 
+    /// Sentinel `journalId` for media that belongs to the profile rather
+    /// than a journal entry (avatar uploads share the journal-media path).
+    static let avatarJournalId = "profile"
+
     // MARK: Live state
 
     @Published private(set) var profile: UserProfile?
@@ -31,6 +35,7 @@ final class ProfileViewModel: ObservableObject {
 
     // MARK: Activity & errors
 
+    @Published private(set) var isSavingName = false
     @Published private(set) var isSavingBio = false
     @Published private(set) var isDeletingAccount = false
     @Published var errorMessage: String?
@@ -141,17 +146,20 @@ final class ProfileViewModel: ObservableObject {
         }
         let key = photoURL.absoluteString
         guard key != resolvedPhotoKey else { return }
-        resolvedPhotoKey = key
 
         if photoURL.scheme == "http" || photoURL.scheme == "https" {
+            resolvedPhotoKey = key
             avatarURL = photoURL
             return
         }
         Task { [weak self] in
             guard let self else { return }
-            let resolved = try? await self.media.viewURL(for: key)
-            // Only publish if this resolution is still the latest one.
-            if self.resolvedPhotoKey == key {
+            // `resolvedPhotoKey` is only set on success, so a failed
+            // resolution never latches — the next emission retries.
+            guard let resolved = try? await self.media.viewURL(for: key) else { return }
+            // Only publish if the profile still points at this photo.
+            if self.profile?.photoURL?.absoluteString == key {
+                self.resolvedPhotoKey = key
                 self.avatarURL = resolved
             }
         }
@@ -171,7 +179,7 @@ final class ProfileViewModel: ObservableObject {
 
         do {
             try imageData.write(to: fileURL)
-            let item = try await media.upload(fileURL: fileURL, kind: .image, journalId: "profile")
+            let item = try await media.upload(fileURL: fileURL, kind: .image, journalId: Self.avatarJournalId)
             updated.photoURL = URL(string: item.s3Key)
             try await profiles.update(updated)
         } catch {
@@ -195,8 +203,13 @@ final class ProfileViewModel: ObservableObject {
 
     /// Saves the edited display name on submit. Empty input reverts to the
     /// stored name; an unchanged name doesn't hit the repository.
+    ///
+    /// `isSavingName` guards the double-fire from `.onSubmit` + focus-loss
+    /// (pressing ⏎ also resigns focus) so only one repository write happens.
     func saveDisplayName() async {
-        guard var updated = profile else { return }
+        guard var updated = profile, !isSavingName else { return }
+        isSavingName = true
+        defer { isSavingName = false }
         let trimmed = displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             displayNameDraft = updated.displayName

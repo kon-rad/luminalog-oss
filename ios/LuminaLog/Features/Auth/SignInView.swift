@@ -74,7 +74,7 @@ struct SignInView: View {
     private var appleButton: some View {
         SignInWithAppleButton(.signIn, onRequest: { _ in }, onCompletion: { _ in })
             .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-            .frame(height: 50)
+            .frame(minHeight: 50)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
             .allowsHitTesting(false)
             .accessibilityHidden(true)
@@ -98,7 +98,7 @@ struct SignInView: View {
                 .font(.uiBody.weight(.medium))
                 .foregroundStyle(Color.textPrimary)
                 .frame(maxWidth: .infinity)
-                .frame(height: 50)
+                .frame(minHeight: 50)
                 .background(
                     RoundedRectangle(cornerRadius: CornerRadius.medium)
                         .fill(Color.cardBackground)
@@ -127,7 +127,7 @@ struct SignInView: View {
             }
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
-            .frame(height: 50)
+            .frame(minHeight: 50)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.medium)
                     .fill(Color.accentWarm)

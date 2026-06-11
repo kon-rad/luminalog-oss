@@ -2,6 +2,59 @@
 
 AI-powered journaling app. Native SwiftUI, iOS 17+.
 
+## What's implemented
+
+- **Auth** — Sign in with Apple + Google Sign-In (Firebase Auth), session
+  routing, first-sign-in user document seeding.
+- **Home** — time-aware greeting, AI daily-prompt hero card, streak/word
+  stat cards, latest 10 entries with live updates.
+- **Journal list** — search, type filter chips, date-grouped sections,
+  infinite scroll with filter-aware page chaining, load-failure retry state.
+- **Journal detail** — Main / Insights / Prompts tabs across the four entry
+  types (text, voice, video, image), media viewers, audio playback,
+  on-demand AI summary/insights/prompts.
+- **Create entry** — rich editor, live dictation (Apple Speech), camera and
+  library photo/video capture, audio recording, Vision OCR on images, save
+  pipeline with media upload + streak/word stats transaction.
+- **Chats** — chat list, streaming text chat with the AI companion
+  (journal-aware via the proxy), auto-titling.
+- **Voice call** — immersive call screen (breathing orb, live transcript,
+  mute/end controls) saving a transcript chat; Vapi service behind a protocol.
+- **Profile & settings** — editable display name/bio/avatar (downscaled JPEG
+  upload), subscription row, sign out, two-step account deletion.
+- **Paywall** — RevenueCat-backed offerings, purchase + restore flows driven
+  by an entitlement stream (demo mock included).
+
+## Demo mode
+
+Without a `GoogleService-Info.plist`, every service is a local mock: seeded
+journal entries, profile, chats, scripted AI replies/streaming, fake voice
+call, simulated subscription purchases, and local media handling. The full UI
+is usable offline with nothing leaving the device (see
+[Firebase config & demo mode](#firebase-config--demo-mode) and the
+`-demo-signed-in` / `-demo-tab-<name>` launch arguments).
+
+## What needs real configuration
+
+| Piece | Where |
+|---|---|
+| Firebase (Auth + Firestore) | `GoogleService-Info.plist` in `LuminaLog/Resources/` (gitignored), then `xcodegen generate` |
+| Google Sign-In redirect | `GOOGLE_REVERSED_CLIENT_ID` build setting in `project.yml` |
+| AI/media proxy | `LUMINALOG_API_URL` Info.plist key (set in `project.yml`, defaults to `http://localhost:3200`) — chat, summaries, prompts, media uploads |
+| RevenueCat | `REVENUECAT_API_KEY` Info.plist key (add it in `project.yml`); without it the demo subscription mock is used |
+| Vapi voice calls | The Vapi iOS SDK is **not** integrated yet — `VapiVoiceCallService` is a placeholder behind `VoiceCallService`; demo mode uses `MockVoiceCallService` |
+
+## Tests
+
+96 unit tests (`LuminaLogTests`) covering view models, models
+(Codable/Firestore round-trips), streak math, and the mock services:
+
+```sh
+xcodebuild test -project LuminaLog.xcodeproj -scheme LuminaLog \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+  -only-testing LuminaLogTests
+```
+
 ## Requirements
 
 - Xcode 16+ (built with Xcode 26.5)

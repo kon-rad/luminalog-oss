@@ -3,6 +3,44 @@ import XCTest
 
 final class JournalListViewModelTests: XCTestCase {
 
+    /// `JournalRepository` whose paged `entries` call fails until
+    /// `pagesShouldFail` is cleared; streams stay silent (per protocol).
+    @MainActor
+    private final class FailingJournalRepository: JournalRepository {
+        struct PageError: Error {}
+
+        var pagesShouldFail = true
+        var seed: [JournalEntry]
+
+        init(seed: [JournalEntry] = MockData.journalEntries) {
+            self.seed = seed
+        }
+
+        func recentEntries(limit: Int) -> AsyncStream<[JournalEntry]> {
+            AsyncStream { _ in } // silent, like an erroring listener
+        }
+
+        func entries(after: Date?, limit: Int) async throws -> [JournalEntry] {
+            if pagesShouldFail { throw PageError() }
+            let sorted = seed.sorted { $0.createdAt > $1.createdAt }
+            let filtered = after.map { date in sorted.filter { $0.createdAt < date } } ?? sorted
+            return Array(filtered.prefix(limit))
+        }
+
+        func entry(id: String) -> AsyncStream<JournalEntry?> {
+            AsyncStream { $0.finish() }
+        }
+
+        func save(_ entry: JournalEntry) async throws {}
+        func updateAIFields(
+            id: String,
+            summary: AIGeneration?,
+            insights: AIGeneration?,
+            prompts: AIPrompts?
+        ) async throws {}
+        func delete(id: String) async throws {}
+    }
+
     @MainActor
     private func makeViewModel(
         entries: [JournalEntry] = MockData.journalEntries,
@@ -101,6 +139,51 @@ final class JournalListViewModelTests: XCTestCase {
         // Exhausted: further loads are no-ops.
         await viewModel.loadNextPage()
         XCTAssertEqual(viewModel.entries.count, 12)
+    }
+
+    @MainActor
+    func testFirstPageFailureSetsLoadFailedAndRetryRecovers() async {
+        let repository = FailingJournalRepository()
+        let viewModel = JournalListViewModel(journals: repository, pageSize: 5)
+
+        await viewModel.start()
+        XCTAssertTrue(viewModel.loadFailed, "A failed first page surfaces as an error state")
+        XCTAssertFalse(viewModel.isLoadingFirstPage)
+        XCTAssertTrue(viewModel.entries.isEmpty)
+
+        repository.pagesShouldFail = false
+        await viewModel.retryFirstPage()
+
+        XCTAssertFalse(viewModel.loadFailed)
+        XCTAssertEqual(viewModel.entries.count, 5)
+    }
+
+    @MainActor
+    func testFilteredPaginationChainsPagesUntilDisplayedRowsGrow() async {
+        // 12 entries, page size 2: with the .voice filter active, pages full
+        // of other types must auto-chain instead of stalling.
+        let viewModel = makeViewModel(pageSize: 2)
+        await viewModel.start()
+
+        viewModel.filter = .type(.voice)
+        var safety = 0
+        while viewModel.hasMorePages && safety < 20 {
+            safety += 1
+            guard let last = viewModel.displayedEntries.last else {
+                // No voice entry displayed yet — chain from the seam directly.
+                await viewModel.loadNextPage()
+                continue
+            }
+            let before = viewModel.displayedEntries.count
+            await viewModel.loadNextPageIfNeeded(after: last)
+            if viewModel.displayedEntries.count == before && !viewModel.hasMorePages {
+                break
+            }
+        }
+
+        let expectedVoiceCount = MockData.journalEntries.filter { $0.type == .voice }.count
+        XCTAssertEqual(viewModel.displayedEntries.count, expectedVoiceCount,
+                       "All voice entries are reachable despite filter-empty pages")
     }
 
     @MainActor

@@ -53,6 +53,21 @@ struct EntryRow: View {
     }
 }
 
+// MARK: - Skeleton placeholder entry
+
+extension JournalEntry {
+    /// Dummy entry used only for redacted skeleton rows.
+    static var skeletonPlaceholder: JournalEntry {
+        JournalEntry(
+            id: UUID().uuidString,
+            userId: "",
+            type: .text,
+            title: "A quiet moment to remember",
+            content: "Placeholder content used for the redacted loading state of entry rows in lists."
+        )
+    }
+}
+
 // MARK: - Previews
 
 #Preview("Light") {

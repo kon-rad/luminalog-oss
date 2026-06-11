@@ -1,5 +1,6 @@
 import PhotosUI
 import SwiftUI
+import UIKit
 
 /// Profile & Settings (design §9): avatar + editable name, biography card,
 /// grouped settings (Subscription / Sign Out / Delete Account), and the
@@ -185,6 +186,7 @@ struct ProfileView: View {
         .buttonStyle(.plain)
         .disabled(viewModel.isUploadingPhoto)
         .accessibilityLabel("Change profile photo")
+        .accessibilityValue(viewModel.isUploadingPhoto ? "Uploading" : "")
     }
 
     @ViewBuilder
@@ -432,11 +434,37 @@ struct ProfileView: View {
     // MARK: - Photo loading
 
     private func loadLibraryPhoto(_ item: PhotosPickerItem) async {
-        guard let data = try? await item.loadTransferable(type: Data.self) else {
+        // Library picks can be HEIC/PNG and full-resolution — re-encode as a
+        // downscaled JPEG so the uploaded `.jpg` temp file is truthful and
+        // avatars stay small. (The camera path already produces JPEG data.)
+        guard
+            let data = try? await item.loadTransferable(type: Data.self),
+            let jpegData = Self.reencodedJPEG(from: data)
+        else {
             viewModel.errorMessage = "That photo couldn't be loaded."
             return
         }
-        await viewModel.uploadAvatar(imageData: data)
+        await viewModel.uploadAvatar(imageData: jpegData)
+    }
+
+    /// Re-encodes arbitrary image data as JPEG (quality 0.85), downscaled to
+    /// at most `maxDimension` points on the longest side.
+    static func reencodedJPEG(from data: Data, maxDimension: CGFloat = 512) -> Data? {
+        guard let image = UIImage(data: data) else { return nil }
+        let longestSide = max(image.size.width, image.size.height)
+        guard longestSide > 0 else { return nil }
+
+        let scale = min(1, maxDimension / longestSide)
+        let targetSize = CGSize(
+            width: (image.size.width * scale).rounded(),
+            height: (image.size.height * scale).rounded()
+        )
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let rendered = UIGraphicsImageRenderer(size: targetSize, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+        return rendered.jpegData(compressionQuality: 0.85)
     }
 }
 

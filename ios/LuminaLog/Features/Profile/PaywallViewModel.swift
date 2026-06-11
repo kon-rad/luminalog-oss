@@ -24,6 +24,11 @@ final class PaywallViewModel: ObservableObject {
     /// the view observes this and dismisses.
     @Published private(set) var didUnlockPro = false
 
+    /// How long, after `restore()` returns, to wait for a pro entitlement
+    /// emission before concluding there were no purchases to restore.
+    /// Tests shorten this to keep the no-purchases path fast.
+    var restoreEntitlementDeadline: Duration = .seconds(5)
+
     private let subscriptions: SubscriptionService
     private var entitlementTask: Task<Void, Never>?
     private var hasStarted = false
@@ -118,9 +123,13 @@ final class PaywallViewModel: ObservableObject {
         errorMessage = nil
         do {
             try await subscriptions.restore()
-            // The restored entitlement arrives via the stream; give it a
-            // beat before concluding nothing was found.
-            try? await Task.sleep(nanoseconds: 300_000_000)
+            // The restored entitlement arrives via the stream — await a pro
+            // emission with a bounded deadline (real networks can be slow);
+            // only after the deadline passes do we declare no purchases.
+            let deadline = ContinuousClock.now + restoreEntitlementDeadline
+            while !didUnlockPro && !isAlreadyPro && ContinuousClock.now < deadline {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
             if !didUnlockPro && !isAlreadyPro {
                 errorMessage = "No previous purchases were found for this Apple ID."
             }

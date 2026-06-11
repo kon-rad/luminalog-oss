@@ -20,10 +20,13 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
     struct DailyPrompt: Codable, Equatable, Sendable {
         var text: String
         var date: Date
+        /// Journal entry ids the prompt was personalized from (proxy-written).
+        var sourceEntryIds: [String]?
 
-        init(text: String, date: Date = Date()) {
+        init(text: String, date: Date = Date(), sourceEntryIds: [String]? = nil) {
             self.text = text
             self.date = date
+            self.sourceEntryIds = sourceEntryIds
         }
     }
 

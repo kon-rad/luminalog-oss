@@ -73,7 +73,9 @@ final class FirestoreProfileRepository: ProfileRepository {
             timezone: TimeZone.current.identifier,
             stats: UserProfile.Stats()
         )
-        try await ref.setData(seed.firestoreData)
+        // Merge so a concurrent first sign-in (or a proxy write racing the
+        // exists-check above) can't be clobbered by this seed.
+        try await ref.setData(seed.firestoreData, merge: true)
     }
 
     func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {

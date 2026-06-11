@@ -28,6 +28,9 @@ final class HomeViewModel: ObservableObject {
 
     private var entriesTask: Task<Void, Never>?
     private var profileTask: Task<Void, Never>?
+    /// The latest per-emission daily-prompt resolution, tracked so deinit
+    /// cancels an in-flight AI fetch instead of leaking it.
+    private var promptResolutionTask: Task<Void, Never>?
 
     /// In-memory cache for a prompt fetched from the AI service, so the
     /// service is called at most once per screen lifetime.
@@ -45,6 +48,7 @@ final class HomeViewModel: ObservableObject {
     deinit {
         entriesTask?.cancel()
         profileTask?.cancel()
+        promptResolutionTask?.cancel()
     }
 
     // MARK: - Lifecycle
@@ -70,7 +74,7 @@ final class HomeViewModel: ObservableObject {
                 self.profile = profile
                 // Resolve off the stream loop so a slow AI fetch never
                 // blocks later profile emissions.
-                Task { await self.resolveDailyPromptIfNeeded() }
+                self.promptResolutionTask = Task { await self.resolveDailyPromptIfNeeded() }
             }
         }
     }
@@ -113,6 +117,10 @@ final class HomeViewModel: ObservableObject {
     /// Uses `profile.dailyPrompt` when it was generated today (user's
     /// timezone); otherwise asks the AI service once and caches the result
     /// in memory.
+    ///
+    /// Known limitation: resolution only runs on profile emissions, so if
+    /// the app stays open across midnight the displayed prompt is not
+    /// refreshed until the next emission or screen recreation (v1 tradeoff).
     private func resolveDailyPromptIfNeeded() async {
         if let prompt = todaysProfilePrompt() {
             promptState = .loaded(prompt)

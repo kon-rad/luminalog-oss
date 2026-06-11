@@ -17,6 +17,9 @@ final class PaywallViewModelTests: XCTestCase {
         private(set) var restoreCalls = 0
         var purchaseShouldFail = false
         var offeringsShouldFail = false
+        /// When true, `restore()` flips the entitlement to pro (a previous
+        /// purchase existed); when false it re-broadcasts the free baseline.
+        var restoreGrantsPro = false
 
         var offers = [
             SubscriptionOffer(id: "spy.monthly", title: "Pro", price: "$6.99", period: "month"),
@@ -54,6 +57,9 @@ final class PaywallViewModelTests: XCTestCase {
 
         func restore() async throws {
             restoreCalls += 1
+            if restoreGrantsPro {
+                entitlement = Entitlement(isPro: true, productId: "spy.annual")
+            }
             broadcast()
         }
 
@@ -172,12 +178,33 @@ final class PaywallViewModelTests: XCTestCase {
     // MARK: - Restore
 
     @MainActor
-    func testRestoreCallsService() async {
-        let (viewModel, service) = await makeStarted()
+    func testRestoreWithPreviousPurchaseUnlocksProWithoutError() async {
+        let service = SpySubscriptionService()
+        service.restoreGrantsPro = true
+        let (viewModel, _) = await makeStarted(service: service)
 
         await viewModel.restore()
 
         XCTAssertEqual(service.restoreCalls, 1)
+        XCTAssertTrue(viewModel.didUnlockPro,
+                      "The pro emission after restore() completes the paywall")
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertFalse(viewModel.isRestoring)
+    }
+
+    @MainActor
+    func testRestoreWithNoPurchasesShowsErrorAfterDeadline() async {
+        let (viewModel, service) = await makeStarted()
+        // Keep the no-purchases path fast in tests; production waits ~5s
+        // for the entitlement stream before declaring no purchases.
+        viewModel.restoreEntitlementDeadline = .milliseconds(200)
+
+        await viewModel.restore()
+
+        XCTAssertEqual(service.restoreCalls, 1)
+        XCTAssertFalse(viewModel.didUnlockPro)
+        XCTAssertEqual(viewModel.errorMessage,
+                       "No previous purchases were found for this Apple ID.")
         XCTAssertFalse(viewModel.isRestoring)
     }
 

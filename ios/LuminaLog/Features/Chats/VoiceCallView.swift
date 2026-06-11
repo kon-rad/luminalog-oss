@@ -49,8 +49,10 @@ struct VoiceCallView: View {
             }
         }
         // Immersive dark treatment in both modes (design §8) — children
-        // (bubbles, controls) render their dark variants.
+        // (bubbles, controls) render their dark variants, and the preferred
+        // scheme keeps the status bar legible over the near-black canvas.
         .environment(\.colorScheme, .dark)
+        .preferredColorScheme(.dark)
         .task {
             await viewModel.start()
         }
