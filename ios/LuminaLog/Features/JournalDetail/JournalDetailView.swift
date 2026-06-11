@@ -23,11 +23,18 @@ struct JournalDetailView: View {
         journals: JournalRepository,
         ai: AIService,
         media: MediaUploader,
+        speech: SpeechTranscriber,
         onPrompt: @escaping (CreateEntryRequest) -> Void,
         initialTab: JournalDetailTab = .main
     ) {
         _viewModel = StateObject(
-            wrappedValue: JournalDetailViewModel(entryId: entryId, journals: journals, ai: ai)
+            wrappedValue: JournalDetailViewModel(
+                entryId: entryId,
+                journals: journals,
+                ai: ai,
+                media: media,
+                speech: speech
+            )
         )
         self.media = media
         self.onPrompt = onPrompt
@@ -225,25 +232,42 @@ struct JournalDetailView: View {
 
     private var transcriptFailedRow: some View {
         HStack(spacing: Spacing.s) {
-            Text("Transcription failed.")
+            Text(viewModel.transcriptRetryState == .failed
+                ? "Retry failed."
+                : "Transcription failed.")
                 .font(.captionText)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(viewModel.transcriptRetryState == .failed
+                    ? Color.danger
+                    : Color.textSecondary)
 
-            Button {
-                // TODO: Task 7 owns re-transcription; wire this up there.
-            } label: {
+            if viewModel.transcriptRetryState == .loading {
                 HStack(spacing: Spacing.xs) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 11, weight: .semibold))
-                    Text("Retry")
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(Color.accentWarm)
+                    Text("Retrying…")
+                        .font(.captionText.weight(.semibold))
+                        .foregroundStyle(Color.textSecondary)
                 }
-                .font(.captionText.weight(.semibold))
-                .foregroundStyle(Color.accentWarm)
                 .frame(minHeight: 44)
-                .contentShape(Rectangle())
+                .accessibilityLabel("Retrying transcription")
+            } else {
+                Button {
+                    Task { await viewModel.retryTranscription() }
+                } label: {
+                    HStack(spacing: Spacing.xs) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(viewModel.transcriptRetryState == .failed ? "Try Again" : "Retry")
+                    }
+                    .font(.captionText.weight(.semibold))
+                    .foregroundStyle(Color.accentWarm)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Retry transcription")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Retry transcription")
 
             Spacer()
         }
@@ -393,6 +417,7 @@ private struct JournalDetailPreview: View {
                 journals: MockJournalRepository(),
                 ai: MockAIService(),
                 media: MockMediaUploader(),
+                speech: AppleSpeechTranscriber(),
                 onPrompt: { _ in },
                 initialTab: tab
             )

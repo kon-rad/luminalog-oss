@@ -29,6 +29,7 @@ struct RootView: View {
                     profiles: services.profiles,
                     ai: services.ai,
                     media: services.media,
+                    speech: services.speech,
                     onStartJournaling: { prompt in
                         createRequest = CreateEntryRequest(promptText: prompt)
                     },
@@ -45,6 +46,7 @@ struct RootView: View {
                     journals: services.journals,
                     ai: services.ai,
                     media: services.media,
+                    speech: services.speech,
                     onPrompt: { request in
                         createRequest = request
                     }

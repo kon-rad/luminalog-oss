@@ -17,12 +17,14 @@ struct HomeView: View {
     private let journals: JournalRepository
     private let ai: AIService
     private let media: MediaUploader
+    private let speech: SpeechTranscriber
 
     init(
         journals: JournalRepository,
         profiles: ProfileRepository,
         ai: AIService,
         media: MediaUploader,
+        speech: SpeechTranscriber,
         onStartJournaling: @escaping (String?) -> Void,
         onShowMore: @escaping () -> Void,
         onPrompt: @escaping (CreateEntryRequest) -> Void
@@ -33,6 +35,7 @@ struct HomeView: View {
         self.journals = journals
         self.ai = ai
         self.media = media
+        self.speech = speech
         self.onStartJournaling = onStartJournaling
         self.onShowMore = onShowMore
         self.onPrompt = onPrompt
@@ -59,6 +62,7 @@ struct HomeView: View {
                     journals: journals,
                     ai: ai,
                     media: media,
+                    speech: speech,
                     onPrompt: onPrompt
                 )
             }
@@ -230,6 +234,7 @@ private struct HomePreview: View {
             profiles: MockProfileRepository(),
             ai: MockAIService(),
             media: MockMediaUploader(),
+            speech: AppleSpeechTranscriber(),
             onStartJournaling: { _ in },
             onShowMore: {},
             onPrompt: { _ in }

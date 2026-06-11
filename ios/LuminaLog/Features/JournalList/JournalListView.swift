@@ -13,17 +13,20 @@ struct JournalListView: View {
     private let journals: JournalRepository
     private let ai: AIService
     private let media: MediaUploader
+    private let speech: SpeechTranscriber
 
     init(
         journals: JournalRepository,
         ai: AIService,
         media: MediaUploader,
+        speech: SpeechTranscriber,
         onPrompt: @escaping (CreateEntryRequest) -> Void
     ) {
         _viewModel = StateObject(wrappedValue: JournalListViewModel(journals: journals))
         self.journals = journals
         self.ai = ai
         self.media = media
+        self.speech = speech
         self.onPrompt = onPrompt
     }
 
@@ -52,6 +55,7 @@ struct JournalListView: View {
                     journals: journals,
                     ai: ai,
                     media: media,
+                    speech: speech,
                     onPrompt: onPrompt
                 )
             }
@@ -207,6 +211,7 @@ private struct JournalListPreview: View {
             journals: MockJournalRepository(entries: entries),
             ai: MockAIService(),
             media: MockMediaUploader(),
+            speech: AppleSpeechTranscriber(),
             onPrompt: { _ in }
         )
     }
