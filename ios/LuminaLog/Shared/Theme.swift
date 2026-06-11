@@ -47,6 +47,14 @@ extension Color {
             : UIColor(red: 0.45, green: 0.41, blue: 0.38, alpha: 1.0)
     })
 
+    /// Destructive actions (Delete Account, end call) — a warm red that
+    /// reads against both palettes.
+    static let danger = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.94, green: 0.42, blue: 0.38, alpha: 1.0)
+            : UIColor(red: 0.78, green: 0.22, blue: 0.18, alpha: 1.0)
+    })
+
     // MARK: Journal-type tints
     //
     // Per-type tints for journal entry type pills — warm hues in the accent

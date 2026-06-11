@@ -23,7 +23,6 @@ struct RootView: View {
 
             // All tabs stay mounted so scroll positions and NavigationStack
             // paths survive tab switches; only the selected one is visible.
-            // The Profile placeholder is replaced by Task 9.
             tabContent(for: .home) {
                 HomeView(
                     journals: services.journals,
@@ -60,7 +59,12 @@ struct RootView: View {
                 )
             }
             tabContent(for: .profile) {
-                TabPlaceholder(title: "Profile", systemImage: "person")
+                ProfileView(
+                    auth: services.auth,
+                    profiles: services.profiles,
+                    subscriptions: services.subscriptions,
+                    media: services.media
+                )
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -94,27 +98,6 @@ struct RootView: View {
             .opacity(isSelected ? 1 : 0)
             .allowsHitTesting(isSelected)
             .accessibilityHidden(!isSelected)
-    }
-}
-
-// MARK: - Placeholders (replaced by Task 9)
-
-private struct TabPlaceholder: View {
-    let title: String
-    let systemImage: String
-
-    var body: some View {
-        VStack(spacing: Spacing.m) {
-            Image(systemName: systemImage)
-                .font(.system(size: 40, weight: .light))
-                .foregroundStyle(Color.accentWarm.opacity(0.8))
-            Text(title)
-                .font(.journalTitle)
-                .foregroundStyle(Color.textPrimary)
-            Text("Coming soon.")
-                .font(.uiBody)
-                .foregroundStyle(Color.textSecondary)
-        }
     }
 }
 
