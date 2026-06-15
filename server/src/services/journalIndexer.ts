@@ -1,5 +1,6 @@
 import { getJournalsCollection, resetJournalsCollection } from '../db/chroma'
 import { embed } from './aiClient'
+import { encryptField } from '../crypto/fieldCipher'
 
 const CHUNK_SIZE = 1000
 const CHUNK_OVERLAP = 200
@@ -35,8 +36,9 @@ export async function indexJournalEntry(params: {
   title: string
   type: string
   updatedAt: string
+  dek: Buffer
 }): Promise<{ chunks: number }> {
-  const { userId, entryId, content, title, type, updatedAt } = params
+  const { userId, entryId, content, title, type, updatedAt, dek } = params
   if (!userId) throw new Error('userId required')
 
   try {
@@ -48,14 +50,15 @@ export async function indexJournalEntry(params: {
     const embeddings = await embed(chunks)
     const col = await getJournalsCollection()
 
+    const encTitle = JSON.stringify(encryptField(dek, title, 'journals.title'))
     await col.add({
       ids: chunks.map((_, i) => `${userId}_${entryId}_chunk_${i}`),
       embeddings,
-      documents: chunks,
+      documents: chunks.map((c, i) => JSON.stringify(encryptField(dek, c, `rag.chunk.${i}`))),
       metadatas: chunks.map((_, i) => ({
         userId,
         entryId,
-        title,
+        title: encTitle,
         type,
         chunkIndex: i,
         totalChunks: chunks.length,

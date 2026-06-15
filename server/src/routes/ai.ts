@@ -6,6 +6,9 @@ import { chatCompletion, transcribeAudio, streamToBuffer } from '../services/aiC
 import { indexJournalEntry } from '../services/journalIndexer'
 import { PROMPTS } from '../services/prompts'
 import { config } from '../config'
+import { getOrCreateDEK } from '../crypto/keyService'
+import { openField, encryptField } from '../crypto/fieldCipher'
+import { decryptMedia } from '../crypto/mediaCipher'
 
 export const aiRouter = Router()
 
@@ -29,12 +32,17 @@ async function generate(systemPrompt: string, userContent: string): Promise<stri
   return data.choices[0].message.content.trim()
 }
 
-async function fetchJournal(journalId: string, uid: string) {
+async function fetchJournal(journalId: string, uid: string): Promise<Record<string, any>> {
   const snap = await db.collection('journals').doc(journalId).get()
   if (!snap.exists) throw Object.assign(new Error('Not found'), { status: 404 })
-  const data = snap.data()!
+  const data = snap.data()! as Record<string, any>
   if (data.userId !== uid) throw Object.assign(new Error('Forbidden'), { status: 403 })
-  return data
+  const dek = await getOrCreateDEK(uid)
+  return {
+    ...data,
+    content: openField(dek, data.content, 'journals.content'),
+    title: openField(dek, data.title, 'journals.title'),
+  }
 }
 
 aiRouter.post('/summary', firebaseAuth, async (req: Request, res: Response) => {
@@ -98,10 +106,13 @@ aiRouter.post('/daily-prompt', firebaseAuth, async (req: Request, res: Response)
       .orderBy('createdAt', 'desc')
       .limit(5)
       .get()
+    const dek = await getOrCreateDEK(uid)
     const context = snap.docs
       .map(d => {
         const data = d.data()
-        return `[${data.type ?? 'text'} · ${data.title ?? 'Untitled'}]\n${((data.content as string) ?? '').slice(0, 500)}`
+        const title = openField(dek, data.title, 'journals.title') || 'Untitled'
+        const content = openField(dek, data.content, 'journals.content')
+        return `[${data.type ?? 'text'} · ${title}]\n${content.slice(0, 500)}`
       })
       .join('\n\n---\n\n')
     const text = await generate(PROMPTS.dailyPrompt(), context || 'No entries yet.')
@@ -136,23 +147,25 @@ aiRouter.post('/transcribe', firebaseAuth, async (req: Request, res: Response) =
   }
 
   try {
+    const dek = await getOrCreateDEK(uid)
+
     const s3Res = await s3.send(
       new GetObjectCommand({ Bucket: config.AWS_S3_BUCKET, Key: audioItem.s3Key }),
     )
     if (!s3Res.Body) throw new Error('S3 returned empty body')
-    const audioBuffer = await streamToBuffer(s3Res.Body as any)
+    const audioBuffer = decryptMedia(dek, await streamToBuffer(s3Res.Body as any))
 
     const filename = audioItem.s3Key.split('/').pop() ?? 'audio.m4a'
     const transcript = await transcribeAudio(audioBuffer, filename)
 
     // Prepend any previously typed text that was saved with the entry.
-    const existingContent: string = (data.content as string ?? '').trim()
+    const existingContent = openField(dek, data.content, 'journals.content').trim()
     const newContent = [existingContent, transcript]
       .filter(Boolean)
       .join('\n\n')
 
     await db.collection('journals').doc(journalId).update({
-      content: newContent,
+      content: encryptField(dek, newContent, 'journals.content'),
       transcriptStatus: 'ready',
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     })
@@ -161,9 +174,10 @@ aiRouter.post('/transcribe', firebaseAuth, async (req: Request, res: Response) =
       userId: uid,
       entryId: journalId,
       content: newContent,
-      title: data.title ?? '',
+      title: openField(dek, data.title, 'journals.title'),
       type: data.type ?? 'voice',
       updatedAt: new Date().toISOString(),
+      dek,
     })
 
     await db.collection('journals').doc(journalId).update({

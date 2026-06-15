@@ -4,6 +4,8 @@ import { firebaseAuth, db } from '../middleware/firebaseAuth'
 import { retrieveContext } from '../services/journalRetriever'
 import { chatCompletion } from '../services/aiClient'
 import { PROMPTS } from '../services/prompts'
+import { getOrCreateDEK } from '../crypto/keyService'
+import { openField, encryptField } from '../crypto/fieldCipher'
 
 export const chatRouter = Router()
 
@@ -16,15 +18,17 @@ chatRouter.post('/', firebaseAuth, async (req: Request, res: Response) => {
     return
   }
 
+  const dek = await getOrCreateDEK(uid)
+
   const userSnap = await db.collection('users').doc(uid).get()
-  const bio: string = userSnap.data()?.biography ?? ''
+  const bio = openField(dek, userSnap.data()?.biography, 'users.biography')
 
   const msgsSnap = await db
     .collection('chats').doc(chatId).collection('messages')
     .orderBy('createdAt', 'desc').limit(10).get()
   const history = msgsSnap.docs.reverse().map(d => ({
     role: d.data().role as string,
-    content: d.data().text as string,
+    content: openField(dek, d.data().text, 'messages.text'),
   }))
 
   const assistantContext = history
@@ -34,7 +38,7 @@ chatRouter.post('/', firebaseAuth, async (req: Request, res: Response) => {
     .join(' ')
   const ragQuery = `${message} ${assistantContext}`.slice(-2000)
 
-  const journalContext = await retrieveContext(uid, ragQuery)
+  const journalContext = await retrieveContext(uid, ragQuery, dek)
 
   const systemPrompt = PROMPTS.chatSystem(bio, journalContext)
   const messages = [
@@ -47,7 +51,7 @@ chatRouter.post('/', firebaseAuth, async (req: Request, res: Response) => {
   const userMsgRef = chatRef.collection('messages').doc()
   await userMsgRef.set({
     role: 'user',
-    text: message,
+    text: encryptField(dek, message, 'messages.text'),
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   })
 
@@ -88,7 +92,7 @@ chatRouter.post('/', firebaseAuth, async (req: Request, res: Response) => {
     const assistantMsgRef = chatRef.collection('messages').doc()
     await assistantMsgRef.set({
       role: 'assistant',
-      text: fullReply,
+      text: encryptField(dek, fullReply, 'messages.text'),
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     })
     await chatRef.update({ lastMessageAt: admin.firestore.FieldValue.serverTimestamp() })

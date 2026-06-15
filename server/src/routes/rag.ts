@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express'
 import admin from 'firebase-admin'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
 import { indexJournalEntry, deleteJournalEntry } from '../services/journalIndexer'
+import { getOrCreateDEK } from '../crypto/keyService'
+import { openField } from '../crypto/fieldCipher'
 
 export const ragRouter = Router()
 
@@ -26,7 +28,8 @@ ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
     return
   }
 
-  const content: string = data.content ?? ''
+  const dek = await getOrCreateDEK(uid)
+  const content = openField(dek, data.content, 'journals.content')
   if (!content.trim()) {
     res.json({ indexed: false, chunks: 0, reason: 'empty_content' })
     return
@@ -37,10 +40,11 @@ ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
       userId: uid,
       entryId: journalId,
       content,
-      title: data.title ?? '',
+      title: openField(dek, data.title, 'journals.title'),
       type: data.type ?? 'text',
       updatedAt: (data.updatedAt as admin.firestore.Timestamp)?.toDate().toISOString()
         ?? new Date().toISOString(),
+      dek,
     })
 
     await db.collection('journals').doc(journalId).update({

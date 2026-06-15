@@ -7,6 +7,8 @@ import { retrieveContext } from '../services/journalRetriever'
 import { chatCompletion } from '../services/aiClient'
 import { PROMPTS } from '../services/prompts'
 import { config } from '../config'
+import { getOrCreateDEK } from '../crypto/keyService'
+import { openField, encryptField } from '../crypto/fieldCipher'
 
 export const vapiRouter = Router()
 
@@ -60,10 +62,12 @@ vapiRouter.post('/llm/chat/completions', async (req: Request, res: Response) => 
 
   const lastUser = [...messages].reverse().find(m => m.role === 'user')?.content ?? ''
 
-  const userSnap = await db.collection('users').doc(uid).get()
-  const bio: string = userSnap.data()?.biography ?? ''
+  const dek = await getOrCreateDEK(uid)
 
-  const journalContext = await retrieveContext(uid, lastUser)
+  const userSnap = await db.collection('users').doc(uid).get()
+  const bio = openField(dek, userSnap.data()?.biography, 'users.biography')
+
+  const journalContext = await retrieveContext(uid, lastUser, dek)
 
   const systemContent = PROMPTS.voiceChat(bio, journalContext)
   const augmented = [
