@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LuminaLog — iOS App Icon</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#F4F0E9; --bg-warm:#EFE9DF; --surface:#FFFDFA;
+    --text:#2B2722; --text2:#6F6557; --text3:#A89F92;
+    --accent:#CE7F44; --accent-deep:#B96B33;
+    --hairline:rgba(60,50,40,0.10);
+    --serif:"Newsreader","New York",ui-serif,Georgia,serif;
+    --sans:-apple-system,"SF Pro Text",system-ui,"Segoe UI",sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--sans); -webkit-font-smoothing:antialiased;
+    padding:64px 32px 96px;
+  }
+  .wrap { max-width:980px; margin:0 auto; }
+  .eyebrow {
+    font-size:12.5px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--accent);
+  }
+  h1 { font-family:var(--serif); font-weight:500; font-size:40px; letter-spacing:-0.02em; margin:10px 0 6px; }
+  .sub { color:var(--text2); font-size:17px; max-width:42em; line-height:1.6; }
+  .row { display:flex; flex-wrap:wrap; gap:56px; align-items:flex-start; margin-top:56px; }
+  .panel-label { font-family:var(--mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text3); margin-bottom:16px; }
+
+  /* hero icon */
+  .hero-icon { width:280px; height:280px; }
+  .hero-shadow { filter:drop-shadow(0 26px 50px rgba(120,70,30,0.28)); }
+
+  /* size ladder */
+  .sizes { display:flex; align-items:flex-end; gap:26px; flex-wrap:wrap; }
+  .size-item { display:flex; flex-direction:column; align-items:center; gap:9px; }
+  .size-item span { font-family:var(--mono); font-size:10.5px; color:var(--text3); }
+
+  /* home screen */
+  .home {
+    width:300px; height:620px; border-radius:46px; overflow:hidden; position:relative;
+    background:
+      radial-gradient(120% 80% at 30% 8%, #f1cba0, transparent 60%),
+      radial-gradient(120% 90% at 80% 95%, #c98b6a, transparent 55%),
+      linear-gradient(160deg,#e7b88c,#b97a52);
+    box-shadow:0 30px 60px rgba(80,50,30,0.30); border:1px solid rgba(255,255,255,0.18);
+    padding:64px 30px 0;
+  }
+  .home .clock { text-align:center; color:#fff; font-weight:600; }
+  .home .clock .t { font-size:62px; letter-spacing:-0.02em; line-height:1; text-shadow:0 2px 14px rgba(0,0,0,0.18); }
+  .home .clock .d { font-size:15px; opacity:0.92; margin-top:6px; text-shadow:0 1px 8px rgba(0,0,0,0.18); }
+  .home .grid { position:absolute; left:30px; right:30px; bottom:34px; display:grid; grid-template-columns:repeat(4,1fr); gap:22px 18px; }
+  .home .app { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .home .app .glyph { width:54px; height:54px; border-radius:13px; background:rgba(255,255,255,0.22); box-shadow:0 4px 10px rgba(0,0,0,0.12); }
+  .home .app .nm { font-size:10px; color:#fff; opacity:0.95; text-shadow:0 1px 4px rgba(0,0,0,0.25); }
+  .home .lumina .nm { font-weight:600; }
+  .home .dock { position:absolute; left:18px; right:18px; bottom:14px; height:0; }
+
+  .meta { margin-top:60px; border-top:1px solid var(--hairline); padding-top:26px; display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+  .meta div .k { font-family:var(--mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text3); }
+  .meta div .v { font-size:15px; color:var(--text2); margin-top:5px; line-height:1.5; }
+  .meta .sw { display:inline-flex; gap:7px; margin-top:8px; }
+  .meta .sw i { width:22px; height:22px; border-radius:6px; display:inline-block; border:1px solid var(--hairline); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">App Icon · iOS</div>
+  <h1>LuminaLog</h1>
+  <p class="sub">An open journal lit from within — the warm terracotta of the brand carries a soft rising glow, for a journal that remembers and reflects light back to you.</p>
+
+  <!-- reusable icon definition -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <!-- squircle (iOS superellipse approximation) on a 1024 grid -->
+      <clipPath id="squircle" clipPathUnits="objectBoundingBox">
+        <path d="M0.5,0 C0.10,0 0,0.10 0,0.5 C0,0.90 0.10,1 0.5,1 C0.90,1 1,0.90 1,0.5 C1,0.10 0.90,0 0.5,0 Z" />
+      </clipPath>
+      <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#D58A4E" />
+        <stop offset="0.55" stop-color="#CE7F44" />
+        <stop offset="1" stop-color="#AE6230" />
+      </linearGradient>
+      <radialGradient id="topGlow" cx="0.5" cy="0.30" r="0.62">
+        <stop offset="0" stop-color="#FBE6C8" stop-opacity="0.95" />
+        <stop offset="0.4" stop-color="#F4C98E" stop-opacity="0.45" />
+        <stop offset="1" stop-color="#F4C98E" stop-opacity="0" />
+      </radialGradient>
+      <radialGradient id="pageGlow" cx="0.5" cy="0.46" r="0.5">
+        <stop offset="0" stop-color="#FFFDF7" />
+        <stop offset="0.7" stop-color="#FFF6E9" />
+        <stop offset="1" stop-color="#F8E9D2" />
+      </radialGradient>
+      <linearGradient id="spineLight" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FFF7E6" stop-opacity="0" />
+        <stop offset="0.5" stop-color="#FFF1D6" stop-opacity="0.95" />
+        <stop offset="1" stop-color="#FFF7E6" stop-opacity="0" />
+      </radialGradient>
+      <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+        <feGaussianBlur stdDeviation="26" />
+      </filter>
+
+      <g id="lumina-art">
+        <!-- background -->
+        <rect width="1024" height="1024" fill="url(#bgGrad)" />
+        <rect width="1024" height="1024" fill="url(#topGlow)" />
+        <!-- inner top sheen -->
+        <ellipse cx="512" cy="120" rx="640" ry="240" fill="#FFFFFF" opacity="0.10" />
+
+        <!-- the lumina: rising glow behind the book -->
+        <circle cx="512" cy="486" r="210" fill="#FFE9C4" opacity="0.55" filter="url(#soft)" />
+        <circle cx="512" cy="470" r="120" fill="#FFF4DD" opacity="0.65" filter="url(#soft)" />
+
+        <!-- open book, sitting low, pages fanning up -->
+        <g>
+          <!-- soft drop under book -->
+          <ellipse cx="512" cy="742" rx="250" ry="34" fill="#7A3F18" opacity="0.22" filter="url(#soft)" />
+
+          <!-- left page -->
+          <path d="M512 396
+                   C452 352 372 338 250 350
+                   C236 351 226 362 226 376
+                   L226 678
+                   C226 693 238 705 253 704
+                   C366 695 446 708 502 748
+                   C508 752 512 749 512 742
+                   Z" fill="url(#pageGlow)" />
+          <!-- right page -->
+          <path d="M512 396
+                   C572 352 652 338 774 350
+                   C788 351 798 362 798 376
+                   L798 678
+                   C798 693 786 705 771 704
+                   C658 695 578 708 522 748
+                   C516 752 512 749 512 742
+                   Z" fill="url(#pageGlow)" />
+
+          <!-- page edge shading near spine -->
+          <path d="M512 396 L512 742" stroke="#E7CFA8" stroke-width="10" stroke-linecap="round" opacity="0.6" />
+          <!-- luminous spine -->
+          <rect x="503" y="402" width="18" height="338" rx="9" fill="url(#spineLight)" />
+
+          <!-- ruled lines, left page -->
+          <g stroke="#CE7F44" stroke-width="9" stroke-linecap="round" opacity="0.42">
+            <path d="M300 432 C360 426 420 432 470 458" />
+            <path d="M292 500 C356 494 420 500 470 524" />
+            <path d="M292 568 C356 562 420 568 470 590" />
+            <path d="M296 636 C356 631 418 636 470 656" />
+          </g>
+          <!-- ruled lines, right page -->
+          <g stroke="#CE7F44" stroke-width="9" stroke-linecap="round" opacity="0.42">
+            <path d="M724 432 C664 426 604 432 554 458" />
+            <path d="M732 500 C668 494 604 500 554 524" />
+            <path d="M732 568 C668 562 604 568 554 590" />
+            <path d="M728 636 C668 631 606 636 554 656" />
+          </g>
+        </g>
+      </g>
+    </defs>
+  </svg>
+
+  <div class="row">
+    <div>
+      <div class="panel-label">Master · 1024 × 1024</div>
+      <svg class="hero-icon hero-shadow" viewBox="0 0 1024 1024">
+        <g clip-path="url(#squircle)"><use href="#lumina-art" /></g>
+      </svg>
+    </div>
+
+    <div>
+      <div class="panel-label">On the home screen</div>
+      <div class="home">
+        <div class="clock"><div class="t">9:41</div><div class="d">Saturday, June 13</div></div>
+        <div class="grid">
+          <div class="app"><div class="glyph"></div><div class="nm">Notes</div></div>
+          <div class="app"><div class="glyph"></div><div class="nm">Calendar</div></div>
+          <div class="app"><div class="glyph"></div><div class="nm">Health</div></div>
+          <div class="app lumina">
+            <svg style="width:54px;height:54px" viewBox="0 0 1024 1024"><g clip-path="url(#squircle)"><use href="#lumina-art" /></g></svg>
+            <div class="nm">LuminaLog</div>
+          </div>
+          <div class="app"><div class="glyph"></div><div class="nm">Photos</div></div>
+          <div class="app"><div class="glyph"></div><div class="nm">Music</div></div>
+          <div class="app"><div class="glyph"></div><div class="nm">Weather</div></div>
+          <div class="app"><div class="glyph"></div><div class="nm">Clock</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:64px">
+    <div class="panel-label">Size ladder</div>
+    <div class="sizes">
+      <div class="size-item"><svg style="width:120px;height:120px" viewBox="0 0 1024 1024"><g clip-path="url(#squircle)"><use href="#lumina-art" /></g></svg><span>120</span></div>
+      <div class="size-item"><svg style="width:80px;height:80px" viewBox="0 0 1024 1024"><g clip-path="url(#squircle)"><use href="#lumina-art" /></g></svg><span>80</span></div>
+      <div class="size-item"><svg style="width:60px;height:60px" viewBox="0 0 1024 1024"><g clip-path="url(#squircle)"><use href="#lumina-art" /></g></svg><span>60</span></div>
+      <div class="size-item"><svg style="width:40px;height:40px" viewBox="0 0 1024 1024"><g clip-path="url(#squircle)"><use href="#lumina-art" /></g></svg><span>40</span></div>
+      <div class="size-item"><svg style="width:29px;height:29px" viewBox="0 0 1024 1024"><g clip-path="url(#squircle)"><use href="#lumina-art" /></g></svg><span>29</span></div>
+    </div>
+  </div>
+
+  <div class="meta">
+    <div>
+      <div class="k">Palette</div>
+      <div class="sw"><i style="background:#D58A4E"></i><i style="background:#CE7F44"></i><i style="background:#AE6230"></i><i style="background:#FFF6E9"></i></div>
+    </div>
+    <div>
+      <div class="k">Concept</div>
+      <div class="v">Open journal · rising warm light · ruled pages</div>
+    </div>
+    <div>
+      <div class="k">Export</div>
+      <div class="v">1024² master, full-bleed. iOS applies the corner mask automatically.</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
