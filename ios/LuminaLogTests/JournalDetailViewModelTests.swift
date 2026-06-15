@@ -45,6 +45,8 @@ final class JournalDetailViewModelTests: XCTestCase {
 
         func requestIndex(journalId: String) async {}
 
+        func transcribeJournal(journalId: String) async {}
+
         private func waitAndMaybeFail() async throws {
             if delayNanos > 0 {
                 try await Task.sleep(nanoseconds: delayNanos)

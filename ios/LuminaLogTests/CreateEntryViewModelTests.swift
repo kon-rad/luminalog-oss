@@ -24,6 +24,7 @@ final class CreateEntryViewModelTests: XCTestCase {
         func requestIndex(journalId: String) async {
             indexedJournalIds.append(journalId)
         }
+        func transcribeJournal(journalId: String) async {}
     }
 
     /// Records `recordEntrySaved` calls.

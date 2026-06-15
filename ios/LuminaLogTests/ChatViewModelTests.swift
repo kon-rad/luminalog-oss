@@ -111,6 +111,8 @@ final class StubChatAIService: AIService {
     func dailyPrompt() async throws -> String { "" }
 
     func requestIndex(journalId: String) async {}
+
+    func transcribeJournal(journalId: String) async {}
 }
 
 // MARK: - Test helpers

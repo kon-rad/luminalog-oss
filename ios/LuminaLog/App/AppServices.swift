@@ -6,6 +6,7 @@ import Foundation
 final class AppServices: ObservableObject {
 
     let auth: AuthService
+    let keys: UserKeyStore
     let journals: JournalRepository
     let profiles: ProfileRepository
     let chats: ChatRepository
@@ -18,6 +19,7 @@ final class AppServices: ObservableObject {
 
     init(
         auth: AuthService,
+        keys: UserKeyStore,
         journals: JournalRepository,
         profiles: ProfileRepository,
         chats: ChatRepository,
@@ -29,6 +31,7 @@ final class AppServices: ObservableObject {
         voice: VoiceCallService
     ) {
         self.auth = auth
+        self.keys = keys
         self.journals = journals
         self.profiles = profiles
         self.chats = chats
@@ -40,16 +43,14 @@ final class AppServices: ObservableObject {
         self.voice = voice
     }
 
-    /// Production wiring when Firebase is configured; full mock wiring in
-    /// demo mode (no GoogleService-Info.plist).
+    /// Production service wiring — always uses Firebase and real backends.
     static func live() -> AppServices {
-        guard AppConfig.isFirebaseConfigured else { return mocks() }
-
         let auth = FirebaseAuthService()
         let api = ProxyAPIClient(
             baseURL: AppConfig.proxyBaseURL,
             tokenProvider: FirebaseTokenProvider()
         )
+        let keys = UserKeyStore(provider: ProxyKeyProvider(api: api), secrets: KeychainStore())
 
         let subscriptions: SubscriptionService
         if let key = AppConfig.revenueCatAPIKey {
@@ -63,11 +64,12 @@ final class AppServices: ObservableObject {
 
         return AppServices(
             auth: auth,
-            journals: FirestoreJournalRepository(auth: auth),
-            profiles: FirestoreProfileRepository(auth: auth),
-            chats: FirestoreChatRepository(auth: auth),
+            keys: keys,
+            journals: FirestoreJournalRepository(auth: auth, keys: keys),
+            profiles: FirestoreProfileRepository(auth: auth, keys: keys),
+            chats: FirestoreChatRepository(auth: auth, keys: keys),
             ai: ProxyAIService(api: api),
-            media: ProxyMediaUploader(api: api),
+            media: ProxyMediaUploader(api: api, keys: keys),
             subscriptions: subscriptions,
             speech: AppleSpeechTranscriber(),
             ocr: VisionOCRService(),
@@ -75,31 +77,24 @@ final class AppServices: ObservableObject {
         )
     }
 
-    /// All-mock wiring — demo mode, previews, and tests.
-    ///
-    /// Screenshot/dev hook: launching with the `-demo-signed-in` argument
-    /// (e.g. `xcrun simctl launch booted com.luminalog.app -demo-signed-in`)
-    /// starts the mock auth already signed in, so automation lands directly
-    /// on Home without tapping through the sign-in screen.
+    /// All-mock wiring — previews and unit tests only.
     static func mocks() -> AppServices {
-        let startSignedIn = ProcessInfo.processInfo.arguments.contains("-demo-signed-in")
         let chats = MockChatRepository()
+        let keys = UserKeyStore(provider: MockKeyProvider(), secrets: KeychainStore())
         return AppServices(
-            auth: MockAuthService(signedIn: startSignedIn),
+            auth: MockAuthService(signedIn: false),
+            keys: keys,
             journals: MockJournalRepository(),
             profiles: MockProfileRepository(),
             chats: chats,
             ai: MockAIService(),
             media: MockMediaUploader(),
             subscriptions: MockSubscriptionService(),
-            // Speech + OCR run fully on-device with no backend, so demo mode
-            // gets the REAL implementations — dictation and OCR work without
-            // Firebase. MockSpeechTranscriber/MockOCRService are for unit
+            // Speech + OCR run fully on-device; real implementations work in
+            // previews too. MockSpeechTranscriber/MockOCRService are for unit
             // tests only (deterministic scripted output).
             speech: AppleSpeechTranscriber(),
             ocr: VisionOCRService(),
-            // The scripted demo call persists its transcript through the
-            // same chat repository the Chats tab reads from.
             voice: MockVoiceCallService(chats: chats)
         )
     }

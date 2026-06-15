@@ -9,14 +9,12 @@ struct LuminaLogApp: App {
     @StateObject private var services: AppServices
     @StateObject private var session: SessionStore
 
+    @AppStorage("ll-force-dark") private var forceDark: Bool = false
+
     init() {
         let logger = Logger(subsystem: "com.luminalog.app", category: "startup")
-        if AppConfig.isFirebaseConfigured {
-            FirebaseApp.configure()
-            logger.info("Firebase configured.")
-        } else {
-            logger.info("GoogleService-Info.plist not found — running in demo mode.")
-        }
+        FirebaseApp.configure()
+        logger.info("Firebase configured.")
 
         // Built after Firebase is configured; SessionStore shares the same
         // service instances so auth state, profile, and subscription identity
@@ -25,6 +23,7 @@ struct LuminaLogApp: App {
         _services = StateObject(wrappedValue: services)
         _session = StateObject(wrappedValue: SessionStore(
             auth: services.auth,
+            keys: services.keys,
             profiles: services.profiles,
             subscriptions: services.subscriptions
         ))
@@ -37,11 +36,7 @@ struct LuminaLogApp: App {
                 case .loading:
                     SplashView()
                 case .signedOut:
-                    SignInView(signInDemo: {
-                        // Demo sign-in lives only on the mock (see MockAuthService);
-                        // the protocol stays clean for the real providers.
-                        await (services.auth as? MockAuthService)?.signInDemo()
-                    })
+                    SignInView()
                 case .signedIn(let uid):
                     // Re-key the whole shell per uid: repository streams capture
                     // the user at creation, so all tab content must be rebuilt
@@ -53,8 +48,8 @@ struct LuminaLogApp: App {
             .environmentObject(services)
             .environmentObject(session)
             .tint(.accentWarm)
+            .preferredColorScheme(forceDark ? .dark : nil)
             .onOpenURL { url in
-                guard AppConfig.isFirebaseConfigured else { return }
                 _ = GIDSignIn.sharedInstance.handle(url)
             }
         }

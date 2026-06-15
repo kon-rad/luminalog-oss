@@ -1,6 +1,14 @@
 import XCTest
 @testable import LuminaLog
 
+/// In-memory `SecretStore` so the session tests don't touch the real Keychain.
+private final class MemorySecretStore: SecretStore {
+    private var storage: [String: Data] = [:]
+    func data(for account: String) -> Data? { storage[account] }
+    func set(_ data: Data, for account: String) { storage[account] = data }
+    func remove(for account: String) { storage[account] = nil }
+}
+
 /// SessionStore consumes the (mock) auth stream asynchronously, so tests
 /// drive the mock and poll the published state with a bounded wait.
 final class SessionStoreTests: XCTestCase {
@@ -12,6 +20,7 @@ final class SessionStoreTests: XCTestCase {
     ) -> SessionStore {
         SessionStore(
             auth: auth,
+            keys: UserKeyStore(provider: MockKeyProvider(), secrets: MemorySecretStore()),
             profiles: MockProfileRepository(),
             subscriptions: subscriptions
         )

@@ -18,3 +18,11 @@ GoogleService-Info.plist
 
 # Keep dependency pins
 !LuminaLog.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+
+ios-luminalog/AuthKey_CA52C5LYT3.p8
+AuthKey_CA52C5LYT3.p8
+
+
+
+# Brainstorming visual companion scratch
+.superpowers/

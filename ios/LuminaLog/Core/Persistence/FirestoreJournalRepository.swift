@@ -2,6 +2,16 @@ import Foundation
 import OSLog
 import FirebaseFirestore
 
+/// Thrown when an encrypted write is attempted before the user's key is loaded.
+enum CryptoUnavailableError: LocalizedError {
+    case keyNotLoaded
+    var errorDescription: String? {
+        switch self {
+        case .keyNotLoaded: return "Your secure key is not ready yet. Try again in a moment."
+        }
+    }
+}
+
 /// `JournalRepository` backed by the top-level `journals` collection,
 /// always filtered by the signed-in user's id (spec §3).
 ///
@@ -14,9 +24,11 @@ final class FirestoreJournalRepository: JournalRepository {
 
     private let db: Firestore
     private let auth: AuthService
+    private let keys: UserKeyStore
 
-    init(auth: AuthService, db: Firestore = .firestore()) {
+    init(auth: AuthService, keys: UserKeyStore, db: Firestore = .firestore()) {
         self.auth = auth
+        self.keys = keys
         self.db = db
     }
 
@@ -48,8 +60,11 @@ final class FirestoreJournalRepository: JournalRepository {
                         """)
                         return
                     }
+                    guard let cipher = self.keys.currentCipher else {
+                        continuation.yield([]); return
+                    }
                     let entries = snapshot.documents.compactMap {
-                        JournalEntry(documentId: $0.documentID, data: $0.data())
+                        JournalEntry(documentId: $0.documentID, data: $0.data(), cipher: cipher)
                     }
                     continuation.yield(entries)
                 }
@@ -65,9 +80,10 @@ final class FirestoreJournalRepository: JournalRepository {
         if let after {
             query = query.whereField("createdAt", isLessThan: Timestamp(date: after))
         }
+        guard let cipher = keys.currentCipher else { return [] }
         let snapshot = try await query.limit(to: limit).getDocuments()
         return snapshot.documents.compactMap {
-            JournalEntry(documentId: $0.documentID, data: $0.data())
+            JournalEntry(documentId: $0.documentID, data: $0.data(), cipher: cipher)
         }
     }
 
@@ -84,8 +100,11 @@ final class FirestoreJournalRepository: JournalRepository {
                         """)
                         return
                     }
+                    guard let cipher = self.keys.currentCipher else {
+                        continuation.yield(nil); return
+                    }
                     if let data = snapshot.data() {
-                        continuation.yield(JournalEntry(documentId: snapshot.documentID, data: data))
+                        continuation.yield(JournalEntry(documentId: snapshot.documentID, data: data, cipher: cipher))
                     } else {
                         continuation.yield(nil)
                     }
@@ -95,7 +114,8 @@ final class FirestoreJournalRepository: JournalRepository {
     }
 
     func save(_ entry: JournalEntry) async throws {
-        try await journals.document(entry.id).setData(entry.firestoreData)
+        guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
+        try await journals.document(entry.id).setData(try entry.firestoreData(cipher: cipher))
     }
 
     func updateAIFields(
@@ -104,10 +124,11 @@ final class FirestoreJournalRepository: JournalRepository {
         insights: AIGeneration?,
         prompts: AIPrompts?
     ) async throws {
+        guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
         var payload: [String: Any] = [:]
-        if let summary { payload["summary"] = summary.firestoreData }
-        if let insights { payload["insights"] = insights.firestoreData }
-        if let prompts { payload["prompts"] = prompts.firestoreData }
+        if let summary { payload["summary"] = try summary.firestoreData(cipher: cipher, context: "journals.summary") }
+        if let insights { payload["insights"] = try insights.firestoreData(cipher: cipher, context: "journals.insights") }
+        if let prompts { payload["prompts"] = try prompts.firestoreData(cipher: cipher) }
         guard !payload.isEmpty else { return }
         do {
             // `updateData` fails on a missing document — unlike `setData`,

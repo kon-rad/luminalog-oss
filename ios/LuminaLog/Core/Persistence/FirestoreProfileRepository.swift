@@ -10,9 +10,11 @@ final class FirestoreProfileRepository: ProfileRepository {
 
     private let db: Firestore
     private let auth: AuthService
+    private let keys: UserKeyStore
 
-    init(auth: AuthService, db: Firestore = .firestore()) {
+    init(auth: AuthService, keys: UserKeyStore, db: Firestore = .firestore()) {
         self.auth = auth
+        self.keys = keys
         self.db = db
     }
 
@@ -39,8 +41,11 @@ final class FirestoreProfileRepository: ProfileRepository {
                     """)
                     return
                 }
+                guard let cipher = self.keys.currentCipher else {
+                    continuation.yield(nil); return
+                }
                 if let data = snapshot.data() {
-                    continuation.yield(UserProfile(documentId: snapshot.documentID, data: data))
+                    continuation.yield(UserProfile(documentId: snapshot.documentID, data: data, cipher: cipher))
                 } else {
                     continuation.yield(nil)
                 }
@@ -51,12 +56,14 @@ final class FirestoreProfileRepository: ProfileRepository {
 
     func update(_ profile: UserProfile) async throws {
         guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
+        guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
         // Merge so proxy-written fields are never clobbered by a stale client copy.
-        try await userRef(uid).setData(profile.firestoreData, merge: true)
+        try await userRef(uid).setData(try profile.firestoreData(cipher: cipher), merge: true)
     }
 
     func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws {
         guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
+        guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
         let ref = userRef(uid)
         let snapshot = try await ref.getDocument()
         // Never overwrite an existing document — returning users keep their
@@ -75,7 +82,7 @@ final class FirestoreProfileRepository: ProfileRepository {
         )
         // Merge so a concurrent first sign-in (or a proxy write racing the
         // exists-check above) can't be clobbered by this seed.
-        try await ref.setData(seed.firestoreData, merge: true)
+        try await ref.setData(try seed.firestoreData(cipher: cipher), merge: true)
     }
 
     func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {

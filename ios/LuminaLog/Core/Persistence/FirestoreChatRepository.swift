@@ -11,9 +11,11 @@ final class FirestoreChatRepository: ChatRepository {
 
     private let db: Firestore
     private let auth: AuthService
+    private let keys: UserKeyStore
 
-    init(auth: AuthService, db: Firestore = .firestore()) {
+    init(auth: AuthService, keys: UserKeyStore, db: Firestore = .firestore()) {
         self.auth = auth
+        self.keys = keys
         self.db = db
     }
 
@@ -48,8 +50,11 @@ final class FirestoreChatRepository: ChatRepository {
                         """)
                         return
                     }
+                    guard let cipher = self.keys.currentCipher else {
+                        continuation.yield([]); return
+                    }
                     let chats = snapshot.documents.compactMap {
-                        Chat(documentId: $0.documentID, data: $0.data())
+                        Chat(documentId: $0.documentID, data: $0.data(), cipher: cipher)
                     }
                     continuation.yield(chats)
                 }
@@ -72,8 +77,11 @@ final class FirestoreChatRepository: ChatRepository {
                         """)
                         return
                     }
+                    guard let cipher = self.keys.currentCipher else {
+                        continuation.yield([]); return
+                    }
                     let messages = snapshot.documents.compactMap {
-                        ChatMessage(documentId: $0.documentID, data: $0.data())
+                        ChatMessage(documentId: $0.documentID, data: $0.data(), cipher: cipher)
                     }
                     continuation.yield(messages)
                 }
@@ -83,14 +91,16 @@ final class FirestoreChatRepository: ChatRepository {
 
     func createChat(kind: ChatKind, title: String) async throws -> Chat {
         guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
+        guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
         let chat = Chat(userId: uid, kind: kind, title: title)
-        try await chatsRef.document(chat.id).setData(chat.firestoreData)
+        try await chatsRef.document(chat.id).setData(try chat.firestoreData(cipher: cipher))
         return chat
     }
 
     func appendMessage(_ message: ChatMessage, to chatId: String) async throws {
+        guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
         let batch = db.batch()
-        batch.setData(message.firestoreData, forDocument: messagesRef(chatId: chatId).document(message.id))
+        batch.setData(try message.firestoreData(cipher: cipher), forDocument: messagesRef(chatId: chatId).document(message.id))
         batch.updateData(
             ["lastMessageAt": Timestamp(date: message.createdAt)],
             forDocument: chatsRef.document(chatId)
@@ -99,7 +109,9 @@ final class FirestoreChatRepository: ChatRepository {
     }
 
     func updateChatTitle(id: String, title: String) async throws {
-        try await chatsRef.document(id).updateData(["title": title])
+        guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
+        let sealed = try cipher.encrypt(title, context: "chats.title").firestoreData
+        try await chatsRef.document(id).updateData(["title": sealed])
     }
 
     func deleteChat(id: String) async throws {

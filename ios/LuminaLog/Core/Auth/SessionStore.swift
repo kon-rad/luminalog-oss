@@ -20,14 +20,16 @@ final class SessionStore: ObservableObject {
     @Published private(set) var profile: UserProfile?
 
     private let auth: AuthService
+    private let keys: UserKeyStore
     private let profiles: ProfileRepository
     private let subscriptions: SubscriptionService
 
     private var authTask: Task<Void, Never>?
     private var profileTask: Task<Void, Never>?
 
-    init(auth: AuthService, profiles: ProfileRepository, subscriptions: SubscriptionService) {
+    init(auth: AuthService, keys: UserKeyStore, profiles: ProfileRepository, subscriptions: SubscriptionService) {
         self.auth = auth
+        self.keys = keys
         self.profiles = profiles
         self.subscriptions = subscriptions
 
@@ -58,17 +60,31 @@ final class SessionStore: ObservableObject {
             break
         }
 
+        // Capture the previously signed-in user so we can clear their key.
+        let previousUid: String?
+        if case .signedIn(let u) = state { previousUid = u } else { previousUid = nil }
+
         // Profile streams capture the user at creation — always tear the
         // current one down and re-create it for the new user.
         profileTask?.cancel()
         profileTask = nil
 
         if let uid {
+            // Load the encryption key BEFORE any read/write: ensureUserDocument
+            // seeds an encrypted profile and the profile stream decrypts. A
+            // failure here is logged, not fatal — repositories fail closed
+            // (reads yield empty, writes throw) until the key is available.
+            do {
+                try await keys.loadCipher(userId: uid)
+            } catch {
+                Self.logger.error("loadCipher failed: \(error.localizedDescription, privacy: .public)")
+            }
             state = .signedIn(userId: uid)
             await ensureUserDocument()
             startProfileStream()
             await subscriptions.setUser(uid)
         } else {
+            if let previousUid { keys.signOut(userId: previousUid) }
             state = .signedOut
             profile = nil
             await subscriptions.setUser(nil)

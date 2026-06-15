@@ -28,6 +28,7 @@ final class HomeViewModelTests: XCTestCase {
             AsyncThrowingStream { $0.finish() }
         }
         func requestIndex(journalId: String) async {}
+        func transcribeJournal(journalId: String) async {}
     }
 
     @MainActor

@@ -25,13 +25,15 @@ enum MediaUploaderError: LocalizedError {
 final class ProxyMediaUploader: MediaUploader {
 
     private let api: ProxyAPIClient
+    private let keys: UserKeyStore
     private let session: URLSession
 
     /// In-memory cache of short-TTL view URLs keyed by s3Key.
     private var viewURLCache: [String: (url: URL, expiresAt: Date)] = [:]
 
-    init(api: ProxyAPIClient, session: URLSession = .shared) {
+    init(api: ProxyAPIClient, keys: UserKeyStore, session: URLSession = .shared) {
         self.api = api
+        self.keys = keys
         self.session = session
     }
 
@@ -41,6 +43,7 @@ final class ProxyMediaUploader: MediaUploader {
         struct File: Encodable {
             let kind: String
             let ext: String
+            let contentType: String
             let bytes: Int
             let journalId: String
         }
@@ -62,7 +65,7 @@ final class ProxyMediaUploader: MediaUploader {
     private struct ViewURLsResponse: Decodable {
         struct Entry: Decodable {
             let s3Key: String
-            let url: URL
+            let viewUrl: URL
         }
         let urls: [Entry]
     }
@@ -70,15 +73,28 @@ final class ProxyMediaUploader: MediaUploader {
     // MARK: - MediaUploader
 
     func upload(fileURL: URL, kind: MediaKind, journalId: String) async throws -> MediaItem {
-        let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
+        guard let dek = keys.currentDataKey else { throw CryptoUnavailableError.keyNotLoaded }
+        let cipher = MediaCipher(key: dek)
+
+        // Encrypt to a temp file and upload the ciphertext (spec §7). Metadata is
+        // still probed from the ORIGINAL plaintext so dimensions/duration are accurate.
+        let encryptedURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: encryptedURL) }
+        try cipher.encryptFile(at: fileURL, to: encryptedURL)
+
+        let attributes = try FileManager.default.attributesOfItem(atPath: encryptedURL.path)
         let byteCount = (attributes[.size] as? NSNumber)?.intValue ?? 0
         let ext = fileURL.pathExtension.isEmpty ? Self.defaultExtension(for: kind)
                                                 : fileURL.pathExtension
+        // Ciphertext is opaque; sign + send as octet-stream.
+        let contentType = "application/octet-stream"
 
         let response: UploadURLsResponse = try await api.post(
-            path: "/v1/s3/upload-urls",
+            path: "/v1/media/upload-urls",
             body: UploadURLsRequest(files: [
-                .init(kind: kind.rawValue, ext: ext, bytes: byteCount, journalId: journalId)
+                .init(kind: kind.rawValue, ext: ext, contentType: contentType,
+                      bytes: byteCount, journalId: journalId)
             ])
         )
         guard let presigned = response.files.first else {
@@ -87,14 +103,15 @@ final class ProxyMediaUploader: MediaUploader {
 
         var request = URLRequest(url: presigned.uploadUrl)
         request.httpMethod = "PUT"
-        request.setValue(Self.mimeType(forExtension: ext), forHTTPHeaderField: "Content-Type")
-        // Stream the file from disk so large videos never sit in memory.
-        let (_, uploadResponse) = try await session.upload(for: request, fromFile: fileURL)
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        // Stream the ciphertext from disk so large videos never sit in memory.
+        let (_, uploadResponse) = try await session.upload(for: request, fromFile: encryptedURL)
         if let http = uploadResponse as? HTTPURLResponse,
            !(200..<300).contains(http.statusCode) {
             throw MediaUploaderError.uploadFailed(statusCode: http.statusCode)
         }
 
+        // Metadata from the plaintext original.
         return await Self.mediaItem(s3Key: presigned.s3Key, kind: kind, fileURL: fileURL)
     }
 
@@ -102,7 +119,7 @@ final class ProxyMediaUploader: MediaUploader {
         if let cached = cachedViewURL(for: s3Key) { return cached }
 
         let response: ViewURLsResponse = try await api.post(
-            path: "/v1/s3/view-urls",
+            path: "/v1/media/view-urls",
             body: ViewURLsRequest(s3Keys: [s3Key])
         )
         guard let entry = response.urls.first(where: { $0.s3Key == s3Key }) else {
@@ -110,8 +127,8 @@ final class ProxyMediaUploader: MediaUploader {
         }
 
         // Presigned GETs have a 1 h TTL (spec §5.3); refresh a bit early.
-        cacheViewURL(entry.url, for: s3Key, expiresAt: Date().addingTimeInterval(50 * 60))
-        return entry.url
+        cacheViewURL(entry.viewUrl, for: s3Key, expiresAt: Date().addingTimeInterval(50 * 60))
+        return entry.viewUrl
     }
 
     // MARK: - Helpers
