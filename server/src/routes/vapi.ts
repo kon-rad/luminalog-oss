@@ -136,6 +136,16 @@ vapiRouter.post('/webhook', async (req: Request, res: Response) => {
     return
   }
 
+  // Resolve the chat owner so transcript text is encrypted with their DEK,
+  // matching how chat.ts reads message text (openField throws on plaintext).
+  const chatSnap = await db.collection('chats').doc(chatId).get()
+  const ownerUid = chatSnap.data()?.userId as string | undefined
+  if (!ownerUid) {
+    res.json({ ok: true })
+    return
+  }
+  const dek = await getOrCreateDEK(ownerUid)
+
   const batch = db.batch()
   transcript.forEach((turn, i) => {
     const msgRef = db
@@ -145,7 +155,7 @@ vapiRouter.post('/webhook', async (req: Request, res: Response) => {
       msgRef,
       {
         role: turn.role,
-        text: turn.transcript ?? turn.content ?? '',
+        text: encryptField(dek, turn.transcript ?? turn.content ?? '', 'messages.text'),
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true },
