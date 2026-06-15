@@ -15,6 +15,10 @@ const schema = z.object({
   VAPI_PUBLIC_KEY: z.string(),
   VAPI_ASSISTANT_ID: z.string(),
   VAPI_WEBHOOK_SECRET: z.string(),
+  MASTER_KEY: z.string().refine(
+    v => Buffer.from(v, 'base64').length === 32,
+    'MASTER_KEY must be base64 of exactly 32 bytes',
+  ),
 })
 
 const parsed = schema.safeParse(process.env)
