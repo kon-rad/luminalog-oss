@@ -23,4 +23,10 @@ protocol AIService: AnyObject {
     /// Fire-and-forget request to (re)index an entry into the RAG store.
     /// Failures are swallowed; a server-side reconcile retries later.
     func requestIndex(journalId: String) async
+
+    /// Server-side transcription via Together AI Whisper for voice/video entries
+    /// where on-device Apple Speech failed. Downloads audio from S3, updates
+    /// Firestore content+transcriptStatus, then re-indexes to Chroma.
+    /// Failures are swallowed; the entry stays with transcriptStatus = failed.
+    func transcribeJournal(journalId: String) async
 }

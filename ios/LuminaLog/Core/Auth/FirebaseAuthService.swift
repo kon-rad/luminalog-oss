@@ -158,6 +158,11 @@ final class AppleSignInCoordinator: NSObject,
     ASAuthorizationControllerPresentationContextProviding {
 
     private var continuation: CheckedContinuation<ASAuthorization, Error>?
+    // ASAuthorizationController does not retain itself; store it here so it
+    // stays alive until a delegate callback fires. Without this, cancel can
+    // deallocate the controller before the callback, leaving the continuation
+    // suspended forever and freezing the UI.
+    private var controller: ASAuthorizationController?
 
     /// The window the provider sheet presents from, validated by the caller
     /// before the flow starts (no detached-anchor fallback).
@@ -174,6 +179,7 @@ final class AppleSignInCoordinator: NSObject,
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self
             controller.presentationContextProvider = self
+            self.controller = controller
             controller.performRequests()
         }
     }
@@ -184,6 +190,7 @@ final class AppleSignInCoordinator: NSObject,
     ) {
         continuation?.resume(returning: authorization)
         continuation = nil
+        self.controller = nil
     }
 
     func authorizationController(
@@ -192,6 +199,7 @@ final class AppleSignInCoordinator: NSObject,
     ) {
         continuation?.resume(throwing: error)
         continuation = nil
+        self.controller = nil
     }
 
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {

@@ -349,7 +349,17 @@ final class CreateEntryViewModel: ObservableObject {
             }
 
             let ai = deps.ai
-            indexTask = Task { await ai.requestIndex(journalId: entry.id) }
+            let savedType = type
+            // Voice/video entries always use server-side Together AI Whisper,
+            // which also re-indexes to Chroma. All other entries just trigger a
+            // Chroma index of existing content.
+            indexTask = Task {
+                if savedType == .voice || savedType == .video {
+                    await ai.transcribeJournal(journalId: entry.id)
+                } else {
+                    await ai.requestIndex(journalId: entry.id)
+                }
+            }
 
             savingPhase = nil
             cleanupTempFiles()
@@ -364,11 +374,11 @@ final class CreateEntryViewModel: ObservableObject {
 
     // MARK: Content derivation
 
-    /// Canonical content per type (spec §5.1 step 2). STT/OCR failures don't
-    /// block saving: the entry keeps the typed text with
-    /// `transcriptStatus: .failed` so transcription can be retried later.
+    /// Canonical content per type (spec §5.1 step 2). Voice/video entries save
+    /// immediately with typed text and `transcriptStatus: .processing`; server-side
+    /// Whisper fills in the transcript after save. OCR failures set `.failed`.
     /// The result is cached against the current text/attachment fingerprint
-    /// so a save retry (after an upload failure) doesn't redo OCR/STT.
+    /// so a save retry (after an upload failure) doesn't redo OCR.
     private func deriveContent(type: JournalType) async -> (content: String, status: TranscriptStatus?) {
         let fingerprint = contentFingerprint(type: type)
         if let cached = derivedCache, cached.fingerprint == fingerprint {
@@ -416,29 +426,10 @@ final class CreateEntryViewModel: ObservableObject {
             return (joined, anyFailed ? .failed : .ready)
 
         case .voice, .video:
-            do {
-                let audioURL: URL
-                if type == .video, let video = attachments.video {
-                    audioURL = try await deps.extractAudio(video.url)
-                    trackTempFile(audioURL)
-                } else if let audio = attachments.audio {
-                    audioURL = audio.url
-                } else {
-                    return (typed, .failed)
-                }
-                guard await deps.speech.requestAuthorization() else {
-                    throw SpeechTranscriberError.notAuthorized
-                }
-                let transcript = try await deps.speech.transcribeFile(url: audioURL)
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                let content = [typed, transcript]
-                    .filter { !$0.isEmpty }
-                    .joined(separator: "\n\n")
-                return (content, .ready)
-            } catch {
-                Self.logger.error("Transcription failed: \(error)")
-                return (typed, .failed)
-            }
+            // Server-side Together AI Whisper transcribes after save (see indexTask).
+            // Typed text is saved immediately; the server prepends the Whisper
+            // transcript and updates transcriptStatus to .ready on completion.
+            return (typed, .processing)
         }
     }
 

@@ -21,10 +21,14 @@ final class CreateEntryViewModelTests: XCTestCase {
         func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error> {
             AsyncThrowingStream { $0.finish() }
         }
+        private(set) var transcribedJournalIds: [String] = []
+
         func requestIndex(journalId: String) async {
             indexedJournalIds.append(journalId)
         }
-        func transcribeJournal(journalId: String) async {}
+        func transcribeJournal(journalId: String) async {
+            transcribedJournalIds.append(journalId)
+        }
     }
 
     /// Records `recordEntrySaved` calls.
@@ -204,30 +208,30 @@ final class CreateEntryViewModelTests: XCTestCase {
         XCTAssertEqual(entry.content, "Grandma's recipe box.\n\nRecipe card.")
     }
 
-    // MARK: - Voice save (STT)
+    // MARK: - Voice save (server-side Whisper)
 
     @MainActor
-    func testVoiceSaveTranscribesFile() async throws {
+    func testVoiceSaveSavesImmediatelyAndSchedulesWhisperTranscription() async throws {
         let harness = Harness()
-        harness.speech.fileTranscript = "Today was a quiet kind of good."
         let url = tempAudioURL()
         harness.viewModel.attachAudio(AudioAttachment(url: url, durationSec: 12))
 
         await harness.viewModel.save()
+        await harness.viewModel.indexTask?.value
 
         let entry = try await harness.savedEntry()
-        XCTAssertEqual(harness.speech.transcribedFileURLs, [url])
+        XCTAssertTrue(harness.speech.transcribedFileURLs.isEmpty, "Apple Speech not used for file transcription")
         XCTAssertEqual(entry.type, .voice)
-        XCTAssertEqual(entry.content, "Today was a quiet kind of good.")
-        XCTAssertEqual(entry.transcriptStatus, .ready)
+        XCTAssertEqual(entry.content, "")
+        XCTAssertEqual(entry.transcriptStatus, .processing, "Server Whisper transcribes after save")
         XCTAssertEqual(entry.media.map(\.kind), [.audio])
         XCTAssertEqual(entry.media.first?.durationSec, 12)
+        XCTAssertEqual(harness.ai.transcribedJournalIds, [entry.id], "Server transcription triggered")
     }
 
     @MainActor
-    func testVoiceSaveWithSTTFailureKeepsTypedTextAndMarksFailed() async throws {
+    func testVoiceSaveWithTypedTextSavesImmediately() async throws {
         let harness = Harness()
-        harness.speech.fileError = MockSpeechTranscriber.MockError()
         harness.viewModel.text = "Notes I typed before recording."
         harness.viewModel.attachAudio(AudioAttachment(url: tempAudioURL(), durationSec: 5))
 
@@ -235,35 +239,31 @@ final class CreateEntryViewModelTests: XCTestCase {
 
         let entry = try await harness.savedEntry()
         XCTAssertEqual(entry.type, .voice)
-        XCTAssertEqual(entry.transcriptStatus, .failed, "STT failure still saves the entry")
-        XCTAssertEqual(entry.content, "Notes I typed before recording.")
-        XCTAssertEqual(entry.media.map(\.kind), [.audio], "Media still uploads on STT failure")
+        XCTAssertEqual(entry.transcriptStatus, .processing, "Entry saves immediately; server Whisper transcribes after")
+        XCTAssertEqual(entry.content, "Notes I typed before recording.", "Typed text is preserved immediately")
+        XCTAssertEqual(entry.media.map(\.kind), [.audio])
     }
 
-    // MARK: - Video save (audio extraction + STT)
+    // MARK: - Video save (server-side Whisper)
 
     @MainActor
-    func testVideoSaveExtractsAudioAndTranscribes() async throws {
+    func testVideoSaveUploadsAndSchedulesWhisperTranscription() async throws {
         let harness = Harness()
-        harness.speech.fileTranscript = "We hiked the ridge at dawn."
         let videoURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("\(UUID().uuidString).mov")
         harness.viewModel.attachVideo(VideoAttachment(url: videoURL, durationSec: 31))
 
         await harness.viewModel.save()
+        await harness.viewModel.indexTask?.value
 
         let entry = try await harness.savedEntry()
-        XCTAssertEqual(harness.extractor.extractedFrom, [videoURL], "Audio is extracted from the attached video")
-        XCTAssertEqual(
-            harness.speech.transcribedFileURLs,
-            [harness.extractor.result],
-            "STT runs on the extracted audio file"
-        )
+        XCTAssertTrue(harness.extractor.extractedFrom.isEmpty, "No local audio extraction needed for server transcription")
+        XCTAssertTrue(harness.speech.transcribedFileURLs.isEmpty, "Apple Speech not used for video entries")
         XCTAssertEqual(entry.type, .video)
-        XCTAssertEqual(entry.content, "We hiked the ridge at dawn.")
-        XCTAssertEqual(entry.transcriptStatus, .ready)
+        XCTAssertEqual(entry.transcriptStatus, .processing)
         XCTAssertEqual(entry.media.map(\.kind), [.video])
         XCTAssertEqual(entry.media.first?.durationSec, 31)
+        XCTAssertEqual(harness.ai.transcribedJournalIds, [entry.id], "Server transcription triggered")
     }
 
     // MARK: - Temp file lifecycle

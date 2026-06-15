@@ -24,6 +24,8 @@ struct ProfileView: View {
     @State private var showDeleteExplainerAlert = false
     @State private var showDeleteFinalAlert = false
 
+    @AppStorage("ll-force-dark") private var forceDark: Bool = false
+
     @FocusState private var nameFocused: Bool
 
     init(
@@ -58,6 +60,7 @@ struct ProfileView: View {
                         errorBanner(message)
                     }
                     biographyCard
+                    appearanceCard
                     settingsCard
                     versionFooter
                 }
@@ -287,6 +290,32 @@ struct ProfileView: View {
                 .fill(Color.cardBackground)
         )
         .animation(.easeInOut(duration: 0.15), value: viewModel.isBioDirty)
+    }
+
+    // MARK: - Appearance
+
+    private var appearanceCard: some View {
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            Text("Appearance")
+                .font(.sectionHeader)
+                .foregroundStyle(Color.textPrimary)
+
+            HStack(spacing: Spacing.m) {
+                settingsIcon("sparkles", tint: .accentWarm)
+                Text("Dark mode")
+                    .font(.uiBody)
+                    .foregroundStyle(Color.textPrimary)
+                Spacer()
+                Toggle("Dark mode", isOn: $forceDark)
+                    .tint(Color.accentWarm)
+                    .labelsHidden()
+            }
+            .padding(Spacing.m)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                    .fill(Color.cardBackground)
+            )
+        }
     }
 
     // MARK: - Settings

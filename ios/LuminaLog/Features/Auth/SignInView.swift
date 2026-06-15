@@ -2,12 +2,7 @@ import SwiftUI
 import AuthenticationServices
 
 /// Calm welcome screen: wordmark, tagline, and the sign-in providers.
-/// In demo mode (no Firebase config) the providers are hidden and a single
-/// "Explore in Demo Mode" button signs in with the mock services.
 struct SignInView: View {
-
-    /// Demo-mode sign-in, injected by the routing layer (mock auth only).
-    var signInDemo: (() async -> Void)?
 
     @EnvironmentObject private var services: AppServices
     @Environment(\.colorScheme) private var colorScheme
@@ -47,17 +42,8 @@ struct SignInView: View {
                             .transition(.opacity)
                     }
 
-                    if AppConfig.isFirebaseConfigured {
-                        appleButton
-                        googleButton
-                    } else {
-                        demoButton
-                        Text("No account needed — explore LuminaLog with sample journal entries. Nothing leaves this device.")
-                            .font(.captionText)
-                            .foregroundStyle(Color.textSecondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, Spacing.m)
-                    }
+                    appleButton
+                    googleButton
                 }
                 .padding(.horizontal, Spacing.l)
                 .padding(.bottom, Spacing.xl)
@@ -74,7 +60,7 @@ struct SignInView: View {
     private var appleButton: some View {
         SignInWithAppleButton(.signIn, onRequest: { _ in }, onCompletion: { _ in })
             .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-            .frame(minHeight: 50)
+            .frame(maxWidth: .infinity, minHeight: 50, maxHeight: 50)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium))
             .allowsHitTesting(false)
             .accessibilityHidden(true)
@@ -94,47 +80,26 @@ struct SignInView: View {
         Button {
             run { try await services.auth.signInWithGoogle() }
         } label: {
-            Text("Continue with Google")
-                .font(.uiBody.weight(.medium))
-                .foregroundStyle(Color.textPrimary)
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 50)
-                .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.medium)
-                        .fill(Color.cardBackground)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: CornerRadius.medium)
-                        .strokeBorder(Color.textSecondary.opacity(0.25), lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
-        .disabled(isWorking)
-        .opacity(isWorking ? 0.5 : 1)
-    }
-
-    private var demoButton: some View {
-        Button {
-            run { await signInDemo?() }
-        } label: {
             HStack(spacing: Spacing.s) {
-                if isWorking {
-                    ProgressView()
-                        .tint(.white)
-                }
-                Text("Explore in Demo Mode")
-                    .font(.uiBody.weight(.semibold))
+                GoogleIcon()
+                Text("Continue with Google")
+                    .font(.uiBody.weight(.medium))
+                    .foregroundStyle(Color.textPrimary)
             }
-            .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .frame(minHeight: 50)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.medium)
-                    .fill(Color.accentWarm)
+                    .fill(Color.cardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.medium)
+                    .strokeBorder(Color.textSecondary.opacity(0.25), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
         .disabled(isWorking)
+        .opacity(isWorking ? 0.5 : 1)
     }
 
     // MARK: - Actions
@@ -163,15 +128,32 @@ struct SignInView: View {
     }
 }
 
+// MARK: - Google icon
+
+/// Simple Google "G" badge that reads as the Google brand without requiring
+/// an image asset.
+private struct GoogleIcon: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color(red: 0.259, green: 0.522, blue: 0.957))
+                .frame(width: 22, height: 22)
+            Text("G")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(.white)
+        }
+    }
+}
+
 // MARK: - Previews
 
-#Preview("Demo mode (light)") {
-    SignInView(signInDemo: {})
+#Preview("Light") {
+    SignInView()
         .environmentObject(AppServices.mocks())
 }
 
-#Preview("Demo mode (dark)") {
-    SignInView(signInDemo: {})
+#Preview("Dark") {
+    SignInView()
         .environmentObject(AppServices.mocks())
         .preferredColorScheme(.dark)
 }

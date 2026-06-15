@@ -234,6 +234,7 @@ final class JournalDetailViewModel: ObservableObject {
             try await journals.save(latest)
             self.entry = latest
             transcriptRetryState = .idle
+            Task { await ai.requestIndex(journalId: entryId) }
         } catch {
             Self.logger.error("retryTranscription failed: \(error.localizedDescription, privacy: .public)")
             transcriptRetryState = .failed

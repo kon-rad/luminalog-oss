@@ -1,15 +1,7 @@
 import Foundation
 
-/// App-wide configuration flags.
+/// App-wide configuration read from Info.plist keys.
 enum AppConfig {
-
-    /// True when a `GoogleService-Info.plist` is bundled with the app.
-    ///
-    /// The real plist is never committed to source control. When it is absent
-    /// the app runs in **demo mode**: Firebase is not configured and all
-    /// services fall back to local mocks.
-    static let isFirebaseConfigured: Bool =
-        Bundle.main.url(forResource: "GoogleService-Info", withExtension: "plist") != nil
 
     /// Base URL of the LuminaLog proxy API (spec §4). Read from the
     /// `LUMINALOG_API_URL` Info.plist key; defaults to local development.

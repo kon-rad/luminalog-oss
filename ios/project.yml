@@ -11,7 +11,7 @@ settings:
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: "GA978N825M"
     CODE_SIGN_STYLE: Automatic
 
 packages:
@@ -24,6 +24,9 @@ packages:
   GoogleSignIn:
     url: https://github.com/google/GoogleSignIn-iOS
     from: 8.0.0
+  Vapi:
+    url: https://github.com/VapiAI/ios
+    branch: main
 
 targets:
   LuminaLog:
@@ -40,6 +43,8 @@ targets:
         product: RevenueCat
       - package: GoogleSignIn
         product: GoogleSignIn
+      - package: Vapi
+        product: Vapi
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.luminalog.app
@@ -69,7 +74,7 @@ targets:
         NSPhotoLibraryUsageDescription: "LuminaLog accesses your photo library so you can attach photos and videos to your journal entries."
         NSPhotoLibraryAddUsageDescription: "LuminaLog can save photos and videos from your journal entries back to your photo library."
         ITSAppUsesNonExemptEncryption: false
-        LUMINALOG_API_URL: "http://localhost:3200"
+        LUMINALOG_API_URL: "https://api.luminalog.com"
         # Google Sign-In redirect scheme. Resolves to the GOOGLE_REVERSED_CLIENT_ID
         # build setting above — empty (inert) until configured per the README.
         CFBundleURLTypes:

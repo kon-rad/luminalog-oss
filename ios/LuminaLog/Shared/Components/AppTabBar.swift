@@ -65,9 +65,12 @@ struct AppTabBar: View {
     // MARK: Pieces
 
     private var barBackground: some View {
-        Color.cardBackground
+        Rectangle()
+            .fill(.regularMaterial)
             .overlay(alignment: .top) {
-                Divider()
+                Rectangle()
+                    .fill(Color.primary.opacity(0.06))
+                    .frame(height: 0.5)
             }
             .ignoresSafeArea(edges: .bottom)
     }
@@ -101,10 +104,23 @@ struct AppTabBar: View {
     private var createButton: some View {
         Button(action: onCreateTapped) {
             ZStack {
+                // Background ring in the app background color separates the
+                // FAB from the blurred bar below (matches design nav.jsx outline).
                 Circle()
-                    .fill(Color.accentWarm)
+                    .fill(Color.appBackground)
+                    .frame(width: Self.createButtonSize + 8, height: Self.createButtonSize + 8)
+
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.accentWarm, Color.accentWarm.opacity(0.8)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .frame(width: Self.createButtonSize, height: Self.createButtonSize)
-                    .shadow(color: Color.accentWarm.opacity(0.35), radius: 8, y: 4)
+                    .shadow(color: Color.accentWarm.opacity(0.4), radius: 10, y: 4)
+
                 Image(systemName: "plus")
                     .font(.system(size: 26, weight: .semibold))
                     .foregroundStyle(.white)

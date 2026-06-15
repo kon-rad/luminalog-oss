@@ -7,12 +7,7 @@ struct RootView: View {
 
     @EnvironmentObject private var services: AppServices
 
-    // Screenshot/dev hook (companion to `-demo-signed-in`, see AppServices):
-    // launching with `-demo-tab-<name>` (e.g. `-demo-tab-chats`) opens that
-    // tab directly so automation can capture any tab without UI scripting.
-    @State private var selectedTab: AppTab = AppTab.allCases.first {
-        ProcessInfo.processInfo.arguments.contains("-demo-tab-\($0.rawValue)")
-    } ?? .home
+    @State private var selectedTab: AppTab = .home
     @State private var createRequest: CreateEntryRequest?
     @State private var isKeyboardVisible = false
 
@@ -78,11 +73,6 @@ struct RootView: View {
             }
         }
         .observingKeyboard(isVisible: $isKeyboardVisible)
-        .overlay(alignment: .top) {
-            if !AppConfig.isFirebaseConfigured {
-                DemoModeChip()
-            }
-        }
         .fullScreenCover(item: $createRequest) { request in
             CreateEntryView(request: request, services: services)
         }
@@ -100,20 +90,6 @@ struct RootView: View {
             .opacity(isSelected ? 1 : 0)
             .allowsHitTesting(isSelected)
             .accessibilityHidden(!isSelected)
-    }
-}
-
-/// Small chip shown when running without a Firebase configuration.
-private struct DemoModeChip: View {
-    var body: some View {
-        Text("Demo Mode")
-            .font(.captionText.weight(.semibold))
-            .foregroundStyle(Color.accentWarm)
-            .padding(.horizontal, Spacing.m)
-            .padding(.vertical, Spacing.xs)
-            .background(Capsule().fill(Color.accentWarm.opacity(0.15)))
-            .padding(.top, Spacing.xs)
-            .accessibilityLabel("Running in demo mode")
     }
 }
 

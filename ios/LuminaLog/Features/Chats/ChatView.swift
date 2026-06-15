@@ -46,6 +46,8 @@ struct ChatView: View {
                 transcriptBanner
             }
             conversation
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             if !viewModel.isReadOnly {
                 ChatInputBar(
                     text: $viewModel.draft,

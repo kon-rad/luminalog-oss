@@ -6,53 +6,59 @@ import UIKit
 extension Color {
 
     /// The single warm accent used across the app — a calm amber/terracotta.
+    /// Light: #CE7F44, Dark: #E5A063 (core.jsx design tokens).
     static let accentWarm = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.93, green: 0.58, blue: 0.30, alpha: 1.0) // lighter amber for dark
-            : UIColor(red: 0.88, green: 0.53, blue: 0.24, alpha: 1.0) // #E0863C terracotta
+            ? UIColor(red: 0.898, green: 0.627, blue: 0.388, alpha: 1.0) // #E5A063
+            : UIColor(red: 0.808, green: 0.498, blue: 0.267, alpha: 1.0) // #CE7F44
     })
 
-    /// Primary screen background — warm off-white in light, near-black in dark.
+    /// Primary screen background — warm paper in light, deep warm-black in dark.
+    /// Light: #F4F0E9, Dark: #16130E (core.jsx design tokens).
     static let appBackground = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.07, green: 0.06, blue: 0.06, alpha: 1.0)
-            : UIColor(red: 0.98, green: 0.96, blue: 0.94, alpha: 1.0)
+            ? UIColor(red: 0.086, green: 0.075, blue: 0.055, alpha: 1.0) // #16130E
+            : UIColor(red: 0.957, green: 0.941, blue: 0.914, alpha: 1.0) // #F4F0E9
     })
 
     /// Secondary background for grouped sections and sheets.
+    /// Light: #FBF8F3, Dark: #1D1913 (core.jsx bgElev).
     static let secondaryBackground = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.11, green: 0.10, blue: 0.09, alpha: 1.0)
-            : UIColor(red: 0.95, green: 0.92, blue: 0.89, alpha: 1.0)
+            ? UIColor(red: 0.114, green: 0.098, blue: 0.075, alpha: 1.0) // #1D1913
+            : UIColor(red: 0.984, green: 0.973, blue: 0.953, alpha: 1.0) // #FBF8F3
     })
 
     /// Card surfaces (entry rows, stat cards, prompt cards).
+    /// Light: #FFFDFA, Dark: #221E17 (core.jsx surface).
     static let cardBackground = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.14, green: 0.13, blue: 0.12, alpha: 1.0)
-            : UIColor.white
+            ? UIColor(red: 0.133, green: 0.118, blue: 0.090, alpha: 1.0) // #221E17
+            : UIColor(red: 1.0, green: 0.992, blue: 0.980, alpha: 1.0)   // #FFFDFA
     })
 
     /// Primary text — soft warm near-black / warm off-white.
+    /// Light: #2B2722, Dark: #F3EEE4 (core.jsx design tokens).
     static let textPrimary = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.95, green: 0.93, blue: 0.91, alpha: 1.0)
-            : UIColor(red: 0.17, green: 0.14, blue: 0.12, alpha: 1.0)
+            ? UIColor(red: 0.953, green: 0.933, blue: 0.894, alpha: 1.0) // #F3EEE4
+            : UIColor(red: 0.169, green: 0.153, blue: 0.133, alpha: 1.0) // #2B2722
     })
 
     /// Secondary text — captions, timestamps, supporting copy.
+    /// Light: #7C7468, Dark: #A89E8F (core.jsx text2).
     static let textSecondary = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.65, green: 0.61, blue: 0.57, alpha: 1.0)
-            : UIColor(red: 0.45, green: 0.41, blue: 0.38, alpha: 1.0)
+            ? UIColor(red: 0.659, green: 0.620, blue: 0.561, alpha: 1.0) // #A89E8F
+            : UIColor(red: 0.486, green: 0.455, blue: 0.408, alpha: 1.0) // #7C7468
     })
 
-    /// Destructive actions (Delete Account, end call) — a warm red that
-    /// reads against both palettes.
+    /// Destructive actions (Delete Account, end call).
+    /// #E5544B across both palettes.
     static let danger = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.94, green: 0.42, blue: 0.38, alpha: 1.0)
-            : UIColor(red: 0.78, green: 0.22, blue: 0.18, alpha: 1.0)
+            ? UIColor(red: 0.898, green: 0.329, blue: 0.294, alpha: 1.0) // #E5544B
+            : UIColor(red: 0.898, green: 0.329, blue: 0.294, alpha: 1.0) // #E5544B
     })
 
     // MARK: Journal-type tints
@@ -64,24 +70,27 @@ extension Color {
     static let tintText = accentWarm
 
     /// Tint for voice entries — warm rose.
+    /// Light: #C16C6C, Dark: #D98C8C (core.jsx typeMeta).
     static let tintVoice = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.88, green: 0.50, blue: 0.50, alpha: 1.0)
-            : UIColor(red: 0.76, green: 0.34, blue: 0.36, alpha: 1.0)
+            ? UIColor(red: 0.851, green: 0.549, blue: 0.549, alpha: 1.0) // #D98C8C
+            : UIColor(red: 0.757, green: 0.424, blue: 0.424, alpha: 1.0) // #C16C6C
     })
 
     /// Tint for video entries — warm plum.
+    /// Light: #897BA8, Dark: #A89BC4 (core.jsx typeMeta).
     static let tintVideo = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.74, green: 0.56, blue: 0.82, alpha: 1.0)
-            : UIColor(red: 0.52, green: 0.36, blue: 0.60, alpha: 1.0)
+            ? UIColor(red: 0.659, green: 0.608, blue: 0.769, alpha: 1.0) // #A89BC4
+            : UIColor(red: 0.537, green: 0.482, blue: 0.659, alpha: 1.0) // #897BA8
     })
 
     /// Tint for image entries — warm olive.
+    /// Light: #6E8C77, Dark: #90AE97 (core.jsx typeMeta).
     static let tintImage = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.66, green: 0.72, blue: 0.42, alpha: 1.0)
-            : UIColor(red: 0.42, green: 0.50, blue: 0.26, alpha: 1.0)
+            ? UIColor(red: 0.565, green: 0.682, blue: 0.592, alpha: 1.0) // #90AE97
+            : UIColor(red: 0.431, green: 0.549, blue: 0.467, alpha: 1.0) // #6E8C77
     })
 }
 
