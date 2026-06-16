@@ -12,6 +12,8 @@ struct JournalDetailView: View {
 
     @StateObject private var viewModel: JournalDetailViewModel
 
+    private let journals: JournalRepository
+    private let ai: AIService
     private let media: MediaUploader
     /// Opens the Create flow seeded with a generated prompt (design §4 Tab 3).
     private let onPrompt: (CreateEntryRequest) -> Void
@@ -20,6 +22,7 @@ struct JournalDetailView: View {
     private let onRetryProcessing: ((String) -> Void)?
 
     @State private var selectedTab: JournalDetailTab
+    @State private var isEditingTranscript = false
 
     init(
         entryId: String,
@@ -37,6 +40,8 @@ struct JournalDetailView: View {
                 ai: ai
             )
         )
+        self.journals = journals
+        self.ai = ai
         self.media = media
         self.onPrompt = onPrompt
         self.onRetryProcessing = onRetryProcessing
@@ -99,6 +104,17 @@ struct JournalDetailView: View {
                 }
                 .padding(Spacing.m)
                 .padding(.bottom, Spacing.xl)
+            }
+        }
+        .sheet(isPresented: $isEditingTranscript) {
+            if let entry = viewModel.entry {
+                TranscriptEditorView(
+                    entryId: entry.id,
+                    initialText: entry.content,
+                    journals: journals,
+                    ai: ai,
+                    media: media
+                )
             }
         }
     }
@@ -228,7 +244,19 @@ struct JournalDetailView: View {
                 EntryImageView(item: item, media: media)
             }
 
-            transcriptSection(entry, label: "Transcribed text")
+            // One player per recorded voice memo.
+            ForEach(entry.media.filter { $0.kind == .audio }, id: \.s3Key) { item in
+                AudioPlayerCard(item: item, media: media)
+            }
+
+            // Always editable for image entries, even when there's no text yet.
+            TranscriptBlock(
+                label: "Transcribed text",
+                text: entry.content.isEmpty
+                    ? "No transcript yet. Tap Edit to add one."
+                    : entry.content,
+                onEdit: { isEditingTranscript = true }
+            )
         }
     }
 
