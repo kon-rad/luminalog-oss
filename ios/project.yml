@@ -32,6 +32,12 @@ targets:
   LuminaLog:
     type: application
     platform: iOS
+    # Local-only secrets/per-project values (e.g. GOOGLE_REVERSED_CLIENT_ID).
+    # Copy Local.xcconfig.example -> Local.xcconfig and fill it in. The real
+    # file is gitignored so per-project ids stay out of this open-source repo.
+    configFiles:
+      Debug: LuminaLog/Local.xcconfig
+      Release: LuminaLog/Local.xcconfig
     sources:
       - path: LuminaLog
     dependencies:
@@ -51,9 +57,9 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         ENABLE_USER_SCRIPT_SANDBOXING: false
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        # Set to the REVERSED_CLIENT_ID from your GoogleService-Info.plist to
-        # enable the Google Sign-In redirect (see README "Enabling Google Sign-In").
-        GOOGLE_REVERSED_CLIENT_ID: ""
+        # GOOGLE_REVERSED_CLIENT_ID is supplied by Local.xcconfig (gitignored),
+        # not here — an explicit value in the project file would override the
+        # xcconfig. See README "Enabling Google Sign-In".
     entitlements:
       path: LuminaLog/Resources/LuminaLog.entitlements
       properties:

@@ -16,6 +16,10 @@ build/
 # Secrets — Firebase config is never committed (app runs in demo mode without it)
 GoogleService-Info.plist
 
+# Local per-developer build settings (e.g. GOOGLE_REVERSED_CLIENT_ID).
+# The .example template is committed; the real file is not.
+LuminaLog/Local.xcconfig
+
 # Keep dependency pins
 !LuminaLog.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 

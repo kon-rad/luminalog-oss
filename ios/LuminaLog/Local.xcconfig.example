@@ -1,0 +1,12 @@
+// Template for local, per-developer build settings.
+//
+//   cp LuminaLog/Local.xcconfig.example LuminaLog/Local.xcconfig
+//
+// then fill in the value below and run `xcodegen generate`. The real
+// Local.xcconfig is gitignored so per-project ids stay out of this repo.
+// Leaving the value empty is fine — Google Sign-In stays inert (the rest of
+// the app, including Apple Sign-In and Firestore, works regardless).
+
+// Reversed OAuth client id from your GoogleService-Info.plist
+// (the REVERSED_CLIENT_ID key, e.g. com.googleusercontent.apps.1234567890-abc...).
+GOOGLE_REVERSED_CLIENT_ID =

@@ -136,17 +136,22 @@ Google Sign-In needs the **reversed client id** from your
 returns to the app. The id is per-project and the plist is not committed, so it
 is not hardcoded — wire it up manually:
 
-1. Open your `GoogleService-Info.plist` and copy the `REVERSED_CLIENT_ID` value
-   (looks like `com.googleusercontent.apps.1234567890-abc...`).
-2. In `project.yml`, set the `GOOGLE_REVERSED_CLIENT_ID` build setting on the
-   `LuminaLog` target to that value (it defaults to empty, which leaves the URL
-   scheme inert).
+1. Create your local config from the template:
+   `cp LuminaLog/Local.xcconfig.example LuminaLog/Local.xcconfig`.
+2. Open your `GoogleService-Info.plist`, copy the `REVERSED_CLIENT_ID` value
+   (looks like `com.googleusercontent.apps.1234567890-abc...`), and set it as
+   `GOOGLE_REVERSED_CLIENT_ID` in `LuminaLog/Local.xcconfig`.
 3. Re-run `xcodegen generate`.
 
+`Local.xcconfig` is gitignored, so your per-project id stays out of this
+open-source repo. Leaving it empty (or skipping the copy) leaves the URL scheme
+inert — Google Sign-In is simply hidden, and everything else still works.
+
 The `CFBundleURLTypes` entry in `project.yml` references
-`$(GOOGLE_REVERSED_CLIENT_ID)`, and `LuminaLogApp` forwards opened URLs to
-`GIDSignIn.sharedInstance.handle(_:)`. The OAuth client id itself is read at
-runtime from `FirebaseApp.app()?.options.clientID` — no extra config needed.
+`$(GOOGLE_REVERSED_CLIENT_ID)` — supplied by `Local.xcconfig` — and
+`LuminaLogApp` forwards opened URLs to `GIDSignIn.sharedInstance.handle(_:)`.
+The OAuth client id itself is read at runtime from
+`FirebaseApp.app()?.options.clientID` — no extra config needed.
 
 ### Sign in with Apple
 
