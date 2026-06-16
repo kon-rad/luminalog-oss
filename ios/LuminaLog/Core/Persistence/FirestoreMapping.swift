@@ -16,7 +16,7 @@ private func timestamp(_ value: Any?) -> Date? {
 /// ciphertext as if it were text).
 enum MappingDecryptionError: Error { case missingField(String) }
 
-private extension FieldCipher {
+extension FieldCipher {
     /// Encrypt to the Firestore envelope dict.
     func sealed(_ plaintext: String, _ context: String) throws -> [String: Any] {
         try encrypt(plaintext, context: context).firestoreData
