@@ -7,6 +7,8 @@ struct TranscriptBlock: View {
     /// Section label, e.g. "Transcribed text" or "Transcript".
     let label: String
     let text: String
+    /// When set, an "Edit" button is shown in the header's top-right corner.
+    var onEdit: (() -> Void)? = nil
 
     @State private var isExpanded = false
 
@@ -19,10 +21,27 @@ struct TranscriptBlock: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.s) {
-            Text(label.uppercased())
-                .font(.captionText.weight(.semibold))
-                .foregroundStyle(Color.textSecondary)
-                .kerning(0.8)
+            HStack(alignment: .firstTextBaseline) {
+                Text(label.uppercased())
+                    .font(.captionText.weight(.semibold))
+                    .foregroundStyle(Color.textSecondary)
+                    .kerning(0.8)
+                Spacer()
+                if let onEdit {
+                    Button(action: onEdit) {
+                        HStack(spacing: Spacing.xs) {
+                            Image(systemName: "pencil")
+                            Text("Edit")
+                        }
+                        .font(.captionText.weight(.semibold))
+                        .foregroundStyle(Color.accentWarm)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Edit transcript")
+                }
+            }
 
             Text(text)
                 .font(.journalBody)
