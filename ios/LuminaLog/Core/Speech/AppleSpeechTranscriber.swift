@@ -179,9 +179,11 @@ final class AppleSpeechTranscriber: NSObject, SpeechTranscriber {
             group.addTask { @MainActor in
                 try await Self.runRecognition(recognizer: recognizer, request: request)
             }
+            let timeout = Self.fileTranscriptionTimeout
+            let logger = Self.logger
             group.addTask {
-                try await Task.sleep(nanoseconds: UInt64(Self.fileTranscriptionTimeout * 1_000_000_000))
-                Self.logger.error("File recognition timed out after \(Self.fileTranscriptionTimeout)s")
+                try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                logger.error("File recognition timed out after \(timeout)s")
                 throw SpeechTranscriberError.recognitionFailed
             }
             defer { group.cancelAll() }

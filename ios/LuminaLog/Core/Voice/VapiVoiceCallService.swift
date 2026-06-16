@@ -89,7 +89,7 @@ final class VapiVoiceCallService: VoiceCallService {
 
         do {
             let overrides = buildOverrides(callConfig)
-            try await vapi.start(assistantId: assistantId, assistantOverrides: overrides)
+            _ = try await vapi.start(assistantId: assistantId, assistantOverrides: overrides)
         } catch {
             Self.logger.error("Vapi start failed: \(error.localizedDescription, privacy: .public)")
             broadcaster.send(.failed(message: error.localizedDescription))
@@ -155,6 +155,9 @@ final class VapiVoiceCallService: VoiceCallService {
         var overrides: [String: Any] = [:]
         var model: [String: Any] = ["provider": config.assistantOverrides.model.provider]
         if let url = config.assistantOverrides.model.url { model["url"] = url }
+        // Vapi requires `model.model` to be a string for custom-llm providers;
+        // forward what the server sent (dropping it triggers a 400 "Call failed").
+        if let name = config.assistantOverrides.model.model { model["model"] = name }
         overrides["model"] = model
         if let voice = config.assistantOverrides.voice {
             var v: [String: Any] = [:]

@@ -409,6 +409,8 @@ struct BreathingOrb: View {
 
 // MARK: - Previews
 
+#if DEBUG
+
 #Preview("Connecting") {
     VoiceCallPreview(configure: { vm in
         vm.setPreviewState(phase: .connecting)
@@ -465,3 +467,5 @@ private struct VoiceCallPreview: View {
         return VoiceCallView(previewViewModel: viewModel)
     }
 }
+
+#endif

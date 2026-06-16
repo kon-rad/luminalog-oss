@@ -280,6 +280,8 @@ struct ChatInputBar: View {
 
 // MARK: - Previews
 
+#if DEBUG
+
 #Preview("Conversation") {
     ChatViewPreview(chatId: "demo-chat-01", kind: .text, title: "Processing the week")
 }
@@ -369,3 +371,5 @@ private struct ChatViewPreview: View {
         return viewModel
     }
 }
+
+#endif
