@@ -81,6 +81,21 @@ final class MockJournalRepository: JournalRepository {
         broadcast(changedId: id)
     }
 
+    func updateContent(
+        id: String,
+        content: String,
+        contentEditedAt: Date,
+        appendedMedia: [MediaItem]
+    ) async throws {
+        guard let index = store.firstIndex(where: { $0.id == id }) else {
+            throw JournalRepositoryError.entryNotFound(id: id)
+        }
+        store[index].content = content
+        store[index].contentEditedAt = contentEditedAt
+        store[index].media.append(contentsOf: appendedMedia)
+        broadcast(changedId: id)
+    }
+
     func delete(id: String) async throws {
         store.removeAll { $0.id == id }
         broadcast(changedId: id)

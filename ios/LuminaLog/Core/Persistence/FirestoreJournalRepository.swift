@@ -141,6 +141,32 @@ final class FirestoreJournalRepository: JournalRepository {
         }
     }
 
+    func updateContent(
+        id: String,
+        content: String,
+        contentEditedAt: Date,
+        appendedMedia: [MediaItem]
+    ) async throws {
+        guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
+        var payload: [String: Any] = [
+            "content": try cipher.sealed(content, "journals.content"),
+            "contentEditedAt": Timestamp(date: contentEditedAt),
+            "updatedAt": FieldValue.serverTimestamp(),
+        ]
+        if !appendedMedia.isEmpty {
+            // Media metadata (s3Key/kind/duration) is not field-encrypted; only
+            // the S3 bytes are. arrayUnion appends without clobbering existing media.
+            payload["media"] = FieldValue.arrayUnion(appendedMedia.map(\.firestoreData))
+        }
+        do {
+            try await journals.document(id).updateData(payload)
+        } catch let error as NSError
+            where error.domain == FirestoreErrorDomain
+                && error.code == FirestoreErrorCode.notFound.rawValue {
+            throw JournalRepositoryError.entryNotFound(id: id)
+        }
+    }
+
     func delete(id: String) async throws {
         try await journals.document(id).delete()
     }

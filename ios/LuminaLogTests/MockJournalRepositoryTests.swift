@@ -92,4 +92,38 @@ final class MockJournalRepositoryTests: XCTestCase {
         let secondPage = try await repository.entries(after: firstPage.last?.createdAt, limit: 2)
         XCTAssertEqual(secondPage.map(\.id), ["e2", "e3"])
     }
+
+    @MainActor
+    func testUpdateContentSetsTextAndAppendsMedia() async throws {
+        let entry = JournalEntry(userId: "u1", type: .image, title: "Photos", content: "OCR text")
+        let repo = MockJournalRepository(entries: [entry])
+
+        let clip = MediaItem(s3Key: "users/u1/journals/\(entry.id)/audio-1.m4a", kind: .audio, durationSec: 12)
+        let editedAt = Date()
+        try await repo.updateContent(
+            id: entry.id,
+            content: "OCR text\n\nrecorded memo",
+            contentEditedAt: editedAt,
+            appendedMedia: [clip]
+        )
+
+        var latest: JournalEntry?
+        for await e in repo.entry(id: entry.id) { latest = e; break }
+        XCTAssertEqual(latest?.content, "OCR text\n\nrecorded memo")
+        XCTAssertEqual(latest?.contentEditedAt, editedAt)
+        XCTAssertEqual(latest?.media.filter { $0.kind == .audio }.count, 1)
+    }
+
+    @MainActor
+    func testUpdateContentThrowsWhenEntryMissing() async {
+        let repo = MockJournalRepository(entries: [])
+        do {
+            try await repo.updateContent(id: "missing", content: "x", contentEditedAt: Date(), appendedMedia: [])
+            XCTFail("expected entryNotFound")
+        } catch JournalRepositoryError.entryNotFound {
+            // expected
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
+    }
 }

@@ -52,5 +52,16 @@ protocol JournalRepository: AnyObject {
         prompts: AIPrompts?
     ) async throws
 
+    /// Updates an entry's canonical text and appends audio attachments.
+    /// Seals `content`, sets `contentEditedAt`, and array-unions
+    /// `appendedMedia`. Throws `JournalRepositoryError.entryNotFound` if the
+    /// document does not exist — it must NEVER recreate a deleted entry.
+    func updateContent(
+        id: String,
+        content: String,
+        contentEditedAt: Date,
+        appendedMedia: [MediaItem]
+    ) async throws
+
     func delete(id: String) async throws
 }
