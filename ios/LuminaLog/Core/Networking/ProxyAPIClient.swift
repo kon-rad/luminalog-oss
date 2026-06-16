@@ -66,6 +66,46 @@ final class ProxyAPIClient {
         _ = try await postData(path: path, body: body)
     }
 
+    /// POST raw bytes with an explicit content type and decode a JSON response.
+    /// Used for binary uploads (e.g. audio clips) that aren't JSON-encoded.
+    func postRaw<T: Decodable>(path: String, body: Data, contentType: String) async throws -> T {
+        let data = try await postRawData(path: path, body: body, contentType: contentType)
+        return try decoder.decode(T.self, from: data)
+    }
+
+    private func postRawData(path: String, body: Data, contentType: String) async throws -> Data {
+        let request = try await makeRawRequest(path: path, body: body, contentType: contentType)
+        var (data, response) = try await session.data(for: request)
+
+        // On 401, retry exactly once with a force-refreshed token.
+        if (response as? HTTPURLResponse)?.statusCode == 401 {
+            let retry = try await makeRawRequest(
+                path: path, body: body, contentType: contentType, forceRefresh: true
+            )
+            (data, response) = try await session.data(for: retry)
+        }
+
+        try Self.validate(response: response, data: data)
+        return data
+    }
+
+    private func makeRawRequest(
+        path: String,
+        body: Data,
+        contentType: String,
+        forceRefresh: Bool = false
+    ) async throws -> URLRequest {
+        let component = path.hasPrefix("/") ? String(path.dropFirst()) : path
+        let url = baseURL.appendingPathComponent(component)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        let token = try await tokenProvider.idToken(forceRefresh: forceRefresh)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.httpBody = body
+        return request
+    }
+
     private func postData(path: String, body: some Encodable) async throws -> Data {
         let request = try await makeRequest(path: path, body: body)
         var (data, response) = try await session.data(for: request)
