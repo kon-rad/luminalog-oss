@@ -126,7 +126,7 @@ private struct EntryThumbnailView: View {
         .frame(width: 56, height: 56)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous))
         .task {
-            url = try? await media.viewURL(for: s3Key)
+            url = try? await media.localFileURL(for: s3Key)
         }
     }
 }

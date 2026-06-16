@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import ImageIO
 import UIKit
 import UniformTypeIdentifiers
 
@@ -30,6 +31,9 @@ final class ProxyMediaUploader: MediaUploader {
 
     /// In-memory cache of short-TTL view URLs keyed by s3Key.
     private var viewURLCache: [String: (url: URL, expiresAt: Date)] = [:]
+
+    /// Decrypts + caches media for display (off the main actor).
+    private let contentCache = MediaContentCache()
 
     init(api: ProxyAPIClient, keys: UserKeyStore, session: URLSession = .shared) {
         self.api = api
@@ -90,12 +94,34 @@ final class ProxyMediaUploader: MediaUploader {
         // Ciphertext is opaque; sign + send as octet-stream.
         let contentType = "application/octet-stream"
 
+        // For images, also produce a small encrypted thumbnail uploaded as a
+        // second object. ~400 px longest edge is retina-crisp at list/detail sizes.
+        var thumbEncryptedURL: URL?
+        if kind == .image, let thumbData = Self.thumbnailData(from: fileURL, maxEdge: 400) {
+            let thumbPlain = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".jpg")
+            let thumbEnc = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            try thumbData.write(to: thumbPlain)
+            defer { try? FileManager.default.removeItem(at: thumbPlain) }
+            try cipher.encryptFile(at: thumbPlain, to: thumbEnc)
+            thumbEncryptedURL = thumbEnc
+        }
+        defer { if let t = thumbEncryptedURL { try? FileManager.default.removeItem(at: t) } }
+
+        var requestFiles: [UploadURLsRequest.File] = [
+            .init(kind: kind.rawValue, ext: ext, contentType: contentType,
+                  bytes: byteCount, journalId: journalId)
+        ]
+        if let thumbEncryptedURL {
+            let thumbBytes = ((try? FileManager.default.attributesOfItem(atPath: thumbEncryptedURL.path))?[.size] as? NSNumber)?.intValue ?? 0
+            requestFiles.append(
+                .init(kind: MediaKind.image.rawValue, ext: "jpg", contentType: contentType,
+                      bytes: thumbBytes, journalId: journalId)
+            )
+        }
+
         let response: UploadURLsResponse = try await api.post(
             path: "/v1/media/upload-urls",
-            body: UploadURLsRequest(files: [
-                .init(kind: kind.rawValue, ext: ext, contentType: contentType,
-                      bytes: byteCount, journalId: journalId)
-            ])
+            body: UploadURLsRequest(files: requestFiles)
         )
         guard let presigned = response.files.first else {
             throw MediaUploaderError.noUploadURL
@@ -111,8 +137,22 @@ final class ProxyMediaUploader: MediaUploader {
             throw MediaUploaderError.uploadFailed(statusCode: http.statusCode)
         }
 
+        // Upload the thumbnail object if we have one (index 1 in the response).
+        var thumbnailS3Key: String?
+        if let thumbEncryptedURL, response.files.count > 1 {
+            let thumbPresigned = response.files[1]
+            var thumbRequest = URLRequest(url: thumbPresigned.uploadUrl)
+            thumbRequest.httpMethod = "PUT"
+            thumbRequest.setValue(contentType, forHTTPHeaderField: "Content-Type")
+            let (_, thumbResponse) = try await session.upload(for: thumbRequest, fromFile: thumbEncryptedURL)
+            if let http = thumbResponse as? HTTPURLResponse, (200..<300).contains(http.statusCode) {
+                thumbnailS3Key = thumbPresigned.s3Key
+            }
+        }
+
         // Metadata from the plaintext original.
-        return await Self.mediaItem(s3Key: presigned.s3Key, kind: kind, fileURL: fileURL)
+        return await Self.mediaItem(s3Key: presigned.s3Key, kind: kind, fileURL: fileURL,
+                                    thumbnailS3Key: thumbnailS3Key)
     }
 
     func viewURL(for s3Key: String) async throws -> URL {
@@ -129,6 +169,16 @@ final class ProxyMediaUploader: MediaUploader {
         // Presigned GETs have a 1 h TTL (spec §5.3); refresh a bit early.
         cacheViewURL(entry.viewUrl, for: s3Key, expiresAt: Date().addingTimeInterval(50 * 60))
         return entry.viewUrl
+    }
+
+    func localFileURL(for s3Key: String) async throws -> URL {
+        let remote = try await viewURL(for: s3Key)
+        return try await contentCache.fileURL(for: s3Key, from: remote, key: keys.currentDataKey)
+    }
+
+    /// Clears decrypted plaintext from disk (call on sign-out).
+    func purgeContentCache() async {
+        await contentCache.purge()
     }
 
     // MARK: - Helpers
@@ -156,9 +206,26 @@ final class ProxyMediaUploader: MediaUploader {
         UTType(filenameExtension: ext)?.preferredMIMEType ?? "application/octet-stream"
     }
 
+    /// Downscaled JPEG thumbnail (longest edge ≤ `maxEdge`) for an image file,
+    /// or nil if the file isn't a decodable image. Uses ImageIO so the full
+    /// image never fully decompresses into memory.
+    nonisolated static func thumbnailData(from fileURL: URL, maxEdge: CGFloat) -> Data? {
+        guard let source = CGImageSourceCreateWithURL(fileURL as CFURL, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxEdge,
+        ]
+        guard let cgThumb = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+            return nil
+        }
+        return UIImage(cgImage: cgThumb).jpegData(compressionQuality: 0.8)
+    }
+
     /// Build a `MediaItem`, probing local metadata (dimensions, duration).
-    static func mediaItem(s3Key: String, kind: MediaKind, fileURL: URL) async -> MediaItem {
-        var item = MediaItem(s3Key: s3Key, kind: kind)
+    static func mediaItem(s3Key: String, kind: MediaKind, fileURL: URL,
+                          thumbnailS3Key: String? = nil) async -> MediaItem {
+        var item = MediaItem(s3Key: s3Key, kind: kind, thumbnailS3Key: thumbnailS3Key)
         switch kind {
         case .image:
             if let image = UIImage(contentsOfFile: fileURL.path) {

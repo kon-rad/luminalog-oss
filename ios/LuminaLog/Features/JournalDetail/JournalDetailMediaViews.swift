@@ -3,9 +3,9 @@ import SwiftUI
 import UIKit
 
 // Media subviews for the Journal Detail Main tab (design §4): image stack,
-// audio player card, and inline video player. Each resolves its display URL
-// through `MediaUploader.viewURL(for:)` and degrades to a styled placeholder
-// when the media can't be loaded (e.g. demo-mode seed entries have no files).
+// audio player card, and inline video player. Each resolves a decrypted local
+// file through `MediaUploader.localFileURL(for:)` and degrades to a styled
+// placeholder when the media can't be loaded (e.g. demo-mode seed entries).
 
 // MARK: - Image
 
@@ -17,9 +17,16 @@ struct EntryImageView: View {
     let item: MediaItem
     let media: MediaUploader
 
-    @State private var url: URL?
+    /// Full-resolution decrypted image (drives the inline view once ready and
+    /// the full-screen viewer).
+    @State private var fullURL: URL?
+    /// Low-res decrypted thumbnail shown first while the full image loads.
+    @State private var thumbURL: URL?
     @State private var resolveFailed = false
     @State private var showsViewer = false
+    // Download/share state.
+    @State private var shareURL: URL?
+    @State private var showShareSheet = false
 
     /// Aspect ratio from stored dimensions; portrait-page default otherwise.
     private var aspectRatio: CGFloat {
@@ -29,21 +36,47 @@ struct EntryImageView: View {
         return CGFloat(width) / CGFloat(height)
     }
 
+    /// Best image to show inline right now: full if ready, else thumbnail.
+    private var displayURL: URL? { fullURL ?? thumbURL }
+
     var body: some View {
+        VStack(alignment: .trailing, spacing: Spacing.xs) {
+            imageContent
+            if displayURL != nil { downloadButton }
+        }
+        .fullScreenCover(isPresented: $showsViewer) {
+            if let fullURL { ImageZoomViewer(url: fullURL) }
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let shareURL { MediaShareSheet(url: shareURL) }
+        }
+        .task {
+            // Thumbnail first (fast), then full. Legacy images have no thumb key.
+            if let thumbKey = item.thumbnailS3Key {
+                thumbURL = try? await media.localFileURL(for: thumbKey)
+            }
+            do {
+                fullURL = try await media.localFileURL(for: item.s3Key)
+            } catch {
+                if thumbURL == nil { resolveFailed = true }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var imageContent: some View {
         Group {
             if resolveFailed {
                 placeholder
-            } else if let url {
-                AsyncImage(url: url) { phase in
+            } else if let displayURL {
+                AsyncImage(url: displayURL) { phase in
                     switch phase {
                     case .success(let image):
                         image
                             .resizable()
                             .scaledToFit()
                             .contentShape(Rectangle())
-                            .onTapGesture {
-                                showsViewer = true
-                            }
+                            .onTapGesture { if fullURL != nil { showsViewer = true } }
                             .accessibilityLabel("Journal photo")
                             .accessibilityHint("Opens the photo full screen")
                             .accessibilityAddTraits(.isButton)
@@ -60,18 +93,21 @@ struct EntryImageView: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous))
-        .fullScreenCover(isPresented: $showsViewer) {
-            if let url {
-                ImageZoomViewer(url: url)
-            }
+    }
+
+    private var downloadButton: some View {
+        Button {
+            guard let fullURL else { return }
+            shareURL = fullURL          // already a decrypted local file
+            showShareSheet = true
+        } label: {
+            Image(systemName: "arrow.down.circle")
+                .font(.system(size: 22))
+                .foregroundStyle(fullURL == nil ? Color.textSecondary.opacity(0.4) : Color.accentWarm)
         }
-        .task {
-            do {
-                url = try await media.viewURL(for: item.s3Key)
-            } catch {
-                resolveFailed = true
-            }
-        }
+        .buttonStyle(.plain)
+        .disabled(fullURL == nil)
+        .accessibilityLabel("Download photo")
     }
 
     private var loadingFrame: some View {
@@ -119,8 +155,6 @@ struct AudioPlayerCard: View {
     /// Set just before showing the share sheet so the sheet has a file to share.
     @State private var shareURL: URL?
     @State private var showShareSheet = false
-    /// True when we created a temp copy that should be cleaned up after sharing.
-    @State private var shareURLIsTemp = false
 
     private var isUnavailable: Bool {
         controller.loadState == .unavailable
@@ -169,16 +203,16 @@ struct AudioPlayerCard: View {
                 .fill(Color.cardBackground)
         )
         .task {
-            let url = try? await media.viewURL(for: item.s3Key)
+            let url = try? await media.localFileURL(for: item.s3Key)
             resolvedURL = url
             controller.load(url: url, fallbackDuration: item.durationSec)
         }
         .onDisappear {
             controller.teardown()
         }
-        .sheet(isPresented: $showShareSheet, onDismiss: cleanupShareFile) {
+        .sheet(isPresented: $showShareSheet) {
             if let url = shareURL {
-                AudioShareSheet(url: url)
+                MediaShareSheet(url: url)
             }
         }
     }
@@ -225,30 +259,9 @@ struct AudioPlayerCard: View {
 
     private func downloadAndShare() async {
         guard let url = resolvedURL else { return }
-        isDownloading = true
-        defer { isDownloading = false }
-
-        if url.isFileURL {
-            shareURL = url
-            shareURLIsTemp = false
-        } else {
-            guard let (tmp, _) = try? await URLSession.shared.download(from: url) else { return }
-            let ext = url.pathExtension.isEmpty ? "m4a" : url.pathExtension
-            let dest = FileManager.default.temporaryDirectory
-                .appendingPathComponent("voice_journal.\(ext)")
-            try? FileManager.default.moveItem(at: tmp, to: dest)
-            shareURL = dest
-            shareURLIsTemp = true
-        }
+        // resolvedURL is a decrypted local file from MediaContentCache.
+        shareURL = url
         showShareSheet = true
-    }
-
-    private func cleanupShareFile() {
-        if shareURLIsTemp, let url = shareURL {
-            try? FileManager.default.removeItem(at: url)
-        }
-        shareURL = nil
-        shareURLIsTemp = false
     }
 
     static func timeLabel(_ seconds: Double) -> String {
@@ -259,7 +272,8 @@ struct AudioPlayerCard: View {
 
 // MARK: - Share sheet wrapper
 
-private struct AudioShareSheet: UIViewControllerRepresentable {
+/// Shared share-sheet wrapper for downloading decrypted photo/video/audio.
+private struct MediaShareSheet: UIViewControllerRepresentable {
     let url: URL
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
@@ -279,9 +293,40 @@ struct VideoPlayerCard: View {
     let media: MediaUploader
 
     @State private var player: AVPlayer?
+    @State private var fileURL: URL?
     @State private var isUnavailable = false
+    @State private var showShareSheet = false
 
     var body: some View {
+        VStack(alignment: .trailing, spacing: Spacing.xs) {
+            videoContent
+            if fileURL != nil { downloadButton }
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let fileURL { MediaShareSheet(url: fileURL) }
+        }
+        .task {
+            guard player == nil, !isUnavailable else { return }
+            guard let url = try? await media.localFileURL(for: item.s3Key) else {
+                isUnavailable = true
+                return
+            }
+            // Local files that don't exist (demo seeds) get the placeholder
+            // instead of a dead black player.
+            if url.isFileURL, !FileManager.default.fileExists(atPath: url.path) {
+                isUnavailable = true
+                return
+            }
+            fileURL = url
+            player = AVPlayer(url: url)
+        }
+        .onDisappear {
+            player?.pause()
+        }
+    }
+
+    @ViewBuilder
+    private var videoContent: some View {
         Group {
             if let player {
                 VideoPlayer(player: player)
@@ -298,23 +343,18 @@ struct VideoPlayerCard: View {
         }
         .aspectRatio(16.0 / 9.0, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous))
-        .task {
-            guard player == nil, !isUnavailable else { return }
-            guard let url = try? await media.viewURL(for: item.s3Key) else {
-                isUnavailable = true
-                return
-            }
-            // Local files that don't exist (demo seeds) get the placeholder
-            // instead of a dead black player.
-            if url.isFileURL, !FileManager.default.fileExists(atPath: url.path) {
-                isUnavailable = true
-                return
-            }
-            player = AVPlayer(url: url)
+    }
+
+    private var downloadButton: some View {
+        Button {
+            if fileURL != nil { showShareSheet = true }
+        } label: {
+            Image(systemName: "arrow.down.circle")
+                .font(.system(size: 22))
+                .foregroundStyle(Color.accentWarm)
         }
-        .onDisappear {
-            player?.pause()
-        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Download video")
     }
 
     private var placeholder: some View {

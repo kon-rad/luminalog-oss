@@ -85,6 +85,8 @@ final class SessionStore: ObservableObject {
             await subscriptions.setUser(uid)
         } else {
             if let previousUid { keys.signOut(userId: previousUid) }
+            // Decrypted plaintext must not outlive the session.
+            Task.detached { await MediaContentCache().purge() }
             state = .signedOut
             profile = nil
             await subscriptions.setUser(nil)

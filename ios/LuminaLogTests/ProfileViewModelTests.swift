@@ -68,6 +68,11 @@ final class ProfileViewModelTests: XCTestCase {
             viewURLKeys.append(s3Key)
             return URL(fileURLWithPath: "/resolved/\(s3Key)")
         }
+
+        func localFileURL(for s3Key: String) async throws -> URL {
+            viewURLKeys.append(s3Key)
+            return URL(fileURLWithPath: "/resolved/\(s3Key)")
+        }
     }
 
     // MARK: - Harness

@@ -29,4 +29,9 @@ final class MockMediaUploader: MediaUploader {
             .urls(for: .documentDirectory, in: .userDomainMask)[0]
         return documents.appendingPathComponent(s3Key)
     }
+
+    func localFileURL(for s3Key: String) async throws -> URL {
+        // Demo media is stored as plaintext local files; no decryption needed.
+        try await viewURL(for: s3Key)
+    }
 }

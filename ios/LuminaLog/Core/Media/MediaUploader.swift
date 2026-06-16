@@ -10,4 +10,8 @@ protocol MediaUploader: AnyObject {
 
     /// Resolve a (short-lived) URL for displaying/playing a stored media item.
     func viewURL(for s3Key: String) async throws -> URL
+
+    /// Resolve a **decrypted** local file URL for displaying/playing a stored
+    /// media item. Downloads ciphertext, decrypts, and caches the plaintext.
+    func localFileURL(for s3Key: String) async throws -> URL
 }
