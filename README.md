@@ -1,7 +1,26 @@
-# LuminaLog (Open Source)
+# LuminaLog
 
-LuminaLog is an AI-assisted journaling app with end-to-end-ish, per-user encryption
-of all journal content at rest. This monorepo holds the full stack.
+**LuminaLog is an AI-assisted journaling app with per-user encryption of all content at rest.**
+Write, speak, or capture your days; LuminaLog transcribes voice and video on-device, encrypts
+every entry under a key unique to you, and uses retrieval-augmented AI to summarize entries,
+surface insights, suggest prompts, and let you chat with your own history.
+
+This monorepo holds the full stack: a SwiftUI iOS app, a Node/TypeScript proxy API, and the
+marketing landing page.
+
+> **Status:** open source, actively developed. Contributions welcome — see
+> [Contributing](#contributing).
+
+## Features
+
+- **Four entry types** — text, voice, video, and photo. Voice/video are transcribed on-device.
+- **Per-user encryption at rest** — journal text, transcripts, AI output, chat, biography, and
+  media bytes are encrypted with a per-user AES-256-GCM data key (envelope encryption).
+- **AI summaries, insights & prompts** — generated per entry via the proxy API.
+- **Chat with your journal** — retrieval-augmented chat grounded in your own entries (RAG over a
+  vector store).
+- **Streaks & stats** — lightweight habit tracking on the home screen.
+- **Demo mode** — the iOS app runs against in-memory mocks with no backend or credentials.
 
 ## Layout
 
@@ -11,42 +30,92 @@ of all journal content at rest. This monorepo holds the full stack.
 | `server/`   | Node + TypeScript proxy API (AI, RAG/Chroma, S3 media, transcription, per-user key service). |
 | `landing/`  | Marketing landing page (static `index.html`). |
 | `design/`   | Brand strategy, design specs, and HTML/JSX UI mockups. |
+| `docs/`     | Design specs and implementation plans for notable features. |
 
-## Encryption
+## Architecture
 
-User content (journal entries, transcriptions, AI output, chat messages, biography, media
-bytes) is encrypted at rest with a per-user AES-256-GCM data key. See
+```
+ iOS app  ──HTTPS──>  proxy API (server/)  ──>  Together AI (LLM, Whisper, embeddings)
+   │                       │                  ──>  Chroma (vector store, RAG)
+   │                       │                  ──>  S3 (encrypted media bytes)
+   │                       └──>  per-user key service (envelope encryption)
+   └──>  Firebase Auth + Firestore (encrypted documents)
+```
+
+Clients hold the per-user data key and encrypt content before it is written to Firestore or S3.
+The server can decrypt to run AI features (the trust model is **"server can decrypt to run AI"**,
+**not** zero-knowledge). See
 `ios/docs/superpowers/specs/2026-06-15-per-user-data-encryption-design.md` for the design.
-The trust model is "server can decrypt to run AI" (envelope encryption), **not** zero-knowledge.
 
 ## Getting started
 
-### Server (`server/`)
-```bash
-cd server
-cp .env.example .env        # then fill in your own credentials
-npm install
-npm run build && npm start
-```
-Required secrets (see `.env.example`): Firebase service account, Together AI key,
-AWS S3 credentials, Vapi keys, and the encryption master key.
-
 ### iOS (`ios/`)
+
 ```bash
 cd ios
 brew install xcodegen
 xcodegen generate
 open LuminaLog.xcodeproj
 ```
-Add your own `GoogleService-Info.plist` (the app runs in demo mode without it).
 
-## Security / secrets
+The app runs in **demo mode** out of the box (in-memory mocks, no backend). To run against real
+backends, add your own `GoogleService-Info.plist` and copy `LuminaLog/Local.xcconfig.example`
+to `LuminaLog/Local.xcconfig` with your values. Both are gitignored.
 
-**No credentials are committed.** All secret files are excluded via the root `.gitignore`
-(`.env`, `GoogleService-Info.plist`, `service-account-secret.json`, `*.p8`, etc.).
-Copy your own credentials in locally — they will not be tracked. Before pushing, run
-`git status` and confirm no secret files are staged.
+Run the test suite:
+```bash
+xcodebuild test -project LuminaLog.xcodeproj -scheme LuminaLog \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+  -only-testing LuminaLogTests
+```
+
+### Server (`server/`)
+
+```bash
+cd server
+cp .env.example .env        # then fill in your own credentials
+npm install
+npm run build && npm start
+npm test                    # vitest
+```
+
+Required secrets (see `.env.example`): Firebase service account, Together AI key, AWS S3
+credentials, Vapi keys, and the encryption master key. Deployment recipe: `server/DEPLOY.md`.
+
+## Contributing
+
+Contributions are welcome — bug fixes, features, docs, and design feedback.
+
+1. **Open an issue first** for anything non-trivial so we can agree on the approach before you
+   build it. For small fixes, a PR is fine directly.
+2. **Fork and branch** — create a feature branch off `main` (e.g. `fix/photo-thumbnails`).
+3. **Match the existing style.** This codebase favors small, focused files with clear
+   responsibilities, descriptive names, and comments that explain *why*. Read the surrounding
+   code and follow its patterns.
+4. **Add tests.** New logic should come with tests (`LuminaLogTests` for iOS, `vitest` for the
+   server). Run the full suite before opening a PR and confirm it's green.
+5. **Never commit secrets.** All credential files are gitignored (`.env`,
+   `GoogleService-Info.plist`, service-account JSON, `*.p8`, etc.). Run `git status` before
+   committing and confirm no secret files are staged. Use placeholders in docs.
+6. **Keep PRs focused.** One logical change per PR with a clear description of what and why.
+
+Larger feature designs live in `docs/` and `ios/docs/` as specs + implementation plans; that's a
+good place to understand how a feature was reasoned about before it was built.
+
+### Project conventions
+
+- iOS: SwiftUI + a thin dependency-injection container (`AppServices`); protocols for every
+  service with mock implementations for previews and tests.
+- Server: Express + Zod-validated config; secrets only ever come from the environment.
+- The Xcode project is generated by XcodeGen from `ios/project.yml` — edit `project.yml`, then
+  run `xcodegen generate` (the `.xcodeproj` is gitignored).
+
+## Security
+
+**No credentials are committed.** All secret files are excluded via the root `.gitignore`.
+If you discover a security issue, please open a private report (or an issue without sensitive
+details) rather than a public proof-of-concept.
 
 ## License
 
-TODO: choose an open-source license (e.g. MIT or Apache-2.0) before publishing.
+[MIT](LICENSE) © 2026 Konrad Gnat

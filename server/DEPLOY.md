@@ -1,22 +1,26 @@
 # Deploy luminalog-api to production
 
-Server: <server-host> · SSH key: ~/.ssh/<ssh-key> (or <ssh-key>)
+This is a generic deployment recipe. Replace the placeholders with your own values:
+
+- `<server-host>` — your server's hostname or IP
+- `<ssh-key>` — path to your SSH private key (e.g. `~/.ssh/id_ed25519`)
+- `<deploy-user>` — the SSH user you deploy as
+- `<app-dir>` — the directory on the server, e.g. `/srv/luminalog/luminalog-api`
 
 ## Step 1: Rsync files
 
 ```bash
-cd <home>/dev/startups/luminalog
 rsync -avz --exclude node_modules --exclude dist --exclude .git \
-  luminalog-api/ \
-  -e "ssh -i ~/.ssh/<ssh-key>" \
-  root@<server-host>:/root/luminalog/luminalog-api/
+  server/ \
+  -e "ssh -i <ssh-key>" \
+  <deploy-user>@<server-host>:<app-dir>/
 ```
 
 ## Step 2: Build on server
 
 ```bash
-ssh -i ~/.ssh/<ssh-key> root@<server-host> "
-  cd /root/luminalog/luminalog-api
+ssh -i <ssh-key> <deploy-user>@<server-host> "
+  cd <app-dir>
   npm install --production=false
   npm run build
 "
@@ -24,9 +28,9 @@ ssh -i ~/.ssh/<ssh-key> root@<server-host> "
 
 ## Step 3: Create .env on server
 
-SSH in and run:
+SSH in and create the env file (see `.env.example` for the full list):
 ```bash
-cat > /root/luminalog/luminalog-api/.env << 'EOF'
+cat > <app-dir>/.env << 'EOF'
 PORT=3200
 NODE_ENV=production
 FIREBASE_SERVICE_ACCOUNT_JSON=<paste stringified JSON — no newlines>
@@ -40,15 +44,16 @@ AWS_REGION=us-east-1
 VAPI_PUBLIC_KEY=<key>
 VAPI_ASSISTANT_ID=<id — or leave empty if using assistantOverrides only>
 VAPI_WEBHOOK_SECRET=$(openssl rand -hex 32)
+MASTER_KEY=<base64 of exactly 32 random bytes — e.g. openssl rand -base64 32>
 EOF
-chmod 600 /root/luminalog/luminalog-api/.env
+chmod 600 <app-dir>/.env
 ```
 
 ## Step 4: Start via PM2
 
 ```bash
-ssh -i ~/.ssh/<ssh-key> root@<server-host> "
-  cd /root/luminalog/luminalog-api
+ssh -i <ssh-key> <deploy-user>@<server-host> "
+  cd <app-dir>
   set -a; source .env; set +a
   pm2 start ecosystem.config.js
   pm2 save
@@ -58,7 +63,8 @@ ssh -i ~/.ssh/<ssh-key> root@<server-host> "
 
 ## Step 5: Add nginx /v1/ block
 
-Edit `/etc/nginx/sites-available/luminalog.com` — add above the existing `location /` block:
+Edit your site config (e.g. `/etc/nginx/sites-available/<your-domain>`) — add above the
+existing `location /` block:
 
 ```nginx
 location /v1/ {
@@ -86,10 +92,10 @@ Then: `nginx -t && systemctl reload nginx`
 ## Step 6: Smoke test
 
 ```bash
-curl -s https://luminalog.com/health
+curl -s https://<your-domain>/health
 # → {"status":"ok","chroma":"connected"}
 
-curl -s -X POST https://luminalog.com/v1/rag/index \
+curl -s -X POST https://<your-domain>/v1/rag/index \
   -H "Content-Type: application/json" \
   -d '{}' | jq .
 # → {"error":"Missing authorization header"}  (401 — auth working)
@@ -98,9 +104,9 @@ curl -s -X POST https://luminalog.com/v1/rag/index \
 ## Step 7: iOS — run xcodegen
 
 ```bash
-cd <home>/dev/startups/luminalog/ios-luminalog
+cd ios
 xcodegen generate
 ```
 
 This resolves the Vapi SPM package. If the Vapi SDK API differs from what's in
-VapiVoiceCallService.swift, adjust the callback names to match the real SDK.
+`VapiVoiceCallService.swift`, adjust the callback names to match the real SDK.
