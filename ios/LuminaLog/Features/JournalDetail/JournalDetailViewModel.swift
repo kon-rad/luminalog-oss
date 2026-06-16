@@ -36,12 +36,6 @@ final class JournalDetailViewModel: ObservableObject {
 
     private let journals: JournalRepository
     private let ai: AIService
-    private let media: MediaUploader
-    private let speech: SpeechTranscriber
-    /// Extracts a video's audio track to a temp file for transcription.
-    /// Injected so tests can exercise re-transcription without AVFoundation
-    /// (matches the `CreateEntryDependencies.extractAudio` pattern).
-    private let extractAudio: (URL) async throws -> URL
 
     private var liveTask: Task<Void, Never>?
     private var hasStarted = false
@@ -49,17 +43,11 @@ final class JournalDetailViewModel: ObservableObject {
     init(
         entryId: String,
         journals: JournalRepository,
-        ai: AIService,
-        media: MediaUploader,
-        speech: SpeechTranscriber,
-        extractAudio: @escaping (URL) async throws -> URL = AudioExtractor.extractAudio(from:)
+        ai: AIService
     ) {
         self.entryId = entryId
         self.journals = journals
         self.ai = ai
-        self.media = media
-        self.speech = speech
-        self.extractAudio = extractAudio
     }
 
     deinit {
@@ -160,81 +148,19 @@ final class JournalDetailViewModel: ObservableObject {
 
     // MARK: - Transcript retry
 
-    /// Re-runs on-device STT for a voice/video entry whose transcription
-    /// failed at create time (`transcriptStatus == .failed`).
-    ///
-    /// Content-replacement choice: on success the entry's `content` is
-    /// REPLACED with the new transcript. A failed entry's content is only
-    /// ever the typed-text fallback from the Create flow (the transcript was
-    /// never produced), and we deliberately keep the rule simple rather than
-    /// trying to preserve a typed prefix — the transcript becomes the
-    /// canonical text, exactly as it would have at create time with no typed
-    /// text.
+    /// Re-runs server-side Whisper transcription for a voice/video entry.
+    /// The server downloads the audio from S3, transcribes via Together AI
+    /// Whisper, updates Firestore content + transcriptStatus, and re-indexes.
+    /// The Firestore listener in `startLiveUpdates` picks up the update and
+    /// refreshes the UI without any additional client-side work.
     func retryTranscription() async {
         guard transcriptRetryState != .loading, let entry else { return }
         guard entry.type == .voice || entry.type == .video else { return }
-        let mediaKind: MediaKind = entry.type == .video ? .video : .audio
-        guard let item = entry.media.first(where: { $0.kind == mediaKind }) else { return }
 
         transcriptRetryState = .loading
-
-        // Temp files created along the way (remote download, extracted
-        // audio); always cleaned up, success or failure.
-        var tempURLs: [URL] = []
-        defer {
-            for url in tempURLs {
-                try? FileManager.default.removeItem(at: url)
-            }
-        }
-
         do {
-            // Resolve the stored media to a local file the recognizer can
-            // read: local file URLs (demo mode) pass through; remote URLs
-            // (S3 presigned) are downloaded to a temp file first.
-            let resolved = try await media.viewURL(for: item.s3Key)
-            let localURL: URL
-            if resolved.isFileURL {
-                localURL = resolved
-            } else {
-                let (downloaded, _) = try await URLSession.shared.download(from: resolved)
-                let ext = resolved.pathExtension.isEmpty
-                    ? (mediaKind == .video ? "mp4" : "m4a")
-                    : resolved.pathExtension
-                let destination = FileManager.default.temporaryDirectory
-                    .appendingPathComponent("\(UUID().uuidString).\(ext)")
-                try FileManager.default.moveItem(at: downloaded, to: destination)
-                tempURLs.append(destination)
-                localURL = destination
-            }
-
-            // Video → extract the audio track first (same as Create flow).
-            let audioURL: URL
-            if entry.type == .video {
-                audioURL = try await extractAudio(localURL)
-                tempURLs.append(audioURL)
-            } else {
-                audioURL = localURL
-            }
-
-            guard await speech.requestAuthorization() else {
-                throw SpeechTranscriberError.notAuthorized
-            }
-            let transcript = try await speech.transcribeFile(url: audioURL)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-
-            // Persist based on the LATEST streamed entry (it may have been
-            // edited while transcribing); a deleted entry drops the result.
-            guard var latest = self.entry else {
-                transcriptRetryState = .idle
-                return
-            }
-            latest.content = transcript
-            latest.transcriptStatus = .ready
-            latest.wordCount = transcript.split(whereSeparator: \.isWhitespace).count
-            try await journals.save(latest)
-            self.entry = latest
+            try await ai.transcribeJournal(journalId: entryId)
             transcriptRetryState = .idle
-            Task { await ai.requestIndex(journalId: entryId) }
         } catch {
             Self.logger.error("retryTranscription failed: \(error.localizedDescription, privacy: .public)")
             transcriptRetryState = .failed

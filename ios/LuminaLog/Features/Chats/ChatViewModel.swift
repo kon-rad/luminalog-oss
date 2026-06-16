@@ -273,6 +273,19 @@ final class ChatViewModel: ObservableObject {
         }
     }
 
+    /// Mic-button action for the chat input (design §7): tap to start
+    /// dictating, tap again to stop and send the transcript straight away.
+    /// The live transcript has been filling `draft` as the user speaks, so
+    /// stopping simply hands it to `send()` (which no-ops on empty input).
+    func toggleDictationAndSend() async {
+        if dictationState == .listening {
+            stopDictation()
+            await send()
+        } else {
+            await startDictation()
+        }
+    }
+
     private func dictationBase(from current: String) -> String {
         guard !current.isEmpty else { return "" }
         if let last = current.last, last.isWhitespace { return current }

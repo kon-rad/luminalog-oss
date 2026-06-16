@@ -10,6 +10,8 @@ struct VoiceCallView: View {
     /// "View transcript" after the call: the parent dismisses this cover
     /// and pushes the saved `.voice` chat.
     let onViewTranscript: (Chat) -> Void
+    /// Called when the user has no credits so the caller can present the store.
+    let onInsufficientCredits: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
 
@@ -19,10 +21,13 @@ struct VoiceCallView: View {
     init(
         voice: VoiceCallService,
         chats: ChatRepository,
-        onViewTranscript: @escaping (Chat) -> Void
+        credits: CreditService,
+        onViewTranscript: @escaping (Chat) -> Void,
+        onInsufficientCredits: (() -> Void)? = nil
     ) {
-        _viewModel = StateObject(wrappedValue: VoiceCallViewModel(voice: voice, chats: chats))
+        _viewModel = StateObject(wrappedValue: VoiceCallViewModel(voice: voice, chats: chats, credits: credits))
         self.onViewTranscript = onViewTranscript
+        self.onInsufficientCredits = onInsufficientCredits
     }
 
     #if DEBUG
@@ -30,6 +35,7 @@ struct VoiceCallView: View {
     init(previewViewModel: VoiceCallViewModel) {
         _viewModel = StateObject(wrappedValue: previewViewModel)
         self.onViewTranscript = { _ in }
+        self.onInsufficientCredits = nil
     }
     #endif
 
@@ -46,6 +52,9 @@ struct VoiceCallView: View {
                 endedContent(reason: reason)
             case .failed(let message):
                 failedContent(message: message)
+            case .insufficientCredits:
+                // Handled via .onChange below; show nothing while dismissing.
+                Color.clear
             }
         }
         // Immersive dark treatment in both modes (design §8) — children
@@ -55,6 +64,12 @@ struct VoiceCallView: View {
         .preferredColorScheme(.dark)
         .task {
             await viewModel.start()
+        }
+        .onChange(of: viewModel.phase) { _, phase in
+            if case .insufficientCredits = phase {
+                dismiss()
+                onInsufficientCredits?()
+            }
         }
     }
 
@@ -442,7 +457,8 @@ private struct VoiceCallPreview: View {
         let repository = MockChatRepository()
         let viewModel = VoiceCallViewModel(
             voice: MockVoiceCallService(chats: repository),
-            chats: repository
+            chats: repository,
+            credits: MockCreditService()
         )
         viewModel.disableStartForPreviews()
         configure(viewModel)

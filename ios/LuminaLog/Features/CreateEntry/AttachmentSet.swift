@@ -53,6 +53,35 @@ struct PhotoAttachment: Identifiable, Equatable {
         try imageData.write(to: url)
         return url
     }
+
+    /// Generate a JPEG thumbnail capped at `maxDimension` pixels on the
+    /// longest side. Returns the original data unchanged when the image is
+    /// already within the limit.
+    func makeThumbnailData(maxDimension: CGFloat = 200) -> Data? {
+        guard let image = UIImage(data: imageData) else { return nil }
+        let pixelWidth = image.size.width * image.scale
+        let pixelHeight = image.size.height * image.scale
+        let longestSide = max(pixelWidth, pixelHeight)
+        guard longestSide > maxDimension else { return imageData }
+        let scale = maxDimension / longestSide
+        let thumbSize = CGSize(
+            width: (pixelWidth * scale).rounded(),
+            height: (pixelHeight * scale).rounded()
+        )
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: thumbSize, format: format)
+        let thumb = renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: thumbSize)) }
+        return thumb.jpegData(compressionQuality: 0.7)
+    }
+
+    /// Write thumbnail data to a temporary file for upload.
+    func writeThumbnailToTemporaryFile(data: Data) throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(id.uuidString)_thumb.jpg")
+        try data.write(to: url)
+        return url
+    }
 }
 
 /// A video staged for upload.

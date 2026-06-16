@@ -15,9 +15,11 @@ final class JournalDetailViewModelTests: XCTestCase {
         var summaryCalls = 0
         var insightsCalls = 0
         var promptsCalls = 0
+        var transcribeCalls = 0
 
         var delayNanos: UInt64 = 0
         var shouldFail = false
+        var shouldFailTranscribe = false
 
         func generateSummary(journalId: String) async throws -> AIGeneration {
             summaryCalls += 1
@@ -45,7 +47,17 @@ final class JournalDetailViewModelTests: XCTestCase {
 
         func requestIndex(journalId: String) async {}
 
-        func transcribeJournal(journalId: String) async {}
+        func transcribeJournal(journalId: String) async throws {
+            transcribeCalls += 1
+            // Suspend like a real network call so the loading guard can observe
+            // an in-flight retry (otherwise concurrent retries can't be tested).
+            if delayNanos > 0 {
+                try await Task.sleep(nanoseconds: delayNanos)
+            }
+            if shouldFailTranscribe {
+                throw SpyError()
+            }
+        }
 
         private func waitAndMaybeFail() async throws {
             if delayNanos > 0 {
@@ -54,28 +66,6 @@ final class JournalDetailViewModelTests: XCTestCase {
             if shouldFail {
                 throw SpyError()
             }
-        }
-    }
-
-    // MARK: - Stub media uploader
-
-    /// `MediaUploader` stub whose `viewURL(for:)` returns a fixed local file
-    /// URL, so retry-transcription tests skip the remote-download path.
-    @MainActor
-    private final class StubMediaUploader: MediaUploader {
-
-        let localURL: URL
-
-        init(localURL: URL = URL(fileURLWithPath: "/tmp/stub-audio.m4a")) {
-            self.localURL = localURL
-        }
-
-        func upload(fileURL: URL, kind: MediaKind, journalId: String) async throws -> MediaItem {
-            MediaItem(s3Key: fileURL.lastPathComponent, kind: kind)
-        }
-
-        func viewURL(for s3Key: String) async throws -> URL {
-            localURL
         }
     }
 
@@ -114,7 +104,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         let repo = MockJournalRepository(entries: [makeEntry()])
         let ai = SpyAIService()
 
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai, media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await viewModel.start()
 
         XCTAssertEqual(ai.summaryCalls, 1, "A nil summary triggers exactly one lazy generation")
@@ -126,7 +116,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         XCTAssertEqual(saved?.summary?.text, "spy summary")
 
         // A second view model for the same entry must NOT regenerate.
-        let second = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai, media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let second = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await second.start()
         XCTAssertEqual(ai.summaryCalls, 1, "Persisted summary suppresses re-generation on revisit")
         XCTAssertEqual(second.entry?.summary?.text, "spy summary")
@@ -138,7 +128,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         let repo = MockJournalRepository(entries: [entry])
         let ai = SpyAIService()
 
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai, media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await viewModel.start()
 
         XCTAssertEqual(ai.summaryCalls, 0)
@@ -151,7 +141,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         let ai = SpyAIService()
         ai.shouldFail = true
 
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai, media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await viewModel.start()
 
         XCTAssertEqual(viewModel.summaryState, .failed)
@@ -174,7 +164,7 @@ final class JournalDetailViewModelTests: XCTestCase {
 
         // Never edited → not stale.
         let untouched = MockJournalRepository(entries: [makeEntry(summary: summary)])
-        let vm1 = JournalDetailViewModel(entryId: "entry-1", journals: untouched, ai: SpyAIService(), media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let vm1 = JournalDetailViewModel(entryId: "entry-1", journals: untouched, ai: SpyAIService())
         await vm1.start()
         XCTAssertFalse(vm1.isSummaryStale)
 
@@ -182,7 +172,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         let editedBefore = MockJournalRepository(entries: [
             makeEntry(summary: summary, contentEditedAt: generatedAt.addingTimeInterval(-600))
         ])
-        let vm2 = JournalDetailViewModel(entryId: "entry-1", journals: editedBefore, ai: SpyAIService(), media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let vm2 = JournalDetailViewModel(entryId: "entry-1", journals: editedBefore, ai: SpyAIService())
         await vm2.start()
         XCTAssertFalse(vm2.isSummaryStale)
 
@@ -190,7 +180,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         let editedAfter = MockJournalRepository(entries: [
             makeEntry(summary: summary, contentEditedAt: generatedAt.addingTimeInterval(600))
         ])
-        let vm3 = JournalDetailViewModel(entryId: "entry-1", journals: editedAfter, ai: SpyAIService(), media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let vm3 = JournalDetailViewModel(entryId: "entry-1", journals: editedAfter, ai: SpyAIService())
         await vm3.start()
         XCTAssertTrue(vm3.isSummaryStale)
     }
@@ -203,7 +193,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         let repo = MockJournalRepository(entries: [entry])
         let ai = SpyAIService()
 
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai, media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await viewModel.start()
         XCTAssertNil(viewModel.entry?.insights)
 
@@ -216,7 +206,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         XCTAssertEqual(saved?.insights?.text, "spy insights")
 
         // Re-open: a fresh view model sees the saved insights directly.
-        let reopened = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai, media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let reopened = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await reopened.start()
         XCTAssertEqual(reopened.entry?.insights?.text, "spy insights")
         XCTAssertEqual(ai.insightsCalls, 1, "Insights are never auto-generated")
@@ -229,7 +219,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         let ai = SpyAIService()
         ai.shouldFail = true
 
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai, media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await viewModel.start()
         await viewModel.generateInsights()
 
@@ -245,7 +235,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         let repo = MockJournalRepository(entries: [entry])
         let ai = SpyAIService()
 
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai, media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await viewModel.start()
 
         await viewModel.generatePrompts()
@@ -267,7 +257,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         let ai = SpyAIService()
         ai.delayNanos = 100_000_000
 
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai, media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await viewModel.start()
 
         async let first: Void = viewModel.generateInsights()
@@ -285,7 +275,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         let ai = SpyAIService()
         ai.delayNanos = 100_000_000
 
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai, media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await viewModel.start()
 
         async let first: Void = viewModel.generatePrompts()
@@ -303,7 +293,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         let ai = SpyAIService()
         ai.delayNanos = 100_000_000
 
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai, media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await viewModel.start()
         XCTAssertEqual(ai.summaryCalls, 0)
 
@@ -324,7 +314,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         let ai = SpyAIService()
         ai.delayNanos = 100_000_000
 
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai, media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await viewModel.start()
 
         // Delete the entry while the generation is still in flight.
@@ -343,7 +333,7 @@ final class JournalDetailViewModelTests: XCTestCase {
         let repo = MockJournalRepository(entries: [])
         let ai = SpyAIService()
 
-        let viewModel = JournalDetailViewModel(entryId: "missing", journals: repo, ai: ai, media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let viewModel = JournalDetailViewModel(entryId: "missing", journals: repo, ai: ai)
         await viewModel.start()
 
         XCTAssertTrue(viewModel.hasLoaded)
@@ -357,7 +347,7 @@ final class JournalDetailViewModelTests: XCTestCase {
     @MainActor
     func testEntryStreamUpdatesLive() async throws {
         let repo = MockJournalRepository(entries: [makeEntry(summary: AIGeneration(text: "s", model: "m"))])
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: SpyAIService(), media: MockMediaUploader(), speech: MockSpeechTranscriber())
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: SpyAIService())
         await viewModel.start()
 
         var updated = try XCTUnwrap(viewModel.entry)
@@ -371,8 +361,8 @@ final class JournalDetailViewModelTests: XCTestCase {
 
     // MARK: - Transcript retry
 
-    /// A voice entry whose STT failed at create time: typed-text fallback
-    /// content, an audio media item, `transcriptStatus: .failed`.
+    /// A voice entry whose transcription failed: audio media item present,
+    /// `transcriptStatus: .failed`.
     @MainActor
     private func makeFailedVoiceEntry(id: String = "entry-1") -> JournalEntry {
         JournalEntry(
@@ -389,64 +379,53 @@ final class JournalDetailViewModelTests: XCTestCase {
     }
 
     @MainActor
-    func testRetryTranscriptionSuccessReplacesContentAndPersists() async throws {
+    func testRetryTranscriptionCallsWhisperAndIdlesOnSuccess() async {
         let repo = MockJournalRepository(entries: [makeFailedVoiceEntry()])
-        let speech = MockSpeechTranscriber()
-        speech.fileTranscript = "Recovered transcript text."
-        let localURL = URL(fileURLWithPath: "/tmp/retry-audio.m4a")
-        let uploader = StubMediaUploader(localURL: localURL)
+        let ai = SpyAIService()
 
-        let viewModel = JournalDetailViewModel(
-            entryId: "entry-1",
-            journals: repo,
-            ai: SpyAIService(),
-            media: uploader,
-            speech: speech
-        )
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await viewModel.start()
         XCTAssertEqual(viewModel.entry?.transcriptStatus, .failed)
 
         await viewModel.retryTranscription()
 
-        // The local file URL from the uploader is fed straight to STT.
-        XCTAssertEqual(speech.transcribedFileURLs, [localURL])
-
-        // Content is REPLACED with the transcript (the typed-text-only
-        // fallback is not preserved — documented choice) and status is ready.
-        XCTAssertEqual(viewModel.entry?.content, "Recovered transcript text.")
-        XCTAssertEqual(viewModel.entry?.transcriptStatus, .ready)
+        XCTAssertEqual(ai.transcribeCalls, 1, "Retry delegates to server-side Whisper")
         XCTAssertEqual(viewModel.transcriptRetryState, .idle)
-
-        // Persisted to the repository, not just held in memory.
-        let saved = try await storedEntry(id: "entry-1", in: repo)
-        XCTAssertEqual(saved?.content, "Recovered transcript text.")
-        XCTAssertEqual(saved?.transcriptStatus, .ready)
+        // The entry is updated by Firestore listener after the server writes;
+        // in tests the mock repo doesn't auto-update, so status stays .failed.
+        XCTAssertEqual(viewModel.entry?.transcriptStatus, .failed, "Mock repo unchanged until listener fires")
     }
 
     @MainActor
-    func testRetryTranscriptionFailureSetsFailedStateWithoutPersisting() async throws {
+    func testRetryTranscriptionFailureSetsFailedState() async {
         let repo = MockJournalRepository(entries: [makeFailedVoiceEntry()])
-        let speech = MockSpeechTranscriber()
-        speech.fileError = MockSpeechTranscriber.MockError()
+        let ai = SpyAIService()
+        ai.shouldFailTranscribe = true
 
-        let viewModel = JournalDetailViewModel(
-            entryId: "entry-1",
-            journals: repo,
-            ai: SpyAIService(),
-            media: StubMediaUploader(),
-            speech: speech
-        )
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await viewModel.start()
 
         await viewModel.retryTranscription()
 
+        XCTAssertEqual(ai.transcribeCalls, 1)
         XCTAssertEqual(viewModel.transcriptRetryState, .failed)
         XCTAssertEqual(viewModel.entry?.content, "Typed fallback text.", "Failure leaves the entry untouched")
         XCTAssertEqual(viewModel.entry?.transcriptStatus, .failed)
+    }
 
-        // Nothing was persisted: the stored entry still has the old content.
-        let saved = try await storedEntry(id: "entry-1", in: repo)
-        XCTAssertEqual(saved?.content, "Typed fallback text.")
-        XCTAssertEqual(saved?.transcriptStatus, .failed)
+    @MainActor
+    func testRetryTranscriptionDoubleTapFiresOnce() async {
+        let repo = MockJournalRepository(entries: [makeFailedVoiceEntry()])
+        let ai = SpyAIService()
+        ai.delayNanos = 100_000_000
+
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
+        await viewModel.start()
+
+        async let first: Void = viewModel.retryTranscription()
+        async let second: Void = viewModel.retryTranscription()
+        _ = await (first, second)
+
+        XCTAssertEqual(ai.transcribeCalls, 1, "Loading guard blocks duplicate retry calls")
     }
 }

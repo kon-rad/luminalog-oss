@@ -1,20 +1,20 @@
 import { getJournalsCollection, resetJournalsCollection } from '../db/chroma'
 import { embed } from './aiClient'
 import { encryptField } from '../crypto/fieldCipher'
+import { config } from '../config'
 
-const CHUNK_SIZE = 1000
-const CHUNK_OVERLAP = 200
+// Short entries are stored as a single chunk rather than being split.
 const SHORT_THRESHOLD = 500
 
-function chunk(text: string): string[] {
+function chunk(text: string, chunkSize: number, chunkOverlap: number): string[] {
   if (text.length <= SHORT_THRESHOLD) return [text]
   const chunks: string[] = []
   let start = 0
   while (start < text.length) {
-    const end = Math.min(start + CHUNK_SIZE, text.length)
+    const end = Math.min(start + chunkSize, text.length)
     chunks.push(text.slice(start, end))
     if (end === text.length) break
-    start += CHUNK_SIZE - CHUNK_OVERLAP
+    start += chunkSize - chunkOverlap
   }
   return chunks
 }
@@ -44,7 +44,7 @@ export async function indexJournalEntry(params: {
   try {
     await purgeChunks(userId, entryId)
 
-    const chunks = chunk(content)
+    const chunks = chunk(content, config.RAG_CHUNK_SIZE, config.RAG_CHUNK_OVERLAP)
     if (chunks.length === 0) return { chunks: 0 }
 
     const embeddings = await embed(chunks)

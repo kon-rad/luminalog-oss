@@ -15,6 +15,9 @@ struct JournalDetailView: View {
     private let media: MediaUploader
     /// Opens the Create flow seeded with a generated prompt (design §4 Tab 3).
     private let onPrompt: (CreateEntryRequest) -> Void
+    /// Retries a background upload/save that failed after dismissal. Nil in
+    /// previews (the retry affordance is then hidden).
+    private let onRetryProcessing: ((String) -> Void)?
 
     @State private var selectedTab: JournalDetailTab
 
@@ -23,21 +26,20 @@ struct JournalDetailView: View {
         journals: JournalRepository,
         ai: AIService,
         media: MediaUploader,
-        speech: SpeechTranscriber,
         onPrompt: @escaping (CreateEntryRequest) -> Void,
+        onRetryProcessing: ((String) -> Void)? = nil,
         initialTab: JournalDetailTab = .main
     ) {
         _viewModel = StateObject(
             wrappedValue: JournalDetailViewModel(
                 entryId: entryId,
                 journals: journals,
-                ai: ai,
-                media: media,
-                speech: speech
+                ai: ai
             )
         )
         self.media = media
         self.onPrompt = onPrompt
+        self.onRetryProcessing = onRetryProcessing
         _selectedTab = State(initialValue: initialTab)
     }
 
@@ -80,6 +82,8 @@ struct JournalDetailView: View {
                 .padding(.horizontal, Spacing.m)
                 .padding(.bottom, Spacing.m)
 
+            processingBanner(entry)
+
             DetailTabBar(selection: $selectedTab)
 
             ScrollView {
@@ -96,6 +100,56 @@ struct JournalDetailView: View {
                 .padding(Spacing.m)
                 .padding(.bottom, Spacing.xl)
             }
+        }
+    }
+
+    /// Surfaces the background upload/save pipeline (before server
+    /// transcription, which the transcript section handles). Shows progress for
+    /// in-flight phases and a retry affordance when an upload/save failed.
+    @ViewBuilder
+    private func processingBanner(_ entry: JournalEntry) -> some View {
+        switch entry.processingStatus {
+        case .processing, .uploading, .saving:
+            HStack(spacing: Spacing.s) {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(Color.accentWarm)
+                Text(entry.statusBadgeText ?? "Working…")
+                    .font(.captionText)
+                    .foregroundStyle(Color.textSecondary)
+                Spacer()
+            }
+            .padding(.horizontal, Spacing.m)
+            .padding(.bottom, Spacing.s)
+
+        case .failed:
+            HStack(spacing: Spacing.s) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.danger)
+                Text("Upload didn't finish.")
+                    .font(.captionText)
+                    .foregroundStyle(Color.danger)
+                Spacer()
+                if let onRetryProcessing {
+                    Button {
+                        onRetryProcessing(entry.id)
+                    } label: {
+                        Text("Retry")
+                            .font(.captionText.weight(.semibold))
+                            .foregroundStyle(Color.accentWarm)
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Retry upload")
+                }
+            }
+            .padding(.horizontal, Spacing.m)
+            .padding(.bottom, Spacing.s)
+
+        case .transcribing, .ready, .none:
+            EmptyView()
         }
     }
 
@@ -217,9 +271,23 @@ struct JournalDetailView: View {
             ProgressView()
                 .controlSize(.small)
                 .tint(Color.accentWarm)
-            Text("Transcribing…")
+            Text(viewModel.transcriptRetryState == .loading ? "Retrying…" : "Transcribing…")
                 .font(.captionText)
                 .foregroundStyle(Color.textSecondary)
+            Spacer()
+            if viewModel.transcriptRetryState != .loading {
+                Button {
+                    Task { await viewModel.retryTranscription() }
+                } label: {
+                    Text("Retry")
+                        .font(.captionText.weight(.semibold))
+                        .foregroundStyle(Color.accentWarm)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Retry transcription")
+            }
         }
         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
         .padding(.horizontal, Spacing.m)
@@ -227,7 +295,7 @@ struct JournalDetailView: View {
             RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
                 .fill(Color.secondaryBackground)
         )
-        .accessibilityLabel("Transcribing")
+        .accessibilityLabel(viewModel.transcriptRetryState == .loading ? "Retrying" : "Transcribing")
     }
 
     private var transcriptFailedRow: some View {
@@ -417,7 +485,6 @@ private struct JournalDetailPreview: View {
                 journals: MockJournalRepository(),
                 ai: MockAIService(),
                 media: MockMediaUploader(),
-                speech: AppleSpeechTranscriber(),
                 onPrompt: { _ in },
                 initialTab: tab
             )

@@ -13,21 +13,21 @@ struct JournalListView: View {
     private let journals: JournalRepository
     private let ai: AIService
     private let media: MediaUploader
-    private let speech: SpeechTranscriber
+    private let onRetryProcessing: ((String) -> Void)?
 
     init(
         journals: JournalRepository,
         ai: AIService,
         media: MediaUploader,
-        speech: SpeechTranscriber,
-        onPrompt: @escaping (CreateEntryRequest) -> Void
+        onPrompt: @escaping (CreateEntryRequest) -> Void,
+        onRetryProcessing: ((String) -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: JournalListViewModel(journals: journals))
         self.journals = journals
         self.ai = ai
         self.media = media
-        self.speech = speech
         self.onPrompt = onPrompt
+        self.onRetryProcessing = onRetryProcessing
     }
 
     var body: some View {
@@ -55,8 +55,8 @@ struct JournalListView: View {
                     journals: journals,
                     ai: ai,
                     media: media,
-                    speech: speech,
-                    onPrompt: onPrompt
+                    onPrompt: onPrompt,
+                    onRetryProcessing: onRetryProcessing
                 )
             }
         }
@@ -114,7 +114,7 @@ struct JournalListView: View {
 
             ForEach(section.entries) { entry in
                 NavigationLink(value: JournalDetailRoute(entryId: entry.id)) {
-                    EntryRow(entry: entry, showsTime: true)
+                    EntryRow(entry: entry, showsTime: true, media: media)
                 }
                 .buttonStyle(.plain)
                 .onAppear {
@@ -211,7 +211,6 @@ private struct JournalListPreview: View {
             journals: MockJournalRepository(entries: entries),
             ai: MockAIService(),
             media: MockMediaUploader(),
-            speech: AppleSpeechTranscriber(),
             onPrompt: { _ in }
         )
     }

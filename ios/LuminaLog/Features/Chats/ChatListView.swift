@@ -19,26 +19,33 @@ struct ChatListView: View {
 
     @StateObject private var viewModel: ChatListViewModel
 
+    /// Controls the root tab bar — hidden while any conversation is open.
+    @EnvironmentObject private var chrome: AppChrome
+
     // Retained for navigation destinations and the voice call screen.
     private let chats: ChatRepository
     private let ai: AIService
     private let speech: SpeechTranscriber
     private let voice: VoiceCallService
+    private let credits: CreditService
 
     @State private var path: [ChatRoute] = []
     @State private var isVoiceCallPresented = false
+    @State private var isCreditsPresented = false
 
     init(
         chats: ChatRepository,
         ai: AIService,
         speech: SpeechTranscriber,
-        voice: VoiceCallService
+        voice: VoiceCallService,
+        credits: CreditService
     ) {
         _viewModel = StateObject(wrappedValue: ChatListViewModel(chats: chats))
         self.chats = chats
         self.ai = ai
         self.speech = speech
         self.voice = voice
+        self.credits = credits
     }
 
     var body: some View {
@@ -65,15 +72,30 @@ struct ChatListView: View {
         .task {
             await viewModel.start()
         }
+        .onChange(of: path.isEmpty) { _, isEmpty in
+            withAnimation(.easeOut(duration: 0.2)) {
+                chrome.tabBarHidden = !isEmpty
+            }
+        }
+        .onDisappear {
+            chrome.tabBarHidden = false
+        }
         .fullScreenCover(isPresented: $isVoiceCallPresented) {
             VoiceCallView(
                 voice: voice,
                 chats: chats,
+                credits: credits,
                 onViewTranscript: { chat in
                     isVoiceCallPresented = false
                     path.append(ChatRoute(chat: chat))
+                },
+                onInsufficientCredits: {
+                    isCreditsPresented = true
                 }
             )
+        }
+        .sheet(isPresented: $isCreditsPresented) {
+            CreditsView(credits: credits)
         }
     }
 
@@ -270,7 +292,9 @@ private struct ChatListPreview: View {
             chats: repository,
             ai: MockAIService(),
             speech: MockSpeechTranscriber(),
-            voice: MockVoiceCallService(chats: repository)
+            voice: MockVoiceCallService(chats: repository),
+            credits: MockCreditService()
         )
+        .environmentObject(AppChrome())
     }
 }

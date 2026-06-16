@@ -60,6 +60,7 @@ extension JournalEntry {
                 contentEditedAt: timestamp(data["contentEditedAt"]),
                 media: media,
                 transcriptStatus: (data["transcriptStatus"] as? String).flatMap(TranscriptStatus.init(rawValue:)),
+                processingStatus: (data["processingStatus"] as? String).flatMap(ProcessingStatus.init(rawValue:)),
                 summary: try AIGeneration(data: data["summary"] as? [String: Any], cipher: cipher, context: "journals.summary"),
                 insights: try AIGeneration(data: data["insights"] as? [String: Any], cipher: cipher, context: "journals.insights"),
                 prompts: try AIPrompts(data: data["prompts"] as? [String: Any], cipher: cipher),
@@ -85,6 +86,7 @@ extension JournalEntry {
         ]
         if let contentEditedAt { data["contentEditedAt"] = Timestamp(date: contentEditedAt) }
         if let transcriptStatus { data["transcriptStatus"] = transcriptStatus.rawValue }
+        if let processingStatus { data["processingStatus"] = processingStatus.rawValue }
         if let summary { data["summary"] = try summary.firestoreData(cipher: cipher, context: "journals.summary") }
         if let insights { data["insights"] = try insights.firestoreData(cipher: cipher, context: "journals.insights") }
         if let prompts { data["prompts"] = try prompts.firestoreData(cipher: cipher) }
@@ -105,7 +107,8 @@ extension MediaItem {
             kind: kind,
             durationSec: data["durationSec"] as? Double,
             width: data["width"] as? Int,
-            height: data["height"] as? Int
+            height: data["height"] as? Int,
+            thumbnailS3Key: data["thumbnailS3Key"] as? String
         )
     }
 
@@ -114,6 +117,7 @@ extension MediaItem {
         if let durationSec { data["durationSec"] = durationSec }
         if let width { data["width"] = width }
         if let height { data["height"] = height }
+        if let thumbnailS3Key { data["thumbnailS3Key"] = thumbnailS3Key }
         return data
     }
 }

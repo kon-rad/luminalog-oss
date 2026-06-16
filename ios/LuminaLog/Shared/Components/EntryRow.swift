@@ -6,6 +6,8 @@ struct EntryRow: View {
 
     let entry: JournalEntry
     var showsTime: Bool = false
+    /// Required for thumbnail loading on image entries.
+    var media: MediaUploader?
 
     private var dateText: String {
         if showsTime {
@@ -18,6 +20,10 @@ struct EntryRow: View {
         let trimmed = entry.content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count > 100 else { return trimmed }
         return String(trimmed.prefix(100)) + "…"
+    }
+
+    private var thumbnailS3Key: String? {
+        entry.media.first(where: { $0.kind == .image })?.thumbnailS3Key
     }
 
     var body: some View {
@@ -42,7 +48,13 @@ struct EntryRow: View {
 
             Spacer(minLength: 0)
 
-            TypePill(type: entry.type)
+            VStack(alignment: .trailing, spacing: Spacing.s) {
+                if let key = thumbnailS3Key, let media {
+                    EntryThumbnailView(s3Key: key, media: media)
+                }
+                TypePill(type: entry.type)
+                EntryStatusBadge(entry: entry)
+            }
         }
         .padding(Spacing.m)
         .background(
@@ -50,6 +62,72 @@ struct EntryRow: View {
                 .fill(Color.cardBackground)
         )
         .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - Status badge
+
+/// Compact pill showing background-processing progress (Uploading…,
+/// Transcribing…, Failed). Renders nothing once the entry has settled.
+struct EntryStatusBadge: View {
+
+    let entry: JournalEntry
+
+    var body: some View {
+        if let text = entry.statusBadgeText {
+            let isFailed = entry.activityState == .failed
+            let tint = isFailed ? Color.danger : Color.accentWarm
+            HStack(spacing: Spacing.xs) {
+                if isFailed {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 9, weight: .semibold))
+                } else {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(tint)
+                }
+                Text(text)
+                    .font(.captionText.weight(.medium))
+            }
+            .foregroundStyle(tint)
+            .padding(.horizontal, Spacing.s)
+            .padding(.vertical, 3)
+            .background(Capsule().fill(tint.opacity(0.12)))
+            .accessibilityLabel(text)
+        }
+    }
+}
+
+// MARK: - Thumbnail
+
+/// Async thumbnail for image entries in the list.
+private struct EntryThumbnailView: View {
+
+    let s3Key: String
+    let media: MediaUploader
+
+    @State private var url: URL?
+
+    var body: some View {
+        Group {
+            if let url {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        Color.secondaryBackground
+                    }
+                }
+            } else {
+                Color.secondaryBackground
+            }
+        }
+        .frame(width: 56, height: 56)
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous))
+        .task {
+            url = try? await media.viewURL(for: s3Key)
+        }
     }
 }
 

@@ -29,6 +29,34 @@ final class EncryptedMappingTests: XCTestCase {
         XCTAssertEqual(decoded.title, "My Title")
     }
 
+    func testJournalEntryRoundTripsProcessingStatus() throws {
+        let entry = JournalEntry(
+            id: "e1", userId: "u1", type: .voice, title: "t",
+            createdAt: created, updatedAt: created, content: "c",
+            transcriptStatus: .processing, processingStatus: .uploading, wordCount: 1
+        )
+        let data = try entry.firestoreData(cipher: cipher)
+
+        // Status flag stays plaintext (it's a non-sensitive query/UI key).
+        XCTAssertEqual(data["processingStatus"] as? String, "uploading")
+
+        let decoded = try XCTUnwrap(JournalEntry(documentId: "e1", data: data, cipher: cipher))
+        XCTAssertEqual(decoded.processingStatus, .uploading)
+        XCTAssertEqual(decoded.transcriptStatus, .processing)
+    }
+
+    func testJournalEntryOmitsNilProcessingStatus() throws {
+        let entry = JournalEntry(
+            id: "e1", userId: "u1", type: .text, title: "t",
+            createdAt: created, updatedAt: created, content: "c", wordCount: 1
+        )
+        let data = try entry.firestoreData(cipher: cipher)
+        XCTAssertNil(data["processingStatus"], "Legacy/complete entries write no status field")
+
+        let decoded = try XCTUnwrap(JournalEntry(documentId: "e1", data: data, cipher: cipher))
+        XCTAssertNil(decoded.processingStatus)
+    }
+
     func testJournalEntryEncryptsAIGenerations() throws {
         let entry = JournalEntry(
             id: "e1", userId: "u1", type: .text, title: "t",

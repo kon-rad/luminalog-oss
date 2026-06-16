@@ -15,6 +15,8 @@ final class VoiceCallViewModel: ObservableObject {
         case active
         case ended(reason: String?)
         case failed(message: String)
+        /// User has no credits; the view should dismiss and show the credit store.
+        case insufficientCredits
     }
 
     /// Who is "holding the floor" while the call is active — drives the orb.
@@ -54,14 +56,18 @@ final class VoiceCallViewModel: ObservableObject {
 
     private let voice: VoiceCallService
     private let chats: ChatRepository
+    private let credits: CreditService
 
     private var eventsTask: Task<Void, Never>?
     private var timerTask: Task<Void, Never>?
     private var hasStarted = false
+    /// Set to true when `.connected` fires; prevents charging for failed connection attempts.
+    private var callWasConnected = false
 
-    init(voice: VoiceCallService, chats: ChatRepository) {
+    init(voice: VoiceCallService, chats: ChatRepository, credits: CreditService) {
         self.voice = voice
         self.chats = chats
+        self.credits = credits
     }
 
     deinit {
@@ -79,9 +85,17 @@ final class VoiceCallViewModel: ObservableObject {
 
     /// Creates the voice chat, subscribes to call events (before starting,
     /// so `connecting` is observed), then starts the call. Idempotent.
+    /// Transitions to `.insufficientCredits` when balance is zero so the view
+    /// can dismiss and present the credit store.
     func start() async {
         guard !hasStarted else { return }
         hasStarted = true
+
+        let balance = await credits.currentBalance()
+        guard balance >= 1 else {
+            phase = .insufficientCredits
+            return
+        }
 
         let stream = voice.events
         eventsTask = Task { [weak self] in
@@ -125,6 +139,7 @@ final class VoiceCallViewModel: ObservableObject {
         case .connected:
             phase = .active
             speakingState = .listening
+            callWasConnected = true
             startTimer()
 
         case .listening:
@@ -146,11 +161,26 @@ final class VoiceCallViewModel: ObservableObject {
 
         case .ended(let reason):
             stopTimer()
+            deductCreditsForCall()
             phase = .ended(reason: reason)
 
         case .failed(let message):
             stopTimer()
+            deductCreditsForCall()
             phase = .failed(message: message)
+        }
+    }
+
+    // MARK: - Credit deduction
+
+    private func deductCreditsForCall() {
+        guard callWasConnected, elapsedSeconds > 0 else { return }
+        callWasConnected = false
+        let minutesUsed = max(1, Int(ceil(Double(elapsedSeconds) / 60.0)))
+        Task { [weak self] in
+            guard let self else { return }
+            try? await credits.deductCredits(minutesUsed)
+            Self.logger.info("deducted \(minutesUsed) credit(s) for \(self.elapsedSeconds)s call")
         }
     }
 
@@ -177,6 +207,15 @@ final class VoiceCallViewModel: ObservableObject {
 
 #if DEBUG
 extension VoiceCallViewModel {
+    static func preview(balance: Int = 5) -> VoiceCallViewModel {
+        let chats = MockChatRepository()
+        return VoiceCallViewModel(
+            voice: MockVoiceCallService(chats: chats),
+            chats: chats,
+            credits: MockCreditService(balance: balance)
+        )
+    }
+
     /// Seeds state so previews can render each phase without a live call.
     func setPreviewState(
         phase: Phase,

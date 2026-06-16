@@ -1,5 +1,5 @@
 {
-  "originHash" : "18caf97d3d3f391f738cd087fc61c1ca05334c0b0b6314feb5623dc4fb8d13b1",
+  "originHash" : "09bece4cac4d1790c9a288ae2367849894865d1974b37b23fb57d1443776a283",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -26,6 +26,15 @@
       "state" : {
         "revision" : "2781038865a80e2c425a1da12cc1327bcd56501f",
         "version" : "1.7.6"
+      }
+    },
+    {
+      "identity" : "daily-client-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/daily-co/daily-client-ios",
+      "state" : {
+        "revision" : "276f9aff6bbdb36d58e763b7c0d77167ab5f51ca",
+        "version" : "0.37.0"
       }
     },
     {
@@ -116,6 +125,15 @@
       "state" : {
         "revision" : "040d087ac2267d2ddd4cca36c757d1c6a05fdbfe",
         "version" : "101.0.0"
+      }
+    },
+    {
+      "identity" : "ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/VapiAI/ios",
+      "state" : {
+        "branch" : "main",
+        "revision" : "5fdb73d8a4475bc1d97d351e31426f3682f4663e"
       }
     },
     {

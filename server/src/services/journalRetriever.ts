@@ -1,8 +1,8 @@
 import { getJournalsCollection } from '../db/chroma'
 import { embed } from './aiClient'
 import { decryptField } from '../crypto/fieldCipher'
+import { config } from '../config'
 
-const TOP_K = 20
 const QUERY_MAX_CHARS = 2000
 const TIMEOUT_MS = 10_000
 
@@ -18,7 +18,7 @@ export async function retrieveContext(uid: string, query: string, dek: Buffer): 
     const results = await Promise.race([
       col.query({
         queryEmbeddings: [queryEmbedding],
-        nResults: TOP_K,
+        nResults: config.RAG_TOP_K,
         where: { userId: { $eq: uid } },
         include: ['documents', 'metadatas'] as any,
       }),

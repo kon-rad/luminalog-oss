@@ -9,8 +9,9 @@ struct ProfileView: View {
 
     @StateObject private var viewModel: ProfileViewModel
 
-    // Retained for the paywall sheet's own view model.
+    // Retained for the paywall and credit store sheets.
     private let subscriptions: SubscriptionService
+    private let credits: CreditService
 
     // Photo flow.
     @State private var showPhotoSourceDialog = false
@@ -20,6 +21,7 @@ struct ProfileView: View {
 
     // Settings flows.
     @State private var showPaywall = false
+    @State private var showCredits = false
     @State private var showSignOutDialog = false
     @State private var showDeleteExplainerAlert = false
     @State private var showDeleteFinalAlert = false
@@ -32,6 +34,7 @@ struct ProfileView: View {
         auth: AuthService,
         profiles: ProfileRepository,
         subscriptions: SubscriptionService,
+        credits: CreditService,
         media: MediaUploader
     ) {
         self.init(
@@ -41,14 +44,16 @@ struct ProfileView: View {
                 subscriptions: subscriptions,
                 media: media
             ),
-            subscriptions: subscriptions
+            subscriptions: subscriptions,
+            credits: credits
         )
     }
 
     /// Internal init for previews/tests that pre-seed the view model.
-    init(viewModel: ProfileViewModel, subscriptions: SubscriptionService) {
+    init(viewModel: ProfileViewModel, subscriptions: SubscriptionService, credits: CreditService) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.subscriptions = subscriptions
+        self.credits = credits
     }
 
     var body: some View {
@@ -75,6 +80,9 @@ struct ProfileView: View {
         .task { viewModel.start() }
         .sheet(isPresented: $showPaywall) {
             PaywallView(subscriptions: subscriptions)
+        }
+        .sheet(isPresented: $showCredits) {
+            CreditsView(credits: credits)
         }
         .fullScreenCover(isPresented: $showCamera) {
             CameraPicker(mode: .photo, onImage: { data in
@@ -330,6 +338,8 @@ struct ProfileView: View {
             VStack(spacing: 0) {
                 subscriptionRow
                 rowDivider
+                voiceCreditsRow
+                rowDivider
                 signOutRow
                 rowDivider
                 deleteAccountRow
@@ -365,7 +375,32 @@ struct ProfileView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Subscription, \(viewModel.subscriptionLabel)")
+    }
 
+    private var voiceCreditsRow: some View {
+        Button {
+            showCredits = true
+        } label: {
+            HStack(spacing: Spacing.m) {
+                settingsIcon("phone.and.waveform.fill", tint: .tintVoice)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Voice Credits")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Buy minutes for voice conversations")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.5))
+            }
+            .padding(.horizontal, Spacing.m)
+            .frame(minHeight: 56)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Voice Credits, buy minutes for voice conversations")
     }
 
     private var signOutRow: some View {
@@ -504,6 +539,7 @@ struct ProfileView: View {
         auth: MockAuthService(signedIn: true),
         profiles: MockProfileRepository(),
         subscriptions: MockSubscriptionService(),
+        credits: MockCreditService(balance: 45),
         media: MockMediaUploader()
     )
 }
@@ -519,7 +555,7 @@ struct ProfileView: View {
     )
     viewModel.start()
     viewModel.bioDraft = "I'm rewriting my bio right now — a little longer, a little truer."
-    return ProfileView(viewModel: viewModel, subscriptions: subscriptions)
+    return ProfileView(viewModel: viewModel, subscriptions: subscriptions, credits: MockCreditService())
 }
 
 #Preview("Pro") {
@@ -531,6 +567,7 @@ struct ProfileView: View {
             productId: "luminalog.pro.annual",
             expiresAt: Calendar.current.date(byAdding: .year, value: 1, to: Date())
         )),
+        credits: MockCreditService(balance: 120),
         media: MockMediaUploader()
     )
 }
@@ -540,6 +577,7 @@ struct ProfileView: View {
         auth: MockAuthService(signedIn: true),
         profiles: MockProfileRepository(),
         subscriptions: MockSubscriptionService(),
+        credits: MockCreditService(balance: 0),
         media: MockMediaUploader()
     )
     .preferredColorScheme(.dark)

@@ -26,19 +26,24 @@ struct MediaItem: Codable, Equatable, Sendable {
     var durationSec: Double?
     var width: Int?
     var height: Int?
+    /// S3 key of the 200 px thumbnail; present on image attachments uploaded
+    /// after thumbnail generation was introduced.
+    var thumbnailS3Key: String?
 
     init(
         s3Key: String,
         kind: MediaKind,
         durationSec: Double? = nil,
         width: Int? = nil,
-        height: Int? = nil
+        height: Int? = nil,
+        thumbnailS3Key: String? = nil
     ) {
         self.s3Key = s3Key
         self.kind = kind
         self.durationSec = durationSec
         self.width = width
         self.height = height
+        self.thumbnailS3Key = thumbnailS3Key
     }
 }
 
@@ -47,6 +52,18 @@ enum TranscriptStatus: String, Codable, Sendable {
     case ready
     case processing
     case failed
+}
+
+/// Background save-pipeline state for an entry whose media is uploaded and
+/// transcribed after the Create screen is dismissed (audio/image/video).
+/// `nil` means the entry is fully settled (legacy entries, or pure text).
+enum ProcessingStatus: String, Codable, Sendable {
+    case processing     // initial write / deriving content (image OCR)
+    case uploading      // media upload in flight
+    case saving         // writing final content + media to Firestore
+    case transcribing   // handed off to server-side Whisper (voice/video)
+    case ready          // pipeline complete
+    case failed         // a step failed; retry available in-session
 }
 
 /// AI-generated journaling prompts attached to an entry.
@@ -96,6 +113,8 @@ struct JournalEntry: Codable, Equatable, Identifiable, Sendable {
     var contentEditedAt: Date?
     var media: [MediaItem]
     var transcriptStatus: TranscriptStatus?
+    /// Background upload/transcribe pipeline state; nil once settled.
+    var processingStatus: ProcessingStatus?
     var summary: AIGeneration?
     var insights: AIGeneration?
     var prompts: AIPrompts?
@@ -113,6 +132,7 @@ struct JournalEntry: Codable, Equatable, Identifiable, Sendable {
         contentEditedAt: Date? = nil,
         media: [MediaItem] = [],
         transcriptStatus: TranscriptStatus? = nil,
+        processingStatus: ProcessingStatus? = nil,
         summary: AIGeneration? = nil,
         insights: AIGeneration? = nil,
         prompts: AIPrompts? = nil,
@@ -129,10 +149,68 @@ struct JournalEntry: Codable, Equatable, Identifiable, Sendable {
         self.contentEditedAt = contentEditedAt
         self.media = media
         self.transcriptStatus = transcriptStatus
+        self.processingStatus = processingStatus
         self.summary = summary
         self.insights = insights
         self.prompts = prompts
         self.vector = vector
         self.wordCount = wordCount
+    }
+}
+
+// MARK: - Derived activity / status badge
+
+extension JournalEntry {
+
+    /// What the list/detail views show while an entry settles in the background.
+    /// Combines the local `processingStatus` pipeline with the server-owned
+    /// `transcriptStatus` so the transcribe phase resolves to `.idle`/`.failed`
+    /// once the server finishes.
+    enum ActivityState: Equatable {
+        case idle
+        case processing
+        case uploading
+        case saving
+        case transcribing
+        case failed
+    }
+
+    var activityState: ActivityState {
+        switch processingStatus {
+        case .failed:
+            return .failed
+        case .processing:
+            return .processing
+        case .uploading:
+            return .uploading
+        case .saving:
+            return .saving
+        case .transcribing:
+            // Handed off to the server; resolve once it reports terminal state.
+            switch transcriptStatus {
+            case .failed: return .failed
+            case .ready: return .idle
+            case .processing, .none: return .transcribing
+            }
+        case .ready, .none:
+            // Legacy/settled entries still surface live transcription progress.
+            switch transcriptStatus {
+            case .processing: return .transcribing
+            case .failed: return .failed
+            case .ready, .none: return .idle
+            }
+        }
+    }
+
+    /// Short badge label for the current activity, or nil when settled.
+    var statusBadgeText: String? {
+        switch activityState {
+        case .idle: return nil
+        case .processing: return "Processing…"
+        case .uploading: return "Uploading…"
+        case .saving: return "Saving…"
+        case .transcribing: return "Transcribing…"
+        case .failed: return "Failed"
+        }
     }
 }

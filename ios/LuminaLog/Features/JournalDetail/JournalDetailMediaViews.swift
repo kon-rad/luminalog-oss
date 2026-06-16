@@ -1,5 +1,6 @@
 import AVKit
 import SwiftUI
+import UIKit
 
 // Media subviews for the Journal Detail Main tab (design §4): image stack,
 // audio player card, and inline video player. Each resolves its display URL
@@ -103,46 +104,63 @@ struct EntryImageView: View {
 
 // MARK: - Audio
 
-/// Audio player card for voice entries: play/pause, scrubber, and
-/// elapsed/total time labels. Disabled when the audio can't be loaded.
+/// Audio player card for voice entries: play/pause, scrubber, elapsed/total
+/// time labels, and a download button that shares the audio file.
 struct AudioPlayerCard: View {
 
     let item: MediaItem
     let media: MediaUploader
 
     @StateObject private var controller = AudioPlayerController()
+    /// Resolved URL for the player and the download action.
+    @State private var resolvedURL: URL?
+    /// Non-nil while the download is in progress.
+    @State private var isDownloading = false
+    /// Set just before showing the share sheet so the sheet has a file to share.
+    @State private var shareURL: URL?
+    @State private var showShareSheet = false
+    /// True when we created a temp copy that should be cleaned up after sharing.
+    @State private var shareURLIsTemp = false
 
     private var isUnavailable: Bool {
         controller.loadState == .unavailable
     }
 
     var body: some View {
-        HStack(spacing: Spacing.m) {
-            playButton
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            HStack(spacing: Spacing.m) {
+                playButton
 
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Slider(
-                    value: Binding(
-                        get: { controller.currentTime },
-                        set: { controller.setScrubTime($0) }
-                    ),
-                    in: 0...max(controller.duration, 0.01),
-                    onEditingChanged: { controller.scrubbing($0) }
-                )
-                .tint(Color.accentWarm)
-                .disabled(isUnavailable)
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Slider(
+                        value: Binding(
+                            get: { controller.currentTime },
+                            set: { controller.setScrubTime($0) }
+                        ),
+                        in: 0...max(controller.duration, 0.01),
+                        onEditingChanged: { controller.scrubbing($0) }
+                    )
+                    .tint(Color.accentWarm)
+                    .disabled(isUnavailable)
 
-                HStack {
-                    Text(Self.timeLabel(controller.currentTime))
-                    Spacer()
-                    if isUnavailable {
-                        Text("Audio unavailable")
+                    HStack {
+                        Text(Self.timeLabel(controller.currentTime))
+                        Spacer()
+                        if isUnavailable {
+                            Text("Audio unavailable")
+                        }
+                        Spacer()
+                        Text(Self.timeLabel(controller.duration))
                     }
-                    Spacer()
-                    Text(Self.timeLabel(controller.duration))
+                    .font(.captionText.monospacedDigit())
+                    .foregroundStyle(Color.textSecondary)
                 }
-                .font(.captionText.monospacedDigit())
-                .foregroundStyle(Color.textSecondary)
+            }
+
+            // Download sits at the bottom-right, under the duration label.
+            HStack(spacing: 0) {
+                Spacer()
+                downloadButton
             }
         }
         .padding(Spacing.m)
@@ -152,10 +170,16 @@ struct AudioPlayerCard: View {
         )
         .task {
             let url = try? await media.viewURL(for: item.s3Key)
+            resolvedURL = url
             controller.load(url: url, fallbackDuration: item.durationSec)
         }
         .onDisappear {
             controller.teardown()
+        }
+        .sheet(isPresented: $showShareSheet, onDismiss: cleanupShareFile) {
+            if let url = shareURL {
+                AudioShareSheet(url: url)
+            }
         }
     }
 
@@ -176,10 +200,73 @@ struct AudioPlayerCard: View {
         .accessibilityLabel(controller.isPlaying ? "Pause" : "Play")
     }
 
+    private var downloadButton: some View {
+        Button {
+            guard !isDownloading else { return }
+            Task { await downloadAndShare() }
+        } label: {
+            if isDownloading {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(Color.accentWarm)
+                    .frame(width: 28, height: 28)
+            } else {
+                Image(systemName: "arrow.down.circle")
+                    .font(.system(size: 22))
+                    .foregroundStyle(resolvedURL == nil || isUnavailable
+                        ? Color.textSecondary.opacity(0.4)
+                        : Color.accentWarm)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(resolvedURL == nil || isUnavailable || isDownloading)
+        .accessibilityLabel("Download audio")
+    }
+
+    private func downloadAndShare() async {
+        guard let url = resolvedURL else { return }
+        isDownloading = true
+        defer { isDownloading = false }
+
+        if url.isFileURL {
+            shareURL = url
+            shareURLIsTemp = false
+        } else {
+            guard let (tmp, _) = try? await URLSession.shared.download(from: url) else { return }
+            let ext = url.pathExtension.isEmpty ? "m4a" : url.pathExtension
+            let dest = FileManager.default.temporaryDirectory
+                .appendingPathComponent("voice_journal.\(ext)")
+            try? FileManager.default.moveItem(at: tmp, to: dest)
+            shareURL = dest
+            shareURLIsTemp = true
+        }
+        showShareSheet = true
+    }
+
+    private func cleanupShareFile() {
+        if shareURLIsTemp, let url = shareURL {
+            try? FileManager.default.removeItem(at: url)
+        }
+        shareURL = nil
+        shareURLIsTemp = false
+    }
+
     static func timeLabel(_ seconds: Double) -> String {
         let total = max(0, Int(seconds.rounded()))
         return String(format: "%d:%02d", total / 60, total % 60)
     }
+}
+
+// MARK: - Share sheet wrapper
+
+private struct AudioShareSheet: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Video

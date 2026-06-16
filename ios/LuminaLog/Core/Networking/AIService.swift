@@ -24,9 +24,10 @@ protocol AIService: AnyObject {
     /// Failures are swallowed; a server-side reconcile retries later.
     func requestIndex(journalId: String) async
 
-    /// Server-side transcription via Together AI Whisper for voice/video entries
-    /// where on-device Apple Speech failed. Downloads audio from S3, updates
-    /// Firestore content+transcriptStatus, then re-indexes to Chroma.
-    /// Failures are swallowed; the entry stays with transcriptStatus = failed.
-    func transcribeJournal(journalId: String) async
+    /// Server-side transcription via Together AI Whisper for voice/video entries.
+    /// Downloads audio from S3, transcribes, updates Firestore
+    /// content+transcriptStatus to ready, then re-indexes to Chroma.
+    /// Throws on network or server error; the entry stays with
+    /// transcriptStatus = failed when the server itself catches the error.
+    func transcribeJournal(journalId: String) async throws
 }

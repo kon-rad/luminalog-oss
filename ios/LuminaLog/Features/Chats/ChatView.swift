@@ -53,7 +53,7 @@ struct ChatView: View {
                     text: $viewModel.draft,
                     isListening: viewModel.dictationState == .listening,
                     canSend: viewModel.canSend,
-                    onMic: { Task { await viewModel.toggleDictation() } },
+                    onMic: { Task { await viewModel.toggleDictationAndSend() } },
                     onSend: { Task { await viewModel.send() } }
                 )
             }
@@ -347,6 +347,7 @@ private struct ChatViewPreview: View {
         NavigationStack {
             ChatView(previewViewModel: makeViewModel())
         }
+        .environmentObject(AppChrome())
     }
 
     private func makeViewModel() -> ChatViewModel {

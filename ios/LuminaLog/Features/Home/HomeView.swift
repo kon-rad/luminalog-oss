@@ -17,17 +17,17 @@ struct HomeView: View {
     private let journals: JournalRepository
     private let ai: AIService
     private let media: MediaUploader
-    private let speech: SpeechTranscriber
+    private let onRetryProcessing: ((String) -> Void)?
 
     init(
         journals: JournalRepository,
         profiles: ProfileRepository,
         ai: AIService,
         media: MediaUploader,
-        speech: SpeechTranscriber,
         onStartJournaling: @escaping (String?) -> Void,
         onShowMore: @escaping () -> Void,
-        onPrompt: @escaping (CreateEntryRequest) -> Void
+        onPrompt: @escaping (CreateEntryRequest) -> Void,
+        onRetryProcessing: ((String) -> Void)? = nil
     ) {
         _viewModel = StateObject(
             wrappedValue: HomeViewModel(journals: journals, profiles: profiles, ai: ai)
@@ -35,10 +35,10 @@ struct HomeView: View {
         self.journals = journals
         self.ai = ai
         self.media = media
-        self.speech = speech
         self.onStartJournaling = onStartJournaling
         self.onShowMore = onShowMore
         self.onPrompt = onPrompt
+        self.onRetryProcessing = onRetryProcessing
     }
 
     var body: some View {
@@ -62,8 +62,8 @@ struct HomeView: View {
                     journals: journals,
                     ai: ai,
                     media: media,
-                    speech: speech,
-                    onPrompt: onPrompt
+                    onPrompt: onPrompt,
+                    onRetryProcessing: onRetryProcessing
                 )
             }
         }
@@ -179,7 +179,7 @@ struct HomeView: View {
             case .some(let entries):
                 ForEach(entries) { entry in
                     NavigationLink(value: JournalDetailRoute(entryId: entry.id)) {
-                        EntryRow(entry: entry, showsTime: false)
+                        EntryRow(entry: entry, showsTime: false, media: media)
                     }
                     .buttonStyle(.plain)
                 }
@@ -234,7 +234,6 @@ private struct HomePreview: View {
             profiles: MockProfileRepository(),
             ai: MockAIService(),
             media: MockMediaUploader(),
-            speech: AppleSpeechTranscriber(),
             onStartJournaling: { _ in },
             onShowMore: {},
             onPrompt: { _ in }

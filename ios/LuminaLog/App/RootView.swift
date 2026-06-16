@@ -7,6 +7,9 @@ struct RootView: View {
 
     @EnvironmentObject private var services: AppServices
 
+    /// Lets full-screen children (the chat conversation) hide the tab bar.
+    @StateObject private var chrome = AppChrome()
+
     @State private var selectedTab: AppTab = .home
     @State private var createRequest: CreateEntryRequest?
     @State private var isKeyboardVisible = false
@@ -24,7 +27,6 @@ struct RootView: View {
                     profiles: services.profiles,
                     ai: services.ai,
                     media: services.media,
-                    speech: services.speech,
                     onStartJournaling: { prompt in
                         createRequest = CreateEntryRequest(promptText: prompt)
                     },
@@ -33,7 +35,8 @@ struct RootView: View {
                     },
                     onPrompt: { request in
                         createRequest = request
-                    }
+                    },
+                    onRetryProcessing: { services.entryProcessor.retry(draftId: $0) }
                 )
             }
             tabContent(for: .journal) {
@@ -41,10 +44,10 @@ struct RootView: View {
                     journals: services.journals,
                     ai: services.ai,
                     media: services.media,
-                    speech: services.speech,
                     onPrompt: { request in
                         createRequest = request
-                    }
+                    },
+                    onRetryProcessing: { services.entryProcessor.retry(draftId: $0) }
                 )
             }
             tabContent(for: .chats) {
@@ -52,7 +55,8 @@ struct RootView: View {
                     chats: services.chats,
                     ai: services.ai,
                     speech: services.speech,
-                    voice: services.voice
+                    voice: services.voice,
+                    credits: services.credits
                 )
             }
             tabContent(for: .profile) {
@@ -60,18 +64,20 @@ struct RootView: View {
                     auth: services.auth,
                     profiles: services.profiles,
                     subscriptions: services.subscriptions,
+                    credits: services.credits,
                     media: services.media
                 )
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !isKeyboardVisible {
+            if !isKeyboardVisible && !chrome.tabBarHidden {
                 AppTabBar(selectedTab: $selectedTab) {
                     createRequest = CreateEntryRequest()
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .environmentObject(chrome)
         .observingKeyboard(isVisible: $isKeyboardVisible)
         .fullScreenCover(item: $createRequest) { request in
             CreateEntryView(request: request, services: services)

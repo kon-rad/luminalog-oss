@@ -111,10 +111,7 @@ final class ProxyAIService: AIService {
         try? await api.post(path: "/v1/rag/index", body: JournalIdBody(journalId: journalId))
     }
 
-    func transcribeJournal(journalId: String) async {
-        // Fire-and-forget: server downloads audio from S3, transcribes via
-        // Together AI Whisper, updates Firestore content + transcriptStatus,
-        // then re-indexes to Chroma. Failure leaves transcriptStatus = failed.
-        try? await api.post(path: "/v1/ai/transcribe", body: JournalIdBody(journalId: journalId))
+    func transcribeJournal(journalId: String) async throws {
+        try await api.post(path: "/v1/ai/transcribe", body: JournalIdBody(journalId: journalId))
     }
 }

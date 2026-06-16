@@ -67,7 +67,7 @@ final class MockAIService: AIService {
         // No-op in demo mode.
     }
 
-    func transcribeJournal(journalId: String) async {
+    func transcribeJournal(journalId: String) async throws {
         // No-op in demo mode.
     }
 }

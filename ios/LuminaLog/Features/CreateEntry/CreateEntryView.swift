@@ -43,9 +43,6 @@ struct CreateEntryView: View {
 
             VStack(spacing: 0) {
                 header
-                if let phase = viewModel.savingPhase {
-                    savingBanner(phase)
-                }
                 if let prompt = viewModel.promptText {
                     promptBanner(prompt)
                 }
@@ -54,7 +51,6 @@ struct CreateEntryView: View {
                 }
                 editor
             }
-            .disabled(viewModel.isSaving)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomBar
@@ -66,7 +62,7 @@ struct CreateEntryView: View {
         .onChange(of: viewModel.didSave) { _, didSave in
             if didSave { dismiss() }
         }
-        .interactiveDismissDisabled(viewModel.hasUnsavedContent || viewModel.isSaving)
+        .interactiveDismissDisabled(viewModel.hasUnsavedContent)
         .modifier(CreateEntryPickersModifier(
             showPhotoCamera: $showPhotoCamera,
             showVideoCamera: $showVideoCamera,
@@ -151,16 +147,6 @@ struct CreateEntryView: View {
         } message: {
             Text("Enable Microphone access for LuminaLog in Settings to record voice entries.")
         }
-        .alert(
-            "Couldn't Save",
-            isPresented: saveErrorBinding,
-            presenting: viewModel.saveError
-        ) { _ in
-            Button("Retry") { Task { await viewModel.save() } }
-            Button("Cancel", role: .cancel) {}
-        } message: { error in
-            Text(error.message)
-        }
     }
 
     // MARK: - Header
@@ -192,28 +178,21 @@ struct CreateEntryView: View {
                 Spacer()
 
                 Button {
-                    Task { await viewModel.save() }
+                    viewModel.save()
                 } label: {
-                    Group {
-                        if viewModel.isSaving {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Text("Save")
-                                .font(.uiBody.weight(.semibold))
-                        }
-                    }
-                    .foregroundStyle(.white)
-                    .frame(minWidth: 72, minHeight: 38)
-                    .background(
-                        Capsule().fill(
-                            Color.accentWarm.opacity(saveDisabled ? 0.4 : 1)
+                    Text("Save")
+                        .font(.uiBody.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(minWidth: 72, minHeight: 38)
+                        .background(
+                            Capsule().fill(
+                                Color.accentWarm.opacity(saveDisabled ? 0.4 : 1)
+                            )
                         )
-                    )
                 }
                 .buttonStyle(.plain)
                 .disabled(saveDisabled)
-                .accessibilityLabel(viewModel.isSaving ? "Saving" : "Save entry")
+                .accessibilityLabel("Save entry")
             }
         }
         .padding(.horizontal, Spacing.m)
@@ -225,18 +204,6 @@ struct CreateEntryView: View {
     }
 
     // MARK: - Banners
-
-    private func savingBanner(_ phase: CreateEntryViewModel.SavingPhase) -> some View {
-        HStack(spacing: Spacing.s) {
-            ProgressView()
-                .controlSize(.small)
-            Text(phase.rawValue)
-                .font(.captionText.weight(.medium))
-                .foregroundStyle(Color.textSecondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.xs)
-    }
 
     /// Serif quote banner for the prompt being answered (it becomes the
     /// entry title on save; the content stays pure).
@@ -314,7 +281,7 @@ struct CreateEntryView: View {
                 DictationButton(state: viewModel.dictationState) {
                     Task { await viewModel.toggleDictation() }
                 }
-                .disabled(viewModel.isSaving || recorder.isRecording)
+                .disabled(recorder.isRecording)
                 Spacer()
             }
             .padding(.horizontal, Spacing.m)
@@ -323,7 +290,7 @@ struct CreateEntryView: View {
             if !viewModel.attachments.isEmpty {
                 AttachmentStrip(
                     attachments: viewModel.attachments,
-                    isDisabled: viewModel.isSaving,
+                    isDisabled: false,
                     onRemovePhoto: { viewModel.removePhoto(id: $0) },
                     onRemoveVideo: { viewModel.removeVideo() },
                     onRemoveAudio: { viewModel.removeAudio() }
@@ -334,7 +301,7 @@ struct CreateEntryView: View {
             MediaRow(
                 isRecording: recorder.isRecording,
                 recordingLabel: recorder.elapsedLabel,
-                isDisabled: viewModel.isSaving,
+                isDisabled: false,
                 onMic: handleMicTap,
                 onPhoto: { showPhotoSourceDialog = true },
                 onVideo: { showVideoSourceDialog = true }
@@ -439,13 +406,6 @@ struct CreateEntryView: View {
         )
     }
 
-    private var saveErrorBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.saveError != nil },
-            set: { if !$0 { viewModel.saveError = nil } }
-        )
-    }
-
     private func openSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
@@ -513,13 +473,6 @@ private struct CreateEntryPickersModifier: ViewModifier {
             .init(imageData: Data(), thumbnail: .previewSwatch(.systemOrange)),
             .init(imageData: Data(), thumbnail: .previewSwatch(.systemTeal)),
         ])
-    })
-}
-
-#Preview("Saving") {
-    CreateEntryView(viewModel: .previewSeeded { viewModel in
-        viewModel.text = "Today I finally finished the reading nook."
-        viewModel.savingPhase = .uploading
     })
 }
 

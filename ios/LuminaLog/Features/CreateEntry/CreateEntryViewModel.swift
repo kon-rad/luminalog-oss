@@ -3,50 +3,31 @@ import OSLog
 
 // MARK: - Dependencies
 
-/// The services the Create flow needs, bundled so the view-model init stays
-/// sane and tests can inject mocks piecemeal.
+/// The services the Create flow needs. The save pipeline now runs in the
+/// background `EntryProcessor`, so the view model only needs auth (to stamp the
+/// draft), the speech transcriber (live dictation), and the processor to hand
+/// the draft off to.
 @MainActor
 struct CreateEntryDependencies {
     let auth: AuthService
-    let journals: JournalRepository
-    let profiles: ProfileRepository
-    let ai: AIService
-    let media: MediaUploader
     let speech: SpeechTranscriber
-    let ocr: OCRService
-    /// Extracts a video's audio track to a temp file for transcription.
-    /// Injected so tests can exercise the video save path without AVFoundation.
-    let extractAudio: (URL) async throws -> URL
+    let entryProcessor: EntryProcessor
 
     init(
         auth: AuthService,
-        journals: JournalRepository,
-        profiles: ProfileRepository,
-        ai: AIService,
-        media: MediaUploader,
         speech: SpeechTranscriber,
-        ocr: OCRService,
-        extractAudio: @escaping (URL) async throws -> URL = AudioExtractor.extractAudio(from:)
+        entryProcessor: EntryProcessor
     ) {
         self.auth = auth
-        self.journals = journals
-        self.profiles = profiles
-        self.ai = ai
-        self.media = media
         self.speech = speech
-        self.ocr = ocr
-        self.extractAudio = extractAudio
+        self.entryProcessor = entryProcessor
     }
 
     init(services: AppServices) {
         self.init(
             auth: services.auth,
-            journals: services.journals,
-            profiles: services.profiles,
-            ai: services.ai,
-            media: services.media,
             speech: services.speech,
-            ocr: services.ocr
+            entryProcessor: services.entryProcessor
         )
     }
 }
@@ -60,24 +41,9 @@ final class CreateEntryViewModel: ObservableObject {
 
     private static let logger = Logger(subsystem: "com.luminalog.app", category: "create")
 
-    /// Save-progress phases shown while inputs are disabled.
-    enum SavingPhase: String {
-        case transcribing = "Transcribing…"
-        case readingText = "Reading text…"
-        case uploading = "Uploading…"
-        case saving = "Saving…"
-    }
-
     enum DictationState: Equatable {
         case idle
         case listening
-    }
-
-    /// Save failure surfaced as a Retry/Cancel alert (the entry is not saved
-    /// until uploads + the Firestore write succeed).
-    struct SaveError: Identifiable, Equatable {
-        let id = UUID()
-        let message: String
     }
 
     // MARK: Published state
@@ -88,10 +54,8 @@ final class CreateEntryViewModel: ObservableObject {
     @Published var attachmentNotice: String?
     @Published private(set) var dictationState: DictationState = .idle
     @Published var showDictationDeniedAlert = false
-    /// Internal-settable so previews can show the saving state.
-    @Published var savingPhase: SavingPhase?
-    @Published var saveError: SaveError?
-    /// Flips true after a successful save; the view dismisses on it.
+    /// Flips true once the draft is handed to the background processor; the
+    /// view dismisses on it. Upload/transcribe then continue without the UI.
     @Published private(set) var didSave = false
 
     // MARK: Dependencies & identity
@@ -99,7 +63,7 @@ final class CreateEntryViewModel: ObservableObject {
     let promptText: String?
 
     private let deps: CreateEntryDependencies
-    /// Stable across save retries so a retried upload reuses the same id.
+    /// Stable id shared by the draft and its saved entry.
     private let draftId = UUID().uuidString
 
     /// Exposed for tests to await dictation-stream consumption.
@@ -107,20 +71,6 @@ final class CreateEntryViewModel: ObservableObject {
     /// Identifies the current dictation session so a finishing old session
     /// can never clobber the state/text of a newer one.
     private var dictationSessionId = UUID()
-    /// Exposed for tests to await the fire-and-forget index request.
-    private(set) var indexTask: Task<Void, Never>?
-
-    // MARK: Save caches & temp-file tracking
-
-    /// Successful uploads keyed by attachment id so a save retry only
-    /// re-uploads the items that actually failed.
-    private var uploadedItems: [UUID: MediaItem] = [:]
-    /// Derived (content, transcript status) cached against a fingerprint of
-    /// the typed text + attachments so a retry doesn't redo OCR/STT.
-    private var derivedCache: (fingerprint: String, content: String, status: TranscriptStatus?)?
-    /// Temp files created for this draft (photo upload files, extracted
-    /// audio); deleted after save success or on discard.
-    private var stagedTempURLs: Set<URL> = []
 
     init(request: CreateEntryRequest, dependencies: CreateEntryDependencies) {
         let trimmedPrompt = request.promptText?
@@ -131,8 +81,6 @@ final class CreateEntryViewModel: ObservableObject {
 
     // MARK: Derived state
 
-    var isSaving: Bool { savingPhase != nil }
-
     private var trimmedText: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -141,9 +89,7 @@ final class CreateEntryViewModel: ObservableObject {
         !trimmedText.isEmpty || !attachments.isEmpty
     }
 
-    var canSave: Bool {
-        hasUnsavedContent && !isSaving
-    }
+    var canSave: Bool { hasUnsavedContent }
 
     var entryType: JournalType { attachments.entryType }
 
@@ -153,7 +99,7 @@ final class CreateEntryViewModel: ObservableObject {
     /// each partial replaces the current session segment: we snapshot the
     /// editor text at session start (`base`) and set `text = base + partial`.
     func startDictation() async {
-        guard dictationState == .idle, !isSaving else { return }
+        guard dictationState == .idle else { return }
         guard await deps.speech.requestAuthorization() else {
             showDictationDeniedAlert = true
             return
@@ -275,234 +221,41 @@ final class CreateEntryViewModel: ObservableObject {
 
     // MARK: - Temp file lifecycle
 
-    /// Deletes every staged temp file this draft created (photo upload files,
-    /// extracted audio) plus the backing files of still-attached video/audio.
-    /// Called after a successful save and on cancel/discard.
+    /// Deletes the backing files of still-attached video/audio. Called on
+    /// cancel/discard only — on save, the `EntryProcessor` takes ownership of
+    /// the attachments and cleans their temp files up once uploaded.
     func cleanupTempFiles() {
-        var urls = stagedTempURLs
+        var urls: Set<URL> = []
         if let video = attachments.video { urls.insert(video.url) }
         if let audio = attachments.audio { urls.insert(audio.url) }
         for url in urls {
             try? FileManager.default.removeItem(at: url)
         }
-        stagedTempURLs.removeAll()
-    }
-
-    private func trackTempFile(_ url: URL) {
-        stagedTempURLs.insert(url)
     }
 
     private func deleteTempFile(at url: URL) {
         try? FileManager.default.removeItem(at: url)
-        stagedTempURLs.remove(url)
     }
 
-    // MARK: - Save pipeline (spec §5.1)
+    // MARK: - Save (hand off to the background processor)
 
-    /// 1) derive canonical content (OCR / STT), 2) upload media, 3) save the
-    /// entry, 4) bump profile stats, 5) fire-and-forget RAG indexing.
-    func save() async {
+    /// Packages the draft and hands it to the `EntryProcessor`, then dismisses
+    /// immediately. Upload, OCR, the Firestore write, and transcription all run
+    /// in the background; progress surfaces via the entry's `processingStatus`.
+    func save() {
         guard canSave else { return }
-        guard let userId = deps.auth.currentUserId else {
-            saveError = SaveError(message: AuthServiceError.notSignedIn.localizedDescription)
-            return
-        }
+        guard let userId = deps.auth.currentUserId else { return }
 
         stopDictation()
-        saveError = nil
-        let type = attachments.entryType
-
-        do {
-            switch type {
-            case .text: savingPhase = .saving
-            case .image: savingPhase = .readingText
-            case .voice, .video: savingPhase = .transcribing
-            }
-            let derived = await deriveContent(type: type)
-
-            if !attachments.isEmpty { savingPhase = .uploading }
-            let media = try await uploadAttachments()
-
-            savingPhase = .saving
-            let wordCount = derived.content
-                .split(whereSeparator: \.isWhitespace)
-                .count
-
-            let entry = JournalEntry(
-                id: draftId,
-                userId: userId,
-                type: type,
-                title: title(for: derived.content),
-                content: derived.content,
-                media: media,
-                transcriptStatus: derived.status,
-                wordCount: wordCount
-            )
-            try await deps.journals.save(entry)
-
-            // The entry is already saved; a stats failure shouldn't scare the
-            // user out of their journal. Log and move on.
-            do {
-                try await deps.profiles.recordEntrySaved(wordCountDelta: wordCount, on: Date())
-            } catch {
-                Self.logger.error("recordEntrySaved failed: \(error)")
-            }
-
-            let ai = deps.ai
-            let savedType = type
-            // Voice/video entries always use server-side Together AI Whisper,
-            // which also re-indexes to Chroma. All other entries just trigger a
-            // Chroma index of existing content.
-            indexTask = Task {
-                if savedType == .voice || savedType == .video {
-                    await ai.transcribeJournal(journalId: entry.id)
-                } else {
-                    await ai.requestIndex(journalId: entry.id)
-                }
-            }
-
-            savingPhase = nil
-            cleanupTempFiles()
-            didSave = true
-        } catch {
-            savingPhase = nil
-            saveError = SaveError(
-                message: "Your entry couldn't be saved. \(error.localizedDescription)"
-            )
-        }
-    }
-
-    // MARK: Content derivation
-
-    /// Canonical content per type (spec §5.1 step 2). Voice/video entries save
-    /// immediately with typed text and `transcriptStatus: .processing`; server-side
-    /// Whisper fills in the transcript after save. OCR failures set `.failed`.
-    /// The result is cached against the current text/attachment fingerprint
-    /// so a save retry (after an upload failure) doesn't redo OCR.
-    private func deriveContent(type: JournalType) async -> (content: String, status: TranscriptStatus?) {
-        let fingerprint = contentFingerprint(type: type)
-        if let cached = derivedCache, cached.fingerprint == fingerprint {
-            return (cached.content, cached.status)
-        }
-        let derived = await computeDerivedContent(type: type)
-        derivedCache = (fingerprint, derived.content, derived.status)
-        return derived
-    }
-
-    /// Identifies the inputs of `deriveContent` — invalidates the cache
-    /// whenever the typed text or the attachment set changes.
-    private func contentFingerprint(type: JournalType) -> String {
-        var parts: [String] = [type.rawValue, trimmedText]
-        parts.append(contentsOf: attachments.photos.map(\.id.uuidString))
-        if let video = attachments.video { parts.append(video.id.uuidString) }
-        if let audio = attachments.audio { parts.append(audio.id.uuidString) }
-        return parts.joined(separator: "|")
-    }
-
-    private func computeDerivedContent(type: JournalType) async -> (content: String, status: TranscriptStatus?) {
-        let typed = trimmedText
-
-        switch type {
-        case .text:
-            return (typed, nil)
-
-        case .image:
-            var pieces: [String] = []
-            var anyFailed = false
-            for photo in attachments.photos {
-                do {
-                    let recognized = try await deps.ocr.recognizeText(in: photo.imageData)
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !recognized.isEmpty { pieces.append(recognized) }
-                } catch {
-                    Self.logger.error("OCR failed: \(error)")
-                    anyFailed = true
-                }
-            }
-            // Typed editor text (if any) is prepended to the joined OCR text.
-            let joined = ([typed] + pieces)
-                .filter { !$0.isEmpty }
-                .joined(separator: "\n\n")
-            return (joined, anyFailed ? .failed : .ready)
-
-        case .voice, .video:
-            // Server-side Together AI Whisper transcribes after save (see indexTask).
-            // Typed text is saved immediately; the server prepends the Whisper
-            // transcript and updates transcriptStatus to .ready on completion.
-            return (typed, .processing)
-        }
-    }
-
-    // MARK: Uploads
-
-    /// Sequential uploads; any failure aborts the save (Retry/Cancel alert).
-    /// Successful uploads are cached by attachment id so a retry only
-    /// re-uploads the items that failed.
-    private func uploadAttachments() async throws -> [MediaItem] {
-        var items: [MediaItem] = []
-        for photo in attachments.photos {
-            if let cached = uploadedItems[photo.id] {
-                items.append(cached)
-                continue
-            }
-            let fileURL = try photo.writeToTemporaryFile()
-            trackTempFile(fileURL)
-            var item = try await deps.media.upload(
-                fileURL: fileURL, kind: .image, journalId: draftId
-            )
-            item.width = photo.pixelWidth
-            item.height = photo.pixelHeight
-            uploadedItems[photo.id] = item
-            items.append(item)
-        }
-        if let video = attachments.video {
-            if let cached = uploadedItems[video.id] {
-                items.append(cached)
-            } else {
-                var item = try await deps.media.upload(
-                    fileURL: video.url, kind: .video, journalId: draftId
-                )
-                item.durationSec = video.durationSec
-                uploadedItems[video.id] = item
-                items.append(item)
-            }
-        }
-        if let audio = attachments.audio {
-            if let cached = uploadedItems[audio.id] {
-                items.append(cached)
-            } else {
-                var item = try await deps.media.upload(
-                    fileURL: audio.url, kind: .audio, journalId: draftId
-                )
-                item.durationSec = audio.durationSec
-                uploadedItems[audio.id] = item
-                items.append(item)
-            }
-        }
-        return items
-    }
-
-    // MARK: Title
-
-    /// Title rule: when the entry answers a prompt, the prompt question (≤80
-    /// chars) becomes the title and the content stays pure. Otherwise the
-    /// first non-empty content line (≤80 chars), else the formatted date.
-    func title(for content: String) -> String {
-        if let promptText {
-            return Self.truncate(promptText, to: 80)
-        }
-        let firstLine = content
-            .split(separator: "\n", omittingEmptySubsequences: true)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .first { !$0.isEmpty }
-        if let firstLine {
-            return Self.truncate(firstLine, to: 80)
-        }
-        return Date().formatted(date: .long, time: .omitted)
-    }
-
-    private static func truncate(_ string: String, to limit: Int) -> String {
-        guard string.count > limit else { return string }
-        return String(string.prefix(limit - 1)).trimmingCharacters(in: .whitespaces) + "…"
+        let job = EntryProcessingJob(
+            draftId: draftId,
+            userId: userId,
+            promptText: promptText,
+            attachments: attachments,
+            text: text,
+            createdAt: Date()
+        )
+        deps.entryProcessor.enqueue(job)
+        didSave = true
     }
 }
