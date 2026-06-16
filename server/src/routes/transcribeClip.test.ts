@@ -12,7 +12,7 @@ function mockRes() {
 }
 
 describe('transcribeClipHandler', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks() })
 
   it('returns transcript text for a valid audio body', async () => {
     ;(transcribeAudio as any).mockResolvedValue('hello world')

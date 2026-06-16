@@ -1,5 +1,6 @@
-import { Router, Request, Response } from 'express'
+import express, { Router, Request, Response } from 'express'
 import admin from 'firebase-admin'
+import { transcribeClipHandler } from './transcribeClip'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
 import { chatCompletion, transcribeAudio, streamToBuffer } from '../services/aiClient'
@@ -11,6 +12,15 @@ import { openField, encryptField } from '../crypto/fieldCipher'
 import { decryptMedia } from '../crypto/mediaCipher'
 
 export const aiRouter = Router()
+
+// Raw audio body (no multipart): app-level express.json ignores audio/* content
+// types, so this per-route parser owns the body.
+aiRouter.post(
+  '/transcribe-clip',
+  firebaseAuth,
+  express.raw({ type: 'audio/*', limit: '25mb' }),
+  transcribeClipHandler,
+)
 
 const MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
 
