@@ -47,6 +47,12 @@ final class JournalDetailViewModelTests: XCTestCase {
 
         func requestIndex(journalId: String) async {}
 
+        var transcribeClipCalls = 0
+        func transcribeClip(audio: Data, contentType: String) async throws -> String {
+            transcribeClipCalls += 1
+            return "spy clip transcript"
+        }
+
         func transcribeJournal(journalId: String) async throws {
             transcribeCalls += 1
             // Suspend like a real network call so the loading guard can observe

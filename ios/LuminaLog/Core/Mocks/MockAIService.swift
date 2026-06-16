@@ -70,4 +70,9 @@ final class MockAIService: AIService {
     func transcribeJournal(journalId: String) async throws {
         // No-op in demo mode.
     }
+
+    func transcribeClip(audio: Data, contentType: String) async throws -> String {
+        try await Task.sleep(nanoseconds: generationDelay)
+        return MockData.cannedClipTranscript
+    }
 }

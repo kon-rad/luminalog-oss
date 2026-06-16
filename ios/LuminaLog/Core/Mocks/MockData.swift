@@ -257,6 +257,9 @@ enum MockData {
 
     // MARK: - AI canned responses
 
+    static let cannedClipTranscript =
+        "This is a quick voice memo I recorded to add a little more to this entry."
+
     static let cannedSummary = "This entry captures a moment of honest self-observation. You name a specific tension you've been carrying, trace where it comes from, and land on a small, concrete next step rather than a sweeping resolution — a pattern that shows up in your strongest entries."
 
     static let cannedInsights = "A few threads stand out. First, you process difficulty by writing toward specifics — the entries where you name exact moments are the ones where your thinking visibly shifts. Second, anticipation consistently costs you more than the event itself; you've now documented this across several situations. Third, your energy tracks closely with whether you protect unstructured time early in the day. Taken together, these suggest your best lever isn't more discipline — it's shortening the gap between dreading a thing and starting it."

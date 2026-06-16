@@ -29,6 +29,7 @@ final class HomeViewModelTests: XCTestCase {
         }
         func requestIndex(journalId: String) async {}
         func transcribeJournal(journalId: String) async {}
+        func transcribeClip(audio: Data, contentType: String) async throws -> String { "" }
     }
 
     @MainActor

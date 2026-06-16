@@ -113,6 +113,8 @@ final class StubChatAIService: AIService {
     func requestIndex(journalId: String) async {}
 
     func transcribeJournal(journalId: String) async {}
+
+    func transcribeClip(audio: Data, contentType: String) async throws -> String { "" }
 }
 
 // MARK: - Test helpers

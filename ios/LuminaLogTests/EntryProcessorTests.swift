@@ -23,6 +23,7 @@ final class EntryProcessorTests: XCTestCase {
         }
         func requestIndex(journalId: String) async { indexedJournalIds.append(journalId) }
         func transcribeJournal(journalId: String) async { transcribedJournalIds.append(journalId) }
+        func transcribeClip(audio: Data, contentType: String) async throws -> String { "" }
     }
 
     @MainActor
@@ -50,6 +51,7 @@ final class EntryProcessorTests: XCTestCase {
             return MediaItem(s3Key: "spy/\(kind.rawValue)/\(uploads.count)", kind: kind)
         }
         func viewURL(for s3Key: String) async throws -> URL { URL(fileURLWithPath: "/dev/null") }
+        func localFileURL(for s3Key: String) async throws -> URL { URL(fileURLWithPath: "/dev/null") }
     }
 
     /// Records every saved snapshot so tests can assert the status progression,
@@ -69,6 +71,7 @@ final class EntryProcessorTests: XCTestCase {
             statusHistory.append(entry.processingStatus)
         }
         func updateAIFields(id: String, summary: AIGeneration?, insights: AIGeneration?, prompts: AIPrompts?) async throws {}
+        func updateContent(id: String, content: String, contentEditedAt: Date, appendedMedia: [MediaItem]) async throws {}
         func delete(id: String) async throws { store.removeAll { $0.id == id } }
     }
 

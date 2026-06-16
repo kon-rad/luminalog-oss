@@ -43,6 +43,10 @@ final class ProxyAIService: AIService {
         let delta: String?
     }
 
+    private struct TranscriptResponse: Decodable {
+        let text: String
+    }
+
     // MARK: - AIService
 
     func generateSummary(journalId: String) async throws -> AIGeneration {
@@ -113,5 +117,14 @@ final class ProxyAIService: AIService {
 
     func transcribeJournal(journalId: String) async throws {
         try await api.post(path: "/v1/ai/transcribe", body: JournalIdBody(journalId: journalId))
+    }
+
+    func transcribeClip(audio: Data, contentType: String) async throws -> String {
+        let response: TranscriptResponse = try await api.postRaw(
+            path: "/v1/ai/transcribe-clip",
+            body: audio,
+            contentType: contentType
+        )
+        return response.text
     }
 }

@@ -30,4 +30,9 @@ protocol AIService: AnyObject {
     /// Throws on network or server error; the entry stays with
     /// transcriptStatus = failed when the server itself catches the error.
     func transcribeJournal(journalId: String) async throws
+
+    /// Transcribe a recorded audio clip without persisting anything.
+    /// POSTs raw audio bytes to `/v1/ai/transcribe-clip`; returns the transcript
+    /// text. Used by the transcript editor to turn a voice memo into text.
+    func transcribeClip(audio: Data, contentType: String) async throws -> String
 }
