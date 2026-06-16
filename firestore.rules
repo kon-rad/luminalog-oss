@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Each user owns their own profile document.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Journal entries: top-level collection keyed by a userId field.
+    match /journals/{journalId} {
+      allow read, update, delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Chats: top-level collection keyed by a userId field.
+    match /chats/{chatId} {
+      allow read, update, delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+
+      // Messages subcollection: inherit ownership from the parent chat.
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null
+          && get(/databases/$(database)/documents/chats/$(chatId)).data.userId == request.auth.uid;
+      }
+    }
+  }
+}
