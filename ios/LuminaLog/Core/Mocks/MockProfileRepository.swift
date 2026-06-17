@@ -1,11 +1,12 @@
 import Foundation
 
 /// In-memory `ProfileRepository` for demo mode and tests.
-/// Uses the same `StreakCalculator` as the Firestore implementation.
+/// Uses the same `DailyGoalStreak` as the Firestore implementation.
 @MainActor
 final class MockProfileRepository: ProfileRepository {
 
     private var storedProfile: UserProfile?
+    private(set) var lastSaved: UserProfile?
     private var continuations: [UUID: AsyncStream<UserProfile?>.Continuation] = [:]
 
     init(profile: UserProfile? = MockData.profile) {
@@ -30,6 +31,7 @@ final class MockProfileRepository: ProfileRepository {
     }
 
     func update(_ profile: UserProfile) async throws {
+        lastSaved = profile
         storedProfile = profile
         broadcast()
     }
@@ -41,14 +43,12 @@ final class MockProfileRepository: ProfileRepository {
     func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {
         guard var profile = storedProfile else { throw AuthServiceError.notSignedIn }
         let timezone = TimeZone(identifier: profile.timezone) ?? .current
-        let previousTotal = profile.stats.totalWords
-        var next = StreakCalculator.nextStats(
+        profile.stats = DailyGoalStreak.nextStats(
             current: profile.stats,
+            wordCountDelta: wordCountDelta,
             entryDate: date,
             timezone: timezone
         )
-        next.totalWords = previousTotal + wordCountDelta
-        profile.stats = next
         storedProfile = profile
         broadcast()
     }

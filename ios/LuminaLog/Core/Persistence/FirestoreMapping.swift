@@ -201,7 +201,13 @@ extension UserProfile {
             createdAt: timestamp(data["createdAt"]) ?? Date(),
             timezone: data["timezone"] as? String ?? TimeZone.current.identifier,
             stats: Stats(data: data["stats"] as? [String: Any] ?? [:]),
-            dailyPrompt: UserProfile.DailyPrompt(data: data["dailyPrompt"] as? [String: Any], cipher: cipher)
+            dailyPrompt: UserProfile.DailyPrompt(data: data["dailyPrompt"] as? [String: Any], cipher: cipher),
+            summaryConfig: {
+                guard let c = data["summaryConfig"] as? [String: Any],
+                      let wordLength = c["wordLength"] as? Int,
+                      let systemPrompt = c["systemPrompt"] as? String else { return nil }
+                return UserProfile.SummaryConfig(wordLength: wordLength, systemPrompt: systemPrompt)
+            }()
         )
     }
 
@@ -216,6 +222,12 @@ extension UserProfile {
         ]
         if let photoURL { data["photoURL"] = photoURL.absoluteString }
         if let dailyPrompt { data["dailyPrompt"] = try dailyPrompt.firestoreData(cipher: cipher) }
+        if let summaryConfig {
+            data["summaryConfig"] = [
+                "wordLength": summaryConfig.wordLength,
+                "systemPrompt": summaryConfig.systemPrompt,
+            ]
+        }
         return data
     }
 }
@@ -226,13 +238,20 @@ extension UserProfile.Stats {
         self.init(
             streakCount: data["streakCount"] as? Int ?? 0,
             lastEntryDate: timestamp(data["lastEntryDate"]),
-            totalWords: data["totalWords"] as? Int ?? 0
+            totalWords: data["totalWords"] as? Int ?? 0,
+            goalDayDate: timestamp(data["goalDayDate"]),
+            goalDayWords: data["goalDayWords"] as? Int ?? 0
         )
     }
 
     var firestoreData: [String: Any] {
-        var data: [String: Any] = ["streakCount": streakCount, "totalWords": totalWords]
+        var data: [String: Any] = [
+            "streakCount": streakCount,
+            "totalWords": totalWords,
+            "goalDayWords": goalDayWords,
+        ]
         if let lastEntryDate { data["lastEntryDate"] = Timestamp(date: lastEntryDate) }
+        if let goalDayDate { data["goalDayDate"] = Timestamp(date: goalDayDate) }
         return data
     }
 }

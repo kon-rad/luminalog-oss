@@ -6,13 +6,37 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
     /// Journaling stats maintained transactionally on every save (spec §3).
     struct Stats: Codable, Equatable, Sendable {
         var streakCount: Int
+        /// The last *qualifying* day (its entries reached `DailyGoal.wordTarget`).
         var lastEntryDate: Date?
         var totalWords: Int
+        /// Calendar day (user timezone) that `goalDayWords` accumulates for.
+        var goalDayDate: Date?
+        /// Words journaled so far on `goalDayDate`.
+        var goalDayWords: Int
 
-        init(streakCount: Int = 0, lastEntryDate: Date? = nil, totalWords: Int = 0) {
+        init(
+            streakCount: Int = 0,
+            lastEntryDate: Date? = nil,
+            totalWords: Int = 0,
+            goalDayDate: Date? = nil,
+            goalDayWords: Int = 0
+        ) {
             self.streakCount = streakCount
             self.lastEntryDate = lastEntryDate
             self.totalWords = totalWords
+            self.goalDayDate = goalDayDate
+            self.goalDayWords = goalDayWords
+        }
+    }
+
+    /// User-customizable summary generation settings (plaintext template).
+    struct SummaryConfig: Codable, Equatable, Sendable {
+        var wordLength: Int
+        var systemPrompt: String
+
+        init(wordLength: Int, systemPrompt: String) {
+            self.wordLength = wordLength
+            self.systemPrompt = systemPrompt
         }
     }
 
@@ -41,6 +65,7 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
     var timezone: String
     var stats: Stats
     var dailyPrompt: DailyPrompt?
+    var summaryConfig: SummaryConfig?
 
     init(
         id: String,
@@ -51,7 +76,8 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         createdAt: Date = Date(),
         timezone: String = TimeZone.current.identifier,
         stats: Stats = Stats(),
-        dailyPrompt: DailyPrompt? = nil
+        dailyPrompt: DailyPrompt? = nil,
+        summaryConfig: SummaryConfig? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -62,5 +88,6 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         self.timezone = timezone
         self.stats = stats
         self.dailyPrompt = dailyPrompt
+        self.summaryConfig = summaryConfig
     }
 }
