@@ -1,5 +1,6 @@
 /* Backfill summaries + summary vectors for existing journals.
  * Usage: tsx scripts/backfill-summaries.ts [--dry-run] [--force] [--user=<uid>] */
+import 'dotenv/config'
 import { db } from '../src/middleware/firebaseAuth'
 import { getOrCreateDEK } from '../src/crypto/keyService'
 import { openField, encryptField } from '../src/crypto/fieldCipher'
@@ -35,17 +36,20 @@ async function main() {
       const userConfig = (await db.collection('users').doc(uid).get()).data()?.summaryConfig
       const summary = await generateSummaryText({ type, content, userConfig })
 
+      // Persist the summary text first; it is valid regardless of embedding.
       await doc.ref.update({
         summary: {
           text: encryptField(dek, summary.text, 'journals.summary.text'),
           generatedAt: admin.firestore.Timestamp.fromDate(new Date(summary.generatedAt)),
           model: summary.model,
         },
-        'vector.summaryIndexed': true,
       })
       const date = (data.updatedAt as admin.firestore.Timestamp)?.toDate().toISOString().slice(0, 10)
         ?? new Date().toISOString().slice(0, 10)
+      // Embed + store the vector BEFORE flagging summaryIndexed, so a failed
+      // embedding never marks an entry indexed (which would poison idempotency).
       await indexSummary({ userId: uid, entryId: doc.id, summaryText: summary.text, type, title, date, dek })
+      await doc.ref.update({ 'vector.summaryIndexed': true })
       done++
       if (done % 25 === 0) console.log(`...${done} indexed`)
     } catch (err) {
