@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express'
 import admin from 'firebase-admin'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
+import { config } from '../config'
 import { indexJournalEntry, deleteJournalEntry } from '../services/journalIndexer'
-import { indexSummary, deleteSummary } from '../services/summaryIndexer'
+import { indexSummary, deleteSummary, findRelated } from '../services/summaryIndexer'
 import { generateSummaryText } from '../services/summaryGenerator'
 import { getOrCreateDEK } from '../crypto/keyService'
 import { openField, encryptField } from '../crypto/fieldCipher'
@@ -124,3 +125,29 @@ ragRouter.delete('/delete', firebaseAuth, async (req: Request, res: Response) =>
     res.status(500).json({ error: 'Delete failed' })
   }
 })
+
+export async function relatedHandler(req: Request, res: Response): Promise<void> {
+  const uid = (req as any).uid as string
+  const { journalId, limit } = req.body as { journalId?: string; limit?: number }
+  if (!journalId) { res.status(400).json({ error: 'Missing journalId' }); return }
+
+  try {
+    const snap = await db.collection('journals').doc(journalId).get()
+    if (!snap.exists) { res.status(404).json({ error: 'Journal not found' }); return }
+    if (snap.data()!.userId !== uid) { res.status(403).json({ error: 'Forbidden' }); return }
+
+    const dek = await getOrCreateDEK(uid)
+    const related = await findRelated({
+      userId: uid,
+      entryId: journalId,
+      limit: Math.min(limit ?? config.RELATED_TOP_K, config.RELATED_TOP_K),
+      dek,
+    })
+    res.json({ related })
+  } catch (err: any) {
+    console.error('[rag/related]', err)
+    res.status(500).json({ error: 'Related lookup failed' })
+  }
+}
+
+ragRouter.post('/related', firebaseAuth, relatedHandler)
