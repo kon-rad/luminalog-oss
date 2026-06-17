@@ -75,4 +75,13 @@ final class MockAIService: AIService {
         try await Task.sleep(nanoseconds: generationDelay)
         return MockData.cannedClipTranscript
     }
+
+    func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] {
+        [
+            RelatedEntry(journalId: "mock-1", title: "A quiet morning", type: .text,
+                         date: "2026-05-01", snippet: "You reflected on stillness.", score: 0.91),
+            RelatedEntry(journalId: "mock-2", title: "First run back", type: .voice,
+                         date: "2026-04-20", snippet: "You felt a return of energy.", score: 0.84),
+        ]
+    }
 }

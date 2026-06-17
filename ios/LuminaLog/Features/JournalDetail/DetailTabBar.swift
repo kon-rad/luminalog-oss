@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// The three Journal Detail tabs (design §4).
+/// The four Journal Detail tabs (design §4).
 enum JournalDetailTab: String, CaseIterable, Identifiable {
     case main = "Main"
     case insights = "Insights"
     case prompts = "Prompts"
+    case related = "Related"
 
     var id: String { rawValue }
 }

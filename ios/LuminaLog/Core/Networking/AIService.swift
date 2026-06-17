@@ -20,6 +20,14 @@ protocol AIService: AnyObject {
     /// Streaming assistant reply — yields token/word deltas as they arrive.
     func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error>
 
+    /// True when `streamChatReply` ALSO persists both the user message and the
+    /// assistant reply to the chat store server-side (the production proxy,
+    /// spec §5.4). When true the view model must NOT persist either side
+    /// itself — otherwise every message is written twice and the conversation
+    /// shows each message and reply doubled. Demo mode never writes back, so it
+    /// leaves this `false` (the extension default) and the view model persists.
+    var persistsChatReplies: Bool { get }
+
     /// Fire-and-forget request to (re)index an entry into the RAG store.
     /// Failures are swallowed; a server-side reconcile retries later.
     func requestIndex(journalId: String) async
@@ -35,4 +43,13 @@ protocol AIService: AnyObject {
     /// POSTs raw audio bytes to `/v1/ai/transcribe-clip`; returns the transcript
     /// text. Used by the transcript editor to turn a voice memo into text.
     func transcribeClip(audio: Data, contentType: String) async throws -> String
+
+    /// The 20 most semantically similar other entries (summary-embedding search).
+    func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry]
+}
+
+extension AIService {
+    /// Default: the service does not persist chat messages, so the caller
+    /// owns persistence. Only the production proxy overrides this to `true`.
+    var persistsChatReplies: Bool { false }
 }

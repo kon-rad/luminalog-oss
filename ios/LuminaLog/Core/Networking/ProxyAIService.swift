@@ -6,6 +6,11 @@ final class ProxyAIService: AIService {
 
     private let api: ProxyAPIClient
 
+    /// The proxy's `/v1/ai/chat` route writes both the user message and the
+    /// streamed reply to Firestore (spec §5.4), so the client must not also
+    /// persist them — see `AIService.persistsChatReplies`.
+    let persistsChatReplies = true
+
     init(api: ProxyAPIClient) {
         self.api = api
     }
@@ -45,6 +50,15 @@ final class ProxyAIService: AIService {
 
     private struct TranscriptResponse: Decodable {
         let text: String
+    }
+
+    private struct RelatedBody: Encodable {
+        let journalId: String
+        let limit: Int
+    }
+
+    private struct RelatedResponse: Decodable {
+        let related: [RelatedEntry]
     }
 
     // MARK: - AIService
@@ -126,5 +140,13 @@ final class ProxyAIService: AIService {
             contentType: contentType
         )
         return response.text
+    }
+
+    func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] {
+        let response: RelatedResponse = try await api.post(
+            path: "/v1/rag/related",
+            body: RelatedBody(journalId: journalId, limit: limit)
+        )
+        return response.related
     }
 }

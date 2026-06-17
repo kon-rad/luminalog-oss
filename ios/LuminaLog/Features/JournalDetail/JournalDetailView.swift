@@ -100,6 +100,8 @@ struct JournalDetailView: View {
                         insightsTab(entry)
                     case .prompts:
                         promptsTab(entry)
+                    case .related:
+                        EmptyView()
                     }
                 }
                 .padding(Spacing.m)
