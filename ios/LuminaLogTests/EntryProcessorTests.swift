@@ -24,6 +24,7 @@ final class EntryProcessorTests: XCTestCase {
         func requestIndex(journalId: String) async { indexedJournalIds.append(journalId) }
         func transcribeJournal(journalId: String) async { transcribedJournalIds.append(journalId) }
         func transcribeClip(audio: Data, contentType: String) async throws -> String { "" }
+        func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] { [] }
     }
 
     @MainActor

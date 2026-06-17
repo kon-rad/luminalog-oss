@@ -53,6 +53,8 @@ final class JournalDetailViewModelTests: XCTestCase {
             return "spy clip transcript"
         }
 
+        func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] { [] }
+
         func transcribeJournal(journalId: String) async throws {
             transcribeCalls += 1
             // Suspend like a real network call so the loading guard can observe

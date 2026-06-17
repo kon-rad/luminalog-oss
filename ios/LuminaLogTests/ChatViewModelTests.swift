@@ -53,6 +53,12 @@ final class SpyChatRepository: ChatRepository {
         try await backing.updateChatTitle(id: id, title: title)
     }
 
+    /// Simulates a server-side write (e.g. the proxy persisting a message)
+    /// landing via the live stream, without counting as a client `append`.
+    func simulateServerWrite(_ message: ChatMessage, to chatId: String) async throws {
+        try await backing.appendMessage(message, to: chatId)
+    }
+
     func deleteChat(id: String) async throws {
         deletedIds.append(id)
         try await backing.deleteChat(id: id)
@@ -69,6 +75,9 @@ final class StubChatAIService: AIService {
     var deltas: [String] = ["Hello", " there."]
     /// Throw after yielding this many deltas (0 = fail immediately).
     var failAfter: Int?
+    /// Mirrors the production proxy: when true the service is treated as the
+    /// sole persister, so the view model must not append messages itself.
+    var persistsChatReplies = false
     private(set) var streamCalls = 0
     /// Captured continuation when `manualStreaming` is true — the test
     /// drives the stream by hand to observe partial accumulation.
@@ -115,6 +124,7 @@ final class StubChatAIService: AIService {
     func transcribeJournal(journalId: String) async {}
 
     func transcribeClip(audio: Data, contentType: String) async throws -> String { "" }
+    func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] { [] }
 }
 
 // MARK: - Test helpers
@@ -217,6 +227,71 @@ final class ChatViewModelTests: XCTestCase {
         XCTAssertNil(viewModel.streamingReply)
         XCTAssertEqual(repo.appended.last?.message.text, "Reading along")
         XCTAssertEqual(repo.appended.last?.message.role, .assistant)
+    }
+
+    // MARK: Server-side persistence (no client double-write)
+
+    @MainActor
+    func testServerPersistedRepliesAreNotWrittenByClient() async throws {
+        let repo = makeRepo()
+        let ai = StubChatAIService()
+        ai.persistsChatReplies = true
+        ai.deltas = ["You protected", " your mornings."]
+        let viewModel = makeViewModel(repo: repo, ai: ai)
+        await viewModel.start()
+
+        viewModel.draft = "How was my week?"
+        await viewModel.send()
+
+        // The proxy already persists both sides server-side; writing them
+        // again here is exactly the doubling bug we are preventing.
+        XCTAssertTrue(repo.appended.isEmpty, "Client must not persist when the proxy already does")
+        XCTAssertEqual(ai.streamCalls, 1)
+        XCTAssertNil(viewModel.streamingReply)
+        XCTAssertFalse(viewModel.isAwaitingFirstToken)
+        XCTAssertEqual(viewModel.draft, "", "Draft still clears optimistically")
+        // Optimistic bubble stands in until the server's copy streams back.
+        XCTAssertEqual(viewModel.pendingUserMessage?.text, "How was my week?")
+        // Auto-titling stays a client responsibility — the proxy doesn't rename.
+        XCTAssertEqual(repo.titleUpdates.first?.title, "How was my week?")
+    }
+
+    @MainActor
+    func testOptimisticBubbleClearsWhenServerCopyArrives() async throws {
+        let repo = makeRepo()
+        let ai = StubChatAIService()
+        ai.persistsChatReplies = true
+        let viewModel = makeViewModel(repo: repo, ai: ai)
+        await viewModel.start()
+
+        viewModel.draft = "Hello server"
+        await viewModel.send()
+        XCTAssertEqual(viewModel.pendingUserMessage?.text, "Hello server")
+
+        // The proxy's server-side write lands via the live stream.
+        try await repo.simulateServerWrite(
+            ChatMessage(role: .user, text: "Hello server"), to: "chat-1"
+        )
+        try await waitUntil { viewModel.pendingUserMessage == nil }
+        XCTAssertEqual(viewModel.messages.map(\.text), ["Hello server"],
+                       "Exactly one user message — no duplicate")
+    }
+
+    @MainActor
+    func testServerPersistStreamFailureClearsOptimisticBubble() async throws {
+        let repo = makeRepo()
+        let ai = StubChatAIService()
+        ai.persistsChatReplies = true
+        ai.failAfter = 0
+        let viewModel = makeViewModel(repo: repo, ai: ai)
+        await viewModel.start()
+
+        viewModel.draft = "Tough day."
+        await viewModel.send()
+
+        XCTAssertNil(viewModel.pendingUserMessage, "Optimistic bubble drops; Retry row takes over")
+        XCTAssertEqual(viewModel.failedSend?.message.text, "Tough day.")
+        XCTAssertTrue(repo.appended.isEmpty)
     }
 
     // MARK: Failure & retry

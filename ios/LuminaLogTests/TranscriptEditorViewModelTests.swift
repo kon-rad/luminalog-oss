@@ -26,6 +26,7 @@ final class TranscriptEditorViewModelTests: XCTestCase {
             if shouldFail { throw NSError(domain: "spy", code: 1) }
             return transcriptToReturn
         }
+        func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] { [] }
     }
 
     @MainActor
