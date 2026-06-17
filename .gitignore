@@ -75,3 +75,7 @@ tmp/
 
 # Brainstorming scratch (visual companion)
 .superpowers/
+
+# Local ChromaDB backups (never commit)
+deploy/chroma/chroma-backups/
+chroma-backups/

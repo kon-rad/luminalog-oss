@@ -1,0 +1,40 @@
+# Production ChromaDB for luminalog-api.
+#
+# Runs on the same droplet as the API (PM2 luminalog-api). The API reaches it
+# via CHROMA_URL=http://localhost:8000, so the port is bound to LOCALHOST ONLY
+# and never exposed to the public internet (Chroma 0.5.x has no auth by default).
+#
+# Data is stored on a HOST BIND-MOUNT (/srv/luminalog/chroma-data) so it
+# survives `docker restart`, `docker compose down/up`, and image upgrades, and
+# can be backed up by simply archiving that directory (see backup-chroma.sh).
+#
+# Usage on the droplet:
+#   mkdir -p /srv/luminalog/chroma-data && chmod 700 /srv/luminalog/chroma-data
+#   cd /srv/luminalog/deploy/chroma   # wherever you placed this file
+#   docker compose up -d
+#   curl -s localhost:8000/api/v1/heartbeat   # -> {"nanosecond heartbeat": ...}
+#
+# IMPORTANT: the image tag is pinned. chromadb/chroma:0.5.23 serves the v1 API
+# that the server's `chromadb` npm client (^1.9.2) expects. Do NOT switch to
+# `latest` without re-verifying client compatibility — a newer server that drops
+# the v1 API will break getOrCreateCollection().
+
+services:
+  chroma:
+    image: chromadb/chroma:0.5.23
+    container_name: chroma
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"          # localhost-only; not internet-reachable
+    volumes:
+      - /srv/luminalog/chroma-data:/chroma/chroma
+    environment:
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: "/chroma/chroma"
+      ANONYMIZED_TELEMETRY: "FALSE"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

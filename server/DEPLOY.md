@@ -36,7 +36,9 @@ NODE_ENV=production
 FIREBASE_SERVICE_ACCOUNT_JSON=<paste stringified JSON — no newlines>
 CHROMA_URL=http://localhost:8000
 TOGETHER_AI_API_KEY=<key>
-TOGETHER_EMBEDDING_MODEL=togethercomputer/m2-bert-80M-8k-retrieval
+# Use a serverless-accessible embedding model. m2-bert is NOT serverless (needs a
+# dedicated endpoint); e5-large-instruct is serverless and is what aiClient.ts targets.
+TOGETHER_EMBEDDING_MODEL=intfloat/multilingual-e5-large-instruct
 AWS_ACCESS_KEY_ID=<key>
 AWS_SECRET_ACCESS_KEY=<secret>
 AWS_S3_BUCKET=<bucket>
@@ -110,3 +112,11 @@ xcodegen generate
 
 This resolves the Vapi SPM package. If the Vapi SDK API differs from what's in
 `VapiVoiceCallService.swift`, adjust the callback names to match the real SDK.
+
+## ChromaDB (vector store)
+
+The API needs ChromaDB on the same host (`CHROMA_URL=http://localhost:8000`).
+Run it durably (persistent bind-mount, localhost-only, restart policy) and back it
+up using the tooling and runbook in **`deploy/chroma/`** — see
+`deploy/chroma/README.md` for first-time setup, safe migration of an existing
+container, security notes, and the backup/restore scripts.
