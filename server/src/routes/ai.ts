@@ -6,6 +6,7 @@ import { firebaseAuth, db } from '../middleware/firebaseAuth'
 import { chatCompletion, transcribeAudio, streamToBuffer } from '../services/aiClient'
 import { indexJournalEntry } from '../services/journalIndexer'
 import { PROMPTS } from '../services/prompts'
+import { generateSummaryText } from '../services/summaryGenerator'
 import { config } from '../config'
 import { getOrCreateDEK } from '../crypto/keyService'
 import { openField, encryptField } from '../crypto/fieldCipher'
@@ -55,6 +56,12 @@ async function fetchJournal(journalId: string, uid: string): Promise<Record<stri
   }
 }
 
+async function fetchUserSummaryConfig(uid: string) {
+  const snap = await db.collection('users').doc(uid).get()
+  const data = snap.exists ? snap.data() : undefined
+  return data?.summaryConfig as { wordLength?: number; systemPrompt?: string } | undefined
+}
+
 aiRouter.post('/summary', firebaseAuth, async (req: Request, res: Response) => {
   const uid = (req as any).uid as string
   const { journalId } = req.body as { journalId?: string }
@@ -62,9 +69,13 @@ aiRouter.post('/summary', firebaseAuth, async (req: Request, res: Response) => {
 
   try {
     const data = await fetchJournal(journalId, uid)
-    const text = await generate(PROMPTS.summary(data.type ?? 'text'), data.content ?? '')
-    const now = new Date().toISOString()
-    res.json({ text, model: MODEL, generatedAt: now })
+    const userConfig = await fetchUserSummaryConfig(uid)
+    const out = await generateSummaryText({
+      type: data.type ?? 'text',
+      content: data.content ?? '',
+      userConfig,
+    })
+    res.json({ text: out.text, model: out.model, generatedAt: out.generatedAt })
   } catch (err: any) {
     console.error('[ai/summary]', err)
     res.status(err.status ?? 500).json({ error: err.message })
