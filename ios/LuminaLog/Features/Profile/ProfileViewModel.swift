@@ -7,7 +7,7 @@ import OSLog
 @MainActor
 final class ProfileViewModel: ObservableObject {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "profile")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "profile")
 
     /// Soft biography length guide — the counter turns amber past this, but
     /// nothing is truncated or blocked.
@@ -43,7 +43,7 @@ final class ProfileViewModel: ObservableObject {
     // MARK: Dependencies
 
     private let auth: AuthService
-    private let profiles: ProfileRepository
+    let profiles: ProfileRepository
     private let subscriptions: SubscriptionService
     private let media: MediaUploader
 

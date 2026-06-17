@@ -22,11 +22,19 @@ struct ProfileView: View {
     // Settings flows.
     @State private var showPaywall = false
     @State private var showCredits = false
+    @State private var showConfig = false
     @State private var showSignOutDialog = false
     @State private var showDeleteExplainerAlert = false
     @State private var showDeleteFinalAlert = false
 
     @AppStorage("ll-force-dark") private var forceDark: Bool = false
+
+    // Daily reminder (device-local prefs).
+    private let reminders: ReminderCoordinator
+    @AppStorage(ReminderPrefs.enabledKey) private var reminderEnabled: Bool = false
+    @AppStorage(ReminderPrefs.hourKey) private var reminderHour: Int = ReminderPrefs.defaultHour
+    @AppStorage(ReminderPrefs.minuteKey) private var reminderMinute: Int = ReminderPrefs.defaultMinute
+    @State private var reminderPermissionDenied = false
 
     @FocusState private var nameFocused: Bool
 
@@ -35,7 +43,8 @@ struct ProfileView: View {
         profiles: ProfileRepository,
         subscriptions: SubscriptionService,
         credits: CreditService,
-        media: MediaUploader
+        media: MediaUploader,
+        reminders: ReminderCoordinator
     ) {
         self.init(
             viewModel: ProfileViewModel(
@@ -45,15 +54,22 @@ struct ProfileView: View {
                 media: media
             ),
             subscriptions: subscriptions,
-            credits: credits
+            credits: credits,
+            reminders: reminders
         )
     }
 
     /// Internal init for previews/tests that pre-seed the view model.
-    init(viewModel: ProfileViewModel, subscriptions: SubscriptionService, credits: CreditService) {
+    init(
+        viewModel: ProfileViewModel,
+        subscriptions: SubscriptionService,
+        credits: CreditService,
+        reminders: ReminderCoordinator
+    ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.subscriptions = subscriptions
         self.credits = credits
+        self.reminders = reminders
     }
 
     var body: some View {
@@ -66,6 +82,7 @@ struct ProfileView: View {
                     }
                     biographyCard
                     appearanceCard
+                    reminderCard
                     settingsCard
                     versionFooter
                 }
@@ -83,6 +100,13 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showCredits) {
             CreditsView(credits: credits)
+        }
+        .sheet(isPresented: $showConfig) {
+            if let profile = viewModel.profile {
+                NavigationStack {
+                    ConfigSettingsView(profile: profile, profiles: viewModel.profiles)
+                }
+            }
         }
         .fullScreenCover(isPresented: $showCamera) {
             CameraPicker(mode: .photo, onImage: { data in
@@ -326,6 +350,93 @@ struct ProfileView: View {
         }
     }
 
+    // MARK: - Daily reminder
+
+    private var reminderCard: some View {
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            Text("Daily Reminder")
+                .font(.sectionHeader)
+                .foregroundStyle(Color.textPrimary)
+
+            VStack(spacing: 0) {
+                HStack(spacing: Spacing.m) {
+                    settingsIcon("bell.badge", tint: .accentWarm)
+                    Text("Daily reminder")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Spacer()
+                    Toggle("Daily reminder", isOn: reminderToggleBinding)
+                        .tint(Color.accentWarm)
+                        .labelsHidden()
+                }
+                .padding(Spacing.m)
+
+                if reminderEnabled {
+                    rowDivider
+                    HStack(spacing: Spacing.m) {
+                        settingsIcon("clock", tint: .textSecondary)
+                        Text("Time")
+                            .font(.uiBody)
+                            .foregroundStyle(Color.textPrimary)
+                        Spacer()
+                        DatePicker(
+                            "Reminder time",
+                            selection: reminderTimeBinding,
+                            displayedComponents: .hourAndMinute
+                        )
+                        .labelsHidden()
+                    }
+                    .padding(Spacing.m)
+                }
+            }
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                    .fill(Color.cardBackground)
+            )
+
+            Text(reminderPermissionDenied
+                 ? "Enable notifications for LuminaLog in Settings to get reminders."
+                 : "Goal: \(DailyGoal.wordTarget) words ≈ 3 handwritten pages.")
+                .font(.captionText)
+                .foregroundStyle(reminderPermissionDenied ? Color.danger : Color.textSecondary)
+        }
+    }
+
+    private var reminderToggleBinding: Binding<Bool> {
+        Binding(
+            get: { reminderEnabled },
+            set: { newValue in
+                if newValue {
+                    Task {
+                        let granted = await reminders.enableReminders(profile: viewModel.profile)
+                        reminderPermissionDenied = !granted
+                        // @AppStorage mirrors the coordinator's persisted flag.
+                        reminderEnabled = granted
+                    }
+                } else {
+                    reminderPermissionDenied = false
+                    Task { await reminders.disableReminders() }
+                }
+            }
+        )
+    }
+
+    private var reminderTimeBinding: Binding<Date> {
+        Binding(
+            get: {
+                Calendar.current.date(
+                    bySettingHour: reminderHour, minute: reminderMinute, second: 0, of: Date()
+                ) ?? Date()
+            },
+            set: { newDate in
+                let comps = Calendar.current.dateComponents([.hour, .minute], from: newDate)
+                reminderHour = comps.hour ?? ReminderPrefs.defaultHour
+                reminderMinute = comps.minute ?? ReminderPrefs.defaultMinute
+                Task { await reminders.refresh(profile: viewModel.profile) }
+            }
+        )
+    }
+
     // MARK: - Settings
 
     private var settingsCard: some View {
@@ -337,6 +448,8 @@ struct ProfileView: View {
 
             VStack(spacing: 0) {
                 subscriptionRow
+                rowDivider
+                aiConfigRow
                 rowDivider
                 voiceCreditsRow
                 rowDivider
@@ -375,6 +488,32 @@ struct ProfileView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Subscription, \(viewModel.subscriptionLabel)")
+    }
+
+    private var aiConfigRow: some View {
+        Button {
+            showConfig = true
+        } label: {
+            HStack(spacing: Spacing.m) {
+                settingsIcon("slider.horizontal.3", tint: .accentWarm)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("AI Summary Config")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Length & system prompt")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+            }
+            .padding(Spacing.m)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("AI Summary Config, length and system prompt")
     }
 
     private var voiceCreditsRow: some View {
@@ -540,7 +679,8 @@ struct ProfileView: View {
         profiles: MockProfileRepository(),
         subscriptions: MockSubscriptionService(),
         credits: MockCreditService(balance: 45),
-        media: MockMediaUploader()
+        media: MockMediaUploader(),
+        reminders: ReminderCoordinator()
     )
 }
 
@@ -555,7 +695,12 @@ struct ProfileView: View {
     )
     viewModel.start()
     viewModel.bioDraft = "I'm rewriting my bio right now — a little longer, a little truer."
-    return ProfileView(viewModel: viewModel, subscriptions: subscriptions, credits: MockCreditService())
+    return ProfileView(
+        viewModel: viewModel,
+        subscriptions: subscriptions,
+        credits: MockCreditService(),
+        reminders: ReminderCoordinator()
+    )
 }
 
 #Preview("Pro") {
@@ -568,7 +713,8 @@ struct ProfileView: View {
             expiresAt: Calendar.current.date(byAdding: .year, value: 1, to: Date())
         )),
         credits: MockCreditService(balance: 120),
-        media: MockMediaUploader()
+        media: MockMediaUploader(),
+        reminders: ReminderCoordinator()
     )
 }
 
@@ -578,7 +724,8 @@ struct ProfileView: View {
         profiles: MockProfileRepository(),
         subscriptions: MockSubscriptionService(),
         credits: MockCreditService(balance: 0),
-        media: MockMediaUploader()
+        media: MockMediaUploader(),
+        reminders: ReminderCoordinator()
     )
     .preferredColorScheme(.dark)
 }
