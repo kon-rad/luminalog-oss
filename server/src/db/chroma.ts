@@ -19,3 +19,19 @@ export async function getJournalsCollection(): Promise<Collection> {
 export function resetJournalsCollection(): void {
   journalsCollection = null
 }
+
+let summariesCollection: Collection | null = null
+
+export async function getSummariesCollection(): Promise<Collection> {
+  if (!summariesCollection) {
+    summariesCollection = await client.getOrCreateCollection({
+      name: 'journal_summaries',
+      metadata: { 'hnsw:space': 'cosine' },
+    })
+  }
+  return summariesCollection
+}
+
+export function resetSummariesCollection(): void {
+  summariesCollection = null
+}
