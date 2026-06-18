@@ -6,6 +6,7 @@ import { firebaseAuth, db } from '../middleware/firebaseAuth'
 import { retrieveContextWithSources } from '../services/journalRetriever'
 import { chatCompletion } from '../services/aiClient'
 import { persistVoiceTurn } from '../services/voicePersistence'
+import { storeRecording, signedPlaybackUrl } from '../services/voiceRecordingStore'
 import { PROMPTS } from '../services/prompts'
 import { config } from '../config'
 import { getOrCreateDEK } from '../crypto/keyService'
@@ -231,7 +232,33 @@ vapiRouter.post('/webhook', async (req: Request, res: Response) => {
   if (rawTranscript) update.rawTranscript = encryptField(dek, rawTranscript, 'chats.rawTranscript')
   await db.collection('chats').doc(chatId).update(update)
 
-  // Recording download → S3 is added in a later step (voiceRecordingStore).
+  if (parsed.recordingUrl && callId) {
+    try {
+      const key = await storeRecording(ownerUid, callId, parsed.recordingUrl)
+      await db.collection('chats').doc(chatId).update({ recordingPath: key })
+    } catch (rerr) {
+      console.error('[vapi/webhook recording]', rerr)
+      await db.collection('chats').doc(chatId).update({ recordingError: true })
+    }
+  }
 
   res.json({ ok: true })
 })
+
+// ── recording-url (authed playback url for the detail page) ───────────────────
+
+export async function recordingUrlHandler(req: Request, res: Response, database = db) {
+  const uid = (req as any).uid as string
+  const chatId = (req.body?.chatId as string | undefined) ?? ''
+  if (!chatId) { res.status(400).json({ error: 'chatId required' }); return }
+
+  const snap = await database.collection('chats').doc(chatId).get()
+  const data = snap.data()
+  if (!data || data.userId !== uid) { res.status(403).json({ error: 'forbidden' }); return }
+  if (!data.recordingPath) { res.status(404).json({ error: 'no recording' }); return }
+
+  const url = await signedPlaybackUrl(data.recordingPath as string)
+  res.json({ url })
+}
+
+vapiRouter.post('/recording-url', firebaseAuth, (req, res) => recordingUrlHandler(req, res))

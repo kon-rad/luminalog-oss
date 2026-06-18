@@ -22,6 +22,11 @@ vi.mock('../services/prompts', () => ({ PROMPTS: { voiceChat: () => '' } }))
 vi.mock('../crypto/keyService', () => ({ getOrCreateDEK: vi.fn() }))
 vi.mock('../crypto/fieldCipher', () => ({ openFieldSafe: vi.fn(), encryptField: vi.fn() }))
 vi.mock('../services/voicePersistence', () => ({ persistVoiceTurn: vi.fn() }))
+vi.mock('../services/voiceRecordingStore', () => ({
+  signedPlaybackUrl: vi.fn().mockResolvedValue('https://signed'),
+  storeRecording: vi.fn(),
+  recordingKey: vi.fn(),
+}))
 
 import jwt from 'jsonwebtoken'
 import { callConfigHandler } from './vapi'
@@ -126,5 +131,25 @@ describe('vapi call-config overrides', () => {
     const token = ov.model.url.match(/\/llm\/([^/]+)$/)![1]
     const decoded = jwt.verify(token, config.VAPI_WEBHOOK_SECRET) as any
     expect(decoded.chatId).toBe('chat-9')
+  })
+})
+
+import { recordingUrlHandler } from './vapi'
+
+describe('recording-url handler', () => {
+  it('returns a signed url when the caller owns the chat', async () => {
+    const db: any = { collection: () => ({ doc: () => ({ get: () => Promise.resolve({ data: () => ({ userId: 'user-123', recordingPath: 'voice/user-123/c.wav' }) }) }) }) }
+    const req: any = { uid: 'user-123', body: { chatId: 'chat-1' } }
+    const res = mockRes()
+    await recordingUrlHandler(req, res, db)
+    expect(res.body.url).toBe('https://signed')
+  })
+
+  it('403s when the chat belongs to someone else', async () => {
+    const db: any = { collection: () => ({ doc: () => ({ get: () => Promise.resolve({ data: () => ({ userId: 'other', recordingPath: 'x' }) }) }) }) }
+    const req: any = { uid: 'user-123', body: { chatId: 'chat-1' } }
+    const res = mockRes()
+    await recordingUrlHandler(req, res, db)
+    expect(res.statusCode).toBe(403)
   })
 })
