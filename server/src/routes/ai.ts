@@ -5,6 +5,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
 import { chatCompletion, transcribeAudio, streamToBuffer } from '../services/aiClient'
 import { indexJournalEntry } from '../services/journalIndexer'
+import { extractAudio } from '../services/audioExtractor'
 import { PROMPTS } from '../services/prompts'
 import { generateSummaryText } from '../services/summaryGenerator'
 import { config } from '../config'
@@ -174,9 +175,17 @@ aiRouter.post('/transcribe', firebaseAuth, async (req: Request, res: Response) =
       new GetObjectCommand({ Bucket: config.AWS_S3_BUCKET, Key: audioItem.s3Key }),
     )
     if (!s3Res.Body) throw new Error('S3 returned empty body')
-    const audioBuffer = decryptMedia(dek, await streamToBuffer(s3Res.Body as any))
+    const mediaBuffer = decryptMedia(dek, await streamToBuffer(s3Res.Body as any))
 
-    const filename = audioItem.s3Key.split('/').pop() ?? 'audio.m4a'
+    // Videos are far larger than their audio and can exceed the transcription
+    // endpoint's upload cap, so strip the video stream first. Audio entries are
+    // already compact and sent as-is.
+    let audioBuffer = mediaBuffer
+    let filename = audioItem.s3Key.split('/').pop() ?? 'audio.m4a'
+    if (audioItem.kind === 'video') {
+      audioBuffer = await extractAudio(mediaBuffer)
+      filename = 'audio.m4a'
+    }
     const transcript = await transcribeAudio(audioBuffer, filename)
 
     // Prepend any previously typed text that was saved with the entry.
