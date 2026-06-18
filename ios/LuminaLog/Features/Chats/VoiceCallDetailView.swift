@@ -38,10 +38,10 @@ struct VoiceCallDetailView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(viewModel.chat?.title.isEmpty == false ? viewModel.chat!.title : "Voice call")
-                .font(.uiTitle)
+                .font(.sectionHeader)
             if let reason = viewModel.chat?.endedReason, !reason.isEmpty {
                 Text("Ended: \(reason)")
-                    .font(.uiCaption)
+                    .font(.captionText)
                     .foregroundStyle(Color.textSecondary)
             }
         }
@@ -53,7 +53,7 @@ struct VoiceCallDetailView: View {
             ProgressView().frame(maxWidth: .infinity)
         case .unavailable:
             Text("Recording not available")
-                .font(.uiCaption)
+                .font(.captionText)
                 .foregroundStyle(Color.textSecondary)
         case .ready:
             HStack(spacing: Spacing.m) {
@@ -100,13 +100,13 @@ private struct SourcesDisclosure: View {
                 ForEach(Array(sources.enumerated()), id: \.offset) { _, s in
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(s.title.isEmpty ? s.journalId : s.title) · \(s.type) · \(s.date)")
-                            .font(.uiCaption.weight(.semibold))
+                            .font(.captionText.weight(.semibold))
                         Text(String(format: "match %.0f%%", s.score * 100))
-                            .font(.uiCaption)
+                            .font(.captionText)
                             .foregroundStyle(Color.textSecondary)
                         if !s.snippet.isEmpty {
                             Text(s.snippet)
-                                .font(.uiCaption)
+                                .font(.captionText)
                                 .foregroundStyle(Color.textSecondary)
                                 .lineLimit(3)
                         }
@@ -115,6 +115,6 @@ private struct SourcesDisclosure: View {
                 }
             }
         }
-        .font(.uiCaption)
+        .font(.captionText)
     }
 }
