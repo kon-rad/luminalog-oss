@@ -3,8 +3,9 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import admin from 'firebase-admin'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
-import { retrieveContext } from '../services/journalRetriever'
+import { retrieveContextWithSources } from '../services/journalRetriever'
 import { chatCompletion } from '../services/aiClient'
+import { persistVoiceTurn } from '../services/voicePersistence'
 import { PROMPTS } from '../services/prompts'
 import { config } from '../config'
 import { getOrCreateDEK } from '../crypto/keyService'
@@ -18,8 +19,10 @@ const MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
 
 export async function callConfigHandler(req: Request, res: Response) {
   const uid = (req as any).uid as string
+  const chatId = (req.body?.chatId as string | undefined) ?? ''
 
-  const callToken = jwt.sign({ uid }, config.VAPI_WEBHOOK_SECRET, { expiresIn: '2h' })
+  // chatId rides in the token so /llm persists each turn without a DB lookup.
+  const callToken = jwt.sign({ uid, chatId }, config.VAPI_WEBHOOK_SECRET, { expiresIn: '2h' })
 
   const baseUrl =
     config.NODE_ENV === 'production'
@@ -30,6 +33,14 @@ export async function callConfigHandler(req: Request, res: Response) {
     publicKey: config.VAPI_PUBLIC_KEY,
     assistantId: config.VAPI_ASSISTANT_ID || undefined,
     assistantOverrides: {
+      // chatId lets the end-of-call webhook associate transcript + recording.
+      metadata: { chatId },
+      // Record the call so we can offer playback on the detail page.
+      artifactPlan: { recordingEnabled: true },
+      // Deliver the end-of-call report to our webhook (belt-and-suspenders with
+      // the dashboard assistant config).
+      server: { url: `${baseUrl}/v1/vapi/webhook`, secret: config.VAPI_WEBHOOK_SECRET },
+      serverMessages: ['end-of-call-report'],
       model: {
         provider: 'custom-llm',
         // Vapi requires `model.model` to be a string for custom-llm providers
@@ -52,6 +63,20 @@ vapiRouter.post('/call-config', firebaseAuth, callConfigHandler)
 
 // ── llm (OpenAI-compatible, called by Vapi on every turn) ────────────────────
 
+// Parse Together/OpenAI SSE chunks and append assistant delta text.
+export function accumulateAssistantText(acc: string, chunk: string): string {
+  for (const line of chunk.split('\n')) {
+    if (!line.startsWith('data: ')) continue
+    const payload = line.slice(6).trim()
+    if (payload === '[DONE]' || !payload) continue
+    try {
+      const delta = JSON.parse(payload)?.choices?.[0]?.delta?.content
+      if (typeof delta === 'string') acc += delta
+    } catch { /* ignore keep-alive / non-JSON lines */ }
+  }
+  return acc
+}
+
 export async function llmHandler(req: Request, res: Response) {
   // Token rides in the path (`/llm/:token/chat/completions`) so it survives
   // Vapi appending `/chat/completions` to the configured custom-llm url.
@@ -59,9 +84,11 @@ export async function llmHandler(req: Request, res: Response) {
   if (!token) { res.status(401).json({ error: 'Missing token' }); return }
 
   let uid: string
+  let chatId: string
   try {
-    const decoded = jwt.verify(token, config.VAPI_WEBHOOK_SECRET) as { uid: string }
+    const decoded = jwt.verify(token, config.VAPI_WEBHOOK_SECRET) as { uid: string; chatId?: string }
     uid = decoded.uid
+    chatId = decoded.chatId ?? ''
   } catch {
     res.status(401).json({ error: 'Invalid or expired token' })
     return
@@ -85,9 +112,9 @@ export async function llmHandler(req: Request, res: Response) {
     // Display name is stored plaintext (only biography is field-encrypted).
     const name = (userSnap.data()?.displayName as string | undefined) ?? ''
 
-    const journalContext = await retrieveContext(uid, lastUser, dek)
+    const rag = await retrieveContextWithSources(uid, lastUser, dek)
 
-    const systemContent = PROMPTS.voiceChat(name, bio, journalContext)
+    const systemContent = PROMPTS.voiceChat(name, bio, rag.contextString)
     const augmented = [
       { role: 'system', content: systemContent },
       ...messages.filter(m => m.role !== 'system'),
@@ -100,18 +127,31 @@ export async function llmHandler(req: Request, res: Response) {
     res.setHeader('Cache-Control', 'no-cache')
     res.flushHeaders()
 
+    // Turn index = number of user messages so far → stable, idempotent doc ids.
+    const turnIndex = messages.filter(m => m.role === 'user').length
+    let assistantText = ''
     const decoder = new TextDecoder()
     const reader = (aiRes.body as any).getReader()
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
       const text = decoder.decode(value as Uint8Array)
+      assistantText = accumulateAssistantText(assistantText, text)
       for (const line of text.split('\n')) {
         if (line.startsWith('data: ')) res.write(line + '\n\n')
       }
     }
     res.write('data: [DONE]\n\n')
     res.end()
+
+    // Persist AFTER responding — never block or break the voice stream.
+    if (chatId) {
+      try {
+        await persistVoiceTurn(db, dek, { chatId, turnIndex, userText: lastUser, assistantText, sources: rag.sources })
+      } catch (perr) {
+        console.error('[vapi/llm persist]', perr)
+      }
+    }
   } catch (err) {
     console.error('[vapi/llm]', err)
     if (res.headersSent) res.end()
