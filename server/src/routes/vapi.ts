@@ -8,7 +8,7 @@ import { chatCompletion } from '../services/aiClient'
 import { PROMPTS } from '../services/prompts'
 import { config } from '../config'
 import { getOrCreateDEK } from '../crypto/keyService'
-import { openField, encryptField } from '../crypto/fieldCipher'
+import { openFieldSafe, encryptField } from '../crypto/fieldCipher'
 
 export const vapiRouter = Router()
 
@@ -16,7 +16,7 @@ const MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
 
 // ── call-config ──────────────────────────────────────────────────────────────
 
-vapiRouter.post('/call-config', firebaseAuth, async (req: Request, res: Response) => {
+export async function callConfigHandler(req: Request, res: Response) {
   const uid = (req as any).uid as string
 
   const callToken = jwt.sign({ uid }, config.VAPI_WEBHOOK_SECRET, { expiresIn: '2h' })
@@ -32,18 +32,30 @@ vapiRouter.post('/call-config', firebaseAuth, async (req: Request, res: Response
     assistantOverrides: {
       model: {
         provider: 'custom-llm',
-        url: `${baseUrl}/v1/vapi/llm?token=${callToken}`,
+        // Vapi requires `model.model` to be a string for custom-llm providers
+        // (omitting it yields "assistantOverrides.model.model must be a string").
+        // Our /llm endpoint ignores it and always uses MODEL, but Vapi validates it.
+        model: MODEL,
+        // Vapi requests `${url}/chat/completions`. The per-call token MUST live in
+        // the path (not a query string) so it survives that append — a `?token=`
+        // here would put the token before `/chat/completions`, 404 the request,
+        // and end the call before it connects.
+        url: `${baseUrl}/v1/vapi/llm/${callToken}`,
       },
       voice: { provider: 'playht', voiceId: 'jennifer' },
       transcriber: { provider: 'deepgram', model: 'nova-2' },
     },
   })
-})
+}
+
+vapiRouter.post('/call-config', firebaseAuth, callConfigHandler)
 
 // ── llm (OpenAI-compatible, called by Vapi on every turn) ────────────────────
 
-vapiRouter.post('/llm/chat/completions', async (req: Request, res: Response) => {
-  const token = req.query['token'] as string | undefined
+export async function llmHandler(req: Request, res: Response) {
+  // Token rides in the path (`/llm/:token/chat/completions`) so it survives
+  // Vapi appending `/chat/completions` to the configured custom-llm url.
+  const token = req.params['token'] as string | undefined
   if (!token) { res.status(401).json({ error: 'Missing token' }); return }
 
   let uid: string
@@ -62,26 +74,31 @@ vapiRouter.post('/llm/chat/completions', async (req: Request, res: Response) => 
 
   const lastUser = [...messages].reverse().find(m => m.role === 'user')?.content ?? ''
 
-  const dek = await getOrCreateDEK(uid)
-
-  const userSnap = await db.collection('users').doc(uid).get()
-  const bio = openField(dek, userSnap.data()?.biography, 'users.biography')
-
-  const journalContext = await retrieveContext(uid, lastUser, dek)
-
-  const systemContent = PROMPTS.voiceChat(bio, journalContext)
-  const augmented = [
-    { role: 'system', content: systemContent },
-    ...messages.filter(m => m.role !== 'system'),
-  ]
-
-  res.setHeader('Content-Type', 'text/event-stream')
-  res.setHeader('Cache-Control', 'no-cache')
-  res.flushHeaders()
-
+  // Guard the whole turn — an unguarded throw here (e.g. legacy biography data)
+  // sends Vapi no response and crashes the process under Node's default.
   try {
+    const dek = await getOrCreateDEK(uid)
+
+    const userSnap = await db.collection('users').doc(uid).get()
+    // Biography is optional context — legacy/plaintext data must not abort the call.
+    const bio = openFieldSafe(dek, userSnap.data()?.biography, 'users.biography')
+    // Display name is stored plaintext (only biography is field-encrypted).
+    const name = (userSnap.data()?.displayName as string | undefined) ?? ''
+
+    const journalContext = await retrieveContext(uid, lastUser, dek)
+
+    const systemContent = PROMPTS.voiceChat(name, bio, journalContext)
+    const augmented = [
+      { role: 'system', content: systemContent },
+      ...messages.filter(m => m.role !== 'system'),
+    ]
+
     const aiRes = await chatCompletion(augmented, { model: MODEL, stream: true })
     if (!aiRes.ok || !aiRes.body) throw new Error(`AI error: ${aiRes.status}`)
+
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.flushHeaders()
 
     const decoder = new TextDecoder()
     const reader = (aiRes.body as any).getReader()
@@ -97,11 +114,42 @@ vapiRouter.post('/llm/chat/completions', async (req: Request, res: Response) => 
     res.end()
   } catch (err) {
     console.error('[vapi/llm]', err)
-    res.end()
+    if (res.headersSent) res.end()
+    else res.status(500).json({ error: 'LLM turn failed' })
   }
-})
+}
 
-// ── webhook (call-ended transcript persistence) ───────────────────────────────
+vapiRouter.post('/llm/:token/chat/completions', llmHandler)
+
+// ── webhook (call-ended transcript + recording persistence) ───────────────────
+
+export interface ParsedWebhook {
+  type: string
+  chatId: string
+  callId: string
+  endedReason: string
+  rawTranscript: string
+  recordingUrl: string
+}
+
+// Vapi wraps server messages under `message`; older/manual payloads are flat.
+export function parseWebhookMessage(body: any): ParsedWebhook {
+  const m = body?.message ?? body ?? {}
+  const transcript =
+    typeof m.transcript === 'string'
+      ? m.transcript
+      : typeof m.artifact?.transcript === 'string'
+        ? m.artifact.transcript
+        : ''
+  return {
+    type: m.type ?? '',
+    chatId: m.call?.metadata?.chatId ?? m.metadata?.chatId ?? '',
+    callId: m.call?.id ?? '',
+    endedReason: m.endedReason ?? '',
+    rawTranscript: transcript,
+    recordingUrl: m.recordingUrl ?? m.artifact?.recording ?? m.stereoRecordingUrl ?? '',
+  }
+}
 
 vapiRouter.post('/webhook', async (req: Request, res: Response) => {
   const signature = req.headers['x-vapi-signature'] as string | undefined
@@ -116,56 +164,34 @@ vapiRouter.post('/webhook', async (req: Request, res: Response) => {
     }
   }
 
-  const { type, call, artifact } = req.body as {
-    type?: string
-    call?: { id?: string; metadata?: { chatId?: string } }
-    artifact?: { transcript?: Array<{ role: string; transcript?: string; content?: string }> }
-  }
+  const parsed = parseWebhookMessage(req.body)
+  console.log('[vapi/webhook]', JSON.stringify({
+    type: parsed.type, endedReason: parsed.endedReason,
+    chatId: parsed.chatId, callId: parsed.callId,
+    hasRecording: !!parsed.recordingUrl, transcriptLen: parsed.rawTranscript.length,
+  }))
 
-  if (type !== 'end-of-call-report' || !call) {
-    res.json({ ok: true })
-    return
-  }
-
-  const callId = call.id ?? ''
-  const chatId = call.metadata?.chatId ?? ''
-  const transcript = artifact?.transcript ?? []
-
-  if (!chatId || transcript.length === 0) {
-    res.json({ ok: true })
-    return
-  }
+  if (parsed.type !== 'end-of-call-report') { res.json({ ok: true }); return }
+  const { chatId, callId, endedReason, rawTranscript } = parsed
+  if (!chatId) { res.json({ ok: true }); return }
 
   // Resolve the chat owner so transcript text is encrypted with their DEK,
   // matching how chat.ts reads message text (openField throws on plaintext).
   const chatSnap = await db.collection('chats').doc(chatId).get()
   const ownerUid = chatSnap.data()?.userId as string | undefined
-  if (!ownerUid) {
-    res.json({ ok: true })
-    return
-  }
+  if (!ownerUid) { res.json({ ok: true }); return }
   const dek = await getOrCreateDEK(ownerUid)
 
-  const batch = db.batch()
-  transcript.forEach((turn, i) => {
-    const msgRef = db
-      .collection('chats').doc(chatId)
-      .collection('messages').doc(`${callId}_turn_${i}`)
-    batch.set(
-      msgRef,
-      {
-        role: turn.role,
-        text: encryptField(dek, turn.transcript ?? turn.content ?? '', 'messages.text'),
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    )
-  })
-  await batch.commit()
-
-  await db.collection('chats').doc(chatId).update({
+  const update: Record<string, unknown> = {
+    voiceStatus: 'completed',
+    endedReason,
     lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
-  })
+  }
+  if (callId) update.vapiCallId = callId
+  if (rawTranscript) update.rawTranscript = encryptField(dek, rawTranscript, 'chats.rawTranscript')
+  await db.collection('chats').doc(chatId).update(update)
+
+  // Recording download → S3 is added in a later step (voiceRecordingStore).
 
   res.json({ ok: true })
 })
