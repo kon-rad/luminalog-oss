@@ -15,6 +15,12 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
     var createdAt: Date
     var lastMessageAt: Date
     var vapiCallId: String?
+    /// Voice-call metadata, populated by the end-of-call webhook.
+    var voiceStatus: String?
+    var endedReason: String?
+    var recordingPath: String?
+    var recordingDurationSeconds: Double?
+    var rawTranscript: String?
 
     init(
         id: String = UUID().uuidString,
@@ -23,7 +29,12 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
         title: String = "",
         createdAt: Date = Date(),
         lastMessageAt: Date = Date(),
-        vapiCallId: String? = nil
+        vapiCallId: String? = nil,
+        voiceStatus: String? = nil,
+        endedReason: String? = nil,
+        recordingPath: String? = nil,
+        recordingDurationSeconds: Double? = nil,
+        rawTranscript: String? = nil
     ) {
         self.id = id
         self.userId = userId
@@ -32,5 +43,10 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
         self.createdAt = createdAt
         self.lastMessageAt = lastMessageAt
         self.vapiCallId = vapiCallId
+        self.voiceStatus = voiceStatus
+        self.endedReason = endedReason
+        self.recordingPath = recordingPath
+        self.recordingDurationSeconds = recordingDurationSeconds
+        self.rawTranscript = rawTranscript
     }
 }

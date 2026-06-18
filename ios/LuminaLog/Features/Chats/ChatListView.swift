@@ -28,6 +28,9 @@ struct ChatListView: View {
     private let speech: SpeechTranscriber
     private let voice: VoiceCallService
     private let credits: CreditService
+    /// Used by the voice-call detail view to fetch a signed recording URL.
+    /// Optional so previews/mocks can omit it (audio then shows as unavailable).
+    private let api: ProxyAPIClient?
 
     @State private var path: [ChatRoute] = []
     @State private var isVoiceCallPresented = false
@@ -38,7 +41,8 @@ struct ChatListView: View {
         ai: AIService,
         speech: SpeechTranscriber,
         voice: VoiceCallService,
-        credits: CreditService
+        credits: CreditService,
+        api: ProxyAPIClient? = nil
     ) {
         _viewModel = StateObject(wrappedValue: ChatListViewModel(chats: chats))
         self.chats = chats
@@ -46,6 +50,7 @@ struct ChatListView: View {
         self.speech = speech
         self.voice = voice
         self.credits = credits
+        self.api = api
     }
 
     var body: some View {
@@ -59,14 +64,18 @@ struct ChatListView: View {
                     }
                 }
                 .navigationDestination(for: ChatRoute.self) { route in
-                    ChatView(
-                        chatId: route.chatId,
-                        kind: route.kind,
-                        title: route.title,
-                        chats: chats,
-                        ai: ai,
-                        speech: speech
-                    )
+                    if route.kind == .voice {
+                        VoiceCallDetailView(chatId: route.chatId, repository: chats, api: api)
+                    } else {
+                        ChatView(
+                            chatId: route.chatId,
+                            kind: route.kind,
+                            title: route.title,
+                            chats: chats,
+                            ai: ai,
+                            speech: speech
+                        )
+                    }
                 }
         }
         .task {

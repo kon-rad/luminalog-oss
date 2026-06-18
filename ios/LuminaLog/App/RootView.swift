@@ -10,9 +10,15 @@ struct RootView: View {
     /// Lets full-screen children (the chat conversation) hide the tab bar.
     @StateObject private var chrome = AppChrome()
 
+    /// Re-arms the smart daily reminder on goal progress, foreground, settings.
+    @StateObject private var reminders = ReminderCoordinator()
+    @Environment(\.scenePhase) private var scenePhase
+
     @State private var selectedTab: AppTab = .home
     @State private var createRequest: CreateEntryRequest?
     @State private var isKeyboardVisible = false
+    /// Latest profile snapshot, used to re-arm the reminder on scene-active.
+    @State private var latestProfile: UserProfile?
 
     var body: some View {
         ZStack {
@@ -56,7 +62,8 @@ struct RootView: View {
                     ai: services.ai,
                     speech: services.speech,
                     voice: services.voice,
-                    credits: services.credits
+                    credits: services.credits,
+                    api: services.api
                 )
             }
             tabContent(for: .profile) {
@@ -65,7 +72,8 @@ struct RootView: View {
                     profiles: services.profiles,
                     subscriptions: services.subscriptions,
                     credits: services.credits,
-                    media: services.media
+                    media: services.media,
+                    reminders: reminders
                 )
             }
         }
@@ -78,9 +86,23 @@ struct RootView: View {
             }
         }
         .environmentObject(chrome)
+        .environmentObject(reminders)
         .observingKeyboard(isVisible: $isKeyboardVisible)
         .fullScreenCover(item: $createRequest) { request in
             CreateEntryView(request: request, services: services)
+        }
+        .task {
+            // Re-arm whenever the profile changes (goal progress, timezone).
+            for await profile in services.profiles.profile() {
+                latestProfile = profile
+                await reminders.refresh(profile: profile)
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Self-heal after a fired notification or a day rollover.
+            if phase == .active {
+                Task { await reminders.refresh(profile: latestProfile) }
+            }
         }
     }
 

@@ -6,7 +6,7 @@ import Vapi
 @MainActor
 final class VapiVoiceCallService: VoiceCallService {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "voice")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "voice")
 
     private let api: ProxyAPIClient
     private let broadcaster = VoiceCallEventBroadcaster()
@@ -32,6 +32,8 @@ final class VapiVoiceCallService: VoiceCallService {
             let model: Model
             let voice: Voice?
             let transcriber: Transcriber?
+            /// `{ chatId }` so Vapi echoes it back in the end-of-call webhook.
+            let metadata: [String: String]?
 
             struct Model: Decodable {
                 let provider: String
@@ -120,6 +122,9 @@ final class VapiVoiceCallService: VoiceCallService {
         case .callDidStart:
             broadcaster.send(.connected)
         case .callDidEnd:
+            // The authoritative end reason is persisted by the webhook and read
+            // from chat.endedReason on the detail page (the SDK carries none here).
+            Self.logger.log("call ended")
             broadcaster.send(.ended(reason: nil))
             vapiClient = nil
             cancellables.removeAll()
@@ -164,6 +169,11 @@ final class VapiVoiceCallService: VoiceCallService {
             if let p = voice.provider { v["provider"] = p }
             if let id = voice.voiceId { v["voiceId"] = id }
             overrides["voice"] = v
+        }
+        // chatId metadata → Vapi echoes it in the end-of-call webhook so the
+        // server can associate the transcript + recording with this chat.
+        if let metadata = config.assistantOverrides.metadata {
+            overrides["metadata"] = metadata
         }
         return overrides
     }

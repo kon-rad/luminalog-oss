@@ -17,6 +17,9 @@ final class AppServices: ObservableObject {
     let speech: SpeechTranscriber
     let ocr: OCRService
     let voice: VoiceCallService
+    /// Proxy client, exposed so views (e.g. the voice-call detail screen) can
+    /// reach authed endpoints directly. Optional — mock wiring omits it.
+    let api: ProxyAPIClient?
     /// Runs the post-save upload/transcribe pipeline in the background so the
     /// Create screen can dismiss immediately.
     let entryProcessor: EntryProcessor
@@ -34,7 +37,8 @@ final class AppServices: ObservableObject {
         speech: SpeechTranscriber,
         ocr: OCRService,
         voice: VoiceCallService,
-        entryProcessor: EntryProcessor
+        entryProcessor: EntryProcessor,
+        api: ProxyAPIClient? = nil
     ) {
         self.auth = auth
         self.keys = keys
@@ -49,6 +53,7 @@ final class AppServices: ObservableObject {
         self.ocr = ocr
         self.voice = voice
         self.entryProcessor = entryProcessor
+        self.api = api
     }
 
     /// Production service wiring — always uses Firebase and real backends.
@@ -96,7 +101,8 @@ final class AppServices: ObservableObject {
                 dependencies: BackgroundEntryProcessor.Dependencies(
                     journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr
                 )
-            )
+            ),
+            api: api
         )
     }
 

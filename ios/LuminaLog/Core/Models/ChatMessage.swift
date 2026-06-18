@@ -7,14 +7,15 @@ enum MessageRole: String, Codable, Sendable {
 }
 
 /// A journal-entry citation attached to an assistant message (RAG source).
+/// Voice calls populate the richer fields (title/type/date/score); text chats
+/// may only set journalId + snippet, so the extra fields default to empty.
 struct MessageSource: Codable, Equatable, Sendable {
     var journalId: String
     var snippet: String
-
-    init(journalId: String, snippet: String) {
-        self.journalId = journalId
-        self.snippet = snippet
-    }
+    var title: String = ""
+    var type: String = ""
+    var date: String = ""
+    var score: Double = 0
 }
 
 /// One message — `chats/{chatId}/messages/{messageId}` in Firestore.

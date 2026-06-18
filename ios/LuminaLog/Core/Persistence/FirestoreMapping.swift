@@ -47,6 +47,7 @@ extension JournalEntry {
         else { return nil }
 
         let media = (data["media"] as? [[String: Any]] ?? []).compactMap(MediaItem.init(data:))
+        let editHistory = (data["editHistory"] as? [[String: Any]] ?? []).compactMap(EditRecord.init(data:))
 
         do {
             self.init(
@@ -58,6 +59,7 @@ extension JournalEntry {
                 updatedAt: timestamp(data["updatedAt"]) ?? Date(),
                 content: try cipher.opened(data["content"], "journals.content"),
                 contentEditedAt: timestamp(data["contentEditedAt"]),
+                editHistory: editHistory,
                 media: media,
                 transcriptStatus: (data["transcriptStatus"] as? String).flatMap(TranscriptStatus.init(rawValue:)),
                 processingStatus: (data["processingStatus"] as? String).flatMap(ProcessingStatus.init(rawValue:)),
@@ -85,12 +87,31 @@ extension JournalEntry {
             "wordCount": wordCount,
         ]
         if let contentEditedAt { data["contentEditedAt"] = Timestamp(date: contentEditedAt) }
+        if !editHistory.isEmpty {
+            // Metadata only (timestamps + field names) — not field-encrypted.
+            data["editHistory"] = editHistory.map(\.firestoreData)
+        }
         if let transcriptStatus { data["transcriptStatus"] = transcriptStatus.rawValue }
         if let processingStatus { data["processingStatus"] = processingStatus.rawValue }
         if let summary { data["summary"] = try summary.firestoreData(cipher: cipher, context: "journals.summary") }
         if let insights { data["insights"] = try insights.firestoreData(cipher: cipher, context: "journals.insights") }
         if let prompts { data["prompts"] = try prompts.firestoreData(cipher: cipher) }
         return data
+    }
+}
+
+extension EditRecord {
+
+    init?(data: [String: Any]) {
+        guard let editedAt = timestamp(data["editedAt"]) else { return nil }
+        self.init(
+            editedAt: editedAt,
+            fields: data["fields"] as? [String] ?? []
+        )
+    }
+
+    var firestoreData: [String: Any] {
+        ["editedAt": Timestamp(date: editedAt), "fields": fields]
     }
 }
 
@@ -201,6 +222,8 @@ extension UserProfile {
             createdAt: timestamp(data["createdAt"]) ?? Date(),
             timezone: data["timezone"] as? String ?? TimeZone.current.identifier,
             stats: Stats(data: data["stats"] as? [String: Any] ?? [:]),
+            storageStats: StorageStats(data: data["storage"] as? [String: Any] ?? [:]),
+            totalMinutesInApp: data["totalMinutesInApp"] as? Int ?? 0,
             dailyPrompt: UserProfile.DailyPrompt(data: data["dailyPrompt"] as? [String: Any], cipher: cipher),
             summaryConfig: {
                 guard let c = data["summaryConfig"] as? [String: Any],
@@ -219,6 +242,8 @@ extension UserProfile {
             "createdAt": Timestamp(date: createdAt),
             "timezone": timezone,
             "stats": stats.firestoreData,
+            "storage": storageStats.firestoreData,
+            "totalMinutesInApp": totalMinutesInApp,
         ]
         if let photoURL { data["photoURL"] = photoURL.absoluteString }
         if let dailyPrompt { data["dailyPrompt"] = try dailyPrompt.firestoreData(cipher: cipher) }
@@ -253,6 +278,31 @@ extension UserProfile.Stats {
         if let lastEntryDate { data["lastEntryDate"] = Timestamp(date: lastEntryDate) }
         if let goalDayDate { data["goalDayDate"] = Timestamp(date: goalDayDate) }
         return data
+    }
+}
+
+extension UserProfile.StorageStats {
+
+    init(data: [String: Any]) {
+        self.init(
+            audioBytes: data["audioBytes"] as? Int ?? 0,
+            audioCount: data["audioCount"] as? Int ?? 0,
+            imageBytes: data["imageBytes"] as? Int ?? 0,
+            imageCount: data["imageCount"] as? Int ?? 0,
+            videoBytes: data["videoBytes"] as? Int ?? 0,
+            videoCount: data["videoCount"] as? Int ?? 0
+        )
+    }
+
+    var firestoreData: [String: Any] {
+        [
+            "audioBytes": audioBytes,
+            "audioCount": audioCount,
+            "imageBytes": imageBytes,
+            "imageCount": imageCount,
+            "videoBytes": videoBytes,
+            "videoCount": videoCount,
+        ]
     }
 }
 
@@ -297,7 +347,12 @@ extension Chat {
             title: title,
             createdAt: timestamp(data["createdAt"]) ?? Date(),
             lastMessageAt: timestamp(data["lastMessageAt"]) ?? Date(),
-            vapiCallId: data["vapiCallId"] as? String
+            vapiCallId: data["vapiCallId"] as? String,
+            voiceStatus: data["voiceStatus"] as? String,
+            endedReason: data["endedReason"] as? String,
+            recordingPath: data["recordingPath"] as? String,
+            recordingDurationSeconds: (data["recordingDurationSeconds"] as? NSNumber)?.doubleValue,
+            rawTranscript: (try? cipher.openedIfPresent(data["rawTranscript"], "chats.rawTranscript")) ?? nil
         )
     }
 
@@ -358,13 +413,25 @@ extension MessageSource {
     init?(data: [String: Any], cipher: FieldCipher, index: Int) throws {
         guard let journalId = data["journalId"] as? String else { return nil }
         let snippet = try cipher.opened(data["snippet"], "messages.sources.\(index).snippet")
-        self.init(journalId: journalId, snippet: snippet)
+        let title = (try? cipher.openedIfPresent(data["title"], "messages.sources.\(index).title")) ?? ""
+        self.init(
+            journalId: journalId,
+            snippet: snippet,
+            title: title,
+            type: data["type"] as? String ?? "",
+            date: data["date"] as? String ?? "",
+            score: (data["score"] as? NSNumber)?.doubleValue ?? (data["score"] as? Double ?? 0)
+        )
     }
 
     func firestoreData(cipher: FieldCipher, index: Int) throws -> [String: Any] {
         [
             "journalId": journalId,
             "snippet": try cipher.sealed(snippet, "messages.sources.\(index).snippet"),
+            "title": try cipher.sealed(title, "messages.sources.\(index).title"),
+            "type": type,
+            "date": date,
+            "score": score,
         ]
     }
 }
