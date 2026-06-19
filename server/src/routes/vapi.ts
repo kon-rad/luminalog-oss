@@ -221,10 +221,13 @@ export function parseWebhookMessage(body: any): ParsedWebhook {
 }
 
 vapiRouter.post('/webhook', async (req: Request, res: Response) => {
-  // Vapi authenticates webhooks with a shared secret header (x-vapi-secret, or
-  // x-vapi-signature when set as a custom header) — NOT an HMAC of the body. The
-  // previous HMAC comparison rejected every delivery with 401.
-  const provided = (req.headers['x-vapi-secret'] ?? req.headers['x-vapi-signature']) as string | undefined
+  // Vapi auth = a shared secret (NOT an HMAC of the body). Vapi only attaches
+  // custom HTTP headers to SOME server messages — the end-of-call-report arrives
+  // with none — so we accept the secret from the URL query (?secret=, always sent
+  // verbatim, same trick as the /llm token), falling back to the secret headers.
+  const provided = (req.query['secret']
+    ?? req.headers['x-vapi-secret']
+    ?? req.headers['x-vapi-signature']) as string | undefined
   if (provided !== config.VAPI_WEBHOOK_SECRET) {
     res.status(401).json({ error: 'Invalid signature' })
     return
