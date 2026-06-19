@@ -109,7 +109,7 @@ final class BackgroundEntryProcessor: EntryProcessor {
             media: [],
             transcriptStatus: nil,
             processingStatus: .processing,
-            wordCount: Self.wordCount(typed)
+            wordCount: WordCount.of(typed)
         )
 
         // Pure-text entries settle instantly, so they skip the placeholder and
@@ -129,7 +129,7 @@ final class BackgroundEntryProcessor: EntryProcessor {
             entry.content = derived.content
             entry.transcriptStatus = derived.status
             entry.title = Self.title(promptText: job.promptText, content: derived.content)
-            entry.wordCount = Self.wordCount(derived.content)
+            entry.wordCount = WordCount.of(derived.content)
 
             // 3) Upload staged media.
             if !job.attachments.isEmpty {
@@ -300,10 +300,6 @@ final class BackgroundEntryProcessor: EntryProcessor {
     }
 
     // MARK: Helpers
-
-    private static func wordCount(_ content: String) -> Int {
-        content.split(whereSeparator: \.isWhitespace).count
-    }
 
     /// Title rule (mirrors the Create flow): the prompt question (≤80 chars)
     /// when answering a prompt, else the first non-empty content line (≤80),

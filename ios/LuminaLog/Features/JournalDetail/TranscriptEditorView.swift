@@ -12,16 +12,20 @@ struct TranscriptEditorView: View {
 
     init(
         entryId: String,
+        entryCreatedAt: Date,
         initialText: String,
         journals: JournalRepository,
+        profiles: ProfileRepository,
         ai: AIService,
         media: MediaUploader
     ) {
         _viewModel = StateObject(
             wrappedValue: TranscriptEditorViewModel(
                 entryId: entryId,
+                entryCreatedAt: entryCreatedAt,
                 initialText: initialText,
                 journals: journals,
+                profiles: profiles,
                 ai: ai,
                 media: media
             )
@@ -211,8 +215,10 @@ struct TranscriptEditorView: View {
 #Preview("Editor") {
     TranscriptEditorView(
         entryId: "demo-entry-04",
+        entryCreatedAt: Date(),
         initialText: "Some OCR text from the photo.",
         journals: MockJournalRepository(),
+        profiles: MockProfileRepository(),
         ai: MockAIService(),
         media: MockMediaUploader()
     )

@@ -48,6 +48,7 @@ struct RootView: View {
             tabContent(for: .journal) {
                 JournalListView(
                     journals: services.journals,
+                    profiles: services.profiles,
                     ai: services.ai,
                     media: services.media,
                     onPrompt: { request in
@@ -65,6 +66,7 @@ struct RootView: View {
                     credits: services.credits,
                     api: services.api,
                     journals: services.journals,
+                    profiles: services.profiles,
                     media: services.media
                 )
             }

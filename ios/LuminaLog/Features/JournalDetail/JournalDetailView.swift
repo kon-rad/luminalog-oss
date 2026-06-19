@@ -13,6 +13,7 @@ struct JournalDetailView: View {
     @StateObject private var viewModel: JournalDetailViewModel
 
     private let journals: JournalRepository
+    private let profiles: ProfileRepository
     private let ai: AIService
     private let media: MediaUploader
     /// Opens the Create flow seeded with a generated prompt (design §4 Tab 3).
@@ -31,6 +32,7 @@ struct JournalDetailView: View {
     init(
         entryId: String,
         journals: JournalRepository,
+        profiles: ProfileRepository,
         ai: AIService,
         media: MediaUploader,
         onPrompt: @escaping (CreateEntryRequest) -> Void,
@@ -45,6 +47,7 @@ struct JournalDetailView: View {
             )
         )
         self.journals = journals
+        self.profiles = profiles
         self.ai = ai
         self.media = media
         self.onPrompt = onPrompt
@@ -127,8 +130,10 @@ struct JournalDetailView: View {
             if let entry = viewModel.entry {
                 TranscriptEditorView(
                     entryId: entry.id,
+                    entryCreatedAt: entry.createdAt,
                     initialText: entry.content,
                     journals: journals,
+                    profiles: profiles,
                     ai: ai,
                     media: media
                 )
@@ -145,7 +150,7 @@ struct JournalDetailView: View {
         }
         .sheet(isPresented: $isEditingEntry) {
             if let entry = viewModel.entry {
-                EntryEditView(entry: entry, journals: journals, ai: ai)
+                EntryEditView(entry: entry, journals: journals, profiles: profiles, ai: ai)
             }
         }
         .onChange(of: viewModel.didDelete) { _, didDelete in
@@ -210,12 +215,23 @@ struct JournalDetailView: View {
                 .foregroundStyle(Color.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text(entry.createdAt.formatted(date: .abbreviated, time: .shortened))
-                .font(.captionText)
-                .foregroundStyle(Color.textSecondary)
+            HStack(alignment: .firstTextBaseline) {
+                Text(entry.createdAt.formatted(date: .abbreviated, time: .shortened))
+                    .font(.captionText)
+                    .foregroundStyle(Color.textSecondary)
+                Spacer(minLength: Spacing.s)
+                Text(wordCountLabel(entry.wordCount))
+                    .font(.captionText)
+                    .foregroundStyle(Color.textSecondary)
+                    .accessibilityLabel("\(entry.wordCount) words")
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+
+    private func wordCountLabel(_ count: Int) -> String {
+        count == 1 ? "1 word" : "\(count) words"
     }
 
     // MARK: - Main tab
@@ -613,6 +629,7 @@ private struct JournalDetailPreview: View {
             JournalDetailView(
                 entryId: entryId,
                 journals: MockJournalRepository(),
+                profiles: MockProfileRepository(),
                 ai: MockAIService(),
                 media: MockMediaUploader(),
                 onPrompt: { _ in },

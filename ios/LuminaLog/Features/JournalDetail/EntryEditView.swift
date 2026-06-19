@@ -7,9 +7,9 @@ struct EntryEditView: View {
     @StateObject private var viewModel: EntryEditViewModel
     @Environment(\.dismiss) private var dismiss
 
-    init(entry: JournalEntry, journals: JournalRepository, ai: AIService) {
+    init(entry: JournalEntry, journals: JournalRepository, profiles: ProfileRepository, ai: AIService) {
         _viewModel = StateObject(
-            wrappedValue: EntryEditViewModel(entry: entry, journals: journals, ai: ai)
+            wrappedValue: EntryEditViewModel(entry: entry, journals: journals, profiles: profiles, ai: ai)
         )
     }
 
@@ -66,6 +66,7 @@ struct EntryEditView: View {
     EntryEditView(
         entry: JournalEntry(id: "e1", userId: "u", type: .text, title: "A day", content: "Body text here."),
         journals: MockJournalRepository(),
+        profiles: MockProfileRepository(),
         ai: MockAIService()
     )
 }

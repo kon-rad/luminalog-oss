@@ -57,8 +57,10 @@ final class TranscriptEditorViewModelTests: XCTestCase {
         let ai = SpyAI()
         let vm = TranscriptEditorViewModel(
             entryId: "e1",
+            entryCreatedAt: Date(),
             initialText: "Existing text",
             journals: MockJournalRepository(entries: [.init(userId: "u", type: .image, title: "t")]),
+            profiles: MockProfileRepository(),
             ai: ai,
             media: SpyMedia()
         )
@@ -76,9 +78,9 @@ final class TranscriptEditorViewModelTests: XCTestCase {
     func testSecondClipAppendsAfterFirst() async throws {
         let ai = SpyAI()
         let vm = TranscriptEditorViewModel(
-            entryId: "e1", initialText: "",
+            entryId: "e1", entryCreatedAt: Date(), initialText: "",
             journals: MockJournalRepository(entries: [.init(userId: "u", type: .image, title: "t")]),
-            ai: ai, media: SpyMedia()
+            profiles: MockProfileRepository(), ai: ai, media: SpyMedia()
         )
         ai.transcriptToReturn = "first"
         await vm.addRecordedClip(try makeClip())
@@ -94,9 +96,9 @@ final class TranscriptEditorViewModelTests: XCTestCase {
         let ai = SpyAI()
         ai.shouldFail = true
         let vm = TranscriptEditorViewModel(
-            entryId: "e1", initialText: "Original",
+            entryId: "e1", entryCreatedAt: Date(), initialText: "Original",
             journals: MockJournalRepository(entries: [.init(userId: "u", type: .image, title: "t")]),
-            ai: ai, media: SpyMedia()
+            profiles: MockProfileRepository(), ai: ai, media: SpyMedia()
         )
 
         await vm.addRecordedClip(try makeClip())
@@ -109,9 +111,9 @@ final class TranscriptEditorViewModelTests: XCTestCase {
     @MainActor
     func testClearEmptiesText() {
         let vm = TranscriptEditorViewModel(
-            entryId: "e1", initialText: "Some text",
+            entryId: "e1", entryCreatedAt: Date(), initialText: "Some text",
             journals: MockJournalRepository(entries: []),
-            ai: SpyAI(), media: SpyMedia()
+            profiles: MockProfileRepository(), ai: SpyAI(), media: SpyMedia()
         )
         vm.clear()
         XCTAssertEqual(vm.text, "")
@@ -124,7 +126,8 @@ final class TranscriptEditorViewModelTests: XCTestCase {
         let ai = SpyAI()
         let media = SpyMedia()
         let vm = TranscriptEditorViewModel(
-            entryId: entry.id, initialText: "", journals: repo, ai: ai, media: media
+            entryId: entry.id, entryCreatedAt: entry.createdAt, initialText: "",
+            journals: repo, profiles: MockProfileRepository(), ai: ai, media: media
         )
         await vm.addRecordedClip(try makeClip())
         await vm.addRecordedClip(try makeClip())
@@ -146,7 +149,8 @@ final class TranscriptEditorViewModelTests: XCTestCase {
     func testSaveOnDeletedEntrySetsErrorAndDismisses() async {
         let repo = MockJournalRepository(entries: [])
         let vm = TranscriptEditorViewModel(
-            entryId: "gone", initialText: "edited", journals: repo, ai: SpyAI(), media: SpyMedia()
+            entryId: "gone", entryCreatedAt: Date(), initialText: "edited",
+            journals: repo, profiles: MockProfileRepository(), ai: SpyAI(), media: SpyMedia()
         )
         await vm.save()
         XCTAssertNotNil(vm.errorMessage)

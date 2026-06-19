@@ -59,6 +59,7 @@ protocol JournalRepository: AnyObject {
     func updateContent(
         id: String,
         content: String,
+        wordCount: Int,
         contentEditedAt: Date,
         appendedMedia: [MediaItem]
     ) async throws
@@ -72,6 +73,7 @@ protocol JournalRepository: AnyObject {
         id: String,
         title: String,
         content: String,
+        wordCount: Int,
         contentEditedAt: Date?,
         edit: EditRecord
     ) async throws

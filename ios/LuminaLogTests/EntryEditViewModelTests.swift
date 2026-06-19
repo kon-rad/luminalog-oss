@@ -20,15 +20,20 @@ final class EntryEditViewModelTests: XCTestCase {
         func deleteEntry(journalId: String) async throws {}
     }
 
-    private func makeVM(_ entry: JournalEntry, repo: MockJournalRepository, ai: SpyAI) -> EntryEditViewModel {
-        EntryEditViewModel(entry: entry, journals: repo, ai: ai)
+    private func makeVM(
+        _ entry: JournalEntry,
+        repo: MockJournalRepository,
+        ai: SpyAI,
+        profiles: MockProfileRepository
+    ) -> EntryEditViewModel {
+        EntryEditViewModel(entry: entry, journals: repo, profiles: profiles, ai: ai)
     }
 
     func testContentEditReindexesAndSetsContentEditedAt() async throws {
         let entry = JournalEntry(id: "e1", userId: "u", type: .text, title: "T", content: "Body")
         let repo = MockJournalRepository(entries: [entry])
         let ai = SpyAI()
-        let vm = makeVM(entry, repo: repo, ai: ai)
+        let vm = makeVM(entry, repo: repo, ai: ai, profiles: MockProfileRepository())
         vm.content = "New body"
         await vm.save()
 
@@ -44,7 +49,7 @@ final class EntryEditViewModelTests: XCTestCase {
         let entry = JournalEntry(id: "e1", userId: "u", type: .text, title: "T", content: "Body")
         let repo = MockJournalRepository(entries: [entry])
         let ai = SpyAI()
-        let vm = makeVM(entry, repo: repo, ai: ai)
+        let vm = makeVM(entry, repo: repo, ai: ai, profiles: MockProfileRepository())
         vm.title = "New title"
         await vm.save()
 
@@ -60,7 +65,7 @@ final class EntryEditViewModelTests: XCTestCase {
         let entry = JournalEntry(id: "e1", userId: "u", type: .text, title: "T", content: "Body")
         let repo = MockJournalRepository(entries: [entry])
         let ai = SpyAI()
-        let vm = makeVM(entry, repo: repo, ai: ai)
+        let vm = makeVM(entry, repo: repo, ai: ai, profiles: MockProfileRepository())
         await vm.save()
 
         XCTAssertTrue(vm.didSave)
@@ -69,11 +74,43 @@ final class EntryEditViewModelTests: XCTestCase {
         XCTAssertEqual(saved?.editHistory.count, 0)
     }
 
+    func testContentEditPersistsWordCountAndCreditsDeltaOnCreatedAtDay() async throws {
+        let createdAt = Date(timeIntervalSince1970: 1_700_000_000)
+        let entry = JournalEntry(
+            id: "e1", userId: "u", type: .text, title: "T",
+            createdAt: createdAt, content: "one two three", wordCount: 3
+        )
+        let repo = MockJournalRepository(entries: [entry])
+        let profiles = MockProfileRepository()
+        let vm = makeVM(entry, repo: repo, ai: SpyAI(), profiles: profiles)
+
+        vm.content = "one two three four five"   // 5 words → delta +2
+        await vm.save()
+
+        XCTAssertEqual(profiles.recordedDeltas.count, 1)
+        XCTAssertEqual(profiles.recordedDeltas.first?.delta, 2)
+        XCTAssertEqual(profiles.recordedDeltas.first?.date, createdAt)
+        let saved = try await repo.entries(after: nil, limit: 10).first { $0.id == "e1" }
+        XCTAssertEqual(saved?.wordCount, 5)
+    }
+
+    func testTitleOnlyEditDoesNotCreditWords() async throws {
+        let entry = JournalEntry(id: "e1", userId: "u", type: .text, title: "T", content: "one two", wordCount: 2)
+        let repo = MockJournalRepository(entries: [entry])
+        let profiles = MockProfileRepository()
+        let vm = makeVM(entry, repo: repo, ai: SpyAI(), profiles: profiles)
+
+        vm.title = "New Title"
+        await vm.save()
+
+        XCTAssertTrue(profiles.recordedDeltas.isEmpty)
+    }
+
     func testDeletedMidEditSurfacesMessage() async throws {
         let entry = JournalEntry(id: "e1", userId: "u", type: .text, title: "T", content: "Body")
         let repo = MockJournalRepository(entries: [])   // entry already gone
         let ai = SpyAI()
-        let vm = makeVM(entry, repo: repo, ai: ai)
+        let vm = makeVM(entry, repo: repo, ai: ai, profiles: MockProfileRepository())
         vm.content = "changed"
         await vm.save()
 

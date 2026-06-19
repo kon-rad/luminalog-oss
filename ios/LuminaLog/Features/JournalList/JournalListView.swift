@@ -11,12 +11,14 @@ struct JournalListView: View {
 
     // Retained for the Journal Detail navigation destination.
     private let journals: JournalRepository
+    private let profiles: ProfileRepository
     private let ai: AIService
     private let media: MediaUploader
     private let onRetryProcessing: ((String) -> Void)?
 
     init(
         journals: JournalRepository,
+        profiles: ProfileRepository,
         ai: AIService,
         media: MediaUploader,
         onPrompt: @escaping (CreateEntryRequest) -> Void,
@@ -24,6 +26,7 @@ struct JournalListView: View {
     ) {
         _viewModel = StateObject(wrappedValue: JournalListViewModel(journals: journals))
         self.journals = journals
+        self.profiles = profiles
         self.ai = ai
         self.media = media
         self.onPrompt = onPrompt
@@ -53,6 +56,7 @@ struct JournalListView: View {
                 JournalDetailView(
                     entryId: route.entryId,
                     journals: journals,
+                    profiles: profiles,
                     ai: ai,
                     media: media,
                     onPrompt: onPrompt,
@@ -209,6 +213,7 @@ private struct JournalListPreview: View {
     var body: some View {
         JournalListView(
             journals: MockJournalRepository(entries: entries),
+            profiles: MockProfileRepository(),
             ai: MockAIService(),
             media: MockMediaUploader(),
             onPrompt: { _ in }

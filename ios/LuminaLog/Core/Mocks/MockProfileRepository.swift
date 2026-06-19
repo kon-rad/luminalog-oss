@@ -7,6 +7,9 @@ final class MockProfileRepository: ProfileRepository {
 
     private var storedProfile: UserProfile?
     private(set) var lastSaved: UserProfile?
+    /// Records every `recordEntrySaved` call, for tests asserting on the
+    /// credited delta and the day it was attributed to.
+    private(set) var recordedDeltas: [(delta: Int, date: Date)] = []
     private var continuations: [UUID: AsyncStream<UserProfile?>.Continuation] = [:]
 
     init(profile: UserProfile? = MockData.profile) {
@@ -41,6 +44,7 @@ final class MockProfileRepository: ProfileRepository {
     }
 
     func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {
+        recordedDeltas.append((wordCountDelta, date))
         guard var profile = storedProfile else { throw AuthServiceError.notSignedIn }
         let timezone = TimeZone(identifier: profile.timezone) ?? .current
         profile.stats = DailyGoalStreak.nextStats(

@@ -15,6 +15,7 @@ struct HomeView: View {
 
     // Retained for the Journal Detail navigation destination.
     private let journals: JournalRepository
+    private let profiles: ProfileRepository
     private let ai: AIService
     private let media: MediaUploader
     private let onRetryProcessing: ((String) -> Void)?
@@ -33,6 +34,7 @@ struct HomeView: View {
             wrappedValue: HomeViewModel(journals: journals, profiles: profiles, ai: ai)
         )
         self.journals = journals
+        self.profiles = profiles
         self.ai = ai
         self.media = media
         self.onStartJournaling = onStartJournaling
@@ -60,6 +62,7 @@ struct HomeView: View {
                 JournalDetailView(
                     entryId: route.entryId,
                     journals: journals,
+                    profiles: profiles,
                     ai: ai,
                     media: media,
                     onPrompt: onPrompt,

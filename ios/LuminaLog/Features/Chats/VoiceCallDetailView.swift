@@ -8,10 +8,6 @@ struct VoiceCallDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    private let journals: JournalRepository
-    private let ai: AIService
-    private let media: MediaUploader
-
     enum DetailTab: String, CaseIterable {
         case home = "Home"
         case transcript = "Transcript"
@@ -21,15 +17,9 @@ struct VoiceCallDetailView: View {
     init(
         chatId: String,
         repository: ChatRepository,
-        api: ProxyAPIClient?,
-        journals: JournalRepository,
-        ai: AIService,
-        media: MediaUploader
+        api: ProxyAPIClient?
     ) {
         _viewModel = StateObject(wrappedValue: VoiceCallDetailViewModel(chatId: chatId, repository: repository, api: api))
-        self.journals = journals
-        self.ai = ai
-        self.media = media
     }
 
     var body: some View {
@@ -86,15 +76,6 @@ struct VoiceCallDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("The recording, transcript, and all messages will be permanently removed.")
-        }
-        .navigationDestination(for: JournalDetailRoute.self) { route in
-            JournalDetailView(
-                entryId: route.entryId,
-                journals: journals,
-                ai: ai,
-                media: media,
-                onPrompt: { _ in }
-            )
         }
         .task { await viewModel.start() }
         .onChange(of: viewModel.recordingURL) { _, url in

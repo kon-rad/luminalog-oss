@@ -38,8 +38,8 @@ final class JournalListViewModelTests: XCTestCase {
             insights: AIGeneration?,
             prompts: AIPrompts?
         ) async throws {}
-        func updateContent(id: String, content: String, contentEditedAt: Date, appendedMedia: [MediaItem]) async throws {}
-        func applyEntryEdit(id: String, title: String, content: String, contentEditedAt: Date?, edit: EditRecord) async throws {}
+        func updateContent(id: String, content: String, wordCount: Int, contentEditedAt: Date, appendedMedia: [MediaItem]) async throws {}
+        func applyEntryEdit(id: String, title: String, content: String, wordCount: Int, contentEditedAt: Date?, edit: EditRecord) async throws {}
         func delete(id: String) async throws {}
     }
 

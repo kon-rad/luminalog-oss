@@ -32,6 +32,7 @@ struct ChatListView: View {
     /// Optional so previews/mocks can omit it (audio then shows as unavailable).
     private let api: ProxyAPIClient?
     private let journals: JournalRepository
+    private let profiles: ProfileRepository
     private let media: MediaUploader
 
     @State private var path: [ChatRoute] = []
@@ -46,6 +47,7 @@ struct ChatListView: View {
         credits: CreditService,
         api: ProxyAPIClient? = nil,
         journals: JournalRepository,
+        profiles: ProfileRepository,
         media: MediaUploader
     ) {
         _viewModel = StateObject(wrappedValue: ChatListViewModel(chats: chats))
@@ -56,6 +58,7 @@ struct ChatListView: View {
         self.credits = credits
         self.api = api
         self.journals = journals
+        self.profiles = profiles
         self.media = media
     }
 
@@ -71,7 +74,7 @@ struct ChatListView: View {
                 }
                 .navigationDestination(for: ChatRoute.self) { route in
                     if route.kind == .voice {
-                        VoiceCallDetailView(chatId: route.chatId, repository: chats, api: api, journals: journals, ai: ai, media: media)
+                        VoiceCallDetailView(chatId: route.chatId, repository: chats, api: api)
                     } else {
                         ChatView(
                             chatId: route.chatId,
@@ -82,6 +85,16 @@ struct ChatListView: View {
                             speech: speech
                         )
                     }
+                }
+                .navigationDestination(for: JournalDetailRoute.self) { route in
+                    JournalDetailView(
+                        entryId: route.entryId,
+                        journals: journals,
+                        profiles: profiles,
+                        ai: ai,
+                        media: media,
+                        onPrompt: { _ in }
+                    )
                 }
         }
         .task {
@@ -310,6 +323,7 @@ private struct ChatListPreview: View {
             voice: MockVoiceCallService(chats: repository),
             credits: MockCreditService(),
             journals: MockJournalRepository(),
+            profiles: MockProfileRepository(),
             media: MockMediaUploader()
         )
         .environmentObject(AppChrome())

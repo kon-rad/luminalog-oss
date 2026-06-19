@@ -103,6 +103,7 @@ final class MockJournalRepositoryTests: XCTestCase {
         try await repo.updateContent(
             id: entry.id,
             content: "OCR text\n\nrecorded memo",
+            wordCount: 4,
             contentEditedAt: editedAt,
             appendedMedia: [clip]
         )
@@ -110,6 +111,7 @@ final class MockJournalRepositoryTests: XCTestCase {
         var latest: JournalEntry?
         for await e in repo.entry(id: entry.id) { latest = e; break }
         XCTAssertEqual(latest?.content, "OCR text\n\nrecorded memo")
+        XCTAssertEqual(latest?.wordCount, 4)
         XCTAssertEqual(latest?.contentEditedAt, editedAt)
         XCTAssertEqual(latest?.media.filter { $0.kind == .audio }.count, 1)
     }
@@ -118,7 +120,7 @@ final class MockJournalRepositoryTests: XCTestCase {
     func testUpdateContentThrowsWhenEntryMissing() async {
         let repo = MockJournalRepository(entries: [])
         do {
-            try await repo.updateContent(id: "missing", content: "x", contentEditedAt: Date(), appendedMedia: [])
+            try await repo.updateContent(id: "missing", content: "x", wordCount: 1, contentEditedAt: Date(), appendedMedia: [])
             XCTFail("expected entryNotFound")
         } catch JournalRepositoryError.entryNotFound {
             // expected
@@ -135,6 +137,7 @@ final class MockJournalRepositoryTests: XCTestCase {
         let when = Date(timeIntervalSince1970: 1_760_600_000)
         try await repo.applyEntryEdit(
             id: "e1", title: "New", content: "New body",
+            wordCount: 2,
             contentEditedAt: when,
             edit: EditRecord(editedAt: when, fields: ["title", "content"])
         )
@@ -142,6 +145,7 @@ final class MockJournalRepositoryTests: XCTestCase {
         let updated = try await repo.entries(after: nil, limit: 10).first { $0.id == "e1" }
         XCTAssertEqual(updated?.title, "New")
         XCTAssertEqual(updated?.content, "New body")
+        XCTAssertEqual(updated?.wordCount, 2)
         XCTAssertEqual(updated?.contentEditedAt, when)
         XCTAssertEqual(updated?.editHistory.count, 1)
         XCTAssertEqual(updated?.editHistory.first?.fields, ["title", "content"])
@@ -152,7 +156,7 @@ final class MockJournalRepositoryTests: XCTestCase {
         let repo = MockJournalRepository(entries: [])
         do {
             try await repo.applyEntryEdit(
-                id: "nope", title: "t", content: "c", contentEditedAt: nil,
+                id: "nope", title: "t", content: "c", wordCount: 1, contentEditedAt: nil,
                 edit: EditRecord(fields: ["title"])
             )
             XCTFail("expected entryNotFound")

@@ -84,6 +84,7 @@ final class MockJournalRepository: JournalRepository {
     func updateContent(
         id: String,
         content: String,
+        wordCount: Int,
         contentEditedAt: Date,
         appendedMedia: [MediaItem]
     ) async throws {
@@ -91,6 +92,7 @@ final class MockJournalRepository: JournalRepository {
             throw JournalRepositoryError.entryNotFound(id: id)
         }
         store[index].content = content
+        store[index].wordCount = wordCount
         store[index].contentEditedAt = contentEditedAt
         store[index].media.append(contentsOf: appendedMedia)
         broadcast(changedId: id)
@@ -100,6 +102,7 @@ final class MockJournalRepository: JournalRepository {
         id: String,
         title: String,
         content: String,
+        wordCount: Int,
         contentEditedAt: Date?,
         edit: EditRecord
     ) async throws {
@@ -108,6 +111,7 @@ final class MockJournalRepository: JournalRepository {
         }
         store[index].title = title
         store[index].content = content
+        store[index].wordCount = wordCount
         if let contentEditedAt { store[index].contentEditedAt = contentEditedAt }
         store[index].editHistory.append(edit)
         broadcast(changedId: id)

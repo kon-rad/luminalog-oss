@@ -12,8 +12,14 @@ import { config } from '../config'
 import { getOrCreateDEK } from '../crypto/keyService'
 import { openField, encryptField } from '../crypto/fieldCipher'
 import { decryptMedia } from '../crypto/mediaCipher'
+import { nextStats, type GoalStats } from '../services/dailyGoalStreak'
 
 export const aiRouter = Router()
+
+/** Canonical word count — matches the iOS `WordCount.of` (whitespace split). */
+function countWords(content: string): number {
+  return content.split(/\s+/).filter(Boolean).length
+}
 
 // Raw audio body (no multipart): app-level express.json ignores audio/* content
 // types, so this per-route parser owns the body.
@@ -194,10 +200,62 @@ aiRouter.post('/transcribe', firebaseAuth, async (req: Request, res: Response) =
       .filter(Boolean)
       .join('\n\n')
 
-    await db.collection('journals').doc(journalId).update({
-      content: encryptField(dek, newContent, 'journals.content'),
-      transcriptStatus: 'ready',
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    // Recompute the word count from the finished transcript and credit the
+    // delta (vs. the count saved at creation) to the daily goal — atomically,
+    // so it is retry-safe and never double-counts regardless of client state.
+    const journalRef = db.collection('journals').doc(journalId)
+    const userRef = db.collection('users').doc(uid)
+    const newWordCount = countWords(newContent)
+
+    await db.runTransaction(async (tx) => {
+      // Reads first (Firestore transaction rule).
+      const [journalDoc, userDoc] = await Promise.all([
+        tx.get(journalRef),
+        tx.get(userRef),
+      ])
+      const jData = journalDoc.data() ?? {}
+      const uData = userDoc.data() ?? {}
+
+      const oldWordCount = (jData.wordCount as number) ?? 0
+      const delta = newWordCount - oldWordCount
+
+      const createdAt =
+        (jData.createdAt as admin.firestore.Timestamp | undefined)?.toDate() ?? new Date()
+      const timeZone = (uData.timezone as string) || 'UTC'
+
+      const s = (uData.stats as Record<string, unknown>) ?? {}
+      const current: GoalStats = {
+        streakCount: (s.streakCount as number) ?? 0,
+        lastEntryDate:
+          (s.lastEntryDate as admin.firestore.Timestamp | undefined)?.toDate() ?? null,
+        totalWords: (s.totalWords as number) ?? 0,
+        goalDayDate:
+          (s.goalDayDate as admin.firestore.Timestamp | undefined)?.toDate() ?? null,
+        goalDayWords: (s.goalDayWords as number) ?? 0,
+      }
+      const next = nextStats(current, delta, createdAt, timeZone)
+
+      tx.update(journalRef, {
+        content: encryptField(dek, newContent, 'journals.content'),
+        transcriptStatus: 'ready',
+        wordCount: newWordCount,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      })
+
+      // We read the full `stats` map in this transaction and write back every
+      // field we track, so the merged replacement of `stats` is safe.
+      const statsPayload: Record<string, unknown> = {
+        streakCount: next.streakCount,
+        totalWords: next.totalWords,
+        goalDayWords: next.goalDayWords,
+      }
+      if (next.lastEntryDate) {
+        statsPayload.lastEntryDate = admin.firestore.Timestamp.fromDate(next.lastEntryDate)
+      }
+      if (next.goalDayDate) {
+        statsPayload.goalDayDate = admin.firestore.Timestamp.fromDate(next.goalDayDate)
+      }
+      tx.set(userRef, { stats: statsPayload }, { merge: true })
     })
 
     const indexResult = await indexJournalEntry({

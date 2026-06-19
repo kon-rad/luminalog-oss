@@ -144,12 +144,14 @@ final class FirestoreJournalRepository: JournalRepository {
     func updateContent(
         id: String,
         content: String,
+        wordCount: Int,
         contentEditedAt: Date,
         appendedMedia: [MediaItem]
     ) async throws {
         guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
         var payload: [String: Any] = [
             "content": try cipher.sealed(content, "journals.content"),
+            "wordCount": wordCount,
             "contentEditedAt": Timestamp(date: contentEditedAt),
             "updatedAt": FieldValue.serverTimestamp(),
         ]
@@ -171,6 +173,7 @@ final class FirestoreJournalRepository: JournalRepository {
         id: String,
         title: String,
         content: String,
+        wordCount: Int,
         contentEditedAt: Date?,
         edit: EditRecord
     ) async throws {
@@ -178,6 +181,7 @@ final class FirestoreJournalRepository: JournalRepository {
         var payload: [String: Any] = [
             "title": try cipher.sealed(title, "journals.title"),
             "content": try cipher.sealed(content, "journals.content"),
+            "wordCount": wordCount,
             "updatedAt": FieldValue.serverTimestamp(),
             "editHistory": FieldValue.arrayUnion([edit.firestoreData]),
         ]

@@ -27,20 +27,30 @@ final class TranscriptEditorViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     let entryId: String
+    private let entryCreatedAt: Date
+    /// Word count of the text loaded into the editor; the save delta is measured
+    /// against this so only the user's change is credited to the daily goal.
+    private let baselineWordCount: Int
     private let journals: JournalRepository
+    private let profiles: ProfileRepository
     private let ai: AIService
     private let media: MediaUploader
 
     init(
         entryId: String,
+        entryCreatedAt: Date,
         initialText: String,
         journals: JournalRepository,
+        profiles: ProfileRepository,
         ai: AIService,
         media: MediaUploader
     ) {
         self.entryId = entryId
+        self.entryCreatedAt = entryCreatedAt
         self.text = initialText
+        self.baselineWordCount = WordCount.of(initialText)
         self.journals = journals
+        self.profiles = profiles
         self.ai = ai
         self.media = media
     }
@@ -99,12 +109,22 @@ final class TranscriptEditorViewModel: ObservableObject {
                 item.durationSec = clip.durationSec
                 uploaded.append(item)
             }
+            let newWordCount = WordCount.of(text)
             try await journals.updateContent(
                 id: entryId,
                 content: text,
+                wordCount: newWordCount,
                 contentEditedAt: Date(),
                 appendedMedia: uploaded
             )
+            // Credit the word delta to the daily goal on the entry's original
+            // day (best-effort, like the creation side-effect).
+            if newWordCount != baselineWordCount {
+                try? await profiles.recordEntrySaved(
+                    wordCountDelta: newWordCount - baselineWordCount,
+                    on: entryCreatedAt
+                )
+            }
             await ai.requestIndex(journalId: entryId)
             saveState = .idle
             didSave = true

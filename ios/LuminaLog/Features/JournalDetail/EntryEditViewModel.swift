@@ -20,13 +20,15 @@ final class EntryEditViewModel: ObservableObject {
 
     let entry: JournalEntry
     private let journals: JournalRepository
+    private let profiles: ProfileRepository
     private let ai: AIService
 
-    init(entry: JournalEntry, journals: JournalRepository, ai: AIService) {
+    init(entry: JournalEntry, journals: JournalRepository, profiles: ProfileRepository, ai: AIService) {
         self.entry = entry
         self.title = entry.title
         self.content = entry.content
         self.journals = journals
+        self.profiles = profiles
         self.ai = ai
     }
 
@@ -57,11 +59,14 @@ final class EntryEditViewModel: ObservableObject {
         errorMessage = nil
         let now = Date()
         let contentChanged = changed.contains("content")
+        let oldWordCount = WordCount.of(entry.content)
+        let newWordCount = WordCount.of(newContent)
         do {
             try await journals.applyEntryEdit(
                 id: entry.id,
                 title: newTitle,
                 content: newContent,
+                wordCount: newWordCount,
                 contentEditedAt: contentChanged ? now : nil,
                 edit: EditRecord(editedAt: now, fields: changed)
             )
@@ -69,6 +74,14 @@ final class EntryEditViewModel: ObservableObject {
             // /v1/rag/index re-purges chunks and, because contentEditedAt now
             // post-dates the summary, regenerates the summary + its embedding.
             if contentChanged {
+                // Credit the word delta to the daily goal on the entry's
+                // original day (best-effort, like the creation side-effect).
+                if newWordCount != oldWordCount {
+                    try? await profiles.recordEntrySaved(
+                        wordCountDelta: newWordCount - oldWordCount,
+                        on: entry.createdAt
+                    )
+                }
                 await ai.requestIndex(journalId: entry.id)
             }
             saveState = .idle
