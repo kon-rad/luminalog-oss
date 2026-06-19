@@ -15,6 +15,7 @@ const schema = z.object({
   VAPI_PUBLIC_KEY: z.string(),
   VAPI_ASSISTANT_ID: z.string(),
   VAPI_WEBHOOK_SECRET: z.string(),
+  REVENUECAT_WEBHOOK_SECRET: z.string(),
   // RAG tuning knobs
   RAG_CHUNK_SIZE: z.coerce.number().int().positive().default(1000),
   RAG_CHUNK_OVERLAP: z.coerce.number().int().min(0).default(200),
