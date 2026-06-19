@@ -16,7 +16,7 @@ describe('creditsForProduct', () => {
   })
 
   it('returns null for unknown products (subscriptions, junk)', () => {
-    expect(creditsForProduct('luminalog.pro.monthly')).toBeNull()
+    expect(creditsForProduct('com.luminalog.pro.monthly')).toBeNull()
     expect(creditsForProduct('nonsense')).toBeNull()
     expect(creditsForProduct(undefined)).toBeNull()
   })
@@ -101,7 +101,7 @@ describe('revenueCatWebhookHandler', () => {
     const { db, writes } = mockDb()
     const req: any = {
       headers: { authorization: 'rc_secret_test' },
-      body: purchaseEvent({ product_id: 'luminalog.pro.monthly' }),
+      body: purchaseEvent({ product_id: 'com.luminalog.pro.monthly' }),
     }
     const res = mockRes()
     await revenueCatWebhookHandler(req, res, db)

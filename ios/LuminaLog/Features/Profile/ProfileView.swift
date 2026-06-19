@@ -637,7 +637,7 @@ struct ProfileView: View {
         profiles: MockProfileRepository(),
         subscriptions: MockSubscriptionService(entitlement: Entitlement(
             isPro: true,
-            productId: "luminalog.pro.annual",
+            productId: "com.luminalog.pro.yearly",
             expiresAt: Calendar.current.date(byAdding: .year, value: 1, to: Date())
         )),
         credits: MockCreditService(balance: 120),

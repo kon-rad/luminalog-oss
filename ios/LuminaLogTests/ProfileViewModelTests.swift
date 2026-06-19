@@ -160,7 +160,7 @@ final class ProfileViewModelTests: XCTestCase {
         let expiry = Date(timeIntervalSince1970: 2_000_000_000)
         let pro = await makeStarted(entitlement: Entitlement(
             isPro: true,
-            productId: "luminalog.pro.annual",
+            productId: "com.luminalog.pro.yearly",
             expiresAt: expiry
         ))
         await waitUntil("Pro entitlement arrives") {
