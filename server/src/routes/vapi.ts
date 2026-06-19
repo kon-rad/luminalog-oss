@@ -132,17 +132,31 @@ export async function llmHandler(req: Request, res: Response) {
     // Turn index = number of user messages so far → stable, idempotent doc ids.
     const turnIndex = messages.filter(m => m.role === 'user').length
     let assistantText = ''
+    let buffer = ''
     const decoder = new TextDecoder()
     const reader = (aiRes.body as any).getReader()
+
+    // Forward only COMPLETE SSE `data:` lines. The trailing partial line must be
+    // buffered across reads — a line split mid-JSON otherwise reaches Vapi
+    // malformed, which it silently drops, so the reply is generated/persisted but
+    // never spoken and the call ends on silence.
+    const flush = (raw: string) => {
+      const line = raw.trimEnd() // tolerate CRLF
+      if (!line.startsWith('data: ')) return
+      if (line.slice(6).trim() === '[DONE]') return // we emit our own terminator
+      res.write(line + '\n\n')
+      assistantText = accumulateAssistantText(assistantText, line + '\n')
+    }
+
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
-      const text = decoder.decode(value as Uint8Array)
-      assistantText = accumulateAssistantText(assistantText, text)
-      for (const line of text.split('\n')) {
-        if (line.startsWith('data: ')) res.write(line + '\n\n')
-      }
+      buffer += decoder.decode(value as Uint8Array, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? '' // keep the (possibly partial) last line
+      for (const line of lines) flush(line)
     }
+    if (buffer) flush(buffer)
     res.write('data: [DONE]\n\n')
     res.end()
 
