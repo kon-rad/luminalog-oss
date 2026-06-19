@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express'
-import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import admin from 'firebase-admin'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
@@ -54,7 +53,9 @@ export async function callConfigHandler(req: Request, res: Response) {
         // and end the call before it connects.
         url: `${baseUrl}/v1/vapi/llm/${callToken}`,
       },
-      voice: { provider: 'playht', voiceId: 'jennifer' },
+      // PlayHT/jennifer raised `playht-unknown-error` on the first message and
+      // ended the call in ~0s. Vapi's native TTS needs no third-party account.
+      voice: { provider: 'vapi', voiceId: 'Elliot' },
       transcriber: { provider: 'deepgram', model: 'nova-2' },
     },
   })
@@ -184,7 +185,12 @@ export function parseWebhookMessage(body: any): ParsedWebhook {
         : ''
   return {
     type: m.type ?? '',
-    chatId: m.call?.metadata?.chatId ?? m.metadata?.chatId ?? '',
+    chatId:
+      m.call?.metadata?.chatId ??
+      m.call?.assistantOverrides?.metadata?.chatId ??
+      m.assistant?.metadata?.chatId ??
+      m.metadata?.chatId ??
+      '',
     callId: m.call?.id ?? '',
     endedReason: m.endedReason ?? '',
     rawTranscript: transcript,
@@ -193,16 +199,13 @@ export function parseWebhookMessage(body: any): ParsedWebhook {
 }
 
 vapiRouter.post('/webhook', async (req: Request, res: Response) => {
-  const signature = req.headers['x-vapi-signature'] as string | undefined
-  if (signature) {
-    const expected = crypto
-      .createHmac('sha256', config.VAPI_WEBHOOK_SECRET)
-      .update(JSON.stringify(req.body))
-      .digest('hex')
-    if (signature !== expected) {
-      res.status(401).json({ error: 'Invalid signature' })
-      return
-    }
+  // Vapi authenticates webhooks with a shared secret header (x-vapi-secret, or
+  // x-vapi-signature when set as a custom header) — NOT an HMAC of the body. The
+  // previous HMAC comparison rejected every delivery with 401.
+  const provided = (req.headers['x-vapi-secret'] ?? req.headers['x-vapi-signature']) as string | undefined
+  if (provided !== config.VAPI_WEBHOOK_SECRET) {
+    res.status(401).json({ error: 'Invalid signature' })
+    return
   }
 
   const parsed = parseWebhookMessage(req.body)

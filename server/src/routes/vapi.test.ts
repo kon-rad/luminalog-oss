@@ -103,6 +103,21 @@ describe('vapi webhook payload parsing', () => {
     expect(m.chatId).toBe('chat_2')
     expect(m.callId).toBe('c2')
   })
+
+  it('finds chatId in assistantOverrides.metadata (where Vapi actually puts it)', () => {
+    const body = {
+      message: {
+        type: 'end-of-call-report',
+        call: { id: 'c3', metadata: {}, assistantOverrides: { metadata: { chatId: 'chat_3' } } },
+      },
+    }
+    expect(parseWebhookMessage(body).chatId).toBe('chat_3')
+  })
+
+  it('finds chatId in assistant.metadata as a further fallback', () => {
+    const body = { message: { type: 'end-of-call-report', assistant: { metadata: { chatId: 'chat_4' } } } }
+    expect(parseWebhookMessage(body).chatId).toBe('chat_4')
+  })
 })
 
 import { accumulateAssistantText } from './vapi'
