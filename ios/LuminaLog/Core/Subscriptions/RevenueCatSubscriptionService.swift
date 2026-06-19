@@ -76,6 +76,12 @@ final class RevenueCatSubscriptionService: SubscriptionService {
         _ = try await Purchases.shared.restorePurchases()
     }
 
+    func presentCodeRedemptionSheet() {
+        // Apple Offer Codes: opens the App Store redemption sheet. On success
+        // RevenueCat refreshes CustomerInfo and the entitlement stream flips.
+        Purchases.shared.presentCodeRedemptionSheet()
+    }
+
     func offerings() async throws -> [SubscriptionOffer] {
         let offerings = try await Purchases.shared.offerings()
         guard let current = offerings.current else { return [] }

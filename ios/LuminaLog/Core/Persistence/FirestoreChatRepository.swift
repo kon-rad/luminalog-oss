@@ -7,7 +7,7 @@ import FirebaseFirestore
 @MainActor
 final class FirestoreChatRepository: ChatRepository {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "firestore")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "firestore")
 
     private let db: Firestore
     private let auth: AuthService

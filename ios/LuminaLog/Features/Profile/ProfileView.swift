@@ -1,8 +1,6 @@
-import PhotosUI
 import SwiftUI
-import UIKit
 
-/// Profile & Settings (design §9): avatar + editable name, biography card,
+/// Profile & Settings (design §9): read-only avatar + name, biography card,
 /// grouped settings (Subscription / Sign Out / Delete Account), and the
 /// app-version footer.
 struct ProfileView: View {
@@ -13,11 +11,8 @@ struct ProfileView: View {
     private let subscriptions: SubscriptionService
     private let credits: CreditService
 
-    // Photo flow.
-    @State private var showPhotoSourceDialog = false
-    @State private var showCamera = false
-    @State private var showLibrary = false
-    @State private var photoPickerItem: PhotosPickerItem?
+    // Edit flow.
+    @State private var showEdit = false
 
     // Settings flows.
     @State private var showPaywall = false
@@ -35,8 +30,6 @@ struct ProfileView: View {
     @AppStorage(ReminderPrefs.hourKey) private var reminderHour: Int = ReminderPrefs.defaultHour
     @AppStorage(ReminderPrefs.minuteKey) private var reminderMinute: Int = ReminderPrefs.defaultMinute
     @State private var reminderPermissionDenied = false
-
-    @FocusState private var nameFocused: Bool
 
     init(
         auth: AuthService,
@@ -81,6 +74,7 @@ struct ProfileView: View {
                         errorBanner(message)
                     }
                     biographyCard
+                    userInfoCard
                     appearanceCard
                     reminderCard
                     settingsCard
@@ -93,6 +87,14 @@ struct ProfileView: View {
             .background(Color.appBackground.ignoresSafeArea())
             .navigationTitle("Profile")
             .scrollDismissesKeyboard(.interactively)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Edit") { showEdit = true }
+                }
+            }
+            .navigationDestination(isPresented: $showEdit) {
+                ProfileEditView(viewModel: viewModel.makeEditViewModel())
+            }
         }
         .task { viewModel.start() }
         .sheet(isPresented: $showPaywall) {
@@ -107,28 +109,6 @@ struct ProfileView: View {
                     ConfigSettingsView(profile: profile, profiles: viewModel.profiles)
                 }
             }
-        }
-        .fullScreenCover(isPresented: $showCamera) {
-            CameraPicker(mode: .photo, onImage: { data in
-                Task { await viewModel.uploadAvatar(imageData: data) }
-            })
-            .ignoresSafeArea()
-        }
-        .photosPicker(isPresented: $showLibrary, selection: $photoPickerItem, matching: .images)
-        .onChange(of: photoPickerItem) { _, item in
-            guard let item else { return }
-            photoPickerItem = nil
-            Task { await loadLibraryPhoto(item) }
-        }
-        .confirmationDialog(
-            "Update Profile Photo",
-            isPresented: $showPhotoSourceDialog,
-            titleVisibility: .visible
-        ) {
-            if CameraPicker.isCameraAvailable {
-                Button("Take Photo") { showCamera = true }
-            }
-            Button("Choose from Library") { showLibrary = true }
         }
         .confirmationDialog(
             "Sign out of LuminaLog?",
@@ -160,26 +140,15 @@ struct ProfileView: View {
 
     private var profileHeader: some View {
         VStack(spacing: Spacing.m) {
-            avatarButton
+            avatarImage
+                .frame(width: 88, height: 88)
+                .clipShape(Circle())
 
             VStack(spacing: Spacing.xs) {
-                TextField("Your name", text: $viewModel.displayNameDraft)
+                Text(viewModel.profile?.displayName ?? "")
                     .font(.system(.title2, design: .serif).weight(.semibold))
                     .foregroundStyle(Color.textPrimary)
                     .multilineTextAlignment(.center)
-                    .textInputAutocapitalization(.words)
-                    .submitLabel(.done)
-                    .focused($nameFocused)
-                    .onSubmit {
-                        Task { await viewModel.saveDisplayName() }
-                    }
-                    .onChange(of: nameFocused) { _, focused in
-                        // Save when focus leaves the field, not just on ⏎.
-                        if !focused {
-                            Task { await viewModel.saveDisplayName() }
-                        }
-                    }
-                    .accessibilityLabel("Display name")
 
                 if let email = viewModel.profile?.email, !email.isEmpty {
                     Text(email)
@@ -190,38 +159,6 @@ struct ProfileView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, Spacing.s)
-    }
-
-    private var avatarButton: some View {
-        Button {
-            showPhotoSourceDialog = true
-        } label: {
-            ZStack(alignment: .bottomTrailing) {
-                avatarImage
-                    .frame(width: 88, height: 88)
-                    .clipShape(Circle())
-                    .overlay {
-                        if viewModel.isUploadingPhoto {
-                            Circle()
-                                .fill(.black.opacity(0.35))
-                            ProgressView()
-                                .tint(.white)
-                        }
-                    }
-
-                // Change-photo affordance.
-                Image(systemName: "camera.fill")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 26, height: 26)
-                    .background(Circle().fill(Color.accentWarm))
-                    .overlay(Circle().strokeBorder(Color.appBackground, lineWidth: 2))
-            }
-        }
-        .buttonStyle(.plain)
-        .disabled(viewModel.isUploadingPhoto)
-        .accessibilityLabel("Change profile photo")
-        .accessibilityValue(viewModel.isUploadingPhoto ? "Uploading" : "")
     }
 
     @ViewBuilder
@@ -265,55 +202,17 @@ struct ProfileView: View {
                 .font(.sectionHeader)
                 .foregroundStyle(Color.textPrimary)
 
-            Text("Your bio helps your AI companion know you better")
-                .font(.captionText)
-                .foregroundStyle(Color.textSecondary)
-
-            TextEditor(text: $viewModel.bioDraft)
-                .font(.journalBody)
-                .foregroundStyle(Color.textPrimary)
-                .scrollContentBackground(.hidden)
-                .frame(minHeight: 120)
-                .padding(Spacing.s)
-                .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)
-                        .fill(Color.secondaryBackground.opacity(0.6))
-                )
-                .accessibilityLabel("Biography")
-
-            HStack {
-                Text("\(viewModel.bioDraft.count) / \(ProfileViewModel.bioSoftLimit)")
-                    .font(.captionText)
-                    .foregroundStyle(
-                        viewModel.bioDraft.count > ProfileViewModel.bioSoftLimit
-                            ? Color.accentWarm
-                            : Color.textSecondary
-                    )
-                    .accessibilityLabel("Bio length \(viewModel.bioDraft.count) of \(ProfileViewModel.bioSoftLimit) characters")
-
-                Spacer()
-
-                if viewModel.isBioDirty || viewModel.isSavingBio {
-                    Button {
-                        Task { await viewModel.saveBio() }
-                    } label: {
-                        Group {
-                            if viewModel.isSavingBio {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Text("Save")
-                                    .font(.uiBody.weight(.semibold))
-                            }
-                        }
-                        .foregroundStyle(.white)
-                        .frame(minWidth: 64, minHeight: 32)
-                        .background(Capsule().fill(Color.accentWarm))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(viewModel.isSavingBio)
-                    .accessibilityLabel(viewModel.isSavingBio ? "Saving bio" : "Save bio")
-                }
+            let bio = viewModel.profile?.biography ?? ""
+            if bio.isEmpty {
+                Text("Tell your AI companion about yourself — tap Edit to begin.")
+                    .font(.journalBody)
+                    .foregroundStyle(Color.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text(bio)
+                    .font(.journalBody)
+                    .foregroundStyle(Color.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(Spacing.m)
@@ -321,7 +220,68 @@ struct ProfileView: View {
             RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
                 .fill(Color.cardBackground)
         )
-        .animation(.easeInOut(duration: 0.15), value: viewModel.isBioDirty)
+    }
+
+    // MARK: - User Information
+
+    private var userInfoCard: some View {
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            Text("User Information")
+                .font(.sectionHeader)
+                .foregroundStyle(Color.textPrimary)
+
+            VStack(spacing: 0) {
+                storageRow(icon: "photo", label: "Images",
+                           count: viewModel.storageStats.imageCount,
+                           bytes: viewModel.storageStats.imageBytes,
+                           tint: Color.accentWarm)
+                rowDivider
+                storageRow(icon: "video", label: "Videos",
+                           count: viewModel.storageStats.videoCount,
+                           bytes: viewModel.storageStats.videoBytes,
+                           tint: Color.tintVoice)
+                rowDivider
+                storageRow(icon: "waveform", label: "Audio",
+                           count: viewModel.storageStats.audioCount,
+                           bytes: viewModel.storageStats.audioBytes,
+                           tint: Color.textSecondary)
+                rowDivider
+                HStack(spacing: Spacing.m) {
+                    settingsIcon("clock", tint: .textSecondary)
+                    Text("Time in app")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Spacer()
+                    Text(viewModel.formattedTimeInApp)
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                .padding(Spacing.m)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                    .fill(Color.cardBackground)
+            )
+        }
+    }
+
+    private func storageRow(icon: String, label: String, count: Int, bytes: Int, tint: Color) -> some View {
+        HStack(spacing: Spacing.m) {
+            settingsIcon(icon, tint: tint)
+            Text(label)
+                .font(.uiBody)
+                .foregroundStyle(Color.textPrimary)
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file))
+                    .font(.captionText)
+                    .foregroundStyle(Color.textPrimary)
+                Text("\(count) file\(count == 1 ? "" : "s")")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.textSecondary)
+            }
+        }
+        .padding(Spacing.m)
     }
 
     // MARK: - Appearance
@@ -633,42 +593,6 @@ struct ProfileView: View {
             .frame(maxWidth: .infinity)
             .padding(.top, Spacing.s)
     }
-
-    // MARK: - Photo loading
-
-    private func loadLibraryPhoto(_ item: PhotosPickerItem) async {
-        // Library picks can be HEIC/PNG and full-resolution — re-encode as a
-        // downscaled JPEG so the uploaded `.jpg` temp file is truthful and
-        // avatars stay small. (The camera path already produces JPEG data.)
-        guard
-            let data = try? await item.loadTransferable(type: Data.self),
-            let jpegData = Self.reencodedJPEG(from: data)
-        else {
-            viewModel.errorMessage = "That photo couldn't be loaded."
-            return
-        }
-        await viewModel.uploadAvatar(imageData: jpegData)
-    }
-
-    /// Re-encodes arbitrary image data as JPEG (quality 0.85), downscaled to
-    /// at most `maxDimension` points on the longest side.
-    static func reencodedJPEG(from data: Data, maxDimension: CGFloat = 512) -> Data? {
-        guard let image = UIImage(data: data) else { return nil }
-        let longestSide = max(image.size.width, image.size.height)
-        guard longestSide > 0 else { return nil }
-
-        let scale = min(1, maxDimension / longestSide)
-        let targetSize = CGSize(
-            width: (image.size.width * scale).rounded(),
-            height: (image.size.height * scale).rounded()
-        )
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        let rendered = UIGraphicsImageRenderer(size: targetSize, format: format).image { _ in
-            image.draw(in: CGRect(origin: .zero, size: targetSize))
-        }
-        return rendered.jpegData(compressionQuality: 0.85)
-    }
 }
 
 // MARK: - Previews
@@ -684,8 +608,8 @@ struct ProfileView: View {
     )
 }
 
-#Preview("Editing bio") {
-    let profiles = MockProfileRepository()
+#Preview("Empty bio") {
+    let profiles = MockProfileRepository(profile: UserProfile(id: "preview", displayName: "Demo User", email: "demo@luminalog.com"))
     let subscriptions = MockSubscriptionService()
     let viewModel = ProfileViewModel(
         auth: MockAuthService(signedIn: true),
@@ -694,7 +618,6 @@ struct ProfileView: View {
         media: MockMediaUploader()
     )
     viewModel.start()
-    viewModel.bioDraft = "I'm rewriting my bio right now — a little longer, a little truer."
     return ProfileView(
         viewModel: viewModel,
         subscriptions: subscriptions,

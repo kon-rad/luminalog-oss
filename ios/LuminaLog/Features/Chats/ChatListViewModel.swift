@@ -6,7 +6,7 @@ import OSLog
 @MainActor
 final class ChatListViewModel: ObservableObject {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "chat-list")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "chat-list")
 
     // MARK: - Published state
 

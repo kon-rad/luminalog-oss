@@ -7,7 +7,7 @@ import OSLog
 @MainActor
 final class PaywallViewModel: ObservableObject {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "paywall")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "paywall")
 
     /// nil while offerings are loading; empty when loading failed.
     @Published private(set) var offers: [SubscriptionOffer]?
@@ -97,6 +97,15 @@ final class PaywallViewModel: ObservableObject {
 
     func select(_ offer: SubscriptionOffer) {
         selectedOfferId = offer.id
+    }
+
+    // MARK: - Offer codes
+
+    /// Present the App Store code-redemption sheet (Apple Offer Codes). A
+    /// successful redemption flips the entitlement via the stream, which then
+    /// completes the paywall (or unlocks the gate) the same as a purchase.
+    func redeemCode() {
+        subscriptions.presentCodeRedemptionSheet()
     }
 
     // MARK: - Purchase / restore

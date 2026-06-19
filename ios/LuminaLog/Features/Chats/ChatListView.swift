@@ -31,6 +31,8 @@ struct ChatListView: View {
     /// Used by the voice-call detail view to fetch a signed recording URL.
     /// Optional so previews/mocks can omit it (audio then shows as unavailable).
     private let api: ProxyAPIClient?
+    private let journals: JournalRepository
+    private let media: MediaUploader
 
     @State private var path: [ChatRoute] = []
     @State private var isVoiceCallPresented = false
@@ -42,7 +44,9 @@ struct ChatListView: View {
         speech: SpeechTranscriber,
         voice: VoiceCallService,
         credits: CreditService,
-        api: ProxyAPIClient? = nil
+        api: ProxyAPIClient? = nil,
+        journals: JournalRepository,
+        media: MediaUploader
     ) {
         _viewModel = StateObject(wrappedValue: ChatListViewModel(chats: chats))
         self.chats = chats
@@ -51,6 +55,8 @@ struct ChatListView: View {
         self.voice = voice
         self.credits = credits
         self.api = api
+        self.journals = journals
+        self.media = media
     }
 
     var body: some View {
@@ -65,7 +71,7 @@ struct ChatListView: View {
                 }
                 .navigationDestination(for: ChatRoute.self) { route in
                     if route.kind == .voice {
-                        VoiceCallDetailView(chatId: route.chatId, repository: chats, api: api)
+                        VoiceCallDetailView(chatId: route.chatId, repository: chats, api: api, journals: journals, ai: ai, media: media)
                     } else {
                         ChatView(
                             chatId: route.chatId,
@@ -302,7 +308,9 @@ private struct ChatListPreview: View {
             ai: MockAIService(),
             speech: MockSpeechTranscriber(),
             voice: MockVoiceCallService(chats: repository),
-            credits: MockCreditService()
+            credits: MockCreditService(),
+            journals: MockJournalRepository(),
+            media: MockMediaUploader()
         )
         .environmentObject(AppChrome())
     }

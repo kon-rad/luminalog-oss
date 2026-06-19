@@ -12,7 +12,7 @@ import OSLog
 @MainActor
 final class MockVoiceCallService: VoiceCallService {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "voice")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "voice")
 
     private let chats: ChatRepository
     /// Nanoseconds per scripted beat — small in tests, ~1s in demo.

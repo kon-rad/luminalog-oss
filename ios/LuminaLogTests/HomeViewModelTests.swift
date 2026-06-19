@@ -28,6 +28,7 @@ final class HomeViewModelTests: XCTestCase {
             AsyncThrowingStream { $0.finish() }
         }
         func requestIndex(journalId: String) async {}
+        func deleteEntry(journalId: String) async throws {}
         func transcribeJournal(journalId: String) async {}
         func transcribeClip(audio: Data, contentType: String) async throws -> String { "" }
         func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] { [] }

@@ -40,3 +40,17 @@ export function openField(key: Buffer, value: unknown, context: string): string 
   if (!isEncryptedField(value)) throw new Error(`Expected EncryptedField at ${context}`)
   return decryptField(key, value, context)
 }
+
+/**
+ * Lenient variant of `openField` for OPTIONAL context fields (e.g. a user's
+ * biography) where legacy/plaintext or otherwise un-decryptable data must not
+ * abort the whole request. Returns '' (and logs) instead of throwing.
+ */
+export function openFieldSafe(key: Buffer, value: unknown, context: string): string {
+  try {
+    return openField(key, value, context)
+  } catch (err) {
+    console.warn(`[fieldCipher] openFieldSafe falling back to '' at ${context}:`, String(err))
+    return ''
+  }
+}

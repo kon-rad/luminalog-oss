@@ -23,6 +23,10 @@ struct JournalDetailView: View {
 
     @State private var selectedTab: JournalDetailTab
     @State private var isEditingTranscript = false
+    @State private var isShowingOptions = false
+    @State private var isEditingEntry = false
+
+    @Environment(\.dismiss) private var dismiss
 
     init(
         entryId: String,
@@ -73,6 +77,17 @@ struct JournalDetailView: View {
                     TypePill(type: entry.type)
                 }
             }
+            .hidesToolbarGlassBackground()
+            ToolbarItem(placement: .topBarTrailing) {
+                if viewModel.entry != nil {
+                    Button {
+                        isShowingOptions = true
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .accessibilityLabel("Entry options")
+                }
+            }
         }
         .task {
             await viewModel.start()
@@ -118,6 +133,23 @@ struct JournalDetailView: View {
                     media: media
                 )
             }
+        }
+        .sheet(isPresented: $isShowingOptions) {
+            if let entry = viewModel.entry {
+                EntryOptionsView(
+                    entry: entry,
+                    onEdit: { isEditingEntry = true },
+                    onDelete: { Task { await viewModel.delete() } }
+                )
+            }
+        }
+        .sheet(isPresented: $isEditingEntry) {
+            if let entry = viewModel.entry {
+                EntryEditView(entry: entry, journals: journals, ai: ai)
+            }
+        }
+        .onChange(of: viewModel.didDelete) { _, didDelete in
+            if didDelete { dismiss() }
         }
     }
 
@@ -381,13 +413,9 @@ struct JournalDetailView: View {
     @ViewBuilder
     private func insightsTab(_ entry: JournalEntry) -> some View {
         if let insights = entry.insights {
-            VStack(alignment: .leading, spacing: Spacing.l) {
-                ForEach(Array(Self.paragraphs(of: insights.text).enumerated()), id: \.offset) { _, paragraph in
-                    Text(paragraph)
-                        .font(.journalBody)
-                        .foregroundStyle(Color.textPrimary)
-                        .lineSpacing(6)
-                        .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                ForEach(Array(Self.insightBlocks(of: insights.text).enumerated()), id: \.offset) { _, block in
+                    insightBlockView(block)
                 }
 
                 AIActionButton(
@@ -417,13 +445,85 @@ struct JournalDetailView: View {
         }
     }
 
-    /// Insights text rendered as simple well-spaced paragraphs (split on
-    /// blank lines).
-    private static func paragraphs(of text: String) -> [String] {
-        text
-            .components(separatedBy: "\n\n")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+    /// A parsed block of the Markdown-formatted insights text.
+    private enum InsightBlock {
+        case heading(String, level: Int)
+        case bullet(String)
+        case paragraph(String)
+    }
+
+    /// Renders a single parsed insights block with theme typography.
+    @ViewBuilder
+    private func insightBlockView(_ block: InsightBlock) -> some View {
+        switch block {
+        case let .heading(text, level):
+            Text(Self.inlineMarkdown(text))
+                .font(level <= 2 ? .sectionHeader : .entryTitle)
+                .foregroundStyle(Color.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Spacing.s)
+        case let .bullet(text):
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
+                Text("•")
+                    .font(.journalBody)
+                    .foregroundStyle(Color.textSecondary)
+                Text(Self.inlineMarkdown(text))
+                    .font(.journalBody)
+                    .foregroundStyle(Color.textPrimary)
+                    .lineSpacing(6)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        case let .paragraph(text):
+            Text(Self.inlineMarkdown(text))
+                .font(.journalBody)
+                .foregroundStyle(Color.textPrimary)
+                .lineSpacing(6)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// Parses inline Markdown (bold, italic, links) into an `AttributedString`,
+    /// falling back to plain text if parsing fails.
+    private static func inlineMarkdown(_ text: String) -> AttributedString {
+        (try? AttributedString(
+            markdown: text,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(text)
+    }
+
+    /// Splits Markdown-formatted insights text into renderable blocks. Headings
+    /// (`#`), bullet lists (`-`/`*`) are single lines; consecutive plain lines
+    /// are merged into a paragraph, and blank lines separate paragraphs.
+    private static func insightBlocks(of text: String) -> [InsightBlock] {
+        var blocks: [InsightBlock] = []
+        var paragraphLines: [String] = []
+
+        func flushParagraph() {
+            let joined = paragraphLines
+                .joined(separator: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !joined.isEmpty { blocks.append(.paragraph(joined)) }
+            paragraphLines.removeAll()
+        }
+
+        for rawLine in text.components(separatedBy: .newlines) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            if line.isEmpty {
+                flushParagraph()
+            } else if line.hasPrefix("#") {
+                flushParagraph()
+                let hashes = line.prefix { $0 == "#" }
+                let content = line.dropFirst(hashes.count).trimmingCharacters(in: .whitespaces)
+                if !content.isEmpty { blocks.append(.heading(content, level: hashes.count)) }
+            } else if line.hasPrefix("- ") || line.hasPrefix("* ") {
+                flushParagraph()
+                blocks.append(.bullet(String(line.dropFirst(2)).trimmingCharacters(in: .whitespaces)))
+            } else {
+                paragraphLines.append(line)
+            }
+        }
+        flushParagraph()
+        return blocks
     }
 
     // MARK: - Prompts tab
@@ -518,6 +618,20 @@ private struct JournalDetailPreview: View {
                 onPrompt: { _ in },
                 initialTab: tab
             )
+        }
+    }
+}
+
+private extension ToolbarContent {
+    /// Drops the system Liquid Glass capsule that iOS 26 wraps around toolbar
+    /// items, so the type pill reads as a single solid-colored tag (no nested
+    /// light envelope). No-op on earlier OS versions.
+    @ToolbarContentBuilder
+    func hidesToolbarGlassBackground() -> some ToolbarContent {
+        if #available(iOS 26, *) {
+            self.sharedBackgroundVisibility(.hidden)
+        } else {
+            self
         }
     }
 }

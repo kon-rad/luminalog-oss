@@ -22,6 +22,7 @@ final class EntryProcessorTests: XCTestCase {
             AsyncThrowingStream { $0.finish() }
         }
         func requestIndex(journalId: String) async { indexedJournalIds.append(journalId) }
+        func deleteEntry(journalId: String) async throws {}
         func transcribeJournal(journalId: String) async { transcribedJournalIds.append(journalId) }
         func transcribeClip(audio: Data, contentType: String) async throws -> String { "" }
         func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] { [] }
@@ -34,6 +35,8 @@ final class EntryProcessorTests: XCTestCase {
         func update(_ profile: UserProfile) async throws {}
         func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws {}
         func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws { recordedDeltas.append(wordCountDelta) }
+        func recordMediaUploaded(kind: MediaKind, bytes: Int) async throws {}
+        func recordTimeSpent(minutes: Int) async throws {}
     }
 
     @MainActor
@@ -73,6 +76,7 @@ final class EntryProcessorTests: XCTestCase {
         }
         func updateAIFields(id: String, summary: AIGeneration?, insights: AIGeneration?, prompts: AIPrompts?) async throws {}
         func updateContent(id: String, content: String, contentEditedAt: Date, appendedMedia: [MediaItem]) async throws {}
+        func applyEntryEdit(id: String, title: String, content: String, contentEditedAt: Date?, edit: EditRecord) async throws {}
         func delete(id: String) async throws { store.removeAll { $0.id == id } }
     }
 

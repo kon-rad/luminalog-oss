@@ -144,16 +144,25 @@ struct HomeView: View {
 
     @ViewBuilder
     private var statsRow: some View {
-        HStack(spacing: Spacing.m) {
-            StatCard(
-                value: viewModel.streakText,
-                label: "streak",
-                systemImage: "flame.fill"
+        VStack(spacing: Spacing.m) {
+            GoalProgressCard(
+                current: viewModel.goalProgressWords,
+                target: viewModel.goalTarget,
+                fraction: viewModel.goalFraction,
+                label: viewModel.goalProgressLabel,
+                isMet: viewModel.goalMet
             )
-            StatCard(
-                value: viewModel.totalWordsText,
-                label: "words in your journal"
-            )
+            HStack(spacing: Spacing.m) {
+                StatCard(
+                    value: viewModel.streakText,
+                    label: "streak",
+                    systemImage: "flame.fill"
+                )
+                StatCard(
+                    value: viewModel.totalWordsText,
+                    label: "words in your journal"
+                )
+            }
         }
         .redacted(reason: viewModel.profile == nil ? .placeholder : [])
     }

@@ -5,7 +5,7 @@ import OSLog
 @MainActor
 final class CreditsViewModel: ObservableObject {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "credits-vm")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "credits-vm")
 
     @Published private(set) var balance: Int = 0
     @Published private(set) var packs: [CreditPack]? = nil

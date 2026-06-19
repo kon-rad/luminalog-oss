@@ -11,7 +11,7 @@ import Speech
 @MainActor
 final class AppleSpeechTranscriber: NSObject, SpeechTranscriber {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "speech")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "speech")
 
     private let recognizer = SFSpeechRecognizer()
     private let audioEngine = AVAudioEngine()

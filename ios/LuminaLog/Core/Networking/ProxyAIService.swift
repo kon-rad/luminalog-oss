@@ -149,4 +149,9 @@ final class ProxyAIService: AIService {
         )
         return response.related
     }
+
+    func deleteEntry(journalId: String) async throws {
+        let encoded = journalId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? journalId
+        try await api.delete(path: "/v1/rag/delete?journalId=\(encoded)")
+    }
 }

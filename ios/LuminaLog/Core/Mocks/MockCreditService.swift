@@ -28,9 +28,9 @@ final class MockCreditService: CreditService {
 
     func availablePacks() async throws -> [CreditPack] {
         [
-            CreditPack(id: "com.luminalog.credits.60",  credits: 60,  price: "$9.99",  popular: false),
-            CreditPack(id: "com.luminalog.credits.150", credits: 150, price: "$24.99", popular: true),
-            CreditPack(id: "com.luminalog.credits.300", credits: 300, price: "$49.99", popular: false),
+            CreditPack(id: "com.konradgnat.luminalog.credits.60",  credits: 60,  price: "$9.99",  popular: false),
+            CreditPack(id: "com.konradgnat.luminalog.credits.150", credits: 150, price: "$24.99", popular: true),
+            CreditPack(id: "com.konradgnat.luminalog.credits.300", credits: 300, price: "$49.99", popular: false),
         ]
     }
 

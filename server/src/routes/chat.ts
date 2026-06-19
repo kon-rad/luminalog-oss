@@ -5,7 +5,7 @@ import { retrieveContext } from '../services/journalRetriever'
 import { chatCompletion } from '../services/aiClient'
 import { PROMPTS } from '../services/prompts'
 import { getOrCreateDEK } from '../crypto/keyService'
-import { openField, encryptField } from '../crypto/fieldCipher'
+import { openFieldSafe, encryptField } from '../crypto/fieldCipher'
 
 export const chatRouter = Router()
 
@@ -18,53 +18,62 @@ chatRouter.post('/', firebaseAuth, async (req: Request, res: Response) => {
     return
   }
 
-  const dek = await getOrCreateDEK(uid)
-
-  const userSnap = await db.collection('users').doc(uid).get()
-  const bio = openField(dek, userSnap.data()?.biography, 'users.biography')
-
-  const msgsSnap = await db
-    .collection('chats').doc(chatId).collection('messages')
-    .orderBy('createdAt', 'desc').limit(10).get()
-  const history = msgsSnap.docs.reverse().map(d => ({
-    role: d.data().role as string,
-    content: openField(dek, d.data().text, 'messages.text'),
-  }))
-
-  const assistantContext = history
-    .filter(m => m.role === 'assistant')
-    .slice(-2)
-    .map(m => m.content)
-    .join(' ')
-  const ragQuery = `${message} ${assistantContext}`.slice(-2000)
-
-  const journalContext = await retrieveContext(uid, ragQuery, dek)
-
-  const systemPrompt = PROMPTS.chatSystem(bio, journalContext)
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    ...history,
-    { role: 'user', content: message },
-  ]
-
-  const chatRef = db.collection('chats').doc(chatId)
-  const userMsgRef = chatRef.collection('messages').doc()
-  await userMsgRef.set({
-    role: 'user',
-    text: encryptField(dek, message, 'messages.text'),
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  })
-
-  res.setHeader('Content-Type', 'text/event-stream')
-  res.setHeader('Cache-Control', 'no-cache')
-  res.setHeader('Connection', 'keep-alive')
-  res.flushHeaders()
-
+  // The ENTIRE handler is guarded: Express 4 does not forward async-handler
+  // rejections, so an unguarded throw before the response begins sends NOTHING
+  // (the client hangs to its own timeout) and crashes the process under Node's
+  // default unhandledRejection behaviour. Always send a terminal response.
   try {
+    const dek = await getOrCreateDEK(uid)
+
+    const userSnap = await db.collection('users').doc(uid).get()
+    // Biography is optional context — legacy/plaintext data must not abort chat.
+    const bio = openFieldSafe(dek, userSnap.data()?.biography, 'users.biography')
+    // Display name is stored plaintext (only biography is field-encrypted).
+    const name = (userSnap.data()?.displayName as string | undefined) ?? ''
+
+    const msgsSnap = await db
+      .collection('chats').doc(chatId).collection('messages')
+      .orderBy('createdAt', 'desc').limit(10).get()
+    const history = msgsSnap.docs.reverse().map(d => ({
+      role: d.data().role as string,
+      content: openFieldSafe(dek, d.data().text, 'messages.text'),
+    }))
+
+    const assistantContext = history
+      .filter(m => m.role === 'assistant')
+      .slice(-2)
+      .map(m => m.content)
+      .join(' ')
+    const ragQuery = `${message} ${assistantContext}`.slice(-2000)
+
+    const journalContext = await retrieveContext(uid, ragQuery, dek)
+
+    const systemPrompt = PROMPTS.chatSystem(name, bio, journalContext)
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...history,
+      { role: 'user', content: message },
+    ]
+
+    const chatRef = db.collection('chats').doc(chatId)
+    const userMsgRef = chatRef.collection('messages').doc()
+    await userMsgRef.set({
+      role: 'user',
+      text: encryptField(dek, message, 'messages.text'),
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    })
+
     const aiRes = await chatCompletion(messages, { stream: true })
     if (!aiRes.ok || !aiRes.body) {
       throw new Error(`Together AI error: ${aiRes.status}`)
     }
+
+    // Headers flushed only once we know the upstream stream is good, so any
+    // failure above is still reportable as a JSON error (see catch).
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Connection', 'keep-alive')
+    res.flushHeaders()
 
     let fullReply = ''
     const decoder = new TextDecoder()
@@ -101,7 +110,13 @@ chatRouter.post('/', firebaseAuth, async (req: Request, res: Response) => {
     res.end()
   } catch (err) {
     console.error('[chat]', err)
-    res.write(`data: ${JSON.stringify({ error: 'Stream failed' })}\n\n`)
-    res.end()
+    // If streaming already started, surface the error in-band; otherwise the
+    // headers are still open, so reply with a normal JSON 500.
+    if (res.headersSent) {
+      res.write(`data: ${JSON.stringify({ error: 'Stream failed' })}\n\n`)
+      res.end()
+    } else {
+      res.status(500).json({ error: 'Chat failed' })
+    }
   }
 })

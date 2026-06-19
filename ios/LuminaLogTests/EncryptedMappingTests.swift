@@ -57,6 +57,37 @@ final class EncryptedMappingTests: XCTestCase {
         XCTAssertNil(decoded.processingStatus)
     }
 
+    func testJournalEntryRoundTripsEditHistory() throws {
+        let edited = Date(timeIntervalSince1970: 1_760_500_000)
+        let entry = JournalEntry(
+            id: "e1", userId: "u1", type: .text, title: "t",
+            createdAt: created, updatedAt: created, content: "c",
+            editHistory: [EditRecord(editedAt: edited, fields: ["title", "content"])],
+            wordCount: 1
+        )
+        let data = try entry.firestoreData(cipher: cipher)
+
+        // Edit history is metadata — stored plaintext (not an encrypted envelope).
+        let raw = try XCTUnwrap(data["editHistory"] as? [[String: Any]])
+        XCTAssertEqual(raw.first?["fields"] as? [String], ["title", "content"])
+
+        let decoded = try XCTUnwrap(JournalEntry(documentId: "e1", data: data, cipher: cipher))
+        XCTAssertEqual(decoded.editHistory.count, 1)
+        XCTAssertEqual(decoded.editHistory.first?.fields, ["title", "content"])
+        XCTAssertEqual(decoded.editHistory.first?.editedAt, edited)
+    }
+
+    func testJournalEntryOmitsEmptyEditHistory() throws {
+        let entry = JournalEntry(
+            id: "e1", userId: "u1", type: .text, title: "t",
+            createdAt: created, updatedAt: created, content: "c", wordCount: 1
+        )
+        let data = try entry.firestoreData(cipher: cipher)
+        XCTAssertNil(data["editHistory"], "Entries with no edits write no editHistory field")
+        let decoded = try XCTUnwrap(JournalEntry(documentId: "e1", data: data, cipher: cipher))
+        XCTAssertEqual(decoded.editHistory, [])
+    }
+
     func testJournalEntryEncryptsAIGenerations() throws {
         let entry = JournalEntry(
             id: "e1", userId: "u1", type: .text, title: "t",

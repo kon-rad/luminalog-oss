@@ -87,6 +87,10 @@ struct ChatView: View {
 
                         messageRows
 
+                        if let pending = viewModel.pendingUserMessage {
+                            MessageBubble(text: pending.text, role: .user)
+                        }
+
                         if let failed = viewModel.failedSend {
                             if !failed.isPersisted {
                                 MessageBubble(text: failed.message.text, role: .user, isFailed: true)
@@ -125,6 +129,9 @@ struct ChatView: View {
                     isNearBottom = distance < 120
                 }
                 .onChange(of: viewModel.messages.count) {
+                    scrollToBottom(proxy, animated: true)
+                }
+                .onChange(of: viewModel.pendingUserMessage) {
                     scrollToBottom(proxy, animated: true)
                 }
                 .onChange(of: viewModel.streamingReply) {

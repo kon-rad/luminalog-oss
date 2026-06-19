@@ -56,6 +56,7 @@ private final class StubFailingAIService: AIService {
     }
 
     func requestIndex(journalId: String) async {}
+    func deleteEntry(journalId: String) async throws {}
 
     func transcribeJournal(journalId: String) async throws {}
 

@@ -47,6 +47,13 @@ final class JournalDetailViewModelTests: XCTestCase {
 
         func requestIndex(journalId: String) async {}
 
+        var deleteCalls = 0
+        var shouldFailDelete = false
+        func deleteEntry(journalId: String) async throws {
+            deleteCalls += 1
+            if shouldFailDelete { throw SpyError() }
+        }
+
         var transcribeClipCalls = 0
         func transcribeClip(audio: Data, contentType: String) async throws -> String {
             transcribeClipCalls += 1
@@ -435,5 +442,37 @@ final class JournalDetailViewModelTests: XCTestCase {
         _ = await (first, second)
 
         XCTAssertEqual(ai.transcribeCalls, 1, "Loading guard blocks duplicate retry calls")
+    }
+
+    // MARK: - Delete
+
+    @MainActor
+    func testDeleteCallsRemoteThenRemovesRecord() async throws {
+        let repo = MockJournalRepository(entries: [makeEntry()])
+        let ai = SpyAIService()
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
+        await viewModel.start()
+
+        await viewModel.delete()
+
+        XCTAssertEqual(ai.deleteCalls, 1)
+        XCTAssertTrue(viewModel.didDelete)
+        let remaining = try await storedEntry(id: "entry-1", in: repo)
+        XCTAssertNil(remaining)
+    }
+
+    @MainActor
+    func testDeleteRemovesRecordEvenWhenRemoteFails() async throws {
+        let repo = MockJournalRepository(entries: [makeEntry()])
+        let ai = SpyAIService()
+        ai.shouldFailDelete = true
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
+        await viewModel.start()
+
+        await viewModel.delete()
+
+        XCTAssertTrue(viewModel.didDelete)
+        let remaining = try await storedEntry(id: "entry-1", in: repo)
+        XCTAssertNil(remaining)
     }
 }

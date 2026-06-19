@@ -1,17 +1,10 @@
 import { Router, Request, Response } from 'express'
 import { randomUUID } from 'crypto'
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { firebaseAuth } from '../middleware/firebaseAuth'
 import { config } from '../config'
-
-const s3 = new S3Client({
-  region: config.AWS_REGION,
-  credentials: {
-    accessKeyId: config.AWS_ACCESS_KEY_ID,
-    secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
-  },
-})
+import { s3 } from '../services/s3'
 
 const ALLOWED_KINDS = new Set(['image', 'video', 'audio'])
 

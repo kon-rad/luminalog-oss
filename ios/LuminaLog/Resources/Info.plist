@@ -45,6 +45,10 @@
 	<string>LuminaLog accesses your photo library so you can attach photos and videos to your journal entries.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>LuminaLog transcribes your voice recordings on-device so your spoken reflections become searchable journal text.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

@@ -28,6 +28,10 @@ export async function transcribeAudio(buffer: Buffer, filename: string): Promise
   return data.text.trim()
 }
 
+/**
+ * Embed passages/documents. Inputs are sent verbatim — for the e5 family this
+ * is correct (only queries take an instruction; passages stay raw).
+ */
 export async function embed(texts: string[]): Promise<number[][]> {
   const res = await fetch(`${BASE}/embeddings`, {
     method: 'POST',
@@ -42,6 +46,21 @@ export async function embed(texts: string[]): Promise<number[][]> {
   }
   const data = (await res.json()) as { data: Array<{ embedding: number[]; index: number }> }
   return data.data.sort((a, b) => a.index - b.index).map(d => d.embedding)
+}
+
+const E5_QUERY_TASK = 'Given a journal search query, retrieve the relevant past journal entries'
+
+/**
+ * Embed a retrieval query. e5-instruct models are trained to receive queries
+ * wrapped as `Instruct: <task>\nQuery: <text>` (passages stay raw); applying it
+ * only when the configured model is an e5-instruct keeps this a no-op for other
+ * models. Query and passage embeddings must come from the same model to compare.
+ */
+export async function embedQuery(text: string): Promise<number[]> {
+  const isE5Instruct = /e5.*instruct/i.test(config.TOGETHER_EMBEDDING_MODEL)
+  const input = isE5Instruct ? `Instruct: ${E5_QUERY_TASK}\nQuery: ${text}` : text
+  const [vector] = await embed([input])
+  return vector
 }
 
 export async function chatCompletion(

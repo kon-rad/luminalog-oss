@@ -39,7 +39,7 @@ struct CreateEntryDependencies {
 @MainActor
 final class CreateEntryViewModel: ObservableObject {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "create")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "create")
 
     enum DictationState: Equatable {
         case idle
@@ -50,6 +50,11 @@ final class CreateEntryViewModel: ObservableObject {
 
     @Published var text = ""
     @Published var attachments = AttachmentSet()
+    /// Placeholder tiles for media still being fetched/decoded — one id per
+    /// in-flight photo. Shown as gray spinners until the real thumbnail lands.
+    @Published private(set) var loadingPhotoIDs: [UUID] = []
+    /// Whether a picked video is still being fetched/poster-generated.
+    @Published private(set) var isLoadingVideo = false
     /// Inline notice from attachment rules (e.g. "audio dropped").
     @Published var attachmentNotice: String?
     @Published private(set) var dictationState: DictationState = .idle
@@ -89,7 +94,15 @@ final class CreateEntryViewModel: ObservableObject {
         !trimmedText.isEmpty || !attachments.isEmpty
     }
 
-    var canSave: Bool { hasUnsavedContent }
+    /// True while any picked media is still being fetched/decoded.
+    var isLoadingMedia: Bool { !loadingPhotoIDs.isEmpty || isLoadingVideo }
+
+    /// Whether the attachment strip has anything to show (resolved or loading).
+    var hasVisibleAttachments: Bool { !attachments.isEmpty || isLoadingMedia }
+
+    /// Save is blocked while media is loading so a not-yet-resolved item can't
+    /// be dropped; it re-enables the instant the last load finishes.
+    var canSave: Bool { hasUnsavedContent && !isLoadingMedia }
 
     var entryType: JournalType { attachments.entryType }
 
@@ -159,6 +172,32 @@ final class CreateEntryViewModel: ObservableObject {
     /// Video/audio attachments are backed by temp files this flow created
     /// (camera/library copies, recorder output), so removing or replacing an
     /// attachment deletes its backing file immediately.
+
+    // MARK: Loading placeholders
+
+    /// Stages `count` loading placeholders and returns their ids so the caller
+    /// can resolve or drop each as its load completes (in selection order).
+    func beginLoadingPhotos(count: Int) -> [UUID] {
+        guard count > 0 else { return [] }
+        let ids = (0..<count).map { _ in UUID() }
+        loadingPhotoIDs.append(contentsOf: ids)
+        return ids
+    }
+
+    /// Replaces a loading placeholder with its decoded photo.
+    func resolveLoadingPhoto(id: UUID, photo: PhotoAttachment) {
+        dropLoadingPhoto(id: id)
+        addPhotos([photo])
+    }
+
+    /// Removes a loading placeholder whose item failed to load.
+    func dropLoadingPhoto(id: UUID) {
+        loadingPhotoIDs.removeAll { $0 == id }
+    }
+
+    func beginLoadingVideo() { isLoadingVideo = true }
+
+    func endLoadingVideo() { isLoadingVideo = false }
 
     func addPhotos(_ photos: [PhotoAttachment]) {
         guard !photos.isEmpty else { return }

@@ -70,7 +70,8 @@ struct CreateEntryView: View {
             showVideoLibrary: $showVideoLibrary,
             photoPickerItems: $photoPickerItems,
             videoPickerItem: $videoPickerItem,
-            onPhotoData: { addPickedPhotos([$0]) },
+            remainingPhotoSlots: AttachmentSet.maxPhotos - viewModel.attachments.photos.count,
+            onPhotosData: { addPickedPhotos($0) },
             onVideoURL: { handlePickedVideo(url: $0) }
         ))
         .onChange(of: photoPickerItems) { _, items in
@@ -287,9 +288,11 @@ struct CreateEntryView: View {
             .padding(.horizontal, Spacing.m)
             .padding(.bottom, Spacing.s)
 
-            if !viewModel.attachments.isEmpty {
+            if viewModel.hasVisibleAttachments {
                 AttachmentStrip(
                     attachments: viewModel.attachments,
+                    loadingPhotoIDs: viewModel.loadingPhotoIDs,
+                    isLoadingVideo: viewModel.isLoadingVideo,
                     isDisabled: false,
                     onRemovePhoto: { viewModel.removePhoto(id: $0) },
                     onRemoveVideo: { viewModel.removeVideo() },
@@ -343,23 +346,28 @@ struct CreateEntryView: View {
         }
     }
 
+    /// Stages a spinner per item, then decodes each and resolves it in place.
     private func addPickedPhotos(_ dataItems: [Data]) {
+        let ids = viewModel.beginLoadingPhotos(count: dataItems.count)
+        guard !ids.isEmpty else { return }
         Task {
-            var photos: [PhotoAttachment] = []
-            for data in dataItems {
-                photos.append(await PhotoAttachment.make(from: data))
+            for (index, data) in dataItems.enumerated() {
+                let photo = await PhotoAttachment.make(from: data)
+                viewModel.resolveLoadingPhoto(id: ids[index], photo: photo)
             }
-            viewModel.addPhotos(photos)
         }
     }
 
     private func loadLibraryPhotos(_ items: [PhotosPickerItem]) async {
-        var dataItems: [Data] = []
+        let ids = viewModel.beginLoadingPhotos(count: items.count)
+        guard !ids.isEmpty else { return }
         var failureCount = 0
-        for item in items {
+        for (index, item) in items.enumerated() {
             if let data = try? await item.loadTransferable(type: Data.self) {
-                dataItems.append(data)
+                let photo = await PhotoAttachment.make(from: data)
+                viewModel.resolveLoadingPhoto(id: ids[index], photo: photo)
             } else {
+                viewModel.dropLoadingPhoto(id: ids[index])
                 failureCount += 1
             }
         }
@@ -368,11 +376,12 @@ struct CreateEntryView: View {
                 ? "1 photo couldn't be added."
                 : "\(failureCount) photos couldn't be added."
         }
-        addPickedPhotos(dataItems)
     }
 
     private func loadLibraryVideo(_ item: PhotosPickerItem) async {
+        viewModel.beginLoadingVideo()
         guard let picked = try? await item.loadTransferable(type: PickedVideo.self) else {
+            viewModel.endLoadingVideo()
             viewModel.attachmentNotice = "That video couldn't be loaded."
             return
         }
@@ -380,8 +389,10 @@ struct CreateEntryView: View {
     }
 
     private func handlePickedVideo(url: URL) {
+        viewModel.beginLoadingVideo()
         Task {
             let video = await VideoAttachment.make(from: url)
+            viewModel.endLoadingVideo()
             if viewModel.attachments.videoNeedsReplacementConfirm {
                 pendingVideo = video
             } else {
@@ -423,14 +434,21 @@ private struct CreateEntryPickersModifier: ViewModifier {
     @Binding var showVideoLibrary: Bool
     @Binding var photoPickerItems: [PhotosPickerItem]
     @Binding var videoPickerItem: PhotosPickerItem?
-    let onPhotoData: (Data) -> Void
+    let remainingPhotoSlots: Int
+    let onPhotosData: ([Data]) -> Void
     let onVideoURL: (URL) -> Void
 
     func body(content: Content) -> some View {
         content
             .fullScreenCover(isPresented: $showPhotoCamera) {
-                CameraPicker(mode: .photo, onImage: onPhotoData)
-                    .ignoresSafeArea()
+                MultiPhotoCameraView(
+                    remainingSlots: remainingPhotoSlots,
+                    onComplete: { datas in
+                        showPhotoCamera = false
+                        onPhotosData(datas)
+                    }
+                )
+                .ignoresSafeArea()
             }
             .fullScreenCover(isPresented: $showVideoCamera) {
                 CameraPicker(mode: .video, onVideo: onVideoURL)

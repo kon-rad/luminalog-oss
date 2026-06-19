@@ -65,6 +65,10 @@ struct VoiceCallView: View {
         .task {
             await viewModel.start()
         }
+        .onDisappear {
+            // Safety net: re-enable auto-lock even if the call ended abnormally.
+            viewModel.releaseScreenWake()
+        }
         .onChange(of: viewModel.phase) { _, phase in
             if case .insufficientCredits = phase {
                 dismiss()
@@ -86,6 +90,10 @@ struct VoiceCallView: View {
                     .foregroundStyle(Color.textSecondary)
             }
         }
+        // Fill the safe area so the orb/caption stay centered while the close
+        // button anchors to the true top-right corner (not the middle-right
+        // edge of the content-sized stack).
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay(alignment: .topTrailing) {
             closeButton
                 .padding(Spacing.m)
@@ -107,6 +115,17 @@ struct VoiceCallView: View {
                 .font(.captionText)
                 .foregroundStyle(Color.textSecondary)
                 .padding(.top, Spacing.xs)
+
+            if viewModel.lowCreditWarning {
+                Label("Low on credits — call will end soon", systemImage: "exclamationmark.circle.fill")
+                    .font(.captionText.weight(.medium))
+                    .foregroundStyle(Color.tintVoice)
+                    .padding(.horizontal, Spacing.m)
+                    .padding(.vertical, Spacing.xs)
+                    .background(Capsule().fill(Color.white.opacity(0.08)))
+                    .padding(.top, Spacing.s)
+                    .transition(.opacity)
+            }
 
             Spacer(minLength: Spacing.m)
 
@@ -254,6 +273,23 @@ struct VoiceCallView: View {
             }
 
             VStack(spacing: Spacing.s) {
+                if viewModel.outOfCredits {
+                    Button {
+                        dismiss()
+                        onInsufficientCredits?()
+                    } label: {
+                        Text("Top up credits")
+                            .font(.uiBody.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .background(
+                                RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)
+                                    .fill(Color.accentWarm)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 if let chat = viewModel.chat {
                     Button {
                         onViewTranscript(chat)

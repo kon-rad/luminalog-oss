@@ -19,7 +19,16 @@ protocol ProfileRepository: AnyObject {
     /// stats, current timezone). Never overwrites an existing document.
     func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws
 
-    /// Transactionally update `stats` after a journal save: bump the streak
-    /// per `StreakCalculator` and add the word-count delta (spec §3).
+    /// Transactionally update `stats` after a journal save: add the word-count
+    /// delta and advance the streak only when the day's words reach the daily
+    /// goal, per `DailyGoalStreak` (spec §3).
     func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws
+
+    /// Atomically increment the media storage counters for one successfully
+    /// uploaded file. Failures are best-effort — they must not surface to the user.
+    func recordMediaUploaded(kind: MediaKind, bytes: Int) async throws
+
+    /// Atomically add `minutes` to the user's cumulative in-app time.
+    /// Failures are best-effort — they must not surface to the user.
+    func recordTimeSpent(minutes: Int) async throws
 }

@@ -53,6 +53,30 @@ final class MockProfileRepository: ProfileRepository {
         broadcast()
     }
 
+    func recordMediaUploaded(kind: MediaKind, bytes: Int) async throws {
+        guard var profile = storedProfile else { throw AuthServiceError.notSignedIn }
+        switch kind {
+        case .audio:
+            profile.storageStats.audioCount += 1
+            profile.storageStats.audioBytes += bytes
+        case .image:
+            profile.storageStats.imageCount += 1
+            profile.storageStats.imageBytes += bytes
+        case .video:
+            profile.storageStats.videoCount += 1
+            profile.storageStats.videoBytes += bytes
+        }
+        storedProfile = profile
+        broadcast()
+    }
+
+    func recordTimeSpent(minutes: Int) async throws {
+        guard var profile = storedProfile else { throw AuthServiceError.notSignedIn }
+        profile.totalMinutesInApp += minutes
+        storedProfile = profile
+        broadcast()
+    }
+
     // MARK: - Broadcast
 
     private func broadcast() {

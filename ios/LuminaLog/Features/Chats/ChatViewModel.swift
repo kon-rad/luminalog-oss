@@ -13,7 +13,7 @@ import OSLog
 @MainActor
 final class ChatViewModel: ObservableObject {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "chat")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "chat")
 
     /// A user message whose send did not complete; surfaced with a Retry
     /// affordance (design §7).
@@ -32,7 +32,18 @@ final class ChatViewModel: ObservableObject {
     // MARK: - Published state
 
     @Published var draft = ""
-    @Published private(set) var messages: [ChatMessage] = []
+    @Published private(set) var messages: [ChatMessage] = [] {
+        didSet { reconcilePendingMessage() }
+    }
+    /// The just-sent user message, shown optimistically while the proxy
+    /// persists it server-side (production path). Cleared the instant that
+    /// server-written copy lands in `messages`, so it never renders twice. Nil
+    /// in demo mode, where the view model persists the message itself.
+    @Published private(set) var pendingUserMessage: ChatMessage?
+    /// `messages.count` captured when `pendingUserMessage` was set; the pending
+    /// bubble clears once the live stream grows past it (i.e. the server's copy
+    /// arrived). Counting, not text-matching, so a repeated message still works.
+    private var pendingBaselineCount = 0
     /// True once the first repository emission has landed.
     @Published private(set) var hasLoaded = false
     /// Accumulated partial assistant reply while streaming; nil otherwise.
@@ -154,18 +165,28 @@ final class ChatViewModel: ObservableObject {
     }
 
     private func deliver(_ message: ChatMessage, alreadyPersisted: Bool) async {
+        // When the proxy persists both sides server-side (spec §5.4), the
+        // client must not write them too or every message would be stored —
+        // and shown — twice. It instead shows the user message optimistically
+        // until the server's copy streams back.
+        let serverPersists = ai.persistsChatReplies
         var persisted = alreadyPersisted
 
         if !persisted {
             let isFirstUserMessage = !messages.contains { $0.role == .user }
-            do {
-                try await repository.appendMessage(message, to: chatId)
-                persisted = true
-            } catch {
-                Self.logger.error("append user message failed: \(error.localizedDescription, privacy: .public)")
-                failedSend = FailedSend(message: message, isPersisted: false)
-                return
+            if serverPersists {
+                pendingUserMessage = message
+                pendingBaselineCount = messages.count
+            } else {
+                do {
+                    try await repository.appendMessage(message, to: chatId)
+                } catch {
+                    Self.logger.error("append user message failed: \(error.localizedDescription, privacy: .public)")
+                    failedSend = FailedSend(message: message, isPersisted: false)
+                    return
+                }
             }
+            persisted = true
             if isFirstUserMessage {
                 await updateTitle(from: message.text)
             }
@@ -181,7 +202,8 @@ final class ChatViewModel: ObservableObject {
             }
             isAwaitingFirstToken = false
             streamingReply = nil
-            if !reply.isEmpty {
+            // Demo mode persists the reply itself; the proxy already has.
+            if !reply.isEmpty && !serverPersists {
                 try await repository.appendMessage(
                     ChatMessage(role: .assistant, text: reply),
                     to: chatId
@@ -191,8 +213,18 @@ final class ChatViewModel: ObservableObject {
             Self.logger.error("chat stream failed: \(error.localizedDescription, privacy: .public)")
             isAwaitingFirstToken = false
             streamingReply = nil
+            // Drop the optimistic bubble; the Retry row owns the recovery UI.
+            pendingUserMessage = nil
             failedSend = FailedSend(message: message, isPersisted: persisted)
         }
+    }
+
+    /// Clears the optimistic user bubble once the server-persisted copy of the
+    /// just-sent message has arrived in the live stream (`messages` grew past
+    /// the baseline). Safe because only one send is ever in flight (`canSend`).
+    private func reconcilePendingMessage() {
+        guard pendingUserMessage != nil, messages.count > pendingBaselineCount else { return }
+        pendingUserMessage = nil
     }
 
     // MARK: - Title

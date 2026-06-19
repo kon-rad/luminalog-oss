@@ -20,7 +20,7 @@ enum CryptoUnavailableError: LocalizedError {
 @MainActor
 final class FirestoreJournalRepository: JournalRepository {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "firestore")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "firestore")
 
     private let db: Firestore
     private let auth: AuthService
@@ -157,6 +157,32 @@ final class FirestoreJournalRepository: JournalRepository {
             // Media metadata (s3Key/kind/duration) is not field-encrypted; only
             // the S3 bytes are. arrayUnion appends without clobbering existing media.
             payload["media"] = FieldValue.arrayUnion(appendedMedia.map(\.firestoreData))
+        }
+        do {
+            try await journals.document(id).updateData(payload)
+        } catch let error as NSError
+            where error.domain == FirestoreErrorDomain
+                && error.code == FirestoreErrorCode.notFound.rawValue {
+            throw JournalRepositoryError.entryNotFound(id: id)
+        }
+    }
+
+    func applyEntryEdit(
+        id: String,
+        title: String,
+        content: String,
+        contentEditedAt: Date?,
+        edit: EditRecord
+    ) async throws {
+        guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
+        var payload: [String: Any] = [
+            "title": try cipher.sealed(title, "journals.title"),
+            "content": try cipher.sealed(content, "journals.content"),
+            "updatedAt": FieldValue.serverTimestamp(),
+            "editHistory": FieldValue.arrayUnion([edit.firestoreData]),
+        ]
+        if let contentEditedAt {
+            payload["contentEditedAt"] = Timestamp(date: contentEditedAt)
         }
         do {
             try await journals.document(id).updateData(payload)

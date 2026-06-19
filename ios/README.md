@@ -103,7 +103,7 @@ automation (or just faster dev loops), launch with the `-demo-signed-in`
 argument and the mock auth starts already signed in, landing directly on Home:
 
 ```sh
-xcrun simctl launch booted com.luminalog.app -demo-signed-in
+xcrun simctl launch booted com.konradgnat.luminalog -demo-signed-in
 ```
 
 In Xcode, add `-demo-signed-in` under *Scheme → Run → Arguments Passed On

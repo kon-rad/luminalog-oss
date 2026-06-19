@@ -22,7 +22,7 @@ enum CreditError: LocalizedError {
 ///
 /// Credits are consumed per minute of VAPI voice call time. They are separate
 /// from the subscription — both free and pro users can buy credit packs.
-/// 1 credit = 1 minute of call time (VAPI cost $0.09/min × 1.25 margin).
+/// 1 credit = $1 = 6 minutes of call time (VAPI cost basis; see docs/PRICING.md).
 @MainActor
 protocol CreditService: AnyObject {
 

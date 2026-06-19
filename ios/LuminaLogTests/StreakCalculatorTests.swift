@@ -101,11 +101,35 @@ final class StreakCalculatorTests: XCTestCase {
         )
         let repository = MockProfileRepository(profile: profile)
 
-        try await repository.recordEntrySaved(wordCountDelta: 50, on: date(2026, 6, 10))
+        // A qualifying day (≥ DailyGoal.wordTarget) after a qualifying yesterday
+        // bumps the streak and adds the words.
+        try await repository.recordEntrySaved(wordCountDelta: 800, on: date(2026, 6, 10))
 
         var iterator = repository.profile().makeAsyncIterator()
         let updated = await iterator.next()
         XCTAssertEqual(updated??.stats.streakCount, 3)
+        XCTAssertEqual(updated??.stats.totalWords, 900)
+        XCTAssertEqual(updated??.stats.goalDayWords, 800)
+    }
+
+    @MainActor
+    func testMockProfileRepositorySubGoalEntryDoesNotBumpStreak() async throws {
+        var profile = MockData.profile
+        profile.timezone = timezone.identifier
+        profile.stats = UserProfile.Stats(
+            streakCount: 2,
+            lastEntryDate: date(2026, 6, 9),
+            totalWords: 100
+        )
+        let repository = MockProfileRepository(profile: profile)
+
+        // Below the daily goal: words accumulate but the streak is untouched.
+        try await repository.recordEntrySaved(wordCountDelta: 50, on: date(2026, 6, 10))
+
+        var iterator = repository.profile().makeAsyncIterator()
+        let updated = await iterator.next()
+        XCTAssertEqual(updated??.stats.streakCount, 2)
         XCTAssertEqual(updated??.stats.totalWords, 150)
+        XCTAssertEqual(updated??.stats.goalDayWords, 50)
     }
 }

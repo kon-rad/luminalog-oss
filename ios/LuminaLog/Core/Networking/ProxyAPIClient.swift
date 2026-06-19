@@ -66,6 +66,18 @@ final class ProxyAPIClient {
         _ = try await postData(path: path, body: body)
     }
 
+    /// DELETE a path (query string allowed), ignoring the response payload.
+    /// Retries exactly once with a force-refreshed token on HTTP 401.
+    func delete(path: String) async throws {
+        let request = try await makeBodylessRequest(path: path, method: "DELETE")
+        var (data, response) = try await session.data(for: request)
+        if (response as? HTTPURLResponse)?.statusCode == 401 {
+            let retry = try await makeBodylessRequest(path: path, method: "DELETE", forceRefresh: true)
+            (data, response) = try await session.data(for: retry)
+        }
+        try Self.validate(response: response, data: data)
+    }
+
     /// POST raw bytes with an explicit content type and decode a JSON response.
     /// Used for binary uploads (e.g. audio clips) that aren't JSON-encoded.
     func postRaw<T: Decodable>(path: String, body: Data, contentType: String) async throws -> T {
@@ -182,6 +194,26 @@ final class ProxyAPIClient {
         let token = try await tokenProvider.idToken(forceRefresh: forceRefresh)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.httpBody = try encoder.encode(body)
+        return request
+    }
+
+    /// Builds a bodyless authenticated request (e.g. DELETE). Unlike
+    /// `makeRequest`, the URL is built with `URL(string:relativeTo:)` so a
+    /// `?query=` in `path` is preserved (`appendingPathComponent` would
+    /// percent-encode the `?`).
+    private func makeBodylessRequest(
+        path: String,
+        method: String,
+        forceRefresh: Bool = false
+    ) async throws -> URLRequest {
+        let component = path.hasPrefix("/") ? String(path.dropFirst()) : path
+        guard let url = URL(string: component, relativeTo: baseURL) else {
+            throw ProxyAPIError.invalidURL(path)
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        let token = try await tokenProvider.idToken(forceRefresh: forceRefresh)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         return request
     }
 

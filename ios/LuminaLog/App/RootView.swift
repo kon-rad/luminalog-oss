@@ -63,7 +63,9 @@ struct RootView: View {
                     speech: services.speech,
                     voice: services.voice,
                     credits: services.credits,
-                    api: services.api
+                    api: services.api,
+                    journals: services.journals,
+                    media: services.media
                 )
             }
             tabContent(for: .profile) {

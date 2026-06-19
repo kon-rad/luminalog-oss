@@ -20,6 +20,7 @@ final class TranscriptEditorViewModelTests: XCTestCase {
             AsyncThrowingStream { $0.finish() }
         }
         func requestIndex(journalId: String) async { indexCalls += 1 }
+        func deleteEntry(journalId: String) async throws {}
         func transcribeJournal(journalId: String) async throws {}
         func transcribeClip(audio: Data, contentType: String) async throws -> String {
             clipCalls += 1

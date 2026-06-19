@@ -51,7 +51,7 @@ struct CreditsView: View {
                 .font(.journalTitle)
                 .foregroundStyle(Color.textPrimary)
 
-            Text("1 credit = 1 minute of AI voice conversation")
+            Text("1 credit = 6 minutes of AI voice conversation")
                 .font(.promptQuoteCompact)
                 .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
@@ -67,7 +67,7 @@ struct CreditsView: View {
                 Text("Your Balance")
                     .font(.captionText)
                     .foregroundStyle(Color.textSecondary)
-                Text("\(viewModel.balance) min")
+                Text("\(viewModel.balance) credits")
                     .font(.statValue)
                     .foregroundStyle(viewModel.balance == 0 ? Color.danger : Color.textPrimary)
             }
@@ -91,7 +91,7 @@ struct CreditsView: View {
                 .font(.uiBody.weight(.semibold))
                 .foregroundStyle(Color.textPrimary)
 
-            rowItem("clock.fill", "Charged per minute", "Each minute of voice call uses 1 credit. Partial minutes round up.")
+            rowItem("clock.fill", "6 minutes per credit", "Each credit gives you 6 minutes of AI voice conversation.")
             rowItem("cart.fill", "One-time purchase", "Credits never expire and are not part of your subscription.")
             rowItem("arrow.triangle.2.circlepath", "Restore anytime", "Credits are linked to your account — reinstall and restore anytime.")
         }
@@ -160,7 +160,7 @@ struct CreditsView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: Spacing.xs) {
-                        Text("\(pack.credits) minutes")
+                        Text("\(pack.credits) Credits · \(pack.minutes) min")
                             .font(.uiBody.weight(.semibold))
                             .foregroundStyle(Color.textPrimary)
                         if pack.popular {
@@ -201,7 +201,7 @@ struct CreditsView: View {
         }
         .buttonStyle(.plain)
         .disabled(viewModel.isPurchasing)
-        .accessibilityLabel("\(pack.credits) minute credit pack, \(pack.price)")
+        .accessibilityLabel("\(pack.credits) credit pack, \(pack.minutes) minutes, \(pack.price)")
     }
 
     // MARK: - Error

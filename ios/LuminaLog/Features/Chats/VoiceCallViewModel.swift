@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import UIKit
 
 /// Drives the voice call screen (design §8): creates the `.voice` chat,
 /// starts the call, mirrors `VoiceCallEvent`s into UI state, and runs the
@@ -7,7 +8,7 @@ import OSLog
 @MainActor
 final class VoiceCallViewModel: ObservableObject {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "voice-call")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "voice-call")
 
     /// Screen-level lifecycle.
     enum Phase: Equatable {
@@ -53,6 +54,10 @@ final class VoiceCallViewModel: ObservableObject {
     @Published private(set) var isMuted = false
     /// The `.voice` chat backing this call (created on start).
     @Published private(set) var chat: Chat?
+    /// True when fewer than ~1 minute of credit remains — drives the warning pill.
+    @Published private(set) var lowCreditWarning = false
+    /// True once the call was auto-ended because the credit budget ran out.
+    @Published private(set) var outOfCredits = false
 
     private let voice: VoiceCallService
     private let chats: ChatRepository
@@ -60,9 +65,13 @@ final class VoiceCallViewModel: ObservableObject {
 
     private var eventsTask: Task<Void, Never>?
     private var timerTask: Task<Void, Never>?
+    private var balanceTask: Task<Void, Never>?
     private var hasStarted = false
     /// Set to true when `.connected` fires; prevents charging for failed connection attempts.
     private var callWasConnected = false
+    /// Seconds of call time the current balance buys (credits × 6 min). Snapshotted
+    /// at `.connected` and raised live if the user tops up mid-call.
+    private var budgetSeconds = 0
 
     init(voice: VoiceCallService, chats: ChatRepository, credits: CreditService) {
         self.voice = voice
@@ -73,6 +82,7 @@ final class VoiceCallViewModel: ObservableObject {
     deinit {
         eventsTask?.cancel()
         timerTask?.cancel()
+        balanceTask?.cancel()
     }
 
     // MARK: - Derived state
@@ -140,6 +150,8 @@ final class VoiceCallViewModel: ObservableObject {
             phase = .active
             speakingState = .listening
             callWasConnected = true
+            setScreenAwake(true)
+            startBudgetTracking()
             startTimer()
 
         case .listening:
@@ -161,14 +173,61 @@ final class VoiceCallViewModel: ObservableObject {
 
         case .ended(let reason):
             stopTimer()
+            setScreenAwake(false)
             deductCreditsForCall()
-            phase = .ended(reason: reason)
+            phase = .ended(reason: outOfCredits ? "You're out of credits." : reason)
 
         case .failed(let message):
             stopTimer()
+            setScreenAwake(false)
             deductCreditsForCall()
             phase = .failed(message: message)
         }
+    }
+
+    // MARK: - Credit budget (live metering)
+
+    /// Snapshots the call-time budget from the current balance and keeps it in
+    /// sync with the live balance stream so a mid-call top-up extends the call.
+    private func startBudgetTracking() {
+        Task { [weak self] in
+            guard let self else { return }
+            let balance = await self.credits.currentBalance()
+            self.budgetSeconds = max(self.budgetSeconds, balance * CreditPack.minutesPerCredit * 60)
+        }
+        guard balanceTask == nil else { return }
+        balanceTask = Task { [weak self] in
+            guard let stream = self?.credits.balanceStream() else { return }
+            for await balance in stream {
+                guard let self, !Task.isCancelled else { return }
+                self.budgetSeconds = max(self.budgetSeconds, balance * CreditPack.minutesPerCredit * 60)
+            }
+        }
+    }
+
+    /// Called each timer tick: raises the low-credit warning near the end and
+    /// auto-ends the call once the budget is exhausted.
+    private func checkBudget() {
+        guard budgetSeconds > 0 else { return }
+        let remaining = budgetSeconds - elapsedSeconds
+        lowCreditWarning = remaining > 0 && remaining <= 60
+        if remaining <= 0 && !outOfCredits {
+            outOfCredits = true
+            lowCreditWarning = false
+            Task { [weak self] in await self?.voice.endCall() }
+        }
+    }
+
+    // MARK: - Screen wake
+
+    /// Keeps the screen awake while the call is live (idle-timer auto-lock off).
+    private func setScreenAwake(_ on: Bool) {
+        UIApplication.shared.isIdleTimerDisabled = on
+    }
+
+    /// Safety net for the view's `onDisappear` — always re-enable auto-lock.
+    func releaseScreenWake() {
+        setScreenAwake(false)
     }
 
     // MARK: - Credit deduction
@@ -176,11 +235,13 @@ final class VoiceCallViewModel: ObservableObject {
     private func deductCreditsForCall() {
         guard callWasConnected, elapsedSeconds > 0 else { return }
         callWasConnected = false
-        let minutesUsed = max(1, Int(ceil(Double(elapsedSeconds) / 60.0)))
+        // 1 credit = 6 minutes (docs/PRICING.md); round partial blocks up, min 1.
+        let secondsPerCredit = Double(CreditPack.minutesPerCredit * 60)
+        let creditsUsed = max(1, Int(ceil(Double(elapsedSeconds) / secondsPerCredit)))
         Task { [weak self] in
             guard let self else { return }
-            try? await credits.deductCredits(minutesUsed)
-            Self.logger.info("deducted \(minutesUsed) credit(s) for \(self.elapsedSeconds)s call")
+            try? await credits.deductCredits(creditsUsed)
+            Self.logger.info("deducted \(creditsUsed) credit(s) for \(self.elapsedSeconds)s call")
         }
     }
 
@@ -193,6 +254,7 @@ final class VoiceCallViewModel: ObservableObject {
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
                 guard let self, !Task.isCancelled else { return }
                 self.elapsedSeconds += 1
+                self.checkBudget()
             }
         }
     }
@@ -237,5 +299,17 @@ extension VoiceCallViewModel {
     func disableStartForPreviews() {
         hasStarted = true
     }
+
+    /// Seed the elapsed clock without the real timer (metering tests).
+    func setElapsedForTesting(_ seconds: Int) { elapsedSeconds = seconds }
+
+    /// Seed the call-time budget directly (metering tests).
+    func primeBudgetForTesting(_ seconds: Int) { budgetSeconds = seconds }
+
+    /// Mark the call as connected so deduction tests exercise the charge path.
+    func markConnectedForTesting() { callWasConnected = true }
+
+    /// Drive a single budget check (metering tests).
+    func checkBudgetForTesting() { checkBudget() }
 }
 #endif

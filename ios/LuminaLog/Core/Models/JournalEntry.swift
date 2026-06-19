@@ -66,6 +66,18 @@ enum ProcessingStatus: String, Codable, Sendable {
     case failed         // a step failed; retry available in-session
 }
 
+/// A timestamped record of a user edit to an entry's title/content.
+/// `fields` is a subset of ["title", "content"] — what changed in that edit.
+struct EditRecord: Codable, Equatable, Sendable {
+    var editedAt: Date
+    var fields: [String]
+
+    init(editedAt: Date = Date(), fields: [String]) {
+        self.editedAt = editedAt
+        self.fields = fields
+    }
+}
+
 /// AI-generated journaling prompts attached to an entry.
 struct AIPrompts: Codable, Equatable, Sendable {
     var items: [String]
@@ -111,6 +123,8 @@ struct JournalEntry: Codable, Equatable, Identifiable, Sendable {
     var content: String
     /// Set when the user edits the canonical text (flags stale summaries).
     var contentEditedAt: Date?
+    /// Dated history of user edits to title/content (newest entries appended).
+    var editHistory: [EditRecord]
     var media: [MediaItem]
     var transcriptStatus: TranscriptStatus?
     /// Background upload/transcribe pipeline state; nil once settled.
@@ -130,6 +144,7 @@ struct JournalEntry: Codable, Equatable, Identifiable, Sendable {
         updatedAt: Date = Date(),
         content: String = "",
         contentEditedAt: Date? = nil,
+        editHistory: [EditRecord] = [],
         media: [MediaItem] = [],
         transcriptStatus: TranscriptStatus? = nil,
         processingStatus: ProcessingStatus? = nil,
@@ -147,6 +162,7 @@ struct JournalEntry: Codable, Equatable, Identifiable, Sendable {
         self.updatedAt = updatedAt
         self.content = content
         self.contentEditedAt = contentEditedAt
+        self.editHistory = editHistory
         self.media = media
         self.transcriptStatus = transcriptStatus
         self.processingStatus = processingStatus

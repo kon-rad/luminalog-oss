@@ -1,9 +1,9 @@
+import { DEFAULT_SUMMARY_SYSTEM_PROMPT } from '../services/prompts'
+
 export const DEFAULT_SUMMARY_WORD_LENGTH = 50
 
-export const DEFAULT_SUMMARY_SYSTEM_PROMPT =
-  `You are summarizing a {type} journal entry. ` +
-  `Capture the key themes and emotional tone. Write in second person ` +
-  `("you felt…", "you noticed…"). Be reflective and personal, not clinical.`
+// Prompt text is owned by services/prompts.ts (the single home for LLM prompts).
+export { DEFAULT_SUMMARY_SYSTEM_PROMPT }
 
 export interface SummaryConfig {
   wordLength: number

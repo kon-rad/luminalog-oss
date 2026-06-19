@@ -46,6 +46,8 @@ final class ProfileViewModelTests: XCTestCase {
 
         func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws {}
         func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {}
+        func recordMediaUploaded(kind: MediaKind, bytes: Int) async throws {}
+        func recordTimeSpent(minutes: Int) async throws {}
     }
 
     /// Records uploads without touching the file system.
@@ -129,128 +131,19 @@ final class ProfileViewModelTests: XCTestCase {
         return harness
     }
 
-    // MARK: - Bio
+    // MARK: - Edit view model factory
 
     @MainActor
-    func testSaveBioCallsRepositoryWithNewBio() async {
+    func testMakeEditViewModelSeedsFromSameProfile() async {
         let harness = await makeStarted()
-
-        harness.viewModel.bioDraft = "A brand new bio."
-        XCTAssertTrue(harness.viewModel.isBioDirty)
-
-        await harness.viewModel.saveBio()
-
-        XCTAssertEqual(harness.profiles.updates.count, 1)
-        XCTAssertEqual(harness.profiles.updates.last?.biography, "A brand new bio.")
-        // Everything else on the profile is preserved.
-        XCTAssertEqual(harness.profiles.updates.last?.displayName, MockData.profile.displayName)
-        XCTAssertEqual(harness.profiles.updates.last?.stats, MockData.profile.stats)
-    }
-
-    @MainActor
-    func testSaveBioSkippedWhenUnchanged() async {
-        let harness = await makeStarted()
-
-        XCTAssertFalse(harness.viewModel.isBioDirty)
-        await harness.viewModel.saveBio()
-
-        XCTAssertTrue(harness.profiles.updates.isEmpty,
-                      "A clean bio must not hit the repository")
-    }
-
-    @MainActor
-    func testBioBecomesCleanAfterSaveRoundTrips() async {
-        let harness = await makeStarted()
-
-        harness.viewModel.bioDraft = "Round-trip bio."
-        await harness.viewModel.saveBio()
-
-        await waitUntil("The updated profile emission marks the draft clean") {
-            !harness.viewModel.isBioDirty
+        let editVM = harness.viewModel.makeEditViewModel()
+        editVM.start()
+        let deadline = Date().addingTimeInterval(2)
+        while editVM.profile == nil && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 10_000_000)
         }
-        XCTAssertEqual(harness.viewModel.profile?.biography, "Round-trip bio.")
-    }
-
-    @MainActor
-    func testProfileEmissionDoesNotClobberDirtyBioDraft() async {
-        let harness = await makeStarted()
-
-        harness.viewModel.bioDraft = "Mid-edit draft…"
-
-        // Another writer (e.g. a different device) updates the name.
-        var remote = harness.viewModel.profile!
-        remote.displayName = "Renamed Elsewhere"
-        try? await harness.profiles.update(remote)
-
-        await waitUntil("Remote rename arrives") {
-            harness.viewModel.profile?.displayName == "Renamed Elsewhere"
-        }
-        XCTAssertEqual(harness.viewModel.bioDraft, "Mid-edit draft…",
-                       "A dirty bio draft must survive unrelated profile emissions")
-    }
-
-    // MARK: - Display name
-
-    @MainActor
-    func testSaveDisplayNamePersistsTrimmedName() async {
-        let harness = await makeStarted()
-
-        harness.viewModel.displayNameDraft = "  New Name  "
-        await harness.viewModel.saveDisplayName()
-
-        XCTAssertEqual(harness.profiles.updates.count, 1)
-        XCTAssertEqual(harness.profiles.updates.last?.displayName, "New Name")
-        XCTAssertEqual(harness.viewModel.displayNameDraft, "New Name")
-    }
-
-    @MainActor
-    func testSaveDisplayNameSkippedWhenUnchangedAndRevertsWhenEmpty() async {
-        let harness = await makeStarted()
-
-        // Unchanged → no repository call.
-        await harness.viewModel.saveDisplayName()
-        XCTAssertTrue(harness.profiles.updates.isEmpty)
-
-        // Emptied → reverts to the stored name, no repository call.
-        harness.viewModel.displayNameDraft = "   "
-        await harness.viewModel.saveDisplayName()
-        XCTAssertTrue(harness.profiles.updates.isEmpty)
-        XCTAssertEqual(harness.viewModel.displayNameDraft, MockData.profile.displayName)
-    }
-
-    // MARK: - Avatar
-
-    @MainActor
-    func testUploadAvatarUploadsToProfileJournalAndPersistsS3Key() async {
-        let harness = await makeStarted()
-        harness.media.s3Key = "profile/avatar-42.jpg"
-
-        await harness.viewModel.uploadAvatar(imageData: Data("jpeg-bytes".utf8))
-
-        XCTAssertEqual(harness.media.uploads.count, 1)
-        XCTAssertEqual(harness.media.uploads.first?.kind, .image)
-        XCTAssertEqual(harness.media.uploads.first?.journalId, "profile")
-
-        // The s3Key string is stored as the profile's photoURL.
-        XCTAssertEqual(harness.profiles.updates.last?.photoURL?.absoluteString,
-                       "profile/avatar-42.jpg")
-
-        // The avatar display URL resolves through the uploader.
-        await waitUntil("Avatar URL resolves via viewURL(for:)") {
-            harness.viewModel.avatarURL != nil
-        }
-        XCTAssertEqual(harness.media.viewURLKeys.last, "profile/avatar-42.jpg")
-    }
-
-    @MainActor
-    func testUploadAvatarFailureSurfacesErrorAndSkipsProfileUpdate() async {
-        let harness = await makeStarted()
-        harness.media.shouldFail = true
-
-        await harness.viewModel.uploadAvatar(imageData: Data("jpeg-bytes".utf8))
-
-        XCTAssertTrue(harness.profiles.updates.isEmpty)
-        XCTAssertNotNil(harness.viewModel.errorMessage)
+        XCTAssertEqual(editVM.profile?.id, MockData.profile.id)
+        XCTAssertEqual(editVM.displayNameDraft, MockData.profile.displayName)
     }
 
     // MARK: - Subscription label

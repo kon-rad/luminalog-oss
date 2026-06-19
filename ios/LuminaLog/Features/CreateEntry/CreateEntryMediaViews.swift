@@ -87,6 +87,10 @@ private struct ListeningBars: View {
 struct AttachmentStrip: View {
 
     let attachments: AttachmentSet
+    /// One id per photo still being fetched/decoded — rendered as a spinner.
+    let loadingPhotoIDs: [UUID]
+    /// Whether a picked video is still loading (shows a spinner tile).
+    let isLoadingVideo: Bool
     let isDisabled: Bool
     let onRemovePhoto: (UUID) -> Void
     let onRemoveVideo: () -> Void
@@ -102,6 +106,11 @@ struct AttachmentStrip: View {
                     .accessibilityLabel("Attached photo")
                 }
 
+                ForEach(loadingPhotoIDs, id: \.self) { _ in
+                    placeholderTile()
+                        .accessibilityLabel("Loading photo")
+                }
+
                 if let video = attachments.video {
                     thumbnail(
                         image: video.thumbnail,
@@ -114,6 +123,11 @@ struct AttachmentStrip: View {
                     .accessibilityLabel("Attached video")
                 }
 
+                if isLoadingVideo {
+                    placeholderTile()
+                        .accessibilityLabel("Loading video")
+                }
+
                 if let audio = attachments.audio {
                     audioChip(audio)
                 }
@@ -124,6 +138,18 @@ struct AttachmentStrip: View {
     }
 
     // MARK: Pieces
+
+    /// Gray 64×64 tile with a spinner, shown while a picked item loads.
+    private func placeholderTile() -> some View {
+        RoundedRectangle(cornerRadius: CornerRadius.small, style: .continuous)
+            .fill(Color.secondaryBackground)
+            .frame(width: 64, height: 64)
+            .overlay {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(Color.textSecondary)
+            }
+    }
 
     private func thumbnail(
         image: UIImage?,

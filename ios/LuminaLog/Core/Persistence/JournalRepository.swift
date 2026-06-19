@@ -63,5 +63,18 @@ protocol JournalRepository: AnyObject {
         appendedMedia: [MediaItem]
     ) async throws
 
+    /// Applies a user edit to an entry's title and content, appending an
+    /// `EditRecord` to the edit history. `contentEditedAt` is set ONLY when the
+    /// content changed (pass nil for a title-only edit, so the summary is not
+    /// flagged stale). Throws `JournalRepositoryError.entryNotFound` if the
+    /// document does not exist — it must NEVER recreate a deleted entry.
+    func applyEntryEdit(
+        id: String,
+        title: String,
+        content: String,
+        contentEditedAt: Date?,
+        edit: EditRecord
+    ) async throws
+
     func delete(id: String) async throws
 }

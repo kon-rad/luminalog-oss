@@ -126,4 +126,40 @@ final class MockJournalRepositoryTests: XCTestCase {
             XCTFail("unexpected error: \(error)")
         }
     }
+
+    @MainActor
+    func testApplyEntryEditUpdatesFieldsAndAppendsHistory() async throws {
+        let entry = JournalEntry(id: "e1", userId: "u1", type: .text, title: "Old", content: "Old body")
+        let repo = MockJournalRepository(entries: [entry])
+
+        let when = Date(timeIntervalSince1970: 1_760_600_000)
+        try await repo.applyEntryEdit(
+            id: "e1", title: "New", content: "New body",
+            contentEditedAt: when,
+            edit: EditRecord(editedAt: when, fields: ["title", "content"])
+        )
+
+        let updated = try await repo.entries(after: nil, limit: 10).first { $0.id == "e1" }
+        XCTAssertEqual(updated?.title, "New")
+        XCTAssertEqual(updated?.content, "New body")
+        XCTAssertEqual(updated?.contentEditedAt, when)
+        XCTAssertEqual(updated?.editHistory.count, 1)
+        XCTAssertEqual(updated?.editHistory.first?.fields, ["title", "content"])
+    }
+
+    @MainActor
+    func testApplyEntryEditThrowsWhenMissing() async {
+        let repo = MockJournalRepository(entries: [])
+        do {
+            try await repo.applyEntryEdit(
+                id: "nope", title: "t", content: "c", contentEditedAt: nil,
+                edit: EditRecord(fields: ["title"])
+            )
+            XCTFail("expected entryNotFound")
+        } catch JournalRepositoryError.entryNotFound {
+            // expected
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
+    }
 }

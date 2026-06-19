@@ -50,7 +50,7 @@ final class BackgroundEntryProcessor: EntryProcessor {
         let ocr: OCRService
     }
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "processor")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "processor")
 
     private let deps: Dependencies
 
@@ -230,15 +230,18 @@ final class BackgroundEntryProcessor: EntryProcessor {
             if let cached = cache[photo.id] { items.append(cached); continue }
             let fileURL = try photo.writeToTemporaryFile()
             track(fileURL, draftId: draftId)
+            let photoBytes = (try? FileManager.default.attributesOfItem(atPath: fileURL.path)[.size] as? Int) ?? 0
             var item = try await deps.media.upload(fileURL: fileURL, kind: .image, journalId: draftId)
             item.width = photo.pixelWidth
             item.height = photo.pixelHeight
+            try? await deps.profiles.recordMediaUploaded(kind: .image, bytes: photoBytes)
 
             if let thumbData = photo.makeThumbnailData(),
                let thumbURL = try? photo.writeThumbnailToTemporaryFile(data: thumbData) {
                 track(thumbURL, draftId: draftId)
                 let thumbItem = try await deps.media.upload(fileURL: thumbURL, kind: .image, journalId: draftId)
                 item.thumbnailS3Key = thumbItem.s3Key
+                try? await deps.profiles.recordMediaUploaded(kind: .image, bytes: thumbData.count)
             }
 
             cache[photo.id] = item
@@ -249,10 +252,12 @@ final class BackgroundEntryProcessor: EntryProcessor {
             if let cached = cache[video.id] {
                 items.append(cached)
             } else {
+                let videoBytes = (try? FileManager.default.attributesOfItem(atPath: video.url.path)[.size] as? Int) ?? 0
                 var item = try await deps.media.upload(fileURL: video.url, kind: .video, journalId: draftId)
                 item.durationSec = video.durationSec
                 cache[video.id] = item
                 items.append(item)
+                try? await deps.profiles.recordMediaUploaded(kind: .video, bytes: videoBytes)
             }
         }
 
@@ -260,10 +265,12 @@ final class BackgroundEntryProcessor: EntryProcessor {
             if let cached = cache[audio.id] {
                 items.append(cached)
             } else {
+                let audioBytes = (try? FileManager.default.attributesOfItem(atPath: audio.url.path)[.size] as? Int) ?? 0
                 var item = try await deps.media.upload(fileURL: audio.url, kind: .audio, journalId: draftId)
                 item.durationSec = audio.durationSec
                 cache[audio.id] = item
                 items.append(item)
+                try? await deps.profiles.recordMediaUploaded(kind: .audio, bytes: audioBytes)
             }
         }
 

@@ -9,12 +9,26 @@ struct PaywallView: View {
 
     @StateObject private var viewModel: PaywallViewModel
 
-    init(subscriptions: SubscriptionService) {
-        self.init(viewModel: PaywallViewModel(subscriptions: subscriptions))
+    /// When false the paywall cannot be dismissed (hard app-entry gate): the
+    /// close button is hidden and a "Sign out" escape is shown instead.
+    private let isDismissible: Bool
+    /// Sign-out action offered only on the non-dismissible (gate) variant.
+    private let onSignOut: (() -> Void)?
+
+    init(
+        subscriptions: SubscriptionService,
+        isDismissible: Bool = true,
+        onSignOut: (() -> Void)? = nil
+    ) {
+        self.isDismissible = isDismissible
+        self.onSignOut = onSignOut
+        _viewModel = StateObject(wrappedValue: PaywallViewModel(subscriptions: subscriptions))
     }
 
     /// Internal init for previews/tests that pre-seed the view model.
-    init(viewModel: PaywallViewModel) {
+    init(viewModel: PaywallViewModel, isDismissible: Bool = true, onSignOut: (() -> Void)? = nil) {
+        self.isDismissible = isDismissible
+        self.onSignOut = onSignOut
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
@@ -44,7 +58,9 @@ struct PaywallView: View {
             ctaBar
         }
         .overlay(alignment: .topTrailing) {
-            closeButton
+            if isDismissible {
+                closeButton
+            }
         }
         .task { viewModel.start() }
         .onChange(of: viewModel.didUnlockPro) { _, unlocked in
@@ -272,6 +288,30 @@ struct PaywallView: View {
             .disabled(viewModel.isRestoring || viewModel.isPurchasing)
             .frame(minHeight: 28)
 
+            Button {
+                viewModel.redeemCode()
+            } label: {
+                Text("Redeem a code")
+                    .font(.captionText.weight(.medium))
+                    .foregroundStyle(Color.accentWarm)
+            }
+            .buttonStyle(.plain)
+            .frame(minHeight: 28)
+            .accessibilityLabel("Redeem a code")
+
+            if !isDismissible, let onSignOut {
+                Button {
+                    onSignOut()
+                } label: {
+                    Text("Sign out")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .frame(minHeight: 24)
+                .accessibilityLabel("Sign out")
+            }
+
             Text("Subscriptions renew automatically until cancelled. Manage or cancel anytime in your App Store account settings.")
                 .font(.system(size: 11))
                 .foregroundStyle(Color.textSecondary.opacity(0.8))
@@ -349,4 +389,5 @@ private final class StallingSubscriptionService: SubscriptionService {
         try? await Task.sleep(nanoseconds: 3_600_000_000_000)
         return []
     }
+    func presentCodeRedemptionSheet() {}
 }

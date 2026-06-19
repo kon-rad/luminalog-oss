@@ -9,10 +9,6 @@ final class ProfileViewModel: ObservableObject {
 
     private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "profile")
 
-    /// Soft biography length guide — the counter turns amber past this, but
-    /// nothing is truncated or blocked.
-    static let bioSoftLimit = 500
-
     /// Sentinel `journalId` for media that belongs to the profile rather
     /// than a journal entry (avatar uploads share the journal-media path).
     static let avatarJournalId = "profile"
@@ -22,11 +18,6 @@ final class ProfileViewModel: ObservableObject {
     @Published private(set) var profile: UserProfile?
     @Published private(set) var entitlement: Entitlement?
 
-    // MARK: Editable drafts
-
-    @Published var displayNameDraft = ""
-    @Published var bioDraft = ""
-
     // MARK: Avatar
 
     /// Resolved display URL for the avatar (s3Key → presigned/local URL).
@@ -35,8 +26,6 @@ final class ProfileViewModel: ObservableObject {
 
     // MARK: Activity & errors
 
-    @Published private(set) var isSavingName = false
-    @Published private(set) var isSavingBio = false
     @Published private(set) var isDeletingAccount = false
     @Published var errorMessage: String?
 
@@ -56,12 +45,6 @@ final class ProfileViewModel: ObservableObject {
     /// can't overwrite a newer one).
     private var resolvedPhotoKey: String?
 
-    /// The stored values the drafts were last synced from — a draft is only
-    /// refreshed by a profile emission while it still matches these (i.e. the
-    /// user isn't mid-edit).
-    private var lastAppliedName: String?
-    private var lastAppliedBio: String?
-
     init(
         auth: AuthService,
         profiles: ProfileRepository,
@@ -72,6 +55,11 @@ final class ProfileViewModel: ObservableObject {
         self.profiles = profiles
         self.subscriptions = subscriptions
         self.media = media
+    }
+
+    /// Builds the edit-screen view model, sharing this VM's repositories.
+    func makeEditViewModel() -> ProfileEditViewModel {
+        ProfileEditViewModel(profiles: profiles, media: media)
     }
 
     deinit {
@@ -104,31 +92,16 @@ final class ProfileViewModel: ObservableObject {
         }
     }
 
-    /// Merges a profile emission into local state without clobbering drafts
-    /// the user is mid-edit on: a draft is refreshed only while it still
-    /// matches the last stored value it was synced from.
+    /// Merges a profile emission into local state. Editing lives on the pushed
+    /// edit screen (`ProfileEditViewModel`); this VM only displays.
     private func apply(_ newProfile: UserProfile?) {
         profile = newProfile
 
         guard let newProfile else {
-            displayNameDraft = ""
-            bioDraft = ""
-            lastAppliedName = nil
-            lastAppliedBio = nil
             avatarURL = nil
             resolvedPhotoKey = nil
             return
         }
-
-        if displayNameDraft == (lastAppliedName ?? "") {
-            displayNameDraft = newProfile.displayName
-        }
-        lastAppliedName = newProfile.displayName
-
-        if bioDraft == (lastAppliedBio ?? "") {
-            bioDraft = newProfile.biography
-        }
-        lastAppliedBio = newProfile.biography
 
         resolveAvatar(for: newProfile.photoURL)
     }
@@ -165,29 +138,6 @@ final class ProfileViewModel: ObservableObject {
         }
     }
 
-    /// Uploads a new avatar photo and persists its s3Key as the profile's
-    /// photoURL — same storage convention as journal media.
-    func uploadAvatar(imageData: Data) async {
-        guard var updated = profile, !isUploadingPhoto else { return }
-        isUploadingPhoto = true
-        defer { isUploadingPhoto = false }
-        errorMessage = nil
-
-        let fileURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("avatar-\(UUID().uuidString).jpg")
-        defer { try? FileManager.default.removeItem(at: fileURL) }
-
-        do {
-            try imageData.write(to: fileURL)
-            let item = try await media.upload(fileURL: fileURL, kind: .image, journalId: Self.avatarJournalId)
-            updated.photoURL = URL(string: item.s3Key)
-            try await profiles.update(updated)
-        } catch {
-            Self.logger.error("Avatar upload failed: \(error.localizedDescription, privacy: .public)")
-            errorMessage = "Your photo couldn't be updated. Please try again."
-        }
-    }
-
     /// Uppercased initials for the avatar placeholder ("Demo User" → "DU").
     /// Empty when there's no name yet — the view falls back to a symbol.
     var initials: String {
@@ -197,60 +147,6 @@ final class ProfileViewModel: ObservableObject {
             .compactMap { $0.first.map(String.init) }
             .joined()
             .uppercased()
-    }
-
-    // MARK: - Display name
-
-    /// Saves the edited display name on submit. Empty input reverts to the
-    /// stored name; an unchanged name doesn't hit the repository.
-    ///
-    /// `isSavingName` guards the double-fire from `.onSubmit` + focus-loss
-    /// (pressing ⏎ also resigns focus) so only one repository write happens.
-    func saveDisplayName() async {
-        guard var updated = profile, !isSavingName else { return }
-        isSavingName = true
-        defer { isSavingName = false }
-        let trimmed = displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            displayNameDraft = updated.displayName
-            return
-        }
-        guard trimmed != updated.displayName else {
-            displayNameDraft = trimmed
-            return
-        }
-        displayNameDraft = trimmed
-        updated.displayName = trimmed
-        do {
-            try await profiles.update(updated)
-        } catch {
-            Self.logger.error("Display name save failed: \(error.localizedDescription, privacy: .public)")
-            errorMessage = "Your name couldn't be saved. Please try again."
-        }
-    }
-
-    // MARK: - Biography
-
-    var isBioDirty: Bool {
-        guard let profile else { return false }
-        return bioDraft != profile.biography
-    }
-
-    /// Persists the edited bio. No-op while clean — the Save button only
-    /// appears when dirty, and tests assert the repository isn't touched.
-    func saveBio() async {
-        guard var updated = profile, isBioDirty, !isSavingBio else { return }
-        isSavingBio = true
-        defer { isSavingBio = false }
-        errorMessage = nil
-
-        updated.biography = bioDraft
-        do {
-            try await profiles.update(updated)
-        } catch {
-            Self.logger.error("Bio save failed: \(error.localizedDescription, privacy: .public)")
-            errorMessage = "Your bio couldn't be saved. Please try again."
-        }
     }
 
     // MARK: - Subscription
@@ -290,6 +186,21 @@ final class ProfileViewModel: ObservableObject {
             Self.logger.error("Account deletion failed: \(error.localizedDescription, privacy: .public)")
             errorMessage = "Your account couldn't be deleted. Please try again or contact support."
         }
+    }
+
+    // MARK: - Storage & Time
+
+    var storageStats: UserProfile.StorageStats {
+        profile?.storageStats ?? UserProfile.StorageStats()
+    }
+
+    var formattedTimeInApp: String {
+        let total = profile?.totalMinutesInApp ?? 0
+        guard total > 0 else { return "0 min" }
+        if total < 60 { return "\(total) min" }
+        let hours = total / 60
+        let minutes = total % 60
+        return minutes == 0 ? "\(hours) hr" : "\(hours) hr \(minutes) min"
     }
 
     // MARK: - Footer

@@ -15,9 +15,12 @@ vi.mock('../services/journalIndexer', () => ({ indexJournalEntry: vi.fn(), delet
 vi.mock('../services/summaryGenerator', () => ({ generateSummaryText: vi.fn() }))
 vi.mock('../crypto/fieldCipher', () => ({ openField: vi.fn(), encryptField: vi.fn() }))
 vi.mock('../config', () => ({ config: { RELATED_TOP_K: 20 } }))
+vi.mock('../services/s3', () => ({ deleteMediaObjects: vi.fn(async () => {}) }))
 
-import { relatedHandler } from './rag'
-import { findRelated } from '../services/summaryIndexer'
+import { relatedHandler, deleteHandler } from './rag'
+import { findRelated, deleteSummary } from '../services/summaryIndexer'
+import { deleteJournalEntry } from '../services/journalIndexer'
+import { deleteMediaObjects } from '../services/s3'
 
 function mockRes() {
   const res: any = { statusCode: 200 }
@@ -42,5 +45,34 @@ describe('relatedHandler', () => {
     const res = mockRes()
     await relatedHandler(req, res)
     expect(res.statusCode).toBe(400)
+  })
+})
+
+describe('deleteHandler', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('400 without journalId', async () => {
+    const req: any = { uid: 'u', query: {} }
+    const res = mockRes()
+    await deleteHandler(req, res)
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('purges embeddings + summary and returns deleted:true', async () => {
+    const req: any = { uid: 'u', query: { journalId: 'e1' } }
+    const res = mockRes()
+    await deleteHandler(req, res)
+    expect(deleteJournalEntry).toHaveBeenCalledWith('u', 'e1')
+    expect(deleteSummary).toHaveBeenCalledWith('u', 'e1')
+    expect(res.body).toEqual({ deleted: true })
+  })
+
+  it('still purges embeddings when S3 delete throws (best-effort)', async () => {
+    ;(deleteMediaObjects as any).mockRejectedValueOnce(new Error('s3 down'))
+    const req: any = { uid: 'u', query: { journalId: 'e1' } }
+    const res = mockRes()
+    await deleteHandler(req, res)
+    expect(deleteJournalEntry).toHaveBeenCalledWith('u', 'e1')
+    expect(res.body).toEqual({ deleted: true })
   })
 })

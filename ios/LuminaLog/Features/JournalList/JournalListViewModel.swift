@@ -6,7 +6,7 @@ import OSLog
 @MainActor
 final class JournalListViewModel: ObservableObject {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "journal-list")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "journal-list")
 
     // MARK: - Filter
 

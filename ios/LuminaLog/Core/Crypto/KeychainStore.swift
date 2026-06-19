@@ -13,7 +13,7 @@ protocol SecretStore: AnyObject {
 /// first unlock so background work (e.g. notifications) can still decrypt.
 final class KeychainStore: SecretStore {
 
-    private let service = "com.luminalog.app.keys"
+    private let service = "com.konradgnat.luminalog.keys"
 
     func data(for account: String) -> Data? {
         var query = baseQuery(account: account)

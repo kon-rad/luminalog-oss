@@ -176,6 +176,77 @@ final class CreateEntryViewModelTests: XCTestCase {
         )
     }
 
+    // MARK: - Loading placeholders
+
+    @MainActor
+    func testBeginLoadingPhotosStagesPlaceholdersAndBlocksSave() {
+        let harness = Harness()
+        harness.viewModel.text = "Drafting."
+        XCTAssertTrue(harness.viewModel.canSave)
+
+        let ids = harness.viewModel.beginLoadingPhotos(count: 3)
+
+        XCTAssertEqual(ids.count, 3)
+        XCTAssertEqual(harness.viewModel.loadingPhotoIDs, ids)
+        XCTAssertTrue(harness.viewModel.isLoadingMedia)
+        XCTAssertTrue(harness.viewModel.hasVisibleAttachments)
+        XCTAssertFalse(harness.viewModel.canSave, "Save blocked while photos load")
+    }
+
+    @MainActor
+    func testResolveLoadingPhotoAddsPhotoAndClearsPlaceholder() {
+        let harness = Harness()
+        let ids = harness.viewModel.beginLoadingPhotos(count: 2)
+
+        harness.viewModel.resolveLoadingPhoto(id: ids[0], photo: PhotoAttachment(imageData: Data([0x01])))
+
+        XCTAssertEqual(harness.viewModel.loadingPhotoIDs, [ids[1]])
+        XCTAssertEqual(harness.viewModel.attachments.photos.count, 1)
+        XCTAssertTrue(harness.viewModel.isLoadingMedia, "Still one placeholder pending")
+
+        harness.viewModel.resolveLoadingPhoto(id: ids[1], photo: PhotoAttachment(imageData: Data([0x02])))
+
+        XCTAssertTrue(harness.viewModel.loadingPhotoIDs.isEmpty)
+        XCTAssertEqual(harness.viewModel.attachments.photos.count, 2)
+        XCTAssertFalse(harness.viewModel.isLoadingMedia)
+        XCTAssertTrue(harness.viewModel.canSave, "Save re-enables once loads finish")
+    }
+
+    @MainActor
+    func testDropLoadingPhotoClearsPlaceholderWithoutAdding() {
+        let harness = Harness()
+        let ids = harness.viewModel.beginLoadingPhotos(count: 2)
+
+        harness.viewModel.dropLoadingPhoto(id: ids[0])
+
+        XCTAssertEqual(harness.viewModel.loadingPhotoIDs, [ids[1]])
+        XCTAssertTrue(harness.viewModel.attachments.photos.isEmpty, "Failed load adds no photo")
+    }
+
+    @MainActor
+    func testLoadingVideoTogglesFlagAndBlocksSave() {
+        let harness = Harness()
+        harness.viewModel.text = "Clip incoming."
+
+        harness.viewModel.beginLoadingVideo()
+        XCTAssertTrue(harness.viewModel.isLoadingVideo)
+        XCTAssertTrue(harness.viewModel.hasVisibleAttachments)
+        XCTAssertFalse(harness.viewModel.canSave)
+
+        harness.viewModel.endLoadingVideo()
+        XCTAssertFalse(harness.viewModel.isLoadingVideo)
+        XCTAssertTrue(harness.viewModel.canSave)
+    }
+
+    @MainActor
+    func testBeginLoadingPhotosWithZeroCountIsNoOp() {
+        let harness = Harness()
+        let ids = harness.viewModel.beginLoadingPhotos(count: 0)
+
+        XCTAssertTrue(ids.isEmpty)
+        XCTAssertFalse(harness.viewModel.isLoadingMedia)
+    }
+
     // MARK: - Type determination rules
 
     @MainActor

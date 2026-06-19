@@ -35,4 +35,8 @@ protocol SubscriptionService: AnyObject {
     func restore() async throws
 
     func offerings() async throws -> [SubscriptionOffer]
+
+    /// Present the App Store code-redemption sheet (Apple Offer Codes). A
+    /// successful redemption flips the entitlement via the customer-info stream.
+    func presentCodeRedemptionSheet()
 }

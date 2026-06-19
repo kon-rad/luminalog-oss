@@ -49,11 +49,11 @@ struct TypePill: View {
             Text(type.displayName)
                 .font(.captionText.weight(.semibold))
         }
-        .foregroundStyle(type.tint)
+        .foregroundStyle(.white)
         .padding(.horizontal, Spacing.s)
         .padding(.vertical, Spacing.xs)
         .background(
-            Capsule().fill(type.tint.opacity(0.15))
+            Capsule().fill(type.tint)
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(type.displayName) entry")

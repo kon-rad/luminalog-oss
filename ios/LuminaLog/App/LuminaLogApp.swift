@@ -10,9 +10,11 @@ struct LuminaLogApp: App {
     @StateObject private var session: SessionStore
 
     @AppStorage("ll-force-dark") private var forceDark: Bool = false
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var foregroundStart: Date?
 
     init() {
-        let logger = Logger(subsystem: "com.luminalog.app", category: "startup")
+        let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "startup")
         FirebaseApp.configure()
         logger.info("Firebase configured.")
 
@@ -38,11 +40,19 @@ struct LuminaLogApp: App {
                 case .signedOut:
                     SignInView()
                 case .signedIn(let uid):
+                    // Hard paywall: Pro is required to use the app. The gate
+                    // renders RootView only once the entitlement resolves to pro.
                     // Re-key the whole shell per uid: repository streams capture
                     // the user at creation, so all tab content must be rebuilt
                     // when the signed-in user changes.
-                    RootView()
-                        .id(uid)
+                    PaywallGate(
+                        subscriptions: services.subscriptions,
+                        onSignOut: { try? services.auth.signOut() }
+                    ) {
+                        RootView()
+                            .id(uid)
+                    }
+                    .id(uid)
                 }
             }
             .environmentObject(services)
@@ -51,6 +61,19 @@ struct LuminaLogApp: App {
             .preferredColorScheme(forceDark ? .dark : nil)
             .onOpenURL { url in
                 _ = GIDSignIn.sharedInstance.handle(url)
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                switch newPhase {
+                case .active:
+                    foregroundStart = Date()
+                case .background:
+                    guard let start = foregroundStart else { return }
+                    foregroundStart = nil
+                    let minutes = max(1, Int(Date().timeIntervalSince(start) / 60))
+                    Task { try? await services.profiles.recordTimeSpent(minutes: minutes) }
+                default:
+                    break
+                }
             }
         }
     }

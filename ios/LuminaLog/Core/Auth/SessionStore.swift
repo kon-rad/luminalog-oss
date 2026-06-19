@@ -14,7 +14,7 @@ enum SessionState: Equatable {
 @MainActor
 final class SessionStore: ObservableObject {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "session")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "session")
 
     @Published private(set) var state: SessionState = .loading
     @Published private(set) var profile: UserProfile?

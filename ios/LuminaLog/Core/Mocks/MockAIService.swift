@@ -84,4 +84,8 @@ final class MockAIService: AIService {
                          date: "2026-04-20", snippet: "You felt a return of energy.", score: 0.84),
         ]
     }
+
+    func deleteEntry(journalId: String) async throws {
+        // No-op in demo mode.
+    }
 }

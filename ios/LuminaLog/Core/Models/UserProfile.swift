@@ -29,6 +29,32 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         }
     }
 
+    /// Per-type media storage counters (plaintext — not sensitive).
+    struct StorageStats: Codable, Equatable, Sendable {
+        var audioBytes: Int
+        var audioCount: Int
+        var imageBytes: Int
+        var imageCount: Int
+        var videoBytes: Int
+        var videoCount: Int
+
+        var totalBytes: Int { audioBytes + imageBytes + videoBytes }
+        var totalCount: Int { audioCount + imageCount + videoCount }
+
+        init(
+            audioBytes: Int = 0, audioCount: Int = 0,
+            imageBytes: Int = 0, imageCount: Int = 0,
+            videoBytes: Int = 0, videoCount: Int = 0
+        ) {
+            self.audioBytes = audioBytes
+            self.audioCount = audioCount
+            self.imageBytes = imageBytes
+            self.imageCount = imageCount
+            self.videoBytes = videoBytes
+            self.videoCount = videoCount
+        }
+    }
+
     /// User-customizable summary generation settings (plaintext template).
     struct SummaryConfig: Codable, Equatable, Sendable {
         var wordLength: Int
@@ -64,6 +90,8 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
     /// IANA timezone identifier (e.g. "America/Los_Angeles").
     var timezone: String
     var stats: Stats
+    var storageStats: StorageStats
+    var totalMinutesInApp: Int
     var dailyPrompt: DailyPrompt?
     var summaryConfig: SummaryConfig?
 
@@ -76,6 +104,8 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         createdAt: Date = Date(),
         timezone: String = TimeZone.current.identifier,
         stats: Stats = Stats(),
+        storageStats: StorageStats = StorageStats(),
+        totalMinutesInApp: Int = 0,
         dailyPrompt: DailyPrompt? = nil,
         summaryConfig: SummaryConfig? = nil
     ) {
@@ -87,6 +117,8 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         self.createdAt = createdAt
         self.timezone = timezone
         self.stats = stats
+        self.storageStats = storageStats
+        self.totalMinutesInApp = totalMinutesInApp
         self.dailyPrompt = dailyPrompt
         self.summaryConfig = summaryConfig
     }

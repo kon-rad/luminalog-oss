@@ -6,7 +6,7 @@ import FirebaseFirestore
 @MainActor
 final class FirestoreProfileRepository: ProfileRepository {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "firestore")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "firestore")
 
     private let db: Firestore
     private let auth: AuthService
@@ -85,6 +85,28 @@ final class FirestoreProfileRepository: ProfileRepository {
         try await ref.setData(try seed.firestoreData(cipher: cipher), merge: true)
     }
 
+    func recordMediaUploaded(kind: MediaKind, bytes: Int) async throws {
+        guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
+        let countKey: String
+        let bytesKey: String
+        switch kind {
+        case .audio: countKey = "storage.audioCount"; bytesKey = "storage.audioBytes"
+        case .image: countKey = "storage.imageCount"; bytesKey = "storage.imageBytes"
+        case .video: countKey = "storage.videoCount"; bytesKey = "storage.videoBytes"
+        }
+        try await userRef(uid).updateData([
+            countKey: FieldValue.increment(Int64(1)),
+            bytesKey: FieldValue.increment(Int64(bytes)),
+        ])
+    }
+
+    func recordTimeSpent(minutes: Int) async throws {
+        guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
+        try await userRef(uid).updateData([
+            "totalMinutesInApp": FieldValue.increment(Int64(minutes))
+        ])
+    }
+
     func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {
         guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
         let ref = userRef(uid)
@@ -103,12 +125,12 @@ final class FirestoreProfileRepository: ProfileRepository {
             let timezone = (data["timezone"] as? String).flatMap(TimeZone.init(identifier:))
                 ?? .current
 
-            var next = StreakCalculator.nextStats(
+            let next = DailyGoalStreak.nextStats(
                 current: current,
+                wordCountDelta: wordCountDelta,
                 entryDate: date,
                 timezone: timezone
             )
-            next.totalWords = current.totalWords + wordCountDelta
 
             transaction.setData(["stats": next.firestoreData], forDocument: ref, merge: true)
             return nil

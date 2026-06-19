@@ -7,6 +7,7 @@ import { indexSummary, deleteSummary, findRelated } from '../services/summaryInd
 import { generateSummaryText } from '../services/summaryGenerator'
 import { getOrCreateDEK } from '../crypto/keyService'
 import { openField, encryptField } from '../crypto/fieldCipher'
+import { deleteMediaObjects } from '../services/s3'
 
 export const ragRouter = Router()
 
@@ -107,13 +108,38 @@ function shouldRegenerateSummary(
   return false
 }
 
-ragRouter.delete('/delete', firebaseAuth, async (req: Request, res: Response) => {
+export async function deleteHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
   const journalId = req.query['journalId'] as string | undefined
 
   if (!journalId) {
     res.status(400).json({ error: 'Missing journalId query param' })
     return
+  }
+
+  // Best-effort S3 media purge. Read the doc for the media keys and verify
+  // ownership; a missing doc just means there are no keys to collect.
+  try {
+    const snap = await db.collection('journals').doc(journalId).get()
+    if (snap.exists) {
+      const data = snap.data()!
+      if (data.userId !== uid) {
+        res.status(403).json({ error: 'Forbidden' })
+        return
+      }
+      const prefix = `users/${uid}/`
+      const keys: string[] = []
+      for (const m of (data.media ?? []) as Array<Record<string, unknown>>) {
+        const k = m['s3Key']
+        const t = m['thumbnailS3Key']
+        if (typeof k === 'string' && k.startsWith(prefix)) keys.push(k)
+        if (typeof t === 'string' && t.startsWith(prefix)) keys.push(t)
+      }
+      await deleteMediaObjects(keys)
+    }
+  } catch (err) {
+    // Best-effort: log and continue to embedding purge (spec delete policy).
+    console.error('[rag/delete] media purge failed (continuing)', err)
   }
 
   try {
@@ -124,7 +150,9 @@ ragRouter.delete('/delete', firebaseAuth, async (req: Request, res: Response) =>
     console.error('[rag/delete]', err)
     res.status(500).json({ error: 'Delete failed' })
   }
-})
+}
+
+ragRouter.delete('/delete', firebaseAuth, deleteHandler)
 
 export async function relatedHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string

@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import express from 'express'
+import express, { NextFunction, Request, Response } from 'express'
 import { config } from './config'
 import { healthRouter } from './routes/health'
 import { ragRouter } from './routes/rag'
@@ -20,6 +20,23 @@ app.use('/v1/ai', aiRouter)
 app.use('/v1/vapi', vapiRouter)
 app.use('/v1/media', mediaRouter)
 app.use('/v1/keys', keysRouter)
+
+// Backstop error middleware — catches anything routes forward via next(err).
+// (Express 4 does not auto-forward async-handler rejections; that's handled
+// per-route, but this covers sync throws and explicit next(err) calls.)
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('[express]', err)
+  if (!res.headersSent) res.status(500).json({ error: 'Internal error' })
+})
+
+// Last-resort guards so one bad request can never take the whole process down
+// and trigger the PM2 restart/EADDRINUSE loop. Log loudly; keep serving.
+process.on('unhandledRejection', reason => {
+  console.error('[unhandledRejection]', reason)
+})
+process.on('uncaughtException', err => {
+  console.error('[uncaughtException]', err)
+})
 
 app.listen(Number(config.PORT), () => {
   console.log(`[luminalog-api] running on port ${config.PORT} (${config.NODE_ENV})`)

@@ -14,7 +14,7 @@ import OSLog
 @MainActor
 final class JournalDetailViewModel: ObservableObject {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "journal-detail")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "journal-detail")
 
     // MARK: - Published state
 
@@ -31,6 +31,9 @@ final class JournalDetailViewModel: ObservableObject {
     /// True once the first stream emission has landed (so the view can tell
     /// "loading" apart from "entry not found").
     @Published private(set) var hasLoaded = false
+
+    /// Set true once the entry has been deleted so the view can pop.
+    @Published private(set) var didDelete = false
 
     let entryId: String
 
@@ -165,6 +168,32 @@ final class JournalDetailViewModel: ObservableObject {
             Self.logger.error("retryTranscription failed: \(error.localizedDescription, privacy: .public)")
             transcriptRetryState = .failed
         }
+    }
+
+    // MARK: - Delete
+
+    /// Best-effort delete: purge remote artifacts (S3 media + embeddings +
+    /// summary) server-side, then always remove the Firestore record so the
+    /// entry disappears from the user's list (spec delete policy).
+    func delete() async {
+        guard entry != nil else { return }
+        do {
+            try await ai.deleteEntry(journalId: entryId)
+        } catch {
+            Self.logger.error("""
+            remote delete cleanup failed for \(self.entryId, privacy: .private); \
+            removing record anyway: \(error.localizedDescription, privacy: .public)
+            """)
+        }
+        do {
+            try await journals.delete(id: entryId)
+        } catch {
+            Self.logger.error("""
+            firestore delete failed for \(self.entryId, privacy: .private): \
+            \(error.localizedDescription, privacy: .public)
+            """)
+        }
+        didDelete = true
     }
 
     // MARK: - Persistence

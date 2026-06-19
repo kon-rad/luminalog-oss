@@ -11,7 +11,7 @@ import RevenueCat
 @MainActor
 final class RevenueCatCreditService: CreditService {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "credits")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "credits")
 
     private let auth: AuthService
     private let db: Firestore
@@ -56,7 +56,7 @@ final class RevenueCatCreditService: CreditService {
                 id: product.productIdentifier,
                 credits: credits,
                 price: product.localizedPriceString,
-                popular: product.productIdentifier == "com.luminalog.credits.150"
+                popular: product.productIdentifier == "com.luminalog.credits.10"
             )
         }.sorted { $0.credits < $1.credits }
     }

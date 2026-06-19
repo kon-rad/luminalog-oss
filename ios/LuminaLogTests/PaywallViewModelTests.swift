@@ -68,6 +68,9 @@ final class PaywallViewModelTests: XCTestCase {
             return offers
         }
 
+        private(set) var redeemCalls = 0
+        func presentCodeRedemptionSheet() { redeemCalls += 1 }
+
         private func broadcast() {
             for continuation in continuations.values {
                 continuation.yield(entitlement)
@@ -173,6 +176,15 @@ final class PaywallViewModelTests: XCTestCase {
         }
         XCTAssertFalse(viewModel.didUnlockPro,
                        "An already-pro user managing their plan must not auto-dismiss")
+    }
+
+    // MARK: - Offer codes
+
+    @MainActor
+    func testRedeemCodeForwardsToService() async {
+        let (viewModel, service) = await makeStarted()
+        viewModel.redeemCode()
+        XCTAssertEqual(service.redeemCalls, 1)
     }
 
     // MARK: - Restore

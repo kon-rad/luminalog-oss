@@ -120,6 +120,7 @@ final class StubChatAIService: AIService {
     func dailyPrompt() async throws -> String { "" }
 
     func requestIndex(journalId: String) async {}
+    func deleteEntry(journalId: String) async throws {}
 
     func transcribeJournal(journalId: String) async {}
 

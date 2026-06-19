@@ -7,7 +7,7 @@ import OSLog
 @MainActor
 final class TranscriptEditorViewModel: ObservableObject {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "transcript-editor")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "transcript-editor")
 
     /// A recorded-but-not-yet-uploaded voice memo.
     struct PendingClip: Identifiable, Equatable {

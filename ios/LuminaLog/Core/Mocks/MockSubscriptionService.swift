@@ -62,6 +62,10 @@ final class MockSubscriptionService: SubscriptionService {
         demoOffers
     }
 
+    func presentCodeRedemptionSheet() {
+        // Demo mode has no App Store; redemption is a no-op.
+    }
+
     // MARK: - Broadcast
 
     private func broadcast() {

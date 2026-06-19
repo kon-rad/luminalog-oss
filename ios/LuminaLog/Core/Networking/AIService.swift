@@ -46,6 +46,11 @@ protocol AIService: AnyObject {
 
     /// The 20 most semantically similar other entries (summary-embedding search).
     func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry]
+
+    /// Best-effort server-side purge of an entry's remote artifacts: S3 media
+    /// objects, RAG chunk embeddings, and the summary embedding. Does NOT delete
+    /// the Firestore record — the client owns that.
+    func deleteEntry(journalId: String) async throws
 }
 
 extension AIService {

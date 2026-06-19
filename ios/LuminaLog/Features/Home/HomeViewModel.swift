@@ -6,7 +6,7 @@ import OSLog
 @MainActor
 final class HomeViewModel: ObservableObject {
 
-    private static let logger = Logger(subsystem: "com.luminalog.app", category: "home")
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "home")
 
     /// How many entries the "Recent entries" section shows (design §2).
     static let recentLimit = 10
@@ -112,6 +112,31 @@ final class HomeViewModel: ObservableObject {
         (profile?.stats.totalWords ?? 0).formatted()
     }
 
+    // MARK: - Daily goal progress
+
+    var goalTarget: Int { DailyGoal.wordTarget }
+
+    /// Words journaled today (user timezone); 0 if the cached goal-day is stale.
+    var goalProgressWords: Int {
+        guard let stats = profile?.stats, let day = stats.goalDayDate else { return 0 }
+        var calendar = Calendar.current
+        if let tz = TimeZone(identifier: profile?.timezone ?? "") { calendar.timeZone = tz }
+        return calendar.isDate(day, inSameDayAs: Date()) ? stats.goalDayWords : 0
+    }
+
+    var goalMet: Bool { goalProgressWords >= goalTarget }
+
+    /// 0...1 progress fraction for the goal ring/bar.
+    var goalFraction: Double {
+        guard goalTarget > 0 else { return 0 }
+        return min(1, Double(goalProgressWords) / Double(goalTarget))
+    }
+
+    /// Trailing label: remaining words, or a met confirmation.
+    var goalProgressLabel: String {
+        goalMet ? "Goal met" : "\(max(0, goalTarget - goalProgressWords)) words to go"
+    }
+
     // MARK: - Daily prompt
 
     /// Uses `profile.dailyPrompt` when it was generated today (user's
@@ -139,6 +164,11 @@ final class HomeViewModel: ObservableObject {
             // A profile prompt that arrived while fetching wins.
             if case .loading = promptState {
                 promptState = .loaded(prompt)
+            }
+            // Persist so subsequent app launches skip the LLM call.
+            if var updated = profile {
+                updated.dailyPrompt = UserProfile.DailyPrompt(text: prompt)
+                try? await profiles.update(updated)
             }
         } catch {
             Self.logger.error("dailyPrompt failed: \(error.localizedDescription, privacy: .public)")
