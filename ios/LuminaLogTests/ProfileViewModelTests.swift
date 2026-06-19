@@ -99,6 +99,7 @@ final class ProfileViewModelTests: XCTestCase {
                 auth: auth,
                 profiles: profiles,
                 subscriptions: subscriptions,
+                credits: MockCreditService(),
                 media: media
             )
         }

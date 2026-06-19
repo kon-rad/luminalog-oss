@@ -7,11 +7,6 @@ final class MockSubscriptionService: SubscriptionService {
     private var entitlement: Entitlement
     private var continuations: [UUID: AsyncStream<Entitlement>.Continuation] = [:]
 
-    private let demoOffers = [
-        SubscriptionOffer(id: "luminalog.pro.monthly", title: "LuminaLog Pro", price: "$6.99", period: "month"),
-        SubscriptionOffer(id: "luminalog.pro.annual", title: "LuminaLog Pro", price: "$49.99", period: "year")
-    ]
-
     init(entitlement: Entitlement = Entitlement()) {
         self.entitlement = entitlement
     }
@@ -56,10 +51,6 @@ final class MockSubscriptionService: SubscriptionService {
     func restore() async throws {
         try? await Task.sleep(nanoseconds: 500_000_000)
         broadcast()
-    }
-
-    func offerings() async throws -> [SubscriptionOffer] {
-        demoOffers
     }
 
     func presentCodeRedemptionSheet() {

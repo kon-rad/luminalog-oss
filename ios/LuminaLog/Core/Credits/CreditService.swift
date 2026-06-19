@@ -33,15 +33,6 @@ protocol CreditService: AnyObject {
     /// Snapshot of the current balance (single Firestore read).
     func currentBalance() async -> Int
 
-    /// Fetch available credit packs from RevenueCat / StoreKit.
-    func availablePacks() async throws -> [CreditPack]
-
-    /// Purchase a pack by product ID; atomically adds credits on success.
-    func purchase(packId: String) async throws
-
     /// Atomically deduct `amount` credits; clamps to zero rather than going negative.
     func deductCredits(_ amount: Int) async throws
-
-    /// Atomically add `amount` credits (called internally after purchase).
-    func addCredits(_ amount: Int) async throws
 }

@@ -44,6 +44,7 @@ struct ProfileView: View {
                 auth: auth,
                 profiles: profiles,
                 subscriptions: subscriptions,
+                credits: credits,
                 media: media
             ),
             subscriptions: subscriptions,
@@ -98,7 +99,7 @@ struct ProfileView: View {
         }
         .task { viewModel.start() }
         .sheet(isPresented: $showPaywall) {
-            PaywallView(subscriptions: subscriptions)
+            SubscriptionPaywall()
         }
         .sheet(isPresented: $showCredits) {
             CreditsView(credits: credits)
@@ -491,6 +492,9 @@ struct ProfileView: View {
                         .foregroundStyle(Color.textSecondary)
                 }
                 Spacer()
+                Text("\(viewModel.creditBalance) credits")
+                    .font(.captionText.weight(.medium))
+                    .foregroundStyle(Color.textSecondary)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.textSecondary.opacity(0.5))
@@ -499,7 +503,7 @@ struct ProfileView: View {
             .frame(minHeight: 56)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Voice Credits, buy minutes for voice conversations")
+        .accessibilityLabel("Voice Credits, \(viewModel.creditBalance) credits, buy minutes for voice conversations")
     }
 
     private var signOutRow: some View {
@@ -615,6 +619,7 @@ struct ProfileView: View {
         auth: MockAuthService(signedIn: true),
         profiles: profiles,
         subscriptions: subscriptions,
+        credits: MockCreditService(balance: 12),
         media: MockMediaUploader()
     )
     viewModel.start()

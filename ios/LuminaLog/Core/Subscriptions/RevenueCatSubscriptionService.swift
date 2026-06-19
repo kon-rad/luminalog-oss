@@ -82,20 +82,6 @@ final class RevenueCatSubscriptionService: SubscriptionService {
         Purchases.shared.presentCodeRedemptionSheet()
     }
 
-    func offerings() async throws -> [SubscriptionOffer] {
-        let offerings = try await Purchases.shared.offerings()
-        guard let current = offerings.current else { return [] }
-        return current.availablePackages.map { package in
-            let product = package.storeProduct
-            return SubscriptionOffer(
-                id: product.productIdentifier,
-                title: product.localizedTitle,
-                price: product.localizedPriceString,
-                period: Self.periodLabel(for: product.subscriptionPeriod)
-            )
-        }
-    }
-
     // MARK: - Mapping
 
     private static func entitlement(from info: CustomerInfo) -> Entitlement {
@@ -106,17 +92,5 @@ final class RevenueCatSubscriptionService: SubscriptionService {
             expiresAt: pro?.expirationDate,
             updatedAt: Date()
         )
-    }
-
-    private static func periodLabel(for period: SubscriptionPeriod?) -> String {
-        guard let period else { return "" }
-        let unit: String
-        switch period.unit {
-        case .day: unit = "day"
-        case .week: unit = "week"
-        case .month: unit = "month"
-        case .year: unit = "year"
-        }
-        return period.value == 1 ? unit : "\(period.value) \(unit)s"
     }
 }

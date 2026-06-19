@@ -20,7 +20,6 @@ final class PaywallGateViewModelTests: XCTestCase {
         func setUser(_ uid: String?) async {}
         func purchase(productId: String) async throws {}
         func restore() async throws {}
-        func offerings() async throws -> [SubscriptionOffer] { [] }
         func presentCodeRedemptionSheet() {}
         func push(_ entitlement: Entitlement) {
             self.entitlement = entitlement
@@ -34,7 +33,6 @@ final class PaywallGateViewModelTests: XCTestCase {
         func setUser(_ uid: String?) async {}
         func purchase(productId: String) async throws {}
         func restore() async throws {}
-        func offerings() async throws -> [SubscriptionOffer] { [] }
         func presentCodeRedemptionSheet() {}
     }
 

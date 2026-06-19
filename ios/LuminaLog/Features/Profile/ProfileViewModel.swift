@@ -17,6 +17,7 @@ final class ProfileViewModel: ObservableObject {
 
     @Published private(set) var profile: UserProfile?
     @Published private(set) var entitlement: Entitlement?
+    @Published private(set) var creditBalance: Int = 0
 
     // MARK: Avatar
 
@@ -34,10 +35,12 @@ final class ProfileViewModel: ObservableObject {
     private let auth: AuthService
     let profiles: ProfileRepository
     private let subscriptions: SubscriptionService
+    private let credits: CreditService
     private let media: MediaUploader
 
     private var profileTask: Task<Void, Never>?
     private var entitlementTask: Task<Void, Never>?
+    private var creditsTask: Task<Void, Never>?
     private var hasStarted = false
 
     /// The photoURL value the current `avatarURL` was resolved from, so
@@ -49,11 +52,13 @@ final class ProfileViewModel: ObservableObject {
         auth: AuthService,
         profiles: ProfileRepository,
         subscriptions: SubscriptionService,
+        credits: CreditService,
         media: MediaUploader
     ) {
         self.auth = auth
         self.profiles = profiles
         self.subscriptions = subscriptions
+        self.credits = credits
         self.media = media
     }
 
@@ -65,6 +70,7 @@ final class ProfileViewModel: ObservableObject {
     deinit {
         profileTask?.cancel()
         entitlementTask?.cancel()
+        creditsTask?.cancel()
     }
 
     // MARK: - Lifecycle
@@ -88,6 +94,14 @@ final class ProfileViewModel: ObservableObject {
             for await entitlement in stream {
                 guard let self, !Task.isCancelled else { return }
                 self.entitlement = entitlement
+            }
+        }
+
+        creditsTask = Task { [weak self] in
+            guard let stream = self?.credits.balanceStream() else { return }
+            for await balance in stream {
+                guard let self, !Task.isCancelled else { return }
+                self.creditBalance = balance
             }
         }
     }

@@ -31,7 +31,7 @@ struct PaywallGate<Content: View>: View {
                     ProgressView().tint(Color.accentWarm)
                 }
             case .locked:
-                PaywallView(subscriptions: subscriptions, isDismissible: false, onSignOut: onSignOut)
+                SubscriptionPaywall(isDismissible: false, onSignOut: onSignOut)
             case .unlocked:
                 content()
             }
