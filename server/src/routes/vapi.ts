@@ -208,7 +208,15 @@ export function parseWebhookMessage(body: any): ParsedWebhook {
     callId: m.call?.id ?? '',
     endedReason: m.endedReason ?? '',
     rawTranscript: transcript,
-    recordingUrl: m.recordingUrl ?? m.artifact?.recording ?? m.stereoRecordingUrl ?? '',
+    // The string URL is at artifact.recordingUrl; artifact.recording is an OBJECT
+    // ({ stereoUrl, mono: { combinedUrl, ... } }), so prefer the explicit strings.
+    recordingUrl:
+      m.recordingUrl ??
+      m.artifact?.recordingUrl ??
+      m.artifact?.recording?.mono?.combinedUrl ??
+      m.artifact?.recording?.stereoUrl ??
+      m.stereoRecordingUrl ??
+      '',
   }
 }
 

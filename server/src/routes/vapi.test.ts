@@ -118,6 +118,27 @@ describe('vapi webhook payload parsing', () => {
     const body = { message: { type: 'end-of-call-report', assistant: { metadata: { chatId: 'chat_4' } } } }
     expect(parseWebhookMessage(body).chatId).toBe('chat_4')
   })
+
+  it('extracts the recording string URL (artifact.recording is an object, not a url)', () => {
+    const body = {
+      message: {
+        type: 'end-of-call-report',
+        artifact: {
+          transcript: 'AI: hi\n',
+          recordingUrl: 'https://storage.vapi.ai/mono.wav',
+          recording: { stereoUrl: 'https://storage.vapi.ai/stereo.wav', mono: { combinedUrl: 'https://storage.vapi.ai/combined.wav' } },
+        },
+      },
+    }
+    const m = parseWebhookMessage(body)
+    expect(m.recordingUrl).toBe('https://storage.vapi.ai/mono.wav')
+    expect(m.rawTranscript).toBe('AI: hi\n')
+  })
+
+  it('falls back to mono.combinedUrl when artifact.recordingUrl is absent', () => {
+    const body = { message: { type: 'end-of-call-report', artifact: { recording: { mono: { combinedUrl: 'https://c.wav' } } } } }
+    expect(parseWebhookMessage(body).recordingUrl).toBe('https://c.wav')
+  })
 })
 
 import { accumulateAssistantText } from './vapi'
