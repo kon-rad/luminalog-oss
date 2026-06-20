@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 enum PendingUploadState: String, Codable { case pending, uploading, uploaded, failed }
 
@@ -51,16 +52,20 @@ struct PendingEntry: Codable, Equatable {
 /// directory in Application Support (excluded from iCloud backup). Synchronous,
 /// atomic writes (write-temp + replace). Thread-safe via an internal lock.
 ///
-/// Locking note: `mutate` deliberately does NOT hold the lock across its
-/// read-modify-write — it calls `entry(...)` then `upsert(...)`, each of which
-/// takes the (non-recursive) `NSLock` independently. This app has a single
-/// upload coordinator, so the lack of an atomic mutate is acceptable and it
-/// avoids any chance of re-entrant deadlock.
+/// Concurrency: a background-URLSession delegate mutates this store off the
+/// main thread, so correctness requires that read-modify-write be atomic.
+/// `mutate` (and `markUploaded`, which routes through it) holds the lock
+/// across the entire read-modify-write so two concurrent mutations cannot
+/// interleave and lose an update. All public methods take the (non-recursive)
+/// `NSLock` and delegate to private *unlocked* cores (`_read`/`_write`); a
+/// locked public method never calls another locked public method, so there is
+/// no re-entrant deadlock.
 final class UploadJournal {
 
     private let directory: URL
     private let lock = NSLock()
     private let fm = FileManager.default
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "uploadJournal")
 
     init(directory: URL) {
         self.directory = directory
@@ -69,6 +74,7 @@ final class UploadJournal {
         var rv = URLResourceValues()
         rv.isExcludedFromBackup = true
         try? d.setResourceValues(rv)
+        sweepStaleTempFiles()
     }
 
     /// Default production location: Application Support/Uploads.
@@ -77,13 +83,59 @@ final class UploadJournal {
         return base.appendingPathComponent("Uploads", isDirectory: true)
     }
 
-    private func fileURL(_ draftId: String) -> URL {
-        directory.appendingPathComponent("\(draftId).json")
+    /// Builds the on-disk URL for a draft's JSON file.
+    ///
+    /// `draftId` is sanitized to prevent path traversal: path separators
+    /// (`/`, `\`) and `..` sequences must not let a record escape `directory`.
+    /// We return `nil` (rather than throwing/crashing) for an empty or unsafe
+    /// id so the calling op becomes a safe no-op in release builds.
+    private func fileURL(_ draftId: String) -> URL? {
+        guard !draftId.isEmpty,
+              !draftId.contains("/"),
+              !draftId.contains("\\"),
+              !draftId.contains("..") else {
+            Self.logger.error("Rejected unsafe draftId for fileURL: \(draftId, privacy: .public)")
+            return nil
+        }
+        return directory.appendingPathComponent("\(draftId).json")
     }
 
-    func upsert(_ entry: PendingEntry) throws {
-        lock.lock(); defer { lock.unlock() }
-        let dest = fileURL(entry.draftId)
+    /// Remove leftover `*.tmp` files orphaned by a crash between temp-write and
+    /// replace, so they don't accumulate.
+    private func sweepStaleTempFiles() {
+        let files = (try? fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        for url in files where url.pathExtension == "tmp" {
+            try? fm.removeItem(at: url)
+        }
+    }
+
+    /// Quarantine an undecodable file by renaming it to `<name>.corrupt` so it
+    /// stops being re-scanned by `allPending()`/`entry()`.
+    private func quarantine(_ url: URL, error: Error) {
+        Self.logger.error("Quarantining undecodable upload record \(url.lastPathComponent, privacy: .public): \(String(describing: error), privacy: .public)")
+        let dest = url.appendingPathExtension("corrupt")
+        try? fm.removeItem(at: dest)            // clear any prior quarantine of the same name
+        try? fm.moveItem(at: url, to: dest)
+    }
+
+    // MARK: - Unlocked cores (callers MUST hold `lock`)
+
+    /// Read + decode a single record. Quarantines and returns nil on decode
+    /// failure. Caller must hold `lock`.
+    private func _read(_ draftId: String) -> PendingEntry? {
+        guard let url = fileURL(draftId) else { return nil }
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        do {
+            return try JSONDecoder().decode(PendingEntry.self, from: data)
+        } catch {
+            quarantine(url, error: error)
+            return nil
+        }
+    }
+
+    /// Atomically (temp + replace) persist a record. Caller must hold `lock`.
+    private func _write(_ entry: PendingEntry) throws {
+        guard let dest = fileURL(entry.draftId) else { return }   // unsafe id: safe no-op
         let data = try JSONEncoder().encode(entry)
 
         if fm.fileExists(atPath: dest.path) {
@@ -103,24 +155,41 @@ final class UploadJournal {
         }
     }
 
+    // MARK: - Public, locked API
+
+    func upsert(_ entry: PendingEntry) throws {
+        lock.lock(); defer { lock.unlock() }
+        try _write(entry)
+    }
+
     func entry(draftId: String) -> PendingEntry? {
         lock.lock(); defer { lock.unlock() }
-        guard let data = try? Data(contentsOf: fileURL(draftId)) else { return nil }
-        return try? JSONDecoder().decode(PendingEntry.self, from: data)
+        return _read(draftId)
     }
 
     func allPending() -> [PendingEntry] {
         lock.lock(); defer { lock.unlock() }
         let files = (try? fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        // Only scan `.json` (excludes `.corrupt` and `.tmp`).
         return files.filter { $0.pathExtension == "json" }
-            .compactMap { try? Data(contentsOf: $0) }
-            .compactMap { try? JSONDecoder().decode(PendingEntry.self, from: $0) }
+            .compactMap { url -> PendingEntry? in
+                guard let data = try? Data(contentsOf: url) else { return nil }
+                do {
+                    return try JSONDecoder().decode(PendingEntry.self, from: data)
+                } catch {
+                    quarantine(url, error: error)
+                    return nil
+                }
+            }
     }
 
+    /// Atomic read-modify-write: the lock is held once across both the read and
+    /// the write, so concurrent mutations cannot interleave and lose updates.
     func mutate(draftId: String, _ block: (inout PendingEntry) -> Void) throws {
-        guard var e = entry(draftId: draftId) else { return }
+        lock.lock(); defer { lock.unlock() }
+        guard var e = _read(draftId) else { return }
         block(&e)
-        try upsert(e)
+        try _write(e)
     }
 
     func markUploaded(draftId: String, attachmentId: UUID, s3Key: String) throws {
@@ -134,6 +203,7 @@ final class UploadJournal {
 
     func remove(draftId: String) {
         lock.lock(); defer { lock.unlock() }
-        try? fm.removeItem(at: fileURL(draftId))
+        guard let url = fileURL(draftId) else { return }
+        try? fm.removeItem(at: url)
     }
 }
