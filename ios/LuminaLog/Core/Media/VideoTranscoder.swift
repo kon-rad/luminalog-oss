@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import os.lock
 
 /// Transcodes a source video to 720p HEVC (~2.5 Mbps) via an AVAssetReader →
 /// AVAssetWriter pass. There is no stock HEVC-720p export preset, so we drive
@@ -26,7 +27,10 @@ struct VideoTranscoder {
 
     func transcode(source: URL, to destination: URL, options: Options = Options()) async throws {
         let asset = AVURLAsset(url: source)
-        guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first else {
+        // A damaged / non-video file fails to load its tracks; treat that the same as
+        // "no video track" so callers get a stable TranscodeError rather than a raw
+        // AVFoundation error.
+        guard let videoTrack = (try? await asset.loadTracks(withMediaType: .video))?.first else {
             throw TranscodeError.noVideoTrack
         }
         try? FileManager.default.removeItem(at: destination)
@@ -34,78 +38,143 @@ struct VideoTranscoder {
         let reader = try AVAssetReader(asset: asset)
         let writer = try AVAssetWriter(outputURL: destination, fileType: .mp4)
 
-        let natural = try await videoTrack.load(.naturalSize)
-        let transform = (try? await videoTrack.load(.preferredTransform)) ?? .identity
-        let oriented = natural.applying(transform)
-        let (w, h) = Self.targetSize(width: abs(oriented.width), height: abs(oriented.height),
-                                     maxLongEdge: options.maxLongEdge)
+        // On any failure after reader/writer exist, cancel both (guarded by status so we
+        // never cancel an already-completed writer/reader) and remove the partial output
+        // file so downstream code never mistakes a corrupt half-write for a success.
+        func cleanup() {
+            if writer.status == .writing { writer.cancelWriting() }
+            if reader.status == .reading { reader.cancelReading() }
+            try? FileManager.default.removeItem(at: destination)
+        }
 
-        let videoOut = AVAssetReaderTrackOutput(track: videoTrack, outputSettings: [
-            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
-        ])
-        videoOut.alwaysCopiesSampleData = false
-        guard reader.canAdd(videoOut) else { throw TranscodeError.readerFailed }
-        reader.add(videoOut)
+        do {
+            let natural = try await videoTrack.load(.naturalSize)
+            let transform = (try? await videoTrack.load(.preferredTransform)) ?? .identity
+            let oriented = natural.applying(transform)
+            let (w, h) = Self.targetSize(width: abs(oriented.width), height: abs(oriented.height),
+                                         maxLongEdge: options.maxLongEdge)
 
-        let videoIn = AVAssetWriterInput(mediaType: .video, outputSettings: [
-            AVVideoCodecKey: AVVideoCodecType.hevc,
-            AVVideoWidthKey: w, AVVideoHeightKey: h,
-            AVVideoCompressionPropertiesKey: [
-                AVVideoAverageBitRateKey: options.videoBitrate,
-                AVVideoExpectedSourceFrameRateKey: 30,
-            ],
-        ])
-        videoIn.expectsMediaDataInRealTime = false
-        videoIn.transform = transform
-        guard writer.canAdd(videoIn) else { throw TranscodeError.writerFailed }
-        writer.add(videoIn)
-
-        var audioOut: AVAssetReaderTrackOutput?
-        var audioIn: AVAssetWriterInput?
-        if let audioTrack = try await asset.loadTracks(withMediaType: .audio).first {
-            let aOut = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: [
-                AVFormatIDKey: kAudioFormatLinearPCM,
+            let videoOut = AVAssetReaderTrackOutput(track: videoTrack, outputSettings: [
+                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
             ])
-            if reader.canAdd(aOut) {
-                reader.add(aOut); audioOut = aOut
-                let aIn = AVAssetWriterInput(mediaType: .audio, outputSettings: [
-                    AVFormatIDKey: kAudioFormatMPEG4AAC,
-                    AVNumberOfChannelsKey: 2,
-                    AVSampleRateKey: 44_100,
-                    AVEncoderBitRateKey: options.audioBitrate,
+            videoOut.alwaysCopiesSampleData = false
+            guard reader.canAdd(videoOut) else { throw TranscodeError.readerFailed }
+            reader.add(videoOut)
+
+            let videoIn = AVAssetWriterInput(mediaType: .video, outputSettings: [
+                AVVideoCodecKey: AVVideoCodecType.hevc,
+                AVVideoWidthKey: w, AVVideoHeightKey: h,
+                AVVideoCompressionPropertiesKey: [
+                    AVVideoAverageBitRateKey: options.videoBitrate,
+                    AVVideoExpectedSourceFrameRateKey: 30,
+                ],
+            ])
+            videoIn.expectsMediaDataInRealTime = false
+            videoIn.transform = transform
+            guard writer.canAdd(videoIn) else { throw TranscodeError.writerFailed }
+            writer.add(videoIn)
+
+            var audioOut: AVAssetReaderTrackOutput?
+            var audioIn: AVAssetWriterInput?
+            if let audioTrack = try await asset.loadTracks(withMediaType: .audio).first {
+                let aOut = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: [
+                    AVFormatIDKey: kAudioFormatLinearPCM,
                 ])
-                aIn.expectsMediaDataInRealTime = false
-                if writer.canAdd(aIn) { writer.add(aIn); audioIn = aIn }
+                if reader.canAdd(aOut) {
+                    reader.add(aOut); audioOut = aOut
+                    // Match the source's channel layout + sample rate so we don't upmix
+                    // mono to stereo or resample 48 kHz down to 44.1 kHz.
+                    let (channels, sampleRate) = await Self.audioChannelsAndRate(of: audioTrack)
+                    let aIn = AVAssetWriterInput(mediaType: .audio, outputSettings: [
+                        AVFormatIDKey: kAudioFormatMPEG4AAC,
+                        AVNumberOfChannelsKey: channels,
+                        AVSampleRateKey: sampleRate,
+                        AVEncoderBitRateKey: options.audioBitrate,
+                    ])
+                    aIn.expectsMediaDataInRealTime = false
+                    if writer.canAdd(aIn) { writer.add(aIn); audioIn = aIn }
+                }
             }
-        }
 
-        guard reader.startReading() else { throw TranscodeError.readerFailed }
-        guard writer.startWriting() else { throw TranscodeError.writerFailed }
-        writer.startSession(atSourceTime: .zero)
+            guard reader.startReading() else { throw TranscodeError.readerFailed }
+            guard writer.startWriting() else { throw TranscodeError.writerFailed }
+            writer.startSession(atSourceTime: .zero)
 
-        await withTaskGroup(of: Void.self) { group in
-            let q = DispatchQueue(label: "transcode.video")
-            group.addTask { await Self.pump(input: videoIn, output: videoOut, queue: q) }
-            if let audioIn, let audioOut {
-                let aq = DispatchQueue(label: "transcode.audio")
-                group.addTask { await Self.pump(input: audioIn, output: audioOut, queue: aq) }
+            await withTaskGroup(of: Void.self) { group in
+                // Each pump owns its input/output exclusively and only ever touches them
+                // on its own dedicated serial queue, so the per-pump confinement makes
+                // these AV objects safe to capture despite not being Sendable. We never
+                // share a queue across pumps.
+                nonisolated(unsafe) let vIn = videoIn
+                nonisolated(unsafe) let vOut = videoOut
+                let q = DispatchQueue(label: "transcode.video")
+                group.addTask { await Self.pump(input: vIn, output: vOut, queue: q) }
+                if let audioIn, let audioOut {
+                    nonisolated(unsafe) let aIn = audioIn
+                    nonisolated(unsafe) let aOut = audioOut
+                    let aq = DispatchQueue(label: "transcode.audio")
+                    group.addTask { await Self.pump(input: aIn, output: aOut, queue: aq) }
+                }
             }
-        }
 
-        if reader.status == .failed { throw reader.error ?? TranscodeError.readerFailed }
-        await writer.finishWriting()
-        if writer.status != .completed { throw writer.error ?? TranscodeError.writerFailed }
+            if reader.status == .failed {
+                let err = reader.error ?? TranscodeError.readerFailed
+                cleanup(); throw err
+            }
+            await writer.finishWriting()
+            if writer.status != .completed {
+                let err = writer.error ?? TranscodeError.writerFailed
+                cleanup(); throw err
+            }
+        } catch {
+            cleanup()
+            throw error
+        }
+    }
+
+    /// Reads the source audio track's stream format to recover its channel count and
+    /// sample rate, falling back to stereo / 44.1 kHz when unavailable.
+    private static func audioChannelsAndRate(of track: AVAssetTrack) async -> (channels: Int, sampleRate: Double) {
+        guard let formats = try? await track.load(.formatDescriptions),
+              let format = formats.first,
+              let asbd = CMAudioFormatDescriptionGetStreamBasicDescription(format) else {
+            return (2, 44_100)
+        }
+        let channels = asbd.pointee.mChannelsPerFrame
+        let rate = asbd.pointee.mSampleRate
+        return (channels > 0 ? Int(channels) : 2, rate > 0 ? rate : 44_100)
     }
 
     private static func pump(input: AVAssetWriterInput, output: AVAssetReaderTrackOutput, queue: DispatchQueue) async {
         await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            // This pump exclusively owns `input`/`output` and only ever touches them on
+            // its own dedicated serial `queue` (never shared with the other pump), so the
+            // confinement makes these non-Sendable AV objects safe to capture in the
+            // @Sendable requestMediaDataWhenReady callback.
+            nonisolated(unsafe) let input = input
+            nonisolated(unsafe) let output = output
+            // requestMediaDataWhenReady's callback can be re-invoked after we finish, so
+            // guard the continuation to resume exactly once (double-resume is a fatal trap).
+            let lock = OSAllocatedUnfairLock(initialState: false)
+            func resumeOnce() {
+                let shouldResume = lock.withLock { resumed -> Bool in
+                    if resumed { return false }
+                    resumed = true
+                    return true
+                }
+                if shouldResume { cont.resume() }
+            }
             input.requestMediaDataWhenReady(on: queue) {
                 while input.isReadyForMoreMediaData {
                     if let sample = output.copyNextSampleBuffer() {
-                        input.append(sample)
+                        if !input.append(sample) {
+                            // Writer dropped into a failed state; stop pulling samples.
+                            input.markAsFinished()
+                            resumeOnce(); return
+                        }
                     } else {
                         input.markAsFinished()
-                        cont.resume(); return
+                        resumeOnce(); return
                     }
                 }
             }
