@@ -6,8 +6,11 @@ import { indexJournalEntry, deleteJournalEntry } from '../services/journalIndexe
 import { indexSummary, deleteSummary, findRelated } from '../services/summaryIndexer'
 import { generateSummaryText } from '../services/summaryGenerator'
 import { getOrCreateDEK } from '../crypto/keyService'
-import { openField, encryptField } from '../crypto/fieldCipher'
+import { openField, encryptField, decryptField } from '../crypto/fieldCipher'
 import { deleteMediaObjects } from '../services/s3'
+import { getJournalsCollection, getSummariesCollection } from '../db/chroma'
+import { embedQuery } from '../services/aiClient'
+import { getGraph, invalidateGraph } from '../services/graphBuilder'
 
 export const ragRouter = Router()
 
@@ -91,6 +94,10 @@ ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
     },
   })
 
+  // The user's similarity graph may have changed — drop the cache so the next
+  // /graph call rebuilds (cheap; pure vector math).
+  invalidateGraph(uid)
+
   res.json({ indexed: true, chunks: chunkCount, summaryIndexed })
 })
 
@@ -145,6 +152,7 @@ export async function deleteHandler(req: Request, res: Response): Promise<void> 
   try {
     await deleteJournalEntry(uid, journalId)
     await deleteSummary(uid, journalId)
+    invalidateGraph(uid)
     res.json({ deleted: true })
   } catch (err) {
     console.error('[rag/delete]', err)
@@ -179,3 +187,200 @@ export async function relatedHandler(req: Request, res: Response): Promise<void>
 }
 
 ragRouter.post('/related', firebaseAuth, relatedHandler)
+
+export async function graphHandler(req: Request, res: Response): Promise<void> {
+  const uid = (req as any).uid as string
+  try {
+    const dek = await getOrCreateDEK(uid)
+    const graph = await getGraph({
+      userId: uid,
+      dek,
+      topK: config.GRAPH_TOP_K,
+      minSimilarity: config.GRAPH_MIN_SIMILARITY,
+      maxDegree: config.GRAPH_MAX_DEGREE,
+    })
+    res.json(graph)
+  } catch (err) {
+    console.error('[rag/graph]', err)
+    res.status(500).json({ error: 'Graph build failed' })
+  }
+}
+
+ragRouter.post('/graph', firebaseAuth, graphHandler)
+
+// ---------------------------------------------------------------------------
+// Search
+// ---------------------------------------------------------------------------
+
+interface SearchResult {
+  journalId: string
+  title: string
+  type: string
+  date: string
+  snippet: string
+  score: number
+}
+
+const SEARCH_MAX_CHARS = 500
+const SNIPPET_RADIUS = 100
+
+function normalise(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+}
+
+function extractSnippet(content: string, query: string): string {
+  const normContent = normalise(content)
+  const normQuery = normalise(query)
+  const idx = normContent.indexOf(normQuery)
+  if (idx === -1) {
+    // Match was in title — use leading content as snippet
+    const raw = content.slice(0, SNIPPET_RADIUS * 2)
+    return raw.length < content.length ? raw + '…' : raw
+  }
+  const start = Math.max(0, idx - SNIPPET_RADIUS)
+  const end = Math.min(content.length, idx + normQuery.length + SNIPPET_RADIUS)
+  const snippet = content.slice(start, end)
+  return (start > 0 ? '…' : '') + snippet + (end < content.length ? '…' : '')
+}
+
+ragRouter.post('/search/keyword', firebaseAuth, async (req: Request, res: Response) => {
+  const uid = (req as any).uid as string
+  const { query } = req.body as { query?: string }
+
+  if (!query || !query.trim()) {
+    res.status(400).json({ error: 'Missing query' })
+    return
+  }
+  if (query.length > SEARCH_MAX_CHARS) {
+    res.status(400).json({ error: 'Query too long' })
+    return
+  }
+
+  try {
+    const dek = await getOrCreateDEK(uid)
+    const snap = await db.collection('journals')
+      .where('userId', '==', uid)
+      .select('title', 'content', 'type', 'updatedAt')
+      .get()
+
+    const normQuery = normalise(query)
+    const results: SearchResult[] = []
+
+    for (const doc of snap.docs) {
+      const data = doc.data()
+      const title = openField(dek, data.title, 'journals.title')
+      const content = openField(dek, data.content, 'journals.content')
+
+      if (!normalise(title).includes(normQuery) && !normalise(content).includes(normQuery)) {
+        continue
+      }
+
+      const updatedAt = (data.updatedAt as admin.firestore.Timestamp)?.toDate()
+      results.push({
+        journalId: doc.id,
+        title,
+        type: data.type ?? 'text',
+        date: updatedAt ? updatedAt.toISOString().slice(0, 10) : '',
+        snippet: extractSnippet(content, query),
+        score: 0,
+      })
+    }
+
+    // Newest first, cap at 100
+    results.sort((a, b) => b.date.localeCompare(a.date))
+    res.json({ results: results.slice(0, 100) })
+  } catch (err) {
+    console.error('[rag/search/keyword]', err)
+    res.status(500).json({ error: 'Keyword search failed' })
+  }
+})
+
+ragRouter.post('/search/semantic', firebaseAuth, async (req: Request, res: Response) => {
+  const uid = (req as any).uid as string
+  const { query } = req.body as { query?: string }
+
+  if (!query || !query.trim()) {
+    res.status(400).json({ error: 'Missing query' })
+    return
+  }
+  if (query.length > SEARCH_MAX_CHARS) {
+    res.status(400).json({ error: 'Query too long' })
+    return
+  }
+
+  try {
+    const [dek, queryVec] = await Promise.all([getOrCreateDEK(uid), embedQuery(query)])
+
+    const queryOpts = {
+      queryEmbeddings: [queryVec],
+      nResults: 15,
+      where: { userId: { $eq: uid } },
+      include: ['documents', 'metadatas', 'distances'] as any,
+    }
+
+    const [chunksCol, summariesCol] = await Promise.all([
+      getJournalsCollection(),
+      getSummariesCollection(),
+    ])
+
+    const [chunkRes, summaryRes] = await Promise.all([
+      chunksCol.query(queryOpts),
+      summariesCol.query(queryOpts),
+    ])
+
+    const merged = new Map<string, SearchResult>()
+
+    const processResults = (
+      docs: (string | null)[][],
+      metas: (Record<string, unknown> | null)[][],
+      dists: number[][],
+      snippetContext: string,
+    ) => {
+      const docList = docs[0] ?? []
+      const metaList = metas[0] ?? []
+      const distList = dists[0] ?? []
+      for (let i = 0; i < docList.length; i++) {
+        const m = (metaList[i] ?? {}) as Record<string, unknown>
+        const journalId = (m.entryId as string) ?? ''
+        if (!journalId) continue
+        const score = typeof distList[i] === 'number' ? Math.max(0, 1 - distList[i]) : 0
+        const existing = merged.get(journalId)
+        if (existing && existing.score >= score) continue
+        const title = m.title ? decryptField(dek, JSON.parse(m.title as string), 'journals.title') : ''
+        const snippet = docList[i]
+          ? decryptField(dek, JSON.parse(docList[i] as string), snippetContext)
+          : ''
+        merged.set(journalId, {
+          journalId,
+          title,
+          type: (m.type as string) ?? 'text',
+          date: (m.date as string) ?? (m.indexedAt as string | undefined)?.slice(0, 10) ?? '',
+          snippet,
+          score,
+        })
+      }
+    }
+
+    processResults(
+      chunkRes.documents as any,
+      chunkRes.metadatas as any,
+      (chunkRes as any).distances ?? [],
+      'rag.chunk.0',
+    )
+    processResults(
+      summaryRes.documents as any,
+      summaryRes.metadatas as any,
+      (summaryRes as any).distances ?? [],
+      'rag.summary',
+    )
+
+    const results = Array.from(merged.values())
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 20)
+
+    res.json({ results })
+  } catch (err) {
+    console.error('[rag/search/semantic]', err)
+    res.status(500).json({ error: 'Semantic search failed' })
+  }
+})

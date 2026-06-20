@@ -14,13 +14,21 @@ vi.mock('../services/summaryIndexer', () => ({
 vi.mock('../services/journalIndexer', () => ({ indexJournalEntry: vi.fn(), deleteJournalEntry: vi.fn() }))
 vi.mock('../services/summaryGenerator', () => ({ generateSummaryText: vi.fn() }))
 vi.mock('../crypto/fieldCipher', () => ({ openField: vi.fn(), encryptField: vi.fn() }))
-vi.mock('../config', () => ({ config: { RELATED_TOP_K: 20 } }))
+vi.mock('../config', () => ({ config: { RELATED_TOP_K: 20, GRAPH_TOP_K: 4, GRAPH_MIN_SIMILARITY: 0.75, GRAPH_MAX_DEGREE: 12 } }))
 vi.mock('../services/s3', () => ({ deleteMediaObjects: vi.fn(async () => {}) }))
+vi.mock('../services/graphBuilder', () => ({
+  getGraph: vi.fn(async () => ({
+    nodes: [{ id: 'e1', title: 'T1', date: '2026-06-01', type: 'text', degree: 1 }],
+    links: [{ source: 'e1', target: 'e2', value: 0.91 }],
+  })),
+  invalidateGraph: vi.fn(),
+}))
 
-import { relatedHandler, deleteHandler } from './rag'
+import { relatedHandler, deleteHandler, graphHandler } from './rag'
 import { findRelated, deleteSummary } from '../services/summaryIndexer'
 import { deleteJournalEntry } from '../services/journalIndexer'
 import { deleteMediaObjects } from '../services/s3'
+import { getGraph } from '../services/graphBuilder'
 
 function mockRes() {
   const res: any = { statusCode: 200 }
@@ -74,5 +82,28 @@ describe('deleteHandler', () => {
     await deleteHandler(req, res)
     expect(deleteJournalEntry).toHaveBeenCalledWith('u', 'e1')
     expect(res.body).toEqual({ deleted: true })
+  })
+})
+
+describe('graphHandler', () => {
+  beforeEach(() => { vi.clearAllMocks() })
+
+  it('returns the graph for the authed user', async () => {
+    const req: any = { uid: 'u' }
+    const res = mockRes()
+    await graphHandler(req, res)
+    expect(getGraph).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u' }))
+    expect(res.body).toEqual(expect.objectContaining({
+      nodes: expect.any(Array),
+      links: expect.any(Array),
+    }))
+  })
+
+  it('500s when the build throws', async () => {
+    ;(getGraph as any).mockRejectedValueOnce(new Error('chroma down'))
+    const req: any = { uid: 'u' }
+    const res = mockRes()
+    await graphHandler(req, res)
+    expect(res.statusCode).toBe(500)
   })
 })
