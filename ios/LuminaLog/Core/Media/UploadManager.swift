@@ -66,18 +66,41 @@ final class UploadManager {
         self.maxAttempts = maxAttempts; self.backoff = backoff
     }
 
+    /// Uploads every not-yet-uploaded attachment for `entry`.
+    ///
+    /// Contract: `onFinalize` is called exactly once, only when EVERY upload
+    /// succeeds; if any upload permanently fails, `onPermanentFailure` has
+    /// already fired (inside `bumpOrFail` when the attempt cap was hit) and the
+    /// journal record is RETAINED for caller-driven retry — it is not finalized,
+    /// cleaned up, or removed.
     func startAll(for entry: PendingEntry) async {
         for upload in entry.uploads where upload.state != .uploaded {
             await uploadOne(draftId: entry.draftId, attachmentId: upload.attachmentId)
         }
-        if let refreshed = journal.entry(draftId: entry.draftId), refreshed.allUploaded {
+        guard let refreshed = journal.entry(draftId: entry.draftId) else { return }
+        if refreshed.allUploaded {
             onFinalize(refreshed)
             cleanup(refreshed)
             journal.remove(draftId: refreshed.draftId)
+            return
+        }
+        // Not all uploaded. If any upload permanently failed, RETAIN the journal
+        // record so the caller can retry the failed upload later. onPermanentFailure
+        // already fired inside bumpOrFail when the cap was hit, so the caller is
+        // already notified. Do NOT finalize, cleanup, or remove on this path.
+        if refreshed.uploads.contains(where: { $0.state == .failed }) {
+            return
         }
     }
 
     private func uploadOne(draftId: String, attachmentId: UUID) async {
+        // Bounds the 403 re-presign loop: only an EXPIRED presign should trigger
+        // a re-presign, and that needs at most one or two. A PERSISTENT 403 (bad
+        // signature, content-type mismatch, IAM/bucket denial) must NOT loop
+        // forever hammering presign + S3 — after the bound it falls through to
+        // bumpOrFail so it backs off and eventually caps. Counter persists across
+        // loop iterations (do NOT reset it each pass).
+        var represigns = 0
         while true {
             guard let entry = journal.entry(draftId: draftId),
                   let upload = entry.uploads.first(where: { $0.attachmentId == attachmentId }) else { return }
@@ -89,7 +112,11 @@ final class UploadManager {
                     try journal.markUploaded(draftId: draftId, attachmentId: attachmentId, s3Key: upload.s3Key)
                     return
                 }
-                if status == 403 { continue }    // expired presign → re-presign SAME key (no attempt bump)
+                if status == 403 && represigns < 2 {
+                    represigns += 1
+                    continue                     // expired presign → re-presign SAME key (no attempt bump)
+                }
+                // Persistent 403 (or any other failure): back off + eventually cap.
                 if await bumpOrFail(draftId: draftId, attachmentId: attachmentId) { return }
             } catch {
                 Self.logger.error("upload error \(draftId): \(error.localizedDescription)")
@@ -102,14 +129,19 @@ final class UploadManager {
     /// (record marked .failed, permanent failure surfaced) — caller should stop.
     private func bumpOrFail(draftId: String, attachmentId: UUID) async -> Bool {
         var hitCap = false
+        var delay = 0.0
         try? journal.mutate(draftId: draftId) { e in
             guard let i = e.uploads.firstIndex(where: { $0.attachmentId == attachmentId }) else { return }
             e.uploads[i].attemptCount += 1
-            if e.uploads[i].attemptCount >= maxAttempts { e.uploads[i].state = .failed; hitCap = true }
+            if e.uploads[i].attemptCount >= maxAttempts {
+                e.uploads[i].state = .failed; hitCap = true
+            } else {
+                delay = backoff(e.uploads[i].attemptCount)
+                // Persisted so Task 5's resumePendingJobs() can honor backoff across app relaunches.
+                e.uploads[i].nextEarliestAttemptEpoch = Date().timeIntervalSince1970 + delay
+            }
         }
         if hitCap { onPermanentFailure(draftId); return true }
-        let attempt = journal.entry(draftId: draftId)?.uploads.first(where: { $0.attachmentId == attachmentId })?.attemptCount ?? 1
-        let delay = backoff(attempt)
         if delay > 0 { try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000)) }
         return false
     }
