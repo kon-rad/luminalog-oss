@@ -47,10 +47,22 @@ protocol AIService: AnyObject {
     /// The 20 most semantically similar other entries (summary-embedding search).
     func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry]
 
+    /// The whole-corpus similarity graph (entries = nodes, summary-vector
+    /// similarity = edges) for the global constellation map.
+    func journalGraph() async throws -> JournalGraph
+
     /// Best-effort server-side purge of an entry's remote artifacts: S3 media
     /// objects, RAG chunk embeddings, and the summary embedding. Does NOT delete
     /// the Firestore record — the client owns that.
     func deleteEntry(journalId: String) async throws
+
+    /// Full-corpus keyword search across all user journals (server-side).
+    /// Returns up to 100 results newest-first, each with a decrypted snippet.
+    func searchKeyword(query: String) async throws -> [SearchResult]
+
+    /// Semantic vector search across journal chunks and summaries (server-side).
+    /// Returns the top 20 results ranked by cosine similarity.
+    func searchSemantic(query: String) async throws -> [SearchResult]
 }
 
 extension AIService {

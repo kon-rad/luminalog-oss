@@ -150,8 +150,38 @@ final class ProxyAIService: AIService {
         return response.related
     }
 
+    func journalGraph() async throws -> JournalGraph {
+        try await api.post(path: "/v1/rag/graph", body: EmptyBody())
+    }
+
     func deleteEntry(journalId: String) async throws {
         let encoded = journalId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? journalId
         try await api.delete(path: "/v1/rag/delete?journalId=\(encoded)")
+    }
+
+    // MARK: - Search
+
+    private struct SearchBody: Encodable {
+        let query: String
+    }
+
+    private struct SearchResponse: Decodable {
+        let results: [SearchResult]
+    }
+
+    func searchKeyword(query: String) async throws -> [SearchResult] {
+        let response: SearchResponse = try await api.post(
+            path: "/v1/rag/search/keyword",
+            body: SearchBody(query: query)
+        )
+        return response.results
+    }
+
+    func searchSemantic(query: String) async throws -> [SearchResult] {
+        let response: SearchResponse = try await api.post(
+            path: "/v1/rag/search/semantic",
+            body: SearchBody(query: query)
+        )
+        return response.results
     }
 }

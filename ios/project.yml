@@ -47,6 +47,8 @@ targets:
         product: FirebaseFirestore
       - package: RevenueCat
         product: RevenueCat
+      - package: RevenueCat
+        product: RevenueCatUI
       - package: GoogleSignIn
         product: GoogleSignIn
       - package: Vapi
@@ -85,6 +87,7 @@ targets:
         NSPhotoLibraryAddUsageDescription: "LuminaLog can save photos and videos from your journal entries back to your photo library."
         ITSAppUsesNonExemptEncryption: false
         LUMINALOG_API_URL: "https://api.luminalog.com"
+        REVENUECAT_API_KEY: $(REVENUECAT_API_KEY)
         # Google Sign-In redirect scheme. Resolves to the GOOGLE_REVERSED_CLIENT_ID
         # build setting above — empty (inert) until configured per the README.
         CFBundleURLTypes:

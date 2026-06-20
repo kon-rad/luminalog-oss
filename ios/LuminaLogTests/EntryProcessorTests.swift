@@ -26,6 +26,9 @@ final class EntryProcessorTests: XCTestCase {
         func transcribeJournal(journalId: String) async { transcribedJournalIds.append(journalId) }
         func transcribeClip(audio: Data, contentType: String) async throws -> String { "" }
         func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] { [] }
+        func searchKeyword(query: String) async throws -> [SearchResult] { [] }
+        func searchSemantic(query: String) async throws -> [SearchResult] { [] }
+        func journalGraph() async throws -> JournalGraph { JournalGraph(nodes: [], links: []) }
     }
 
     @MainActor
@@ -33,7 +36,8 @@ final class EntryProcessorTests: XCTestCase {
         private(set) var recordedDeltas: [Int] = []
         func profile() -> AsyncStream<UserProfile?> { AsyncStream { $0.yield(nil) } }
         func update(_ profile: UserProfile) async throws {}
-        func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws {}
+        func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws -> Bool { false }
+        func mergeOnboardingDraft(_ draft: [String: String], overwriteExisting: Bool) async throws {}
         func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws { recordedDeltas.append(wordCountDelta) }
         func recordMediaUploaded(kind: MediaKind, bytes: Int) async throws {}
         func recordTimeSpent(minutes: Int) async throws {}

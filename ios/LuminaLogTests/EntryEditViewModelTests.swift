@@ -17,6 +17,9 @@ final class EntryEditViewModelTests: XCTestCase {
         func transcribeJournal(journalId: String) async throws {}
         func transcribeClip(audio: Data, contentType: String) async throws -> String { "" }
         func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] { [] }
+        func searchKeyword(query: String) async throws -> [SearchResult] { [] }
+        func searchSemantic(query: String) async throws -> [SearchResult] { [] }
+        func journalGraph() async throws -> JournalGraph { JournalGraph(nodes: [], links: []) }
         func deleteEntry(journalId: String) async throws {}
     }
 

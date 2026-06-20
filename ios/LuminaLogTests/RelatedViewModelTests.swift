@@ -65,4 +65,7 @@ private final class StubFailingAIService: AIService {
     func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] {
         throw URLError(.badServerResponse)
     }
+    func searchKeyword(query: String) async throws -> [SearchResult] { [] }
+    func searchSemantic(query: String) async throws -> [SearchResult] { [] }
+    func journalGraph() async throws -> JournalGraph { JournalGraph(nodes: [], links: []) }
 }
