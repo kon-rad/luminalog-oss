@@ -21,6 +21,10 @@ const schema = z.object({
   RAG_CHUNK_OVERLAP: z.coerce.number().int().min(0).default(200),
   RAG_TOP_K: z.coerce.number().int().positive().default(20),
   RELATED_TOP_K: z.coerce.number().int().positive().default(20),
+  // Graph (constellation) tuning knobs — all defaulted, safe to deploy without .env changes
+  GRAPH_TOP_K: z.coerce.number().int().positive().default(4),
+  GRAPH_MIN_SIMILARITY: z.coerce.number().min(-1).max(1).default(0.75),
+  GRAPH_MAX_DEGREE: z.coerce.number().int().positive().default(12),
   MASTER_KEY: z.string().refine(
     v => Buffer.from(v, 'base64').length === 32,
     'MASTER_KEY must be base64 of exactly 32 bytes',
