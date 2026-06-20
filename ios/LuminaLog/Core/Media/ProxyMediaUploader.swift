@@ -50,6 +50,9 @@ final class ProxyMediaUploader: MediaUploader {
             let contentType: String
             let bytes: Int
             let journalId: String
+            /// When set, the server reuses this stable key instead of minting a
+            /// new one (Task 1) — lets a background upload re-presign the SAME key.
+            var s3Key: String?
         }
         let files: [File]
     }
@@ -153,6 +156,49 @@ final class ProxyMediaUploader: MediaUploader {
         // Metadata from the plaintext original.
         return await Self.mediaItem(s3Key: presigned.s3Key, kind: kind, fileURL: fileURL,
                                     thumbnailS3Key: thumbnailS3Key)
+    }
+
+    func presignUpload(s3Key: String?, kind: MediaKind, ext: String, bytes: Int,
+                       journalId: String) async throws -> (s3Key: String, url: URL) {
+        // Ciphertext is opaque; sign + send as octet-stream.
+        let contentType = "application/octet-stream"
+        let response: UploadURLsResponse = try await api.post(
+            path: "/v1/media/upload-urls",
+            body: UploadURLsRequest(files: [
+                .init(kind: kind.rawValue, ext: ext, contentType: contentType,
+                      bytes: bytes, journalId: journalId, s3Key: s3Key)
+            ])
+        )
+        guard let presigned = response.files.first else {
+            throw MediaUploaderError.noUploadURL
+        }
+        return (presigned.s3Key, presigned.uploadUrl)
+    }
+
+    func prepareUpload(fileURL: URL, kind: MediaKind, journalId: String) async throws -> PreparedUpload {
+        guard let dek = keys.currentDataKey else { throw CryptoUnavailableError.keyNotLoaded }
+        let cipher = MediaCipher(key: dek)
+
+        // Encrypt to a STABLE temp file (NOT deleted here — the caller/UploadManager
+        // owns its lifecycle once it is staged in the journal). Metadata is still
+        // probed from the ORIGINAL plaintext so dimensions/duration are accurate.
+        let encryptedURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        try cipher.encryptFile(at: fileURL, to: encryptedURL)
+
+        let attributes = try FileManager.default.attributesOfItem(atPath: encryptedURL.path)
+        let byteCount = (attributes[.size] as? NSNumber)?.intValue ?? 0
+        let ext = fileURL.pathExtension.isEmpty ? Self.defaultExtension(for: kind)
+                                                : fileURL.pathExtension
+
+        // MINT a stable key up front so a relaunch can re-presign the same object.
+        let (s3Key, _) = try await presignUpload(
+            s3Key: nil, kind: kind, ext: ext, bytes: byteCount, journalId: journalId)
+
+        // Metadata from the plaintext original (audio/video have no thumbnail here).
+        let item = await Self.mediaItem(s3Key: s3Key, kind: kind, fileURL: fileURL,
+                                        thumbnailS3Key: nil)
+        return PreparedUpload(encryptedFileURL: encryptedURL, s3Key: s3Key, mediaItem: item)
     }
 
     func viewURL(for s3Key: String) async throws -> URL {

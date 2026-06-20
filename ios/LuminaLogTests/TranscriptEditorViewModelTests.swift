@@ -40,6 +40,13 @@ final class TranscriptEditorViewModelTests: XCTestCase {
             uploadCalls += 1
             return MediaItem(s3Key: "key-\(uploadCalls)", kind: kind)
         }
+        func prepareUpload(fileURL: URL, kind: MediaKind, journalId: String) async throws -> PreparedUpload {
+            uploadCalls += 1
+            return PreparedUpload(encryptedFileURL: fileURL, s3Key: "key-\(uploadCalls)", mediaItem: MediaItem(s3Key: "key-\(uploadCalls)", kind: kind))
+        }
+        func presignUpload(s3Key: String?, kind: MediaKind, ext: String, bytes: Int, journalId: String) async throws -> (s3Key: String, url: URL) {
+            (s3Key ?? "key-presigned", URL(fileURLWithPath: "/dev/null"))
+        }
         func viewURL(for s3Key: String) async throws -> URL { URL(fileURLWithPath: "/tmp/\(s3Key)") }
         func localFileURL(for s3Key: String) async throws -> URL { URL(fileURLWithPath: "/tmp/\(s3Key)") }
     }

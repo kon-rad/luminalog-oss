@@ -24,6 +24,23 @@ final class MockMediaUploader: MediaUploader {
         return MediaItem(s3Key: "DemoMedia/\(fileName)", kind: kind)
     }
 
+    func prepareUpload(fileURL: URL, kind: MediaKind, journalId: String) async throws -> PreparedUpload {
+        // Stage a ciphertext-like temp file with some bytes so the upload path
+        // (and any size probe) has a real file to work with.
+        let encryptedURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        try Data([0x00, 0x01, 0x02]).write(to: encryptedURL)
+        let s3Key = "mock/\(kind.rawValue)/\(UUID().uuidString)"
+        let item = MediaItem(s3Key: s3Key, kind: kind)
+        return PreparedUpload(encryptedFileURL: encryptedURL, s3Key: s3Key, mediaItem: item)
+    }
+
+    func presignUpload(s3Key: String?, kind: MediaKind, ext: String, bytes: Int,
+                       journalId: String) async throws -> (s3Key: String, url: URL) {
+        let key = s3Key ?? "mock/\(kind.rawValue)/\(UUID().uuidString)"
+        return (key, URL(fileURLWithPath: "/dev/null"))
+    }
+
     func viewURL(for s3Key: String) async throws -> URL {
         let documents = FileManager.default
             .urls(for: .documentDirectory, in: .userDomainMask)[0]

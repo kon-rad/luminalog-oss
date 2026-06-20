@@ -48,7 +48,7 @@ final class UploadManager {
     private let journal: UploadJournal
     private let transport: UploadTransport
     private let presign: (PendingUpload) async throws -> URL
-    private let onFinalize: (PendingEntry) -> Void
+    private let onFinalize: (PendingEntry) async -> Void
     private let onPermanentFailure: (String) -> Void
     private let maxAttempts: Int
     private let backoff: (Int) -> Double
@@ -57,7 +57,7 @@ final class UploadManager {
     init(journal: UploadJournal,
          transport: UploadTransport,
          presign: @escaping (PendingUpload) async throws -> URL,
-         onFinalize: @escaping (PendingEntry) -> Void,
+         onFinalize: @escaping (PendingEntry) async -> Void,
          onPermanentFailure: @escaping (String) -> Void = { _ in },
          maxAttempts: Int = 5,
          backoff: @escaping (Int) -> Double = { attempt in min(60, pow(2.0, Double(attempt))) }) {
@@ -79,7 +79,10 @@ final class UploadManager {
         }
         guard let refreshed = journal.entry(draftId: entry.draftId) else { return }
         if refreshed.allUploaded {
-            onFinalize(refreshed)
+            // Await finalize BEFORE cleanup/remove so the record is the durable
+            // source of truth until finalization actually completes (and so a
+            // caller awaiting startAll knows finalize ran).
+            await onFinalize(refreshed)
             cleanup(refreshed)
             journal.remove(draftId: refreshed.draftId)
             return

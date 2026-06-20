@@ -12,6 +12,7 @@ final class CreateEntryViewModelTests: XCTestCase {
         private(set) var retried: [String] = []
         func enqueue(_ job: EntryProcessingJob) { enqueued.append(job) }
         func retry(draftId: String) { retried.append(draftId) }
+        func resumePendingJobs() async {}
     }
 
     // MARK: - Harness

@@ -31,6 +31,10 @@ protocol EntryProcessor: AnyObject {
     func enqueue(_ job: EntryProcessingJob)
     /// Re-run a job that previously failed (same draft id, cached successes).
     func retry(draftId: String)
+    /// On launch, resume any durable upload journal records: finalize the ones
+    /// whose uploads all completed (e.g. via a background-session relaunch), and
+    /// restart uploads for the rest.
+    func resumePendingJobs() async
 }
 
 // MARK: - Live implementation
@@ -48,6 +52,10 @@ final class BackgroundEntryProcessor: EntryProcessor {
         let ai: AIService
         let media: MediaUploader
         let ocr: OCRService
+        let transcoder: VideoTranscoder
+        let journal: UploadJournal
+        let uploadManager: UploadManager
+        let finalizer: EntryFinalizer
     }
 
     private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "processor")
@@ -96,8 +104,16 @@ final class BackgroundEntryProcessor: EntryProcessor {
 
     private func process(_ job: EntryProcessingJob) async {
         let type = job.type
-        let typed = job.text.trimmingCharacters(in: .whitespacesAndNewlines)
         let isAudioVisual = (type == .voice || type == .video)
+
+        // Voice/video route through the durable journal + background UploadManager
+        // (with a shared finalizer); text/image stay on the inline path below.
+        if isAudioVisual {
+            await processAudioVisual(job)
+            return
+        }
+
+        let typed = job.text.trimmingCharacters(in: .whitespacesAndNewlines)
 
         var entry = JournalEntry(
             id: job.draftId,
@@ -116,7 +132,7 @@ final class BackgroundEntryProcessor: EntryProcessor {
         // intermediate writes — one write, like the old synchronous path. Media
         // entries write a placeholder first so they appear in the list while the
         // upload/transcribe runs.
-        let needsBackgroundWork = !job.attachments.isEmpty || isAudioVisual
+        let needsBackgroundWork = !job.attachments.isEmpty
 
         do {
             // 1) Write immediately so the entry appears in the list.
@@ -144,7 +160,7 @@ final class BackgroundEntryProcessor: EntryProcessor {
                 try await deps.journals.save(entry)
             }
 
-            entry.processingStatus = isAudioVisual ? .transcribing : .ready
+            entry.processingStatus = .ready
             try await deps.journals.save(entry)
 
             // 5) Side effects (best-effort; the entry is already saved).
@@ -156,13 +172,8 @@ final class BackgroundEntryProcessor: EntryProcessor {
                 Self.logger.error("recordEntrySaved failed: \(error)")
             }
 
-            // Voice/video use server Whisper, which also re-indexes to Chroma.
-            // Everything else just triggers a Chroma index of existing content.
-            if isAudioVisual {
-                try? await deps.ai.transcribeJournal(journalId: entry.id)
-            } else {
-                await deps.ai.requestIndex(journalId: entry.id)
-            }
+            // Text/image just trigger a Chroma index of existing content.
+            await deps.ai.requestIndex(journalId: entry.id)
 
             finish(job, cleanup: true)
         } catch {
@@ -170,6 +181,134 @@ final class BackgroundEntryProcessor: EntryProcessor {
             entry.processingStatus = .failed
             try? await deps.journals.save(entry)
             // Keep the job (and its caches/temp files) for an in-session retry.
+        }
+    }
+
+    // MARK: Audio/video pipeline (durable journal + background manager)
+
+    /// Voice/video path: stage encrypted ciphertext on disk + a durable journal
+    /// record, write the entry as `.uploading`, then hand off to the background
+    /// `UploadManager`. Finalization (status `.saving` → `.transcribing`, the
+    /// transcription trigger, and `recordEntrySaved`) happens inside the manager
+    /// via `onFinalize → finalizer.finalize` once every upload completes.
+    private func processAudioVisual(_ job: EntryProcessingJob) async {
+        let type = job.type
+        let typed = job.text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var entry = JournalEntry(
+            id: job.draftId,
+            userId: job.userId,
+            type: type,
+            title: Self.title(promptText: job.promptText, content: typed),
+            createdAt: job.createdAt,
+            content: typed,
+            media: [],
+            transcriptStatus: nil,
+            processingStatus: .processing,
+            wordCount: WordCount.of(typed)
+        )
+
+        do {
+            // 1) Placeholder write so the entry appears in the list immediately.
+            try await deps.journals.save(entry)
+
+            // 2) Derive content (voice/video stay typed text; transcript pending).
+            let derived = try await deriveContent(job)
+            entry.content = derived.content
+            entry.transcriptStatus = derived.status
+            entry.title = Self.title(promptText: job.promptText, content: derived.content)
+            entry.wordCount = WordCount.of(derived.content)
+
+            // 3) Stage encrypted ciphertext + mint stable keys for each attachment.
+            var uploads: [PendingUpload] = []
+
+            if let video = job.attachments.video {
+                // Transcode oversized video first; fall back to the original on failure.
+                var sourceURL = video.url
+                var transcodedURL: URL?
+                if await deps.transcoder.shouldTranscode(source: video.url) {
+                    let dest = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("\(UUID().uuidString).mp4")
+                    do {
+                        try await deps.transcoder.transcode(source: video.url, to: dest)
+                        sourceURL = dest
+                        transcodedURL = dest
+                    } catch {
+                        Self.logger.error("transcode failed, using original: \(error.localizedDescription)")
+                    }
+                }
+                if let transcodedURL { track(transcodedURL, draftId: job.draftId) }
+
+                let prepared = try await deps.media.prepareUpload(
+                    fileURL: sourceURL, kind: .video, journalId: job.draftId)
+                // Ciphertext temp files are owned by UploadManager (cleaned on
+                // success; retained for the journal record on failure), so we do
+                // NOT track them for processor cleanup here.
+                var item = prepared.mediaItem
+                item.durationSec = video.durationSec
+                uploads.append(PendingUpload(
+                    attachmentId: video.id, kind: .video, journalId: job.draftId,
+                    s3Key: prepared.s3Key, encryptedPath: prepared.encryptedFileURL.path,
+                    durationSec: video.durationSec, width: item.width, height: item.height,
+                    thumbnailS3Key: item.thumbnailS3Key))
+                let bytes = Self.fileSize(prepared.encryptedFileURL)
+                try? await deps.profiles.recordMediaUploaded(kind: .video, bytes: bytes)
+            }
+
+            if let audio = job.attachments.audio {
+                let prepared = try await deps.media.prepareUpload(
+                    fileURL: audio.url, kind: .audio, journalId: job.draftId)
+                // Ciphertext owned by UploadManager (see video branch above).
+                var item = prepared.mediaItem
+                item.durationSec = audio.durationSec
+                uploads.append(PendingUpload(
+                    attachmentId: audio.id, kind: .audio, journalId: job.draftId,
+                    s3Key: prepared.s3Key, encryptedPath: prepared.encryptedFileURL.path,
+                    durationSec: audio.durationSec, width: item.width, height: item.height,
+                    thumbnailS3Key: item.thumbnailS3Key))
+                let bytes = Self.fileSize(prepared.encryptedFileURL)
+                try? await deps.profiles.recordMediaUploaded(kind: .audio, bytes: bytes)
+            }
+
+            // 4) Persist the durable journal record so uploads survive a relaunch.
+            let pending = PendingEntry(
+                draftId: job.draftId, userId: job.userId, type: type,
+                title: entry.title, content: entry.content, wordCount: entry.wordCount,
+                transcriptStatus: entry.transcriptStatus,
+                createdAtEpoch: job.createdAt.timeIntervalSince1970,
+                promptText: job.promptText, uploads: uploads)
+            try deps.journal.upsert(pending)
+
+            // 5) Mark the entry as uploading (media filled in by the finalizer).
+            entry.processingStatus = .uploading
+            entry.media = []
+            try await deps.journals.save(entry)
+
+            // 6) Upload in the background; finalize runs inside via onFinalize.
+            await deps.uploadManager.startAll(for: pending)
+
+            // 7) Clean up the transcoded temp + the staged original attachment
+            //    files we created. (Ciphertext temp files are owned/cleaned by
+            //    UploadManager on success.)
+            finish(job, cleanup: true)
+        } catch {
+            Self.logger.error("AV processing failed for \(job.draftId): \(error)")
+            entry.processingStatus = .failed
+            try? await deps.journals.save(entry)
+            // Keep the job (and its caches/temp files) for an in-session retry.
+        }
+    }
+
+    func resumePendingJobs() async {
+        for pending in deps.journal.allPending() {
+            // NOTE: backoff gating via `nextEarliestAttemptEpoch` across launches
+            // is a follow-up; we always attempt on resume for now.
+            if pending.allUploaded {
+                await deps.finalizer.finalize(pending)
+                deps.journal.remove(draftId: pending.draftId)
+            } else {
+                await deps.uploadManager.startAll(for: pending)
+            }
         }
     }
 
@@ -281,6 +420,10 @@ final class BackgroundEntryProcessor: EntryProcessor {
 
     private func track(_ url: URL, draftId: String) {
         stagedTempURLs[draftId, default: []].insert(url)
+    }
+
+    private static func fileSize(_ url: URL) -> Int {
+        ((try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? NSNumber)?.intValue ?? 0
     }
 
     /// Drops a finished job and (on success) deletes its staged temp files plus

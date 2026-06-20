@@ -58,8 +58,43 @@ final class EntryProcessorTests: XCTestCase {
             uploads.append((kind, journalId))
             return MediaItem(s3Key: "spy/\(kind.rawValue)/\(uploads.count)", kind: kind)
         }
+
+        // NOTE: prepareUpload/presignUpload are the audio/video (journal) path.
+        // The existing shouldFail/failingCalls knobs target the inline photo
+        // `upload(...)` path (unchanged), so the image-based failure/retry tests
+        // still exercise real failure behavior. We don't reconcile those knobs
+        // with the manager path here — AV failure is covered by UploadManagerTests.
+        func prepareUpload(fileURL: URL, kind: MediaKind, journalId: String) async throws -> PreparedUpload {
+            let encryptedURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString)
+            try? Data([0, 1, 2]).write(to: encryptedURL)
+            uploads.append((kind, journalId))
+            let s3Key = "spy/\(kind.rawValue)/\(uploads.count)"
+            // durationSec is supplied by the processor from the attachment; carry a
+            // placeholder so the MediaItem is well-formed.
+            let item = MediaItem(s3Key: s3Key, kind: kind, durationSec: 0)
+            return PreparedUpload(encryptedFileURL: encryptedURL, s3Key: s3Key, mediaItem: item)
+        }
+
+        func presignUpload(s3Key: String?, kind: MediaKind, ext: String, bytes: Int,
+                           journalId: String) async throws -> (s3Key: String, url: URL) {
+            (s3Key ?? "spy/key", URL(fileURLWithPath: "/dev/null"))
+        }
+
         func viewURL(for s3Key: String) async throws -> URL { URL(fileURLWithPath: "/dev/null") }
         func localFileURL(for s3Key: String) async throws -> URL { URL(fileURLWithPath: "/dev/null") }
+    }
+
+    // MARK: - Fake transport (mirrors UploadManagerTests)
+
+    private final class FakeTransport: UploadTransport {
+        var statuses: [Int]
+        private(set) var calls = 0
+        init(_ s: [Int]) { statuses = s }
+        func put(file: URL, to url: URL) async -> Int {
+            defer { calls += 1 }
+            return statuses[min(calls, statuses.count - 1)]
+        }
     }
 
     /// Records every saved snapshot so tests can assert the status progression,
@@ -94,6 +129,10 @@ final class EntryProcessorTests: XCTestCase {
         let ai: SpyAIService
         let media: SpyMediaUploader
         let ocr: MockOCRService
+        let journal: UploadJournal
+        let permanentFailures: PermanentFailureBox
+
+        final class PermanentFailureBox { var draftIds: [String] = [] }
 
         init() {
             journals = RecordingJournalRepository()
@@ -101,9 +140,27 @@ final class EntryProcessorTests: XCTestCase {
             ai = SpyAIService()
             media = SpyMediaUploader()
             ocr = MockOCRService()
+
+            let dir = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString)
+            journal = UploadJournal(directory: dir)
+            let finalizer = EntryFinalizer(journals: journals, profiles: profiles, ai: ai)
+            let failures = PermanentFailureBox()
+            permanentFailures = failures
+            let uploadManager = UploadManager(
+                journal: journal,
+                transport: FakeTransport([200]),
+                presign: { _ in URL(string: "https://signed/put")! },
+                onFinalize: { pending in await finalizer.finalize(pending) },
+                onPermanentFailure: { failures.draftIds.append($0) },
+                maxAttempts: 5,
+                backoff: { _ in 0 }
+            )
             processor = BackgroundEntryProcessor(
                 dependencies: BackgroundEntryProcessor.Dependencies(
-                    journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr
+                    journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr,
+                    transcoder: VideoTranscoder(), journal: journal,
+                    uploadManager: uploadManager, finalizer: finalizer
                 )
             )
         }
@@ -141,6 +198,19 @@ final class EntryProcessorTests: XCTestCase {
         var set = AttachmentSet()
         set.setAudio(AudioAttachment(
             url: FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).m4a"),
+            durationSec: durationSec
+        ))
+        return EntryProcessingJob(
+            draftId: UUID().uuidString, userId: "user-1", promptText: nil,
+            attachments: set, text: "", createdAt: Date()
+        )
+    }
+
+    @MainActor
+    private func videoJob(durationSec: Double) -> EntryProcessingJob {
+        var set = AttachmentSet()
+        set.setVideo(VideoAttachment(
+            url: FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).mp4"),
             durationSec: durationSec
         ))
         return EntryProcessingJob(
@@ -309,5 +379,49 @@ final class EntryProcessorTests: XCTestCase {
             .appendingPathComponent("\(photo.id.uuidString).jpg")
         XCTAssertFalse(FileManager.default.fileExists(atPath: photoTempURL.path))
         XCTAssertFalse(harness.processor.hasPendingJob(draftId: try harness.savedEntry().id))
+    }
+
+    // MARK: - Video (journal → manager → finalize)
+
+    @MainActor
+    func testVideoEntryUploadsViaJournalAndFinalizes() async throws {
+        let harness = Harness()
+        await harness.run(videoJob(durationSec: 8))
+
+        let entry = try harness.savedEntry()
+        XCTAssertEqual(entry.type, .video)
+        XCTAssertEqual(entry.processingStatus, .transcribing)
+        XCTAssertEqual(entry.media.map(\.kind), [.video])
+        XCTAssertEqual(harness.ai.transcribedJournalIds, [entry.id])
+        XCTAssertTrue(harness.ai.indexedJournalIds.isEmpty)
+        // Journal record removed after a successful finalize.
+        XCTAssertTrue(harness.journal.allPending().isEmpty)
+    }
+
+    // MARK: - Resume (post-relaunch finalization)
+
+    @MainActor
+    func testResumeFinalizesAnUploadedButUnfinalizedEntry() async throws {
+        let harness = Harness()
+        let draftId = UUID().uuidString
+        let pending = PendingEntry(
+            draftId: draftId, userId: "user-1", type: .voice, title: "t",
+            content: "", wordCount: 0, transcriptStatus: .processing,
+            createdAtEpoch: Date().timeIntervalSince1970, promptText: nil,
+            uploads: [PendingUpload(
+                attachmentId: UUID(), kind: .audio, journalId: draftId,
+                s3Key: "spy/audio/seed", encryptedPath: "/dev/null",
+                durationSec: 3, width: nil, height: nil, thumbnailS3Key: nil,
+                state: .uploaded)]
+        )
+        try harness.journal.upsert(pending)
+
+        await harness.processor.resumePendingJobs()
+
+        // Finalize ran (AV entry → transcription triggered once) and the journal
+        // record was removed.
+        XCTAssertEqual(harness.ai.transcribedJournalIds.count, 1)
+        XCTAssertEqual(harness.ai.transcribedJournalIds, [draftId])
+        XCTAssertTrue(harness.journal.allPending().isEmpty)
     }
 }

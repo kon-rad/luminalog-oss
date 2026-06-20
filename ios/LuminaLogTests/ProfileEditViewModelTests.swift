@@ -49,6 +49,12 @@ final class ProfileEditViewModelTests: XCTestCase {
             uploads.append((kind, journalId))
             return MediaItem(s3Key: s3Key, kind: kind)
         }
+        func prepareUpload(fileURL: URL, kind: MediaKind, journalId: String) async throws -> PreparedUpload {
+            PreparedUpload(encryptedFileURL: fileURL, s3Key: s3Key, mediaItem: MediaItem(s3Key: s3Key, kind: kind))
+        }
+        func presignUpload(s3Key: String?, kind: MediaKind, ext: String, bytes: Int, journalId: String) async throws -> (s3Key: String, url: URL) {
+            (s3Key ?? self.s3Key, URL(fileURLWithPath: "/dev/null"))
+        }
         func viewURL(for s3Key: String) async throws -> URL { URL(fileURLWithPath: "/resolved/\(s3Key)") }
         func localFileURL(for s3Key: String) async throws -> URL { URL(fileURLWithPath: "/resolved/\(s3Key)") }
     }

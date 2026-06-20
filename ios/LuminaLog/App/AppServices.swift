@@ -84,6 +84,25 @@ final class AppServices: ObservableObject {
         let media = ProxyMediaUploader(api: api, keys: keys)
         let ocr = VisionOCRService()
 
+        // Durable upload journal + background-session UploadManager (Tasks 3–5).
+        // The AppDelegate/background-events + relaunch-resume hookup is Task 6.
+        let uploadJournal = UploadJournal(directory: UploadJournal.defaultDirectory())
+        let finalizer = EntryFinalizer(journals: journals, profiles: profiles, ai: ai)
+        let transport = BackgroundUploadTransport()
+        let uploadManager = UploadManager(
+            journal: uploadJournal,
+            transport: transport,
+            presign: { [weak media] upload in
+                guard let media else { throw MediaUploaderError.noUploadURL }
+                let ext = (upload.encryptedPath as NSString).pathExtension
+                let (_, url) = try await media.presignUpload(
+                    s3Key: upload.s3Key, kind: upload.kind, ext: ext.isEmpty ? "bin" : ext,
+                    bytes: 0, journalId: upload.journalId)
+                return url
+            },
+            onFinalize: { pending in await finalizer.finalize(pending) }
+        )
+
         return AppServices(
             auth: auth,
             keys: keys,
@@ -99,7 +118,9 @@ final class AppServices: ObservableObject {
             voice: VapiVoiceCallService(api: api),
             entryProcessor: BackgroundEntryProcessor(
                 dependencies: BackgroundEntryProcessor.Dependencies(
-                    journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr
+                    journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr,
+                    transcoder: VideoTranscoder(), journal: uploadJournal,
+                    uploadManager: uploadManager, finalizer: finalizer
                 )
             ),
             api: api
@@ -115,6 +136,20 @@ final class AppServices: ObservableObject {
         let ai = MockAIService()
         let media = MockMediaUploader()
         let ocr = VisionOCRService()
+
+        // Mock upload pipeline: a transport that always "succeeds" so previews
+        // never hit the network. Real wiring lives in `live()`.
+        let uploadJournal = UploadJournal(
+            directory: FileManager.default.temporaryDirectory
+                .appendingPathComponent("MockUploads", isDirectory: true))
+        let finalizer = EntryFinalizer(journals: journals, profiles: profiles, ai: ai)
+        let uploadManager = UploadManager(
+            journal: uploadJournal,
+            transport: AlwaysOKTransport(),
+            presign: { _ in URL(fileURLWithPath: "/dev/null") },
+            onFinalize: { pending in await finalizer.finalize(pending) }
+        )
+
         return AppServices(
             auth: MockAuthService(signedIn: false),
             keys: keys,
@@ -133,9 +168,16 @@ final class AppServices: ObservableObject {
             voice: MockVoiceCallService(chats: chats),
             entryProcessor: BackgroundEntryProcessor(
                 dependencies: BackgroundEntryProcessor.Dependencies(
-                    journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr
+                    journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr,
+                    transcoder: VideoTranscoder(), journal: uploadJournal,
+                    uploadManager: uploadManager, finalizer: finalizer
                 )
             )
         )
     }
+}
+
+/// Demo/preview upload transport that reports success without any network I/O.
+private final class AlwaysOKTransport: UploadTransport {
+    func put(file: URL, to url: URL) async -> Int { 200 }
 }
