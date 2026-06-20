@@ -52,4 +52,21 @@ describe('uploadUrlsHandler', () => {
     const key = res.body.files[0].s3Key as string
     expect(key).toMatch(/^users\/u1\/journals\/J1\/video-[0-9a-f-]{36}\.mp4$/)
   })
+
+  it('mints a fresh uuid key when s3Key is an empty string (not a 403)', async () => {
+    const req: any = { uid: 'u1', body: { files: [{ ...baseFile, s3Key: '' }] } }
+    const res = mockRes()
+    await uploadUrlsHandler(req, res)
+    expect(res.statusCode).toBe(200)
+    const key = res.body.files[0].s3Key as string
+    expect(key).toMatch(/^users\/u1\/journals\/J1\/video-[0-9a-f-]{36}\.mp4$/)
+  })
+
+  it('rejects a prefix-boundary key (u1 vs u12) with 403', async () => {
+    const sneaky = 'users/u12/journals/J1/video-x.mp4'
+    const req: any = { uid: 'u1', body: { files: [{ ...baseFile, s3Key: sneaky }] } }
+    const res = mockRes()
+    await uploadUrlsHandler(req, res)
+    expect(res.statusCode).toBe(403)
+  })
 })
