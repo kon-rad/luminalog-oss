@@ -72,6 +72,12 @@ final class BackgroundEntryProcessor: EntryProcessor {
     private var derivedContent: [String: (content: String, status: TranscriptStatus?)] = [:]
     private var stagedTempURLs: [String: Set<URL>] = [:]
 
+    /// Re-entrancy guard for `resumePendingJobs()`. The processor is `@MainActor`,
+    /// so a simple bool check-and-set is race-free: two overlapping resume calls
+    /// (e.g. launch + scene-activation) can't both process the same records and
+    /// double-finalize. Set on entry, cleared via `defer`.
+    private var isResuming = false
+
     init(dependencies: Dependencies) {
         self.deps = dependencies
     }
@@ -252,6 +258,7 @@ final class BackgroundEntryProcessor: EntryProcessor {
                     durationSec: video.durationSec, width: item.width, height: item.height,
                     thumbnailS3Key: item.thumbnailS3Key))
                 let bytes = Self.fileSize(prepared.encryptedFileURL)
+                // Follow-up: cache staged AV uploads per attachment to avoid re-recording media bytes on retry.
                 try? await deps.profiles.recordMediaUploaded(kind: .video, bytes: bytes)
             }
 
@@ -267,6 +274,7 @@ final class BackgroundEntryProcessor: EntryProcessor {
                     durationSec: audio.durationSec, width: item.width, height: item.height,
                     thumbnailS3Key: item.thumbnailS3Key))
                 let bytes = Self.fileSize(prepared.encryptedFileURL)
+                // Follow-up: cache staged AV uploads per attachment to avoid re-recording media bytes on retry.
                 try? await deps.profiles.recordMediaUploaded(kind: .audio, bytes: bytes)
             }
 
@@ -300,16 +308,61 @@ final class BackgroundEntryProcessor: EntryProcessor {
     }
 
     func resumePendingJobs() async {
+        // Re-entrancy guard: return early if a resume is already in flight so the
+        // same durable records can't be finalized twice by overlapping calls.
+        guard !isResuming else { return }
+        isResuming = true
+        defer { isResuming = false }
+
         for pending in deps.journal.allPending() {
+            // FIX 1: Skip any draft that is currently tracked in-session. The
+            // in-session path finalizes via UploadManager.onFinalize once its
+            // uploads complete; resuming the SAME draft here would call
+            // finalize a second time, and `recordEntrySaved` is an
+            // unconditional Firestore increment — double-counting word/entry
+            // stats. The processor tracks in-flight jobs in `jobs`/`tasks`.
+            guard !hasPendingJob(draftId: pending.draftId) else { continue }
+
             // NOTE: backoff gating via `nextEarliestAttemptEpoch` across launches
             // is a follow-up; we always attempt on resume for now.
             if pending.allUploaded {
                 await deps.finalizer.finalize(pending)
                 deps.journal.remove(draftId: pending.draftId)
             } else {
+                // FIX 2: Ciphertext temp files live in the (purgeable) temporary
+                // directory while the journal record is durable (Application
+                // Support). If iOS purged a not-yet-uploaded ciphertext file,
+                // `startAll` would PUT a missing file and burn `maxAttempts`
+                // backed-off attempts before failing. Fail fast instead: if ANY
+                // not-`.uploaded` upload's ciphertext is gone, mark the entry
+                // `.failed` and drop the record so it isn't retried forever. The
+                // user sees a failed entry they can re-record.
+                let missingCiphertext = pending.uploads.contains { upload in
+                    upload.state != .uploaded
+                        && !FileManager.default.fileExists(atPath: upload.encryptedPath)
+                }
+                if missingCiphertext {
+                    Self.logger.error("Resume fail-fast: missing ciphertext for \(pending.draftId); marking failed")
+                    await markPendingFailed(pending)
+                    deps.journal.remove(draftId: pending.draftId)
+                    continue
+                }
+                // Follow-up: honor nextEarliestAttemptEpoch backoff gating across launches.
                 await deps.uploadManager.startAll(for: pending)
             }
         }
+    }
+
+    /// Write a durable journal record to Firestore as `.failed` (mirrors the
+    /// `JournalEntry` shape `EntryFinalizer` builds) so a fail-fast resume
+    /// surfaces a re-recordable failed entry instead of retrying forever.
+    private func markPendingFailed(_ pending: PendingEntry) async {
+        var entry = JournalEntry(
+            id: pending.draftId, userId: pending.userId, type: pending.type,
+            title: pending.title, createdAt: pending.createdAt, content: pending.content,
+            media: pending.mediaItems, transcriptStatus: pending.transcriptStatus,
+            processingStatus: .failed, wordCount: pending.wordCount)
+        try? await deps.journals.save(entry)
     }
 
     // MARK: Content derivation

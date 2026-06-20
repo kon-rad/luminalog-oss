@@ -134,7 +134,7 @@ final class EntryProcessorTests: XCTestCase {
 
         final class PermanentFailureBox { var draftIds: [String] = [] }
 
-        init() {
+        init(transport: UploadTransport = FakeTransport([200])) {
             journals = RecordingJournalRepository()
             profiles = SpyProfileRepository()
             ai = SpyAIService()
@@ -149,7 +149,7 @@ final class EntryProcessorTests: XCTestCase {
             permanentFailures = failures
             let uploadManager = UploadManager(
                 journal: journal,
-                transport: FakeTransport([200]),
+                transport: transport,
                 presign: { _ in URL(string: "https://signed/put")! },
                 onFinalize: { pending in await finalizer.finalize(pending) },
                 onPermanentFailure: { failures.draftIds.append($0) },
@@ -423,5 +423,84 @@ final class EntryProcessorTests: XCTestCase {
         XCTAssertEqual(harness.ai.transcribedJournalIds.count, 1)
         XCTAssertEqual(harness.ai.transcribedJournalIds, [draftId])
         XCTAssertTrue(harness.journal.allPending().isEmpty)
+    }
+
+    /// FIX 1: resume must SKIP a draft that's still tracked in-session, so the
+    /// same entry isn't finalized twice (which would double-count user stats via
+    /// the unconditional `recordEntrySaved` increment).
+    ///
+    /// We get an in-session tracked job by enqueuing an image job that FAILS to
+    /// upload — the processor retains failed jobs in `jobs` (so `hasPendingJob`
+    /// is true). We then seed the durable journal with an `.uploaded` AV record
+    /// under the SAME draftId. Without FIX 1, resume would finalize it (transcribe
+    /// + remove the record). With FIX 1, resume skips it: no transcribe, record
+    /// retained.
+    @MainActor
+    func testResumeSkipsDraftWithInFlightJob() async throws {
+        let harness = Harness()
+        harness.media.shouldFail = true
+        let job = imageJob(photos: [PhotoAttachment(imageData: Data([0x01]))])
+        await harness.run(job)
+        XCTAssertTrue(harness.processor.hasPendingJob(draftId: job.draftId),
+                      "Failed image job is retained in-session")
+
+        // Seed a durable, fully-uploaded AV record under the SAME draftId.
+        let pending = PendingEntry(
+            draftId: job.draftId, userId: "user-1", type: .voice, title: "t",
+            content: "", wordCount: 0, transcriptStatus: .processing,
+            createdAtEpoch: Date().timeIntervalSince1970, promptText: nil,
+            uploads: [PendingUpload(
+                attachmentId: UUID(), kind: .audio, journalId: job.draftId,
+                s3Key: "spy/audio/seed", encryptedPath: "/dev/null",
+                durationSec: 3, width: nil, height: nil, thumbnailS3Key: nil,
+                state: .uploaded)]
+        )
+        try harness.journal.upsert(pending)
+
+        await harness.processor.resumePendingJobs()
+
+        // Resume skipped the in-session draft: no finalize ran for it.
+        XCTAssertTrue(harness.ai.transcribedJournalIds.isEmpty,
+                      "Resume must not finalize a draft tracked in-session")
+        XCTAssertEqual(harness.journal.entry(draftId: job.draftId)?.draftId, job.draftId,
+                       "Resume must NOT remove the in-session draft's journal record")
+    }
+
+    /// FIX 2: on resume, if a not-yet-uploaded upload's ciphertext temp file was
+    /// purged by iOS, fail fast (mark `.failed`, drop the durable record) instead
+    /// of burning `maxAttempts` PUTs of a missing file. We assert the entry is
+    /// saved `.failed`, the journal no longer lists it, and the transport saw 0
+    /// calls (no upload attempts).
+    @MainActor
+    func testResumeFailsFastWhenCiphertextMissing() async throws {
+        let transport = FakeTransport([200])
+        let harness = Harness(transport: transport)
+        let draftId = UUID().uuidString
+        let missingPath = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).missing").path
+        XCTAssertFalse(FileManager.default.fileExists(atPath: missingPath))
+
+        let pending = PendingEntry(
+            draftId: draftId, userId: "user-1", type: .voice, title: "t",
+            content: "", wordCount: 0, transcriptStatus: .processing,
+            createdAtEpoch: Date().timeIntervalSince1970, promptText: nil,
+            uploads: [PendingUpload(
+                attachmentId: UUID(), kind: .audio, journalId: draftId,
+                s3Key: "spy/audio/seed", encryptedPath: missingPath,
+                durationSec: 3, width: nil, height: nil, thumbnailS3Key: nil,
+                state: .pending)] // NOT uploaded → must check ciphertext
+        )
+        try harness.journal.upsert(pending)
+
+        await harness.processor.resumePendingJobs()
+
+        let entry = try XCTUnwrap(harness.journals.store.first(where: { $0.id == draftId }))
+        XCTAssertEqual(entry.processingStatus, .failed,
+                       "Missing ciphertext on resume saves the entry as failed")
+        XCTAssertTrue(harness.journal.allPending().allSatisfy { $0.draftId != draftId },
+                      "Failed record is dropped so it isn't retried forever")
+        XCTAssertEqual(transport.calls, 0,
+                       "Fail-fast must not drive any upload attempts")
+        XCTAssertTrue(harness.ai.transcribedJournalIds.isEmpty)
     }
 }

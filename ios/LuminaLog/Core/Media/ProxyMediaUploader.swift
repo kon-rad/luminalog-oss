@@ -191,14 +191,23 @@ final class ProxyMediaUploader: MediaUploader {
         let ext = fileURL.pathExtension.isEmpty ? Self.defaultExtension(for: kind)
                                                 : fileURL.pathExtension
 
-        // MINT a stable key up front so a relaunch can re-presign the same object.
-        let (s3Key, _) = try await presignUpload(
-            s3Key: nil, kind: kind, ext: ext, bytes: byteCount, journalId: journalId)
+        // On SUCCESS, ownership of the ciphertext temp file transfers to the
+        // caller/UploadManager (so we do NOT delete it here). But if anything
+        // AFTER encryptFile throws (e.g. presign fails), the ciphertext would be
+        // orphaned — so remove it before rethrowing.
+        do {
+            // MINT a stable key up front so a relaunch can re-presign the same object.
+            let (s3Key, _) = try await presignUpload(
+                s3Key: nil, kind: kind, ext: ext, bytes: byteCount, journalId: journalId)
 
-        // Metadata from the plaintext original (audio/video have no thumbnail here).
-        let item = await Self.mediaItem(s3Key: s3Key, kind: kind, fileURL: fileURL,
-                                        thumbnailS3Key: nil)
-        return PreparedUpload(encryptedFileURL: encryptedURL, s3Key: s3Key, mediaItem: item)
+            // Metadata from the plaintext original (audio/video have no thumbnail here).
+            let item = await Self.mediaItem(s3Key: s3Key, kind: kind, fileURL: fileURL,
+                                            thumbnailS3Key: nil)
+            return PreparedUpload(encryptedFileURL: encryptedURL, s3Key: s3Key, mediaItem: item)
+        } catch {
+            try? FileManager.default.removeItem(at: encryptedURL)
+            throw error
+        }
     }
 
     func viewURL(for s3Key: String) async throws -> URL {
