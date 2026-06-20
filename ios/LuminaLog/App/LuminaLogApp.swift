@@ -6,6 +6,7 @@ import GoogleSignIn
 @main
 struct LuminaLogApp: App {
 
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var services: AppServices
     @StateObject private var session: SessionStore
 
@@ -53,6 +54,23 @@ struct LuminaLogApp: App {
                             .id(uid)
                     }
                     .id(uid)
+                    // Once the signed-in user is established, resume any durable
+                    // upload-journal records (finalize completed ones, restart the
+                    // rest). Idempotent/guarded; runs once per signed-in user via
+                    // the stable id.
+                    .task(id: uid) {
+                        await services.entryProcessor.resumePendingJobs()
+                    }
+                }
+            }
+            .onAppear {
+                // Forward the system's background-URLSession completion handler
+                // (delivered to AppDelegate when iOS relaunches us for finished
+                // uploads) to the live transport so it can call it once all
+                // delegate events are drained. Set here (not in init) because the
+                // delegate adaptor isn't accessible until the scene is built.
+                appDelegate.onBackgroundURLSessionEvents = { [services] handler in
+                    services.uploadTransport?.backgroundCompletionHandler = handler
                 }
             }
             .environmentObject(services)

@@ -23,6 +23,10 @@ final class AppServices: ObservableObject {
     /// Runs the post-save upload/transcribe pipeline in the background so the
     /// Create screen can dismiss immediately.
     let entryProcessor: EntryProcessor
+    /// Live background-upload transport, exposed so the app can forward the
+    /// system's background-URLSession completion handler to it (Task 6). Nil for
+    /// `mocks()` (the mock transport isn't a `BackgroundUploadTransport`).
+    let uploadTransport: BackgroundUploadTransport?
 
     init(
         auth: AuthService,
@@ -38,7 +42,8 @@ final class AppServices: ObservableObject {
         ocr: OCRService,
         voice: VoiceCallService,
         entryProcessor: EntryProcessor,
-        api: ProxyAPIClient? = nil
+        api: ProxyAPIClient? = nil,
+        uploadTransport: BackgroundUploadTransport? = nil
     ) {
         self.auth = auth
         self.keys = keys
@@ -54,6 +59,7 @@ final class AppServices: ObservableObject {
         self.voice = voice
         self.entryProcessor = entryProcessor
         self.api = api
+        self.uploadTransport = uploadTransport
     }
 
     /// Production service wiring — always uses Firebase and real backends.
@@ -89,6 +95,9 @@ final class AppServices: ObservableObject {
         let uploadJournal = UploadJournal(directory: UploadJournal.defaultDirectory())
         let finalizer = EntryFinalizer(journals: journals, profiles: profiles, ai: ai)
         let transport = BackgroundUploadTransport()
+        // Instantiate the background session at launch so it can receive delegate
+        // events (incl. the relaunch-delivered completion handler) right away.
+        transport.activate()
         let uploadManager = UploadManager(
             journal: uploadJournal,
             transport: transport,
@@ -123,7 +132,8 @@ final class AppServices: ObservableObject {
                     uploadManager: uploadManager, finalizer: finalizer
                 )
             ),
-            api: api
+            api: api,
+            uploadTransport: transport
         )
     }
 
