@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <style>
+    html, body { margin: 0; height: 100%; background: #0b0b12; overflow: hidden; }
+    #graph { width: 100vw; height: 100vh; }
+  </style>
+  <script src="./vendor/3d-force-graph.min.js"></script>
+  <script src="./vendor/three-spritetext.min.js"></script>
+</head>
+<body>
+  <div id="graph"></div>
+  <script>
+    // Distance (world units) under which a node's title label becomes visible.
+    var LABEL_DISTANCE = 130;
+
+    var Graph = ForceGraph3D()(document.getElementById('graph'))
+      .backgroundColor('#0b0b12')
+      .nodeColor(function () { return '#9ad0ff'; })
+      .nodeVal(function (n) { return 1 + (n.degree || 0); })   // hubs render larger
+      .linkColor(function () { return 'rgba(154,208,255,0.25)'; })
+      .linkWidth(function (l) { return (l.value || 0) * 1.5; })
+      .nodeThreeObjectExtend(true)                              // keep the default sphere (the dot)
+      .nodeThreeObject(function (node) {
+        var sprite = new SpriteText(node.title || '');
+        sprite.textHeight = 5;
+        sprite.color = '#ffffff';
+        sprite.position.set(0, 7, 0);
+        sprite.visible = false;                                 // hidden until zoomed in
+        node.__label = sprite;
+        return sprite;
+      })
+      .onNodeClick(function (node) {
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.inspect) {
+          window.webkit.messageHandlers.inspect.postMessage(node.id);
+        }
+      });
+
+    // Semantic zoom: show titles only for nodes near the camera.
+    function updateLabels() {
+      var cam = Graph.camera();
+      var data = Graph.graphData();
+      for (var i = 0; i < data.nodes.length; i++) {
+        var n = data.nodes[i];
+        if (!n.__label || n.x === undefined) continue;
+        var dx = cam.position.x - n.x, dy = cam.position.y - n.y, dz = cam.position.z - n.z;
+        var d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        n.__label.visible = d < LABEL_DISTANCE;
+      }
+    }
+    Graph.controls().addEventListener('change', updateLabels);
+    Graph.onEngineStop(updateLabels);
+
+    // Called by native with the fetched { nodes, links } JSON.
+    window.renderGraph = function (data) {
+      Graph.graphData(data);
+      setTimeout(updateLabels, 0);
+    };
+
+    // Native pause/resume for battery when the view is off-screen.
+    window.pauseGraph = function () { Graph.pauseAnimation(); };
+    window.resumeGraph = function () { Graph.resumeAnimation(); };
+  </script>
+</body>
+</html>
