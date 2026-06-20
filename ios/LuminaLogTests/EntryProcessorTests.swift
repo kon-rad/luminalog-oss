@@ -503,4 +503,47 @@ final class EntryProcessorTests: XCTestCase {
                        "Fail-fast must not drive any upload attempts")
         XCTAssertTrue(harness.ai.transcribedJournalIds.isEmpty)
     }
+
+    /// FIX A: on resume, an entry whose every not-yet-uploaded upload is still
+    /// within its persisted `nextEarliestAttemptEpoch` backoff window must be
+    /// SKIPPED this launch — not re-attempted with no inter-launch delay. The
+    /// ciphertext file EXISTS (so it's not the fail-fast path); the gate is in the
+    /// future. We assert the transport saw 0 calls and the journal record is
+    /// RETAINED (not finalized) so a later launch past the gate picks it up.
+    @MainActor
+    func testResumeSkipsUploadStillInBackoffWindow() async throws {
+        let transport = FakeTransport([200])
+        let harness = Harness(transport: transport)
+        let draftId = UUID().uuidString
+
+        // Ciphertext EXISTS (not the missing-file fail-fast path).
+        let existingPath = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).cipher").path
+        try Data([0, 1, 2]).write(to: URL(fileURLWithPath: existingPath))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: existingPath))
+
+        let pending = PendingEntry(
+            draftId: draftId, userId: "user-1", type: .voice, title: "t",
+            content: "", wordCount: 0, transcriptStatus: .processing,
+            createdAtEpoch: Date().timeIntervalSince1970, promptText: nil,
+            uploads: [PendingUpload(
+                attachmentId: UUID(), kind: .audio, journalId: draftId,
+                s3Key: "spy/audio/seed", encryptedPath: existingPath,
+                durationSec: 3, width: nil, height: nil, thumbnailS3Key: nil,
+                state: .pending, // NOT uploaded → eligible for the gate check
+                nextEarliestAttemptEpoch: Date().timeIntervalSince1970 + 9999)] // far future
+        )
+        try harness.journal.upsert(pending)
+
+        await harness.processor.resumePendingJobs()
+
+        XCTAssertEqual(transport.calls, 0,
+                       "Backoff-gated entry must not drive any upload attempts this launch")
+        XCTAssertNotNil(harness.journal.entry(draftId: draftId),
+                        "Gated entry's journal record is retained for a later launch")
+        XCTAssertTrue(harness.ai.transcribedJournalIds.isEmpty,
+                      "A skipped (not-finalized) entry must not transcribe")
+
+        try? FileManager.default.removeItem(at: URL(fileURLWithPath: existingPath))
+    }
 }

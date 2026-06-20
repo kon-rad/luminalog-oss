@@ -323,8 +323,9 @@ final class BackgroundEntryProcessor: EntryProcessor {
             // stats. The processor tracks in-flight jobs in `jobs`/`tasks`.
             guard !hasPendingJob(draftId: pending.draftId) else { continue }
 
-            // NOTE: backoff gating via `nextEarliestAttemptEpoch` across launches
-            // is a follow-up; we always attempt on resume for now.
+            // Backoff gating via `nextEarliestAttemptEpoch` is honored at the entry
+            // level below (in the not-yet-uploaded branch) so a persistently-failing
+            // upload doesn't re-attempt on every launch with no inter-launch delay.
             if pending.allUploaded {
                 await deps.finalizer.finalize(pending)
                 deps.journal.remove(draftId: pending.draftId)
@@ -347,7 +348,23 @@ final class BackgroundEntryProcessor: EntryProcessor {
                     deps.journal.remove(draftId: pending.draftId)
                     continue
                 }
-                // Follow-up: honor nextEarliestAttemptEpoch backoff gating across launches.
+                // Honor the persisted `nextEarliestAttemptEpoch` backoff gate at the
+                // entry level on launch: `UploadManager.bumpOrFail` stamps each failed
+                // upload with `now + delay`, but without this check `startAll` would
+                // re-attempt on EVERY launch with no inter-launch delay. If EVERY
+                // not-yet-`.uploaded` upload is still within its backoff window, skip
+                // starting this entry this launch — leave the journal record intact so
+                // a later launch (past the gate) picks it up. If at least one upload is
+                // due (gate in the past or zero), proceed to `startAll`. (Entry-level
+                // skip only when ALL pending uploads are gated, so a single due upload
+                // still drives the whole entry forward.)
+                let now = Date().timeIntervalSince1970
+                let pendingUploads = pending.uploads.filter { $0.state != .uploaded }
+                let allGated = !pendingUploads.isEmpty
+                    && pendingUploads.allSatisfy { $0.nextEarliestAttemptEpoch > now }
+                if allGated {
+                    continue
+                }
                 await deps.uploadManager.startAll(for: pending)
             }
         }

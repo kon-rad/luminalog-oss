@@ -2,7 +2,6 @@ import Foundation
 import AVFoundation
 import ImageIO
 import UIKit
-import UniformTypeIdentifiers
 
 /// Errors specific to media upload.
 enum MediaUploaderError: LocalizedError {
@@ -253,12 +252,6 @@ final class ProxyMediaUploader: MediaUploader {
         case .video: return "mp4"
         case .audio: return "m4a"
         }
-    }
-
-    /// MIME type for the upload's `Content-Type` header, derived from the
-    /// file extension via UTType.
-    private static func mimeType(forExtension ext: String) -> String {
-        UTType(filenameExtension: ext)?.preferredMIMEType ?? "application/octet-stream"
     }
 
     /// Downscaled JPEG thumbnail (longest edge ≤ `maxEdge`) for an image file,

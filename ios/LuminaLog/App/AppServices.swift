@@ -104,6 +104,10 @@ final class AppServices: ObservableObject {
             presign: { [weak media] upload in
                 guard let media else { throw MediaUploaderError.noUploadURL }
                 let ext = (upload.encryptedPath as NSString).pathExtension
+                // Passing the staged `s3Key` re-presigns the SAME object: the server
+                // ignores `ext`/`bytes` when an `s3Key` is supplied (it reuses the key
+                // verbatim), so the placeholder `"bin"`/`0` here are inert — key
+                // stability across re-presigns depends on that server behavior.
                 let (_, url) = try await media.presignUpload(
                     s3Key: upload.s3Key, kind: upload.kind, ext: ext.isEmpty ? "bin" : ext,
                     bytes: 0, journalId: upload.journalId)
