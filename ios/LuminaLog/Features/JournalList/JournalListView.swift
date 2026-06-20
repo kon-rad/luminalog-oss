@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Journal list screen (design §3): searchable, type-filterable, date-grouped
-/// archive of all entries with infinite scroll.
+/// Journal list screen (design §3): type-filterable, date-grouped archive of
+/// all entries with infinite scroll. Search is handled by `SearchView`.
 struct JournalListView: View {
 
     @StateObject private var viewModel: JournalListViewModel
@@ -33,6 +33,9 @@ struct JournalListView: View {
         self.onRetryProcessing = onRetryProcessing
     }
 
+    @State private var isSearchPresented = false
+    @State private var isMapPresented = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -47,14 +50,47 @@ struct JournalListView: View {
             }
             .background(Color.appBackground.ignoresSafeArea())
             .navigationTitle("Journal")
-            .searchable(
-                text: $viewModel.searchText,
-                placement: .navigationBarDrawer(displayMode: .automatic),
-                prompt: "Search your journal"
-            )
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        isSearchPresented = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+                    .accessibilityLabel("Search journal")
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        isMapPresented = true
+                    } label: {
+                        Image(systemName: "circle.hexagongrid")
+                    }
+                    .accessibilityLabel("Open journal map")
+                }
+            }
             .navigationDestination(for: JournalDetailRoute.self) { route in
                 JournalDetailView(
                     entryId: route.entryId,
+                    journals: journals,
+                    profiles: profiles,
+                    ai: ai,
+                    media: media,
+                    onPrompt: onPrompt,
+                    onRetryProcessing: onRetryProcessing
+                )
+            }
+            .fullScreenCover(isPresented: $isSearchPresented) {
+                SearchView(
+                    ai: ai,
+                    journals: journals,
+                    profiles: profiles,
+                    media: media,
+                    onPrompt: onPrompt,
+                    onRetryProcessing: onRetryProcessing
+                )
+            }
+            .fullScreenCover(isPresented: $isMapPresented) {
+                JournalConstellationView(
                     journals: journals,
                     profiles: profiles,
                     ai: ai,
@@ -91,9 +127,9 @@ struct JournalListView: View {
             )
         } else if viewModel.isFilteredEmpty {
             EmptyStateView(
-                systemImage: "magnifyingglass",
+                systemImage: "line.3.horizontal.decrease.circle",
                 title: "No matches",
-                message: "Nothing in your journal matches this search or filter."
+                message: "Nothing in your journal matches this filter."
             )
         } else {
             entrySections
