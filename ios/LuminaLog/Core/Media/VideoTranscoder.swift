@@ -50,8 +50,13 @@ struct VideoTranscoder {
         do {
             let natural = try await videoTrack.load(.naturalSize)
             let transform = (try? await videoTrack.load(.preferredTransform)) ?? .identity
-            let oriented = natural.applying(transform)
-            let (w, h) = Self.targetSize(width: abs(oriented.width), height: abs(oriented.height),
+            // Size the OUTPUT pixel box from the source's NATURAL (decoded-buffer) dimensions, NOT the
+            // display-oriented dimensions: AVAssetReaderTrackOutput delivers raw buffers in the natural
+            // orientation, so the writer box must match THAT aspect or the encoder stretches each frame.
+            // videoIn.transform carries the source's preferredTransform so playback still rotates to the
+            // correct display orientation (e.g. portrait). The long-edge magnitude is rotation-invariant,
+            // so the size cap is unchanged.
+            let (w, h) = Self.targetSize(width: abs(natural.width), height: abs(natural.height),
                                          maxLongEdge: options.maxLongEdge)
 
             let videoOut = AVAssetReaderTrackOutput(track: videoTrack, outputSettings: [

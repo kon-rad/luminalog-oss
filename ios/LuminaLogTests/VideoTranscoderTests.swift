@@ -7,7 +7,8 @@ final class VideoTranscoderTests: XCTestCase {
     /// Generates a tiny H.264 fixture so the test is hermetic. When `withAudio` is set,
     /// also writes a short silent LPCM audio track so the two-pump path is exercised.
     private func makeFixture(width: Int = 1920, height: Int = 1080, frames: Int = 12,
-                             withAudio: Bool = false) async throws -> URL {
+                             withAudio: Bool = false,
+                             transform: CGAffineTransform = .identity) async throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).mp4")
         let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
         let settings: [String: Any] = [
@@ -17,6 +18,9 @@ final class VideoTranscoderTests: XCTestCase {
         let input = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
         let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: nil)
         writer.add(input)
+        // Set after add(), before startWriting(): the track records this as its
+        // preferredTransform, mimicking how iPhone records (landscape buffers + rotation).
+        input.transform = transform
 
         let sampleRate = 44_100.0
         var audioInput: AVAssetWriterInput?
@@ -143,6 +147,26 @@ final class VideoTranscoderTests: XCTestCase {
         let shortEdge = min(abs(oriented.width), abs(oriented.height))
         XCTAssertLessThanOrEqual(longEdge, 1281, "Long edge capped at ~1280")
         XCTAssertEqual(shortEdge, 720, accuracy: 2, "Short edge of 1080x1920 → ~720 wide")
+    }
+
+    func testRotatedSourcePreservesAspectRatio() async throws {
+        // iPhone-style portrait recording: 1920x1080 LANDSCAPE buffers + a 90° rotation transform.
+        let src = try await makeFixture(width: 1920, height: 1080, transform: CGAffineTransform(rotationAngle: .pi / 2))
+        let dst = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).mp4")
+        defer { try? FileManager.default.removeItem(at: src); try? FileManager.default.removeItem(at: dst) }
+
+        try await VideoTranscoder().transcode(source: src, to: dst)
+
+        let track = try await AVURLAsset(url: dst).loadTracks(withMediaType: .video).first!
+        let outNatural = try await track.load(.naturalSize)
+        // The encoded pixel box must keep the SOURCE buffer aspect (16:9 ≈ 1.778), NOT be squished into 9:16 (≈0.5625).
+        let outAspect = abs(outNatural.width) / abs(outNatural.height)
+        XCTAssertEqual(outAspect, 1920.0 / 1080.0, accuracy: 0.06, "output pixel box must keep source aspect (no stretch)")
+        // And the DISPLAY orientation must still be portrait via the carried transform, capped at ~720p.
+        let outTransform = try await track.load(.preferredTransform)
+        let displayed = outNatural.applying(outTransform)
+        XCTAssertGreaterThan(abs(displayed.height), abs(displayed.width), "must still display as portrait")
+        XCTAssertLessThanOrEqual(max(abs(displayed.width), abs(displayed.height)), 1281)
     }
 
     func testShouldTranscode() async throws {
