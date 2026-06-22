@@ -34,7 +34,7 @@ final class MockVoiceCallServiceTests: XCTestCase {
         let chat = try await repo.createChat(kind: .voice, title: "Voice call")
 
         let collector = EventCollector(service)
-        try await service.startCall(chatId: chat.id)
+        try await service.startCall(chatId: chat.id, journalId: nil, journalTitle: nil)
 
         try await waitUntil { collector.endedReason != nil }
 
@@ -74,7 +74,7 @@ final class MockVoiceCallServiceTests: XCTestCase {
         let chat = try await repo.createChat(kind: .voice, title: "Voice call")
 
         let collector = EventCollector(service)
-        try await service.startCall(chatId: chat.id)
+        try await service.startCall(chatId: chat.id, journalId: nil, journalTitle: nil)
         await service.endCall()
 
         try await waitUntil { collector.endedReason != nil }

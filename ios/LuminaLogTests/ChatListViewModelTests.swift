@@ -24,7 +24,7 @@ final class ChatListViewModelTests: XCTestCase {
             AsyncStream { $0.yield([]) }
         }
 
-        func createChat(kind: ChatKind, title: String) async throws -> Chat {
+        func createChat(kind: ChatKind, title: String, journalId: String?, journalTitle: String?) async throws -> Chat {
             Chat(userId: "u", kind: kind, title: title)
         }
 

@@ -4,12 +4,25 @@ import XCTest
 @MainActor
 final class VoiceCallCreditTests: XCTestCase {
 
+    // Credit metering is gated behind !DevFlags.devMode. The test runner
+    // inherits the app's registered default (devMode = true), so we flip it
+    // off for the duration of each test and restore it in tearDown.
+    override func setUp() async throws {
+        try await super.setUp()
+        UserDefaults.standard.set(false, forKey: DevFlags.devModeKey)
+    }
+
+    override func tearDown() async throws {
+        UserDefaults.standard.removeObject(forKey: DevFlags.devModeKey)
+        try await super.tearDown()
+    }
+
     /// A `VoiceCallService` whose events are driven on demand from the test.
     private final class StreamVoiceService: VoiceCallService {
         private let broadcaster = VoiceCallEventBroadcaster()
         private(set) var endCalls = 0
         var events: AsyncStream<VoiceCallEvent> { broadcaster.makeStream() }
-        func startCall(chatId: String) async throws {}
+        func startCall(chatId: String, journalId: String?, journalTitle: String?) async throws {}
         func endCall() async { endCalls += 1; broadcaster.send(.ended(reason: nil)) }
         func setMuted(_ muted: Bool) {}
         func emit(_ event: VoiceCallEvent) { broadcaster.send(event) }

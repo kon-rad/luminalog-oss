@@ -34,9 +34,9 @@ final class SpyChatRepository: ChatRepository {
         backing.messages(chatId: chatId)
     }
 
-    func createChat(kind: ChatKind, title: String) async throws -> Chat {
+    func createChat(kind: ChatKind, title: String, journalId: String?, journalTitle: String?) async throws -> Chat {
         createdKinds.append(kind)
-        return try await backing.createChat(kind: kind, title: title)
+        return try await backing.createChat(kind: kind, title: title, journalId: journalId, journalTitle: journalTitle)
     }
 
     func appendMessage(_ message: ChatMessage, to chatId: String) async throws {

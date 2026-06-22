@@ -74,7 +74,8 @@ final class HomeViewModelTests: XCTestCase {
         let viewModel = HomeViewModel(
             journals: MockJournalRepository(),
             profiles: MockProfileRepository(profile: profile),
-            ai: ai
+            ai: ai,
+            dailyReports: MockDailyReportRepository()
         )
 
         viewModel.start()
@@ -96,7 +97,8 @@ final class HomeViewModelTests: XCTestCase {
         let viewModel = HomeViewModel(
             journals: MockJournalRepository(),
             profiles: MockProfileRepository(profile: profile),
-            ai: ai
+            ai: ai,
+            dailyReports: MockDailyReportRepository()
         )
 
         viewModel.start()
@@ -114,7 +116,8 @@ final class HomeViewModelTests: XCTestCase {
         let viewModel = HomeViewModel(
             journals: MockJournalRepository(),
             profiles: MockProfileRepository(profile: profile),
-            ai: ai
+            ai: ai,
+            dailyReports: MockDailyReportRepository()
         )
 
         viewModel.start()
@@ -135,7 +138,8 @@ final class HomeViewModelTests: XCTestCase {
         let viewModel = HomeViewModel(
             journals: MockJournalRepository(),
             profiles: MockProfileRepository(),
-            ai: SpyAIService()
+            ai: SpyAIService(),
+            dailyReports: MockDailyReportRepository()
         )
 
         viewModel.start()
@@ -146,9 +150,9 @@ final class HomeViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.recentEntries?.count, HomeViewModel.recentLimit)
 
         // Newest first — the cap keeps the latest entries.
-        let expected = MockData.journalEntries
+        let expected = Array(MockData.journalEntries
             .sorted { $0.createdAt > $1.createdAt }
-            .prefix(HomeViewModel.recentLimit)
+            .prefix(HomeViewModel.recentLimit))
             .map(\.id)
         XCTAssertEqual(viewModel.recentEntries?.map(\.id), Array(expected))
     }

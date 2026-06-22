@@ -41,6 +41,7 @@ final class JournalListViewModelTests: XCTestCase {
         func updateContent(id: String, content: String, wordCount: Int, contentEditedAt: Date, appendedMedia: [MediaItem]) async throws {}
         func applyEntryEdit(id: String, title: String, content: String, wordCount: Int, contentEditedAt: Date?, edit: EditRecord) async throws {}
         func delete(id: String) async throws {}
+        func setExcludeFromShare(entryId: String, value: Bool) async throws {}
     }
 
     @MainActor
