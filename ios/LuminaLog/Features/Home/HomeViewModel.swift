@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import Combine
 
 /// Drives the Home screen (design §2): live recent entries, live profile
 /// (greeting + stats), and the daily prompt hero card.
@@ -22,9 +23,20 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var profile: UserProfile?
     @Published private(set) var promptState: PromptState = .loading
 
+    @Published var showMilestone = false
+    @Published var showReport = false
+    @Published private(set) var todaysReport: DailyInsightsReport?
+
     private let journals: JournalRepository
     private let profiles: ProfileRepository
     private let ai: AIService
+    private let dailyReports: DailyReportRepository
+    private let recording = RecordingState.shared
+    private var coordinator: MilestoneCoordinator?
+    private var recordingCancellable: AnyCancellable?
+
+    /// Exposes the report repository for the view's report sheet.
+    var dailyReportsRepo: DailyReportRepository { dailyReports }
 
     private var entriesTask: Task<Void, Never>?
     private var profileTask: Task<Void, Never>?
@@ -39,16 +51,18 @@ final class HomeViewModel: ObservableObject {
 
     private var hasStarted = false
 
-    init(journals: JournalRepository, profiles: ProfileRepository, ai: AIService) {
+    init(journals: JournalRepository, profiles: ProfileRepository, ai: AIService, dailyReports: DailyReportRepository) {
         self.journals = journals
         self.profiles = profiles
         self.ai = ai
+        self.dailyReports = dailyReports
     }
 
     deinit {
         entriesTask?.cancel()
         profileTask?.cancel()
         promptResolutionTask?.cancel()
+        recordingCancellable = nil
     }
 
     // MARK: - Lifecycle
@@ -58,6 +72,13 @@ final class HomeViewModel: ObservableObject {
     func start() {
         guard !hasStarted else { return }
         hasStarted = true
+
+        recordingCancellable = recording.$isRecording
+            .receive(on: RunLoop.main)
+            .sink { [weak self] isRec in
+                guard let self else { return }
+                self.coordinator?.update(goalWords: self.goalProgressWords, isRecording: isRec)
+            }
 
         entriesTask = Task { [weak self] in
             guard let stream = self?.journals.recentEntries(limit: Self.recentLimit) else { return }
@@ -72,9 +93,34 @@ final class HomeViewModel: ObservableObject {
             for await profile in stream {
                 guard let self, !Task.isCancelled else { return }
                 self.profile = profile
+                self.handleProfileUpdate()
                 // Resolve off the stream loop so a slow AI fetch never
                 // blocks later profile emissions.
                 self.promptResolutionTask = Task { await self.resolveDailyPromptIfNeeded() }
+            }
+        }
+    }
+
+    // MARK: - Milestone + daily report
+
+    /// "yyyy-MM-dd" in the user's timezone.
+    private func todayKey() -> String {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+        if let tz = TimeZone(identifier: profile?.timezone ?? "") { f.timeZone = tz }
+        return f.string(from: Date())
+    }
+
+    private func handleProfileUpdate() {
+        if coordinator == nil, let id = profile?.id {
+            let c = MilestoneCoordinator(uid: id, target: goalTarget, today: { [weak self] in self?.todayKey() ?? "" })
+            c.onShouldPresent = { [weak self] in self?.showMilestone = true }
+            coordinator = c
+        }
+        coordinator?.update(goalWords: goalProgressWords, isRecording: recording.isRecording)
+        if todaysReport == nil {
+            Task { [weak self] in
+                guard let self else { return }
+                self.todaysReport = try? await self.dailyReports.report(for: self.todayKey())
             }
         }
     }

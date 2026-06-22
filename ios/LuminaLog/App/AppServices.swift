@@ -9,6 +9,7 @@ final class AppServices: ObservableObject {
     let keys: UserKeyStore
     let journals: JournalRepository
     let profiles: ProfileRepository
+    let dailyReports: DailyReportRepository
     let chats: ChatRepository
     let ai: AIService
     let media: MediaUploader
@@ -33,6 +34,7 @@ final class AppServices: ObservableObject {
         keys: UserKeyStore,
         journals: JournalRepository,
         profiles: ProfileRepository,
+        dailyReports: DailyReportRepository,
         chats: ChatRepository,
         ai: AIService,
         media: MediaUploader,
@@ -49,6 +51,7 @@ final class AppServices: ObservableObject {
         self.keys = keys
         self.journals = journals
         self.profiles = profiles
+        self.dailyReports = dailyReports
         self.chats = chats
         self.ai = ai
         self.media = media
@@ -86,6 +89,7 @@ final class AppServices: ObservableObject {
 
         let journals = FirestoreJournalRepository(auth: auth, keys: keys)
         let profiles = FirestoreProfileRepository(auth: auth, keys: keys)
+        let dailyReports = FirestoreDailyReportRepository(auth: auth, keys: keys)
         let ai = ProxyAIService(api: api)
         let media = ProxyMediaUploader(api: api, keys: keys)
         let ocr = VisionOCRService()
@@ -121,6 +125,7 @@ final class AppServices: ObservableObject {
             keys: keys,
             journals: journals,
             profiles: profiles,
+            dailyReports: dailyReports,
             chats: FirestoreChatRepository(auth: auth, keys: keys),
             ai: ai,
             media: media,
@@ -147,6 +152,7 @@ final class AppServices: ObservableObject {
         let keys = UserKeyStore(provider: MockKeyProvider(), secrets: KeychainStore())
         let journals = MockJournalRepository()
         let profiles = MockProfileRepository()
+        let dailyReports = MockDailyReportRepository()
         let ai = MockAIService()
         let media = MockMediaUploader()
         let ocr = VisionOCRService()
@@ -169,6 +175,7 @@ final class AppServices: ObservableObject {
             keys: keys,
             journals: journals,
             profiles: profiles,
+            dailyReports: dailyReports,
             chats: chats,
             ai: ai,
             media: media,

@@ -18,6 +18,7 @@ struct HomeView: View {
     private let profiles: ProfileRepository
     private let ai: AIService
     private let media: MediaUploader
+    private let dailyReports: DailyReportRepository
     private let onRetryProcessing: ((String) -> Void)?
 
     init(
@@ -25,18 +26,20 @@ struct HomeView: View {
         profiles: ProfileRepository,
         ai: AIService,
         media: MediaUploader,
+        dailyReports: DailyReportRepository,
         onStartJournaling: @escaping (String?) -> Void,
         onShowMore: @escaping () -> Void,
         onPrompt: @escaping (CreateEntryRequest) -> Void,
         onRetryProcessing: ((String) -> Void)? = nil
     ) {
         _viewModel = StateObject(
-            wrappedValue: HomeViewModel(journals: journals, profiles: profiles, ai: ai)
+            wrappedValue: HomeViewModel(journals: journals, profiles: profiles, ai: ai, dailyReports: dailyReports)
         )
         self.journals = journals
         self.profiles = profiles
         self.ai = ai
         self.media = media
+        self.dailyReports = dailyReports
         self.onStartJournaling = onStartJournaling
         self.onShowMore = onShowMore
         self.onPrompt = onPrompt
@@ -50,6 +53,7 @@ struct HomeView: View {
                     header
                     promptCard
                     statsRow
+                    insightsCardEntry
                     recentSection
                 }
                 .padding(.horizontal, Spacing.m)
@@ -58,6 +62,10 @@ struct HomeView: View {
             }
             .background(Color.appBackground.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            .overlay { if viewModel.showMilestone { milestoneOverlay } }
+            .sheet(isPresented: $viewModel.showReport) {
+                DailyInsightsReportView(ai: ai, reports: dailyReports, date: nil)
+            }
             .navigationDestination(for: JournalDetailRoute.self) { route in
                 JournalDetailView(
                     entryId: route.entryId,
@@ -141,6 +149,42 @@ struct HomeView: View {
                 )
         )
         .accessibilityLabel("Preparing today's prompt")
+    }
+
+    // MARK: - Milestone popup + insights card
+
+    private var milestoneOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.45).ignoresSafeArea()
+                .onTapGesture { viewModel.showMilestone = false }
+            VStack { Spacer()
+                MilestonePopupView(
+                    target: viewModel.goalTarget,
+                    onGenerate: { viewModel.showMilestone = false; viewModel.showReport = true },
+                    onDismiss: { viewModel.showMilestone = false }
+                )
+            }
+        }
+        .transition(.opacity)
+    }
+
+    @ViewBuilder private var insightsCardEntry: some View {
+        if viewModel.todaysReport != nil {
+            Button { viewModel.showReport = true } label: {
+                HStack(spacing: Spacing.s) {
+                    Image(systemName: "sparkles").foregroundStyle(Color.accentWarm)
+                    Text("Today's insights").font(.uiBody.weight(.semibold))
+                        .foregroundStyle(Color.textPrimary)
+                    Spacer()
+                    Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.accentWarm)
+                }
+                .padding(Spacing.m)
+                .background(RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                    .fill(Color.cardBackground))
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     // MARK: - Stats
@@ -246,6 +290,7 @@ private struct HomePreview: View {
             profiles: MockProfileRepository(),
             ai: MockAIService(),
             media: MockMediaUploader(),
+            dailyReports: MockDailyReportRepository(),
             onStartJournaling: { _ in },
             onShowMore: {},
             onPrompt: { _ in }

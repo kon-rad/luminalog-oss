@@ -33,6 +33,7 @@ struct RootView: View {
                     profiles: services.profiles,
                     ai: services.ai,
                     media: services.media,
+                    dailyReports: services.dailyReports,
                     onStartJournaling: { prompt in
                         createRequest = CreateEntryRequest(promptText: prompt)
                     },
@@ -70,13 +71,14 @@ struct RootView: View {
                     media: services.media
                 )
             }
-            tabContent(for: .profile) {
-                ProfileView(
+            tabContent(for: .settings) {
+                SettingsView(
                     auth: services.auth,
                     profiles: services.profiles,
                     subscriptions: services.subscriptions,
                     credits: services.credits,
                     media: services.media,
+                    speech: services.speech,
                     reminders: reminders
                 )
             }
