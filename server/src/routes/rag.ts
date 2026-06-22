@@ -3,16 +3,38 @@ import admin from 'firebase-admin'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
 import { config } from '../config'
 import { indexJournalEntry, deleteJournalEntry } from '../services/journalIndexer'
-import { indexSummary, deleteSummary, findRelated } from '../services/summaryIndexer'
-import { generateSummaryText } from '../services/summaryGenerator'
+import { deleteSummary, findRelated } from '../services/summaryIndexer'
+import { ensureEntrySummaryIndexed } from '../services/summaryService'
 import { getOrCreateDEK } from '../crypto/keyService'
-import { openField, encryptField, decryptField } from '../crypto/fieldCipher'
+import { openField, decryptField } from '../crypto/fieldCipher'
 import { deleteMediaObjects } from '../services/s3'
 import { getJournalsCollection, getSummariesCollection } from '../db/chroma'
 import { embedQuery } from '../services/aiClient'
 import { getGraph, invalidateGraph } from '../services/graphBuilder'
+import { scoreEntryEmotion } from '../services/entryEmotion'
+import { decryptMedia } from '../crypto/mediaCipher'
+import { extractAudio } from '../services/audioExtractor'
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
+import { streamToBuffer } from '../services/aiClient'
 
 export const ragRouter = Router()
+
+const s3 = new S3Client({
+  region: config.AWS_REGION,
+  credentials: { accessKeyId: config.AWS_ACCESS_KEY_ID, secretAccessKey: config.AWS_SECRET_ACCESS_KEY },
+})
+
+/** Decrypt the entry's audio (de-mux video) for prosody scoring, or null. */
+async function audioBytesFor(data: any, dek: Buffer): Promise<Buffer | null> {
+  const item = (data.media ?? []).find((m: any) => m.kind === 'audio' || m.kind === 'video')
+  if (!item) return null
+  try {
+    const obj = await s3.send(new GetObjectCommand({ Bucket: config.AWS_S3_BUCKET, Key: item.s3Key }))
+    if (!obj.Body) return null
+    const raw = decryptMedia(dek, await streamToBuffer(obj.Body as any))
+    return item.kind === 'video' ? await extractAudio(raw) : raw
+  } catch { return null }
+}
 
 ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
   const uid = (req as any).uid as string
@@ -58,29 +80,14 @@ ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
     return
   }
 
-  // 2) Summary: regenerate when missing, stale, or forced.
+  // 2) Summary: regenerate when missing, stale, or forced. Shared with the
+  //    transcribe path via ensureEntrySummaryIndexed so every content path
+  //    keeps the summary vector in sync (see services/summaryService.ts).
   let summaryIndexed = false
   try {
-    if (shouldRegenerateSummary(data, force)) {
-      const userConfig = (await db.collection('users').doc(uid).get()).data()?.summaryConfig
-      const summary = await generateSummaryText({ type, content, userConfig })
-
-      await db.collection('journals').doc(journalId).update({
-        summary: {
-          text: encryptField(dek, summary.text, 'journals.summary.text'),
-          generatedAt: admin.firestore.Timestamp.fromDate(new Date(summary.generatedAt)),
-          model: summary.model,
-        },
-      })
-
-      await indexSummary({
-        userId: uid, entryId: journalId, summaryText: summary.text,
-        type, title, date: updatedAt.slice(0, 10), dek,
-      })
-      summaryIndexed = true
-    } else {
-      summaryIndexed = data.vector?.summaryIndexed === true
-    }
+    summaryIndexed = await ensureEntrySummaryIndexed({
+      uid, journalId, data, content, title, type, date: updatedAt.slice(0, 10), dek, force,
+    })
   } catch (err) {
     console.error('[rag/index] summary step failed (content index kept)', err)
   }
@@ -94,26 +101,18 @@ ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
     },
   })
 
+  // Best-effort emotion scoring (Hume). Never blocks indexing.
+  await scoreEntryEmotion({
+    uid, journalId, content, data,
+    downloadAudio: () => audioBytesFor(data, dek),
+  })
+
   // The user's similarity graph may have changed — drop the cache so the next
   // /graph call rebuilds (cheap; pure vector math).
   invalidateGraph(uid)
 
   res.json({ indexed: true, chunks: chunkCount, summaryIndexed })
 })
-
-/** Regenerate when forced, when there is no summary, or when content was edited
- *  after the summary was generated (stale). */
-function shouldRegenerateSummary(
-  data: admin.firestore.DocumentData,
-  force: boolean | undefined,
-): boolean {
-  if (force) return true
-  const summary = data.summary as { generatedAt?: admin.firestore.Timestamp } | undefined
-  if (!summary?.generatedAt) return true
-  const editedAt = data.contentEditedAt as admin.firestore.Timestamp | undefined
-  if (editedAt && editedAt.toMillis() > summary.generatedAt.toMillis()) return true
-  return false
-}
 
 export async function deleteHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
@@ -334,7 +333,7 @@ ragRouter.post('/search/semantic', firebaseAuth, async (req: Request, res: Respo
       docs: (string | null)[][],
       metas: (Record<string, unknown> | null)[][],
       dists: number[][],
-      snippetContext: string,
+      getSnippetContext: (meta: Record<string, unknown>) => string,
     ) => {
       const docList = docs[0] ?? []
       const metaList = metas[0] ?? []
@@ -348,7 +347,7 @@ ragRouter.post('/search/semantic', firebaseAuth, async (req: Request, res: Respo
         if (existing && existing.score >= score) continue
         const title = m.title ? decryptField(dek, JSON.parse(m.title as string), 'journals.title') : ''
         const snippet = docList[i]
-          ? decryptField(dek, JSON.parse(docList[i] as string), snippetContext)
+          ? decryptField(dek, JSON.parse(docList[i] as string), getSnippetContext(m))
           : ''
         merged.set(journalId, {
           journalId,
@@ -365,13 +364,13 @@ ragRouter.post('/search/semantic', firebaseAuth, async (req: Request, res: Respo
       chunkRes.documents as any,
       chunkRes.metadatas as any,
       (chunkRes as any).distances ?? [],
-      'rag.chunk.0',
+      (m) => `rag.chunk.${typeof m.chunkIndex === 'number' ? m.chunkIndex : 0}`,
     )
     processResults(
       summaryRes.documents as any,
       summaryRes.metadatas as any,
       (summaryRes as any).distances ?? [],
-      'rag.summary',
+      () => 'rag.summary',
     )
 
     const results = Array.from(merged.values())
