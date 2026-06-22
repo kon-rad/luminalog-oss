@@ -63,6 +63,9 @@ extension FailingAIService {
     func deleteEntry(journalId: String) async throws {}
     func searchKeyword(query: String) async throws -> [SearchResult] { [] }
     func searchSemantic(query: String) async throws -> [SearchResult] { [] }
+    func generateDailyReport(date: String?, force: Bool) async throws -> DailyInsightsReport {
+        throw URLError(.cancelled)
+    }
 }
 
 extension EmptyGraphAIService {
@@ -80,4 +83,7 @@ extension EmptyGraphAIService {
     func deleteEntry(journalId: String) async throws {}
     func searchKeyword(query: String) async throws -> [SearchResult] { [] }
     func searchSemantic(query: String) async throws -> [SearchResult] { [] }
+    func generateDailyReport(date: String?, force: Bool) async throws -> DailyInsightsReport {
+        throw URLError(.cancelled)
+    }
 }

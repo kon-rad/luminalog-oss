@@ -77,6 +77,10 @@ final class JournalDetailViewModelTests: XCTestCase {
             }
         }
 
+        func generateDailyReport(date: String?, force: Bool) async throws -> DailyInsightsReport {
+            throw URLError(.cancelled)
+        }
+
         private func waitAndMaybeFail() async throws {
             if delayNanos > 0 {
                 try await Task.sleep(nanoseconds: delayNanos)

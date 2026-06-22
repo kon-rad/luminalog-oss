@@ -50,6 +50,7 @@ final class AudioRecorderController: NSObject, ObservableObject {
 
             self.recorder = recorder
             isRecording = true
+            RecordingState.shared.setRecording(true)
             elapsed = 0
             timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
                 Task { @MainActor in
@@ -80,6 +81,7 @@ final class AudioRecorderController: NSObject, ObservableObject {
         timer = nil
         self.recorder = nil
         isRecording = false
+        RecordingState.shared.setRecording(false)
         elapsed = 0
         try? AVAudioSession.sharedInstance()
             .setActive(false, options: .notifyOthersOnDeactivation)
@@ -95,6 +97,7 @@ final class AudioRecorderController: NSObject, ObservableObject {
         timer = nil
         self.recorder = nil
         isRecording = false
+        RecordingState.shared.setRecording(false)
         elapsed = 0
         try? FileManager.default.removeItem(at: url)
         try? AVAudioSession.sharedInstance()

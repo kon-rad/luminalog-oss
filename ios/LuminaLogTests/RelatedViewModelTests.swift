@@ -68,4 +68,7 @@ private final class StubFailingAIService: AIService {
     func searchKeyword(query: String) async throws -> [SearchResult] { [] }
     func searchSemantic(query: String) async throws -> [SearchResult] { [] }
     func journalGraph() async throws -> JournalGraph { JournalGraph(nodes: [], links: []) }
+    func generateDailyReport(date: String?, force: Bool) async throws -> DailyInsightsReport {
+        throw URLError(.cancelled)
+    }
 }

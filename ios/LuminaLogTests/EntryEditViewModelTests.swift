@@ -21,6 +21,9 @@ final class EntryEditViewModelTests: XCTestCase {
         func searchSemantic(query: String) async throws -> [SearchResult] { [] }
         func journalGraph() async throws -> JournalGraph { JournalGraph(nodes: [], links: []) }
         func deleteEntry(journalId: String) async throws {}
+        func generateDailyReport(date: String?, force: Bool) async throws -> DailyInsightsReport {
+            throw URLError(.cancelled)
+        }
     }
 
     private func makeVM(
