@@ -65,6 +65,7 @@ async function runJob(body: string | FormData, headers: Record<string, string>):
     if (status === 'COMPLETED') break
     if (status === 'FAILED') return null
   }
+  if (Date.now() >= deadline) return null
   const predRes = await fetch(`${BASE}/jobs/${jobId}/predictions`, { headers: auth })
   if (!predRes.ok) return null
   const predictions = await predRes.json()
