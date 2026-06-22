@@ -19,7 +19,7 @@ const schema = z.object({
   // RAG tuning knobs
   RAG_CHUNK_SIZE: z.coerce.number().int().positive().default(1000),
   RAG_CHUNK_OVERLAP: z.coerce.number().int().min(0).default(200),
-  RAG_TOP_K: z.coerce.number().int().positive().default(20),
+  RAG_TOP_K: z.coerce.number().int().positive().default(6),
   RELATED_TOP_K: z.coerce.number().int().positive().default(20),
   // Graph (constellation) tuning knobs — all defaulted, safe to deploy without .env changes
   GRAPH_TOP_K: z.coerce.number().int().positive().default(4),
@@ -29,6 +29,8 @@ const schema = z.object({
     v => Buffer.from(v, 'base64').length === 32,
     'MASTER_KEY must be base64 of exactly 32 bytes',
   ),
+  HUME_API_KEY: z.string().optional(),
+  UNSPLASH_ACCESS_KEY: z.string().optional(),
 })
 
 const parsed = schema.safeParse(process.env)
