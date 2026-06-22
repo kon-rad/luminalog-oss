@@ -134,6 +134,8 @@ struct JournalEntry: Codable, Equatable, Identifiable, Sendable {
     var prompts: AIPrompts?
     var vector: VectorState
     var wordCount: Int
+    var emotion: EmotionScore?
+    var excludeFromShare: Bool
 
     init(
         id: String = UUID().uuidString,
@@ -152,7 +154,9 @@ struct JournalEntry: Codable, Equatable, Identifiable, Sendable {
         insights: AIGeneration? = nil,
         prompts: AIPrompts? = nil,
         vector: VectorState = VectorState(),
-        wordCount: Int = 0
+        wordCount: Int = 0,
+        emotion: EmotionScore? = nil,
+        excludeFromShare: Bool = false
     ) {
         self.id = id
         self.userId = userId
@@ -171,6 +175,8 @@ struct JournalEntry: Codable, Equatable, Identifiable, Sendable {
         self.prompts = prompts
         self.vector = vector
         self.wordCount = wordCount
+        self.emotion = emotion
+        self.excludeFromShare = excludeFromShare
     }
 }
 
