@@ -200,4 +200,8 @@ final class FirestoreJournalRepository: JournalRepository {
     func delete(id: String) async throws {
         try await journals.document(id).delete()
     }
+
+    func setExcludeFromShare(entryId: String, value: Bool) async throws {
+        try await journals.document(entryId).updateData(["excludeFromShare": value])
+    }
 }

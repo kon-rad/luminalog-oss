@@ -122,6 +122,12 @@ final class MockJournalRepository: JournalRepository {
         broadcast(changedId: id)
     }
 
+    func setExcludeFromShare(entryId: String, value: Bool) async throws {
+        guard let index = store.firstIndex(where: { $0.id == entryId }) else { return }
+        store[index].excludeFromShare = value
+        broadcast(changedId: entryId)
+    }
+
     // MARK: - Broadcast
 
     private func broadcast(changedId: String) {

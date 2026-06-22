@@ -21,11 +21,15 @@ struct JournalDetailView: View {
     /// Retries a background upload/save that failed after dismissal. Nil in
     /// previews (the retry affordance is then hidden).
     private let onRetryProcessing: ((String) -> Void)?
+    /// Called when the user picks text or voice from the journal chat picker.
+    /// Nil when the caller doesn't support journal-linked chats.
+    private let onStartJournalChat: ((String, String, ChatKind) -> Void)?
 
     @State private var selectedTab: JournalDetailTab
     @State private var isEditingTranscript = false
     @State private var isShowingOptions = false
     @State private var isEditingEntry = false
+    @State private var isShowingJournalChat = false
 
     @Environment(\.dismiss) private var dismiss
 
@@ -37,6 +41,7 @@ struct JournalDetailView: View {
         media: MediaUploader,
         onPrompt: @escaping (CreateEntryRequest) -> Void,
         onRetryProcessing: ((String) -> Void)? = nil,
+        onStartJournalChat: ((String, String, ChatKind) -> Void)? = nil,
         initialTab: JournalDetailTab = .main
     ) {
         _viewModel = StateObject(
@@ -52,6 +57,7 @@ struct JournalDetailView: View {
         self.media = media
         self.onPrompt = onPrompt
         self.onRetryProcessing = onRetryProcessing
+        self.onStartJournalChat = onStartJournalChat
         _selectedTab = State(initialValue: initialTab)
     }
 
@@ -153,6 +159,13 @@ struct JournalDetailView: View {
                 EntryEditView(entry: entry, journals: journals, profiles: profiles, ai: ai)
             }
         }
+        .sheet(isPresented: $isShowingJournalChat) {
+            if let entry = viewModel.entry {
+                JournalChatPickerSheet(journalTitle: entry.title) { kind in
+                    onStartJournalChat?(entry.id, entry.title, kind)
+                }
+            }
+        }
         .onChange(of: viewModel.didDelete) { _, didDelete in
             if didDelete { dismiss() }
         }
@@ -211,9 +224,10 @@ struct JournalDetailView: View {
     private func titleHeader(_ entry: JournalEntry) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(entry.title)
-                .font(.journalTitle)
+                .font(.journalDetailTitle)
                 .foregroundStyle(Color.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+                .truncationMode(.tail)
 
             HStack(alignment: .firstTextBaseline) {
                 Text(entry.createdAt.formatted(date: .abbreviated, time: .shortened))
@@ -224,6 +238,18 @@ struct JournalDetailView: View {
                     .font(.captionText)
                     .foregroundStyle(Color.textSecondary)
                     .accessibilityLabel("\(entry.wordCount) words")
+                if onStartJournalChat != nil {
+                    Text("·")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                    Button("Chat ›") {
+                        isShowingJournalChat = true
+                    }
+                    .font(.captionText.weight(.semibold))
+                    .foregroundStyle(Color.accentWarm)
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Start chat about this entry")
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -250,7 +276,23 @@ struct JournalDetailView: View {
             case .video:
                 videoContent(entry)
             }
+
+            excludeFromShareToggle(entry)
         }
+    }
+
+    private func excludeFromShareToggle(_ entry: JournalEntry) -> some View {
+        Toggle(
+            "Exclude from shareable insights",
+            isOn: Binding(
+                get: { viewModel.entry?.excludeFromShare ?? false },
+                set: { viewModel.setExcludeFromShare($0) }
+            )
+        )
+        .font(.captionText)
+        .foregroundStyle(Color.textSecondary)
+        .tint(Color.accentWarm)
+        .padding(.top, Spacing.s)
     }
 
     @ViewBuilder

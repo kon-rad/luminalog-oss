@@ -170,6 +170,15 @@ final class JournalDetailViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Exclude from share
+
+    func setExcludeFromShare(_ value: Bool) {
+        guard var e = entry else { return }
+        e.excludeFromShare = value
+        entry = e
+        Task { try? await journals.setExcludeFromShare(entryId: e.id, value: value) }
+    }
+
     // MARK: - Delete
 
     /// Best-effort delete: purge remote artifacts (S3 media + embeddings +

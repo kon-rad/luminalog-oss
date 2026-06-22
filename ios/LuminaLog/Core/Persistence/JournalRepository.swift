@@ -79,4 +79,7 @@ protocol JournalRepository: AnyObject {
     ) async throws
 
     func delete(id: String) async throws
+
+    /// Sets whether this entry is excluded from the shareable daily insights card.
+    func setExcludeFromShare(entryId: String, value: Bool) async throws
 }
