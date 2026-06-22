@@ -18,7 +18,7 @@ import { scoreEntryEmotion } from './entryEmotion'
 
 const baseArgs = () => ({
   uid: 'u', journalId: 'j', content: 'I felt calm and happy today.',
-  data: { media: [] } as any, dek: Buffer.alloc(32),
+  data: { media: [] } as any,
   downloadAudio: vi.fn(),
 })
 
@@ -58,5 +58,38 @@ describe('scoreEntryEmotion', () => {
     await scoreEntryEmotion(args)
     expect(scoreText).not.toHaveBeenCalled()
     expect(update).not.toHaveBeenCalled()
+  })
+
+  it('scores audio-only when text yields nothing', async () => {
+    scoreText.mockResolvedValue(null)
+    scoreAudio.mockResolvedValue({ scores: { Calmness: 0.7 }, top: [] })
+    const args = baseArgs()
+    args.data = { media: [{ s3Key: 'k', kind: 'audio' }] }
+    args.downloadAudio = vi.fn(async () => Buffer.from('x'))
+    await scoreEntryEmotion(args)
+    const payload = (update.mock.calls as any[][])[0][0]
+    expect(payload.emotion.source).toBe('audio')
+    expect(payload.emotion.scores.Calmness).toBe(0.7)
+  })
+
+  it('averages overlapping emotion keys across text and audio', async () => {
+    scoreText.mockResolvedValue({ scores: { Joy: 0.4 }, top: [] })
+    scoreAudio.mockResolvedValue({ scores: { Joy: 0.8 }, top: [] })
+    const args = baseArgs()
+    args.data = { media: [{ s3Key: 'k', kind: 'video' }] }
+    args.downloadAudio = vi.fn(async () => Buffer.from('x'))
+    await scoreEntryEmotion(args)
+    const payload = (update.mock.calls as any[][])[0][0]
+    expect(payload.emotion.scores.Joy).toBeCloseTo(0.6)
+  })
+
+  it('re-scores when force is true even if emotion already present', async () => {
+    scoreText.mockResolvedValue({ scores: { Joy: 0.5 }, top: [] })
+    const args = baseArgs()
+    args.data = { media: [], emotion: { source: 'text' } }
+    ;(args as any).force = true
+    await scoreEntryEmotion(args)
+    expect(scoreText).toHaveBeenCalled()
+    expect(update).toHaveBeenCalledTimes(1)
   })
 })

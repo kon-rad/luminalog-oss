@@ -1,15 +1,14 @@
 // Score a finalized entry with Hume and write `journals/{id}.emotion`.
 // Best-effort + idempotent: never throws into the caller; skips if already scored.
 import { db } from '../middleware/firebaseAuth'
-import { scoreText, scoreAudio, topN, type RawEmotions } from './humeService'
+import { scoreText, scoreAudio, topN } from './humeService'
 
 export interface ScoreEntryArgs {
   uid: string
   journalId: string
   content: string
   data: Record<string, any>
-  dek: Buffer
-  /** Returns the decrypted audio bytes for this entry (video already de-muxed). */
+  /** Returns the decrypted audio bytes for this entry (video already de-muxed), or null. */
   downloadAudio: () => Promise<Buffer | null>
   force?: boolean
 }
@@ -23,16 +22,20 @@ function mergeScores(a: Record<string, number>, b: Record<string, number>): Reco
 export async function scoreEntryEmotion(args: ScoreEntryArgs): Promise<void> {
   try {
     if (args.data?.emotion && !args.force) return
-
-    const text: RawEmotions | null = await scoreText(args.content)
+    // Defense-in-depth: routes already verify ownership, but never write across
+    // tenants even if a mismatched journalId is supplied.
+    if (args.data?.userId && args.data.userId !== args.uid) return
 
     const media: Array<{ kind?: string }> = args.data?.media ?? []
     const hasAudio = media.some(m => m.kind === 'audio' || m.kind === 'video')
-    let audio: RawEmotions | null = null
-    if (hasAudio) {
-      const buf = await args.downloadAudio()
-      if (buf) audio = await scoreAudio(buf)
-    }
+
+    // Text and audio jobs are independent — run them concurrently.
+    const [text, audio] = await Promise.all([
+      scoreText(args.content),
+      hasAudio
+        ? args.downloadAudio().then(buf => (buf ? scoreAudio(buf) : null))
+        : Promise.resolve(null),
+    ])
 
     if (!text && !audio) return
 
