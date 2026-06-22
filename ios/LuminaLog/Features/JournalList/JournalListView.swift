@@ -15,6 +15,7 @@ struct JournalListView: View {
     private let ai: AIService
     private let media: MediaUploader
     private let onRetryProcessing: ((String) -> Void)?
+    private let onStartJournalChat: ((String, String, ChatKind) -> Void)?
 
     init(
         journals: JournalRepository,
@@ -22,7 +23,8 @@ struct JournalListView: View {
         ai: AIService,
         media: MediaUploader,
         onPrompt: @escaping (CreateEntryRequest) -> Void,
-        onRetryProcessing: ((String) -> Void)? = nil
+        onRetryProcessing: ((String) -> Void)? = nil,
+        onStartJournalChat: ((String, String, ChatKind) -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: JournalListViewModel(journals: journals))
         self.journals = journals
@@ -31,6 +33,7 @@ struct JournalListView: View {
         self.media = media
         self.onPrompt = onPrompt
         self.onRetryProcessing = onRetryProcessing
+        self.onStartJournalChat = onStartJournalChat
     }
 
     @State private var isSearchPresented = false
@@ -76,7 +79,8 @@ struct JournalListView: View {
                     ai: ai,
                     media: media,
                     onPrompt: onPrompt,
-                    onRetryProcessing: onRetryProcessing
+                    onRetryProcessing: onRetryProcessing,
+                    onStartJournalChat: onStartJournalChat
                 )
             }
             .fullScreenCover(isPresented: $isSearchPresented) {

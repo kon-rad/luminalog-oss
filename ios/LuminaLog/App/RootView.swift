@@ -16,9 +16,16 @@ struct RootView: View {
 
     @State private var selectedTab: AppTab = .home
     @State private var createRequest: CreateEntryRequest?
+    @State private var journalChatRequest: JournalChatRequest?
     @State private var isKeyboardVisible = false
     /// Latest profile snapshot, used to re-arm the reminder on scene-active.
     @State private var latestProfile: UserProfile?
+
+    private var onStartJournalChat: (String, String, ChatKind) -> Void {
+        { journalId, journalTitle, kind in
+            journalChatRequest = JournalChatRequest(journalId: journalId, journalTitle: journalTitle, kind: kind)
+        }
+    }
 
     var body: some View {
         ZStack {
@@ -43,7 +50,8 @@ struct RootView: View {
                     onPrompt: { request in
                         createRequest = request
                     },
-                    onRetryProcessing: { services.entryProcessor.retry(draftId: $0) }
+                    onRetryProcessing: { services.entryProcessor.retry(draftId: $0) },
+                    onStartJournalChat: onStartJournalChat
                 )
             }
             tabContent(for: .journal) {
@@ -55,7 +63,8 @@ struct RootView: View {
                     onPrompt: { request in
                         createRequest = request
                     },
-                    onRetryProcessing: { services.entryProcessor.retry(draftId: $0) }
+                    onRetryProcessing: { services.entryProcessor.retry(draftId: $0) },
+                    onStartJournalChat: onStartJournalChat
                 )
             }
             tabContent(for: .chats) {
@@ -96,6 +105,27 @@ struct RootView: View {
         .observingKeyboard(isVisible: $isKeyboardVisible)
         .fullScreenCover(item: $createRequest) { request in
             CreateEntryView(request: request, services: services)
+        }
+        .fullScreenCover(item: $journalChatRequest) { request in
+            switch request.kind {
+            case .text:
+                JournalTextChatCover(
+                    request: request,
+                    chats: services.chats,
+                    ai: services.ai,
+                    speech: services.speech
+                )
+            case .voice:
+                VoiceCallView(
+                    voice: services.voice,
+                    chats: services.chats,
+                    credits: services.credits,
+                    journalId: request.journalId,
+                    journalTitle: request.journalTitle,
+                    onViewTranscript: { _ in journalChatRequest = nil },
+                    onInsufficientCredits: { journalChatRequest = nil }
+                )
+            }
         }
         .task {
             // Re-arm whenever the profile changes (goal progress, timezone).

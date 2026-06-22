@@ -5,11 +5,13 @@ struct ChatRoute: Hashable {
     let chatId: String
     let kind: ChatKind
     let title: String
+    let journalTitle: String?
 
     init(chat: Chat) {
         chatId = chat.id
         kind = chat.kind
         title = chat.title.isEmpty ? "New chat" : chat.title
+        journalTitle = chat.journalTitle
     }
 }
 
@@ -35,9 +37,11 @@ struct ChatListView: View {
     private let profiles: ProfileRepository
     private let media: MediaUploader
 
-    @State private var path: [ChatRoute] = []
+    @State private var path = NavigationPath()
     @State private var isVoiceCallPresented = false
     @State private var isCreditsPresented = false
+    @State private var pendingVoiceJournalId: String? = nil
+    @State private var pendingVoiceJournalTitle: String? = nil
 
     init(
         chats: ChatRepository,
@@ -80,6 +84,7 @@ struct ChatListView: View {
                             chatId: route.chatId,
                             kind: route.kind,
                             title: route.title,
+                            journalTitle: route.journalTitle,
                             chats: chats,
                             ai: ai,
                             speech: speech
@@ -93,7 +98,19 @@ struct ChatListView: View {
                         profiles: profiles,
                         ai: ai,
                         media: media,
-                        onPrompt: { _ in }
+                        onPrompt: { _ in },
+                        onStartJournalChat: { journalId, journalTitle, kind in
+                            if kind == .voice {
+                                pendingVoiceJournalId = journalId
+                                pendingVoiceJournalTitle = journalTitle
+                                isVoiceCallPresented = true
+                            } else {
+                                Task {
+                                    guard let chat = await viewModel.startTextChat(journalId: journalId, journalTitle: journalTitle) else { return }
+                                    path.append(ChatRoute(chat: chat))
+                                }
+                            }
+                        }
                     )
                 }
         }
@@ -108,11 +125,16 @@ struct ChatListView: View {
         .onDisappear {
             chrome.tabBarHidden = false
         }
-        .fullScreenCover(isPresented: $isVoiceCallPresented) {
+        .fullScreenCover(isPresented: $isVoiceCallPresented, onDismiss: {
+            pendingVoiceJournalId = nil
+            pendingVoiceJournalTitle = nil
+        }) {
             VoiceCallView(
                 voice: voice,
                 chats: chats,
                 credits: credits,
+                journalId: pendingVoiceJournalId,
+                journalTitle: pendingVoiceJournalTitle,
                 onViewTranscript: { chat in
                     isVoiceCallPresented = false
                     path.append(ChatRoute(chat: chat))
@@ -276,6 +298,22 @@ private struct ChatRow: View {
                 Text(isVoice ? "Voice call" : "Text chat")
                     .font(.captionText)
                     .foregroundStyle(Color.textSecondary)
+                if let journalTitle = chat.journalTitle, !journalTitle.isEmpty,
+                   let journalId = chat.journalId {
+                    NavigationLink(value: JournalDetailRoute(entryId: journalId)) {
+                        Label(journalTitle, systemImage: "book.closed")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.accentWarm)
+                            .lineLimit(1)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .fill(Color.accentWarm.opacity(0.12))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
 
             Spacer()

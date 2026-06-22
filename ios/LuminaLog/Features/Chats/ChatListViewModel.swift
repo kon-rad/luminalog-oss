@@ -69,6 +69,16 @@ final class ChatListViewModel: ObservableObject {
         }
     }
 
+    /// Creates a journal-linked text chat; the caller navigates into it.
+    func startTextChat(journalId: String, journalTitle: String) async -> Chat? {
+        do {
+            return try await repository.createChat(kind: .text, title: "New chat", journalId: journalId, journalTitle: journalTitle)
+        } catch {
+            Self.logger.error("create journal chat failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
     func delete(_ chat: Chat) async {
         do {
             try await repository.deleteChat(id: chat.id)

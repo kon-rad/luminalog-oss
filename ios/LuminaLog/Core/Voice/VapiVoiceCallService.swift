@@ -21,6 +21,7 @@ final class VapiVoiceCallService: VoiceCallService {
 
     struct CallConfigRequest: Encodable {
         let chatId: String
+        let journalId: String?
     }
 
     struct CallConfigResponse: Decodable {
@@ -58,14 +59,14 @@ final class VapiVoiceCallService: VoiceCallService {
         broadcaster.makeStream()
     }
 
-    func startCall(chatId: String) async throws {
+    func startCall(chatId: String, journalId: String?, journalTitle: String?) async throws {
         broadcaster.send(.connecting)
 
         let callConfig: CallConfigResponse
         do {
             callConfig = try await api.post(
                 path: "/v1/vapi/call-config",
-                body: CallConfigRequest(chatId: chatId)
+                body: CallConfigRequest(chatId: chatId, journalId: journalId)
             )
         } catch {
             Self.logger.error("call-config failed: \(error.localizedDescription, privacy: .public)")

@@ -7,6 +7,7 @@ import { chatCompletion } from '../services/aiClient'
 import { persistVoiceTurn } from '../services/voicePersistence'
 import { storeRecording, signedPlaybackUrl } from '../services/voiceRecordingStore'
 import { PROMPTS } from '../services/prompts'
+import { decodeProfileFields } from '../services/profileContext'
 import { config } from '../config'
 import { getOrCreateDEK } from '../crypto/keyService'
 import { openFieldSafe, encryptField } from '../crypto/fieldCipher'
@@ -15,14 +16,26 @@ export const vapiRouter = Router()
 
 const MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
 
+async function fetchFocalEntryForVapi(uid: string, journalId: string, dek: Buffer): Promise<string | undefined> {
+  try {
+    const snap = await db.collection('journals').doc(journalId).get()
+    const data = snap.data()
+    if (!data || data.userId !== uid) return undefined
+    return openFieldSafe(dek, data.content, 'journals.content') || undefined
+  } catch {
+    return undefined
+  }
+}
+
 // ── call-config ──────────────────────────────────────────────────────────────
 
 export async function callConfigHandler(req: Request, res: Response) {
   const uid = (req as any).uid as string
   const chatId = (req.body?.chatId as string | undefined) ?? ''
+  const journalId = (req.body?.journalId as string | undefined) ?? undefined
 
-  // chatId rides in the token so /llm persists each turn without a DB lookup.
-  const callToken = jwt.sign({ uid, chatId }, config.VAPI_WEBHOOK_SECRET, { expiresIn: '2h' })
+  // chatId and journalId ride in the token so /llm has them on every turn.
+  const callToken = jwt.sign({ uid, chatId, journalId }, config.VAPI_WEBHOOK_SECRET, { expiresIn: '2h' })
 
   const baseUrl =
     config.NODE_ENV === 'production'
@@ -87,10 +100,12 @@ export async function llmHandler(req: Request, res: Response) {
 
   let uid: string
   let chatId: string
+  let journalId: string | undefined
   try {
-    const decoded = jwt.verify(token, config.VAPI_WEBHOOK_SECRET) as { uid: string; chatId?: string }
+    const decoded = jwt.verify(token, config.VAPI_WEBHOOK_SECRET) as { uid: string; chatId?: string; journalId?: string }
     uid = decoded.uid
     chatId = decoded.chatId ?? ''
+    journalId = decoded.journalId
   } catch {
     res.status(401).json({ error: 'Invalid or expired token' })
     return
@@ -113,10 +128,13 @@ export async function llmHandler(req: Request, res: Response) {
     const bio = openFieldSafe(dek, userSnap.data()?.biography, 'users.biography')
     // Display name is stored plaintext (only biography is field-encrypted).
     const name = (userSnap.data()?.displayName as string | undefined) ?? ''
+    // Extended onboarding profile fields (all optional, field-encrypted).
+    const profile = decodeProfileFields(dek, userSnap.data())
 
     const rag = await retrieveContextWithSources(uid, lastUser, dek)
+    const focalEntry = journalId ? await fetchFocalEntryForVapi(uid, journalId, dek) : undefined
 
-    const systemContent = PROMPTS.voiceChat(name, bio, rag.contextString)
+    const systemContent = PROMPTS.voiceChat(name, bio, profile, rag.contextString, focalEntry)
     const augmented = [
       { role: 'system', content: systemContent },
       ...messages.filter(m => m.role !== 'system'),
@@ -186,6 +204,7 @@ export interface ParsedWebhook {
   endedReason: string
   rawTranscript: string
   recordingUrl: string
+  durationSeconds: number | null
 }
 
 // Vapi wraps server messages under `message`; older/manual payloads are flat.
@@ -197,6 +216,19 @@ export function parseWebhookMessage(body: any): ParsedWebhook {
       : typeof m.artifact?.transcript === 'string'
         ? m.artifact.transcript
         : ''
+
+  // Prefer explicit durationSeconds field; fall back to startedAt/endedAt diff.
+  let durationSeconds: number | null = null
+  if (typeof m.durationSeconds === 'number' && m.durationSeconds > 0) {
+    durationSeconds = m.durationSeconds
+  } else if (typeof m.call?.startedAt === 'string' && typeof m.call?.endedAt === 'string') {
+    const start = Date.parse(m.call.startedAt)
+    const end = Date.parse(m.call.endedAt)
+    if (!isNaN(start) && !isNaN(end) && end > start) {
+      durationSeconds = (end - start) / 1000
+    }
+  }
+
   return {
     type: m.type ?? '',
     chatId:
@@ -217,6 +249,7 @@ export function parseWebhookMessage(body: any): ParsedWebhook {
       m.artifact?.recording?.stereoUrl ??
       m.stereoRecordingUrl ??
       '',
+    durationSeconds,
   }
 }
 
@@ -241,7 +274,7 @@ vapiRouter.post('/webhook', async (req: Request, res: Response) => {
   }))
 
   if (parsed.type !== 'end-of-call-report') { res.json({ ok: true }); return }
-  const { chatId, callId, endedReason, rawTranscript } = parsed
+  const { chatId, callId, endedReason, rawTranscript, durationSeconds } = parsed
   if (!chatId) { res.json({ ok: true }); return }
 
   // Resolve the chat owner so transcript text is encrypted with their DEK,
@@ -258,6 +291,7 @@ vapiRouter.post('/webhook', async (req: Request, res: Response) => {
   }
   if (callId) update.vapiCallId = callId
   if (rawTranscript) update.rawTranscript = encryptField(dek, rawTranscript, 'chats.rawTranscript')
+  if (durationSeconds !== null) update.recordingDurationSeconds = durationSeconds
   await db.collection('chats').doc(chatId).update(update)
 
   if (parsed.recordingUrl && callId) {

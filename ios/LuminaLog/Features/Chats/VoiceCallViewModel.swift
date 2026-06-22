@@ -62,6 +62,8 @@ final class VoiceCallViewModel: ObservableObject {
     private let voice: VoiceCallService
     private let chats: ChatRepository
     private let credits: CreditService
+    let journalTitle: String?
+    private let journalId: String?
 
     private var eventsTask: Task<Void, Never>?
     private var timerTask: Task<Void, Never>?
@@ -73,10 +75,12 @@ final class VoiceCallViewModel: ObservableObject {
     /// at `.connected` and raised live if the user tops up mid-call.
     private var budgetSeconds = 0
 
-    init(voice: VoiceCallService, chats: ChatRepository, credits: CreditService) {
+    init(voice: VoiceCallService, chats: ChatRepository, credits: CreditService, journalId: String? = nil, journalTitle: String? = nil) {
         self.voice = voice
         self.chats = chats
         self.credits = credits
+        self.journalId = journalId
+        self.journalTitle = journalTitle
     }
 
     deinit {
@@ -101,10 +105,12 @@ final class VoiceCallViewModel: ObservableObject {
         guard !hasStarted else { return }
         hasStarted = true
 
-        let balance = await credits.currentBalance()
-        guard balance >= 1 else {
-            phase = .insufficientCredits
-            return
+        if !DevFlags.devMode {
+            let balance = await credits.currentBalance()
+            guard balance >= 1 else {
+                phase = .insufficientCredits
+                return
+            }
         }
 
         let stream = voice.events
@@ -116,9 +122,9 @@ final class VoiceCallViewModel: ObservableObject {
         }
 
         do {
-            let chat = try await chats.createChat(kind: .voice, title: "Voice call")
+            let chat = try await chats.createChat(kind: .voice, title: "Voice call", journalId: journalId, journalTitle: journalTitle)
             self.chat = chat
-            try await voice.startCall(chatId: chat.id)
+            try await voice.startCall(chatId: chat.id, journalId: journalId, journalTitle: journalTitle)
         } catch {
             Self.logger.error("start call failed: \(error.localizedDescription, privacy: .public)")
             stopTimer()
@@ -151,7 +157,7 @@ final class VoiceCallViewModel: ObservableObject {
             speakingState = .listening
             callWasConnected = true
             setScreenAwake(true)
-            startBudgetTracking()
+            if !DevFlags.devMode { startBudgetTracking() }
             startTimer()
 
         case .listening:
@@ -233,7 +239,7 @@ final class VoiceCallViewModel: ObservableObject {
     // MARK: - Credit deduction
 
     private func deductCreditsForCall() {
-        guard callWasConnected, elapsedSeconds > 0 else { return }
+        guard !DevFlags.devMode, callWasConnected, elapsedSeconds > 0 else { return }
         callWasConnected = false
         // 1 credit = 6 minutes (docs/PRICING.md); round partial blocks up, min 1.
         let secondsPerCredit = Double(CreditPack.minutesPerCredit * 60)

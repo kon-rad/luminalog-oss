@@ -50,8 +50,8 @@ final class MockChatRepository: ChatRepository {
         }
     }
 
-    func createChat(kind: ChatKind, title: String) async throws -> Chat {
-        let chat = Chat(userId: MockData.userId, kind: kind, title: title)
+    func createChat(kind: ChatKind, title: String, journalId: String?, journalTitle: String?) async throws -> Chat {
+        let chat = Chat(userId: MockData.userId, kind: kind, title: title, journalId: journalId, journalTitle: journalTitle)
         chatStore.insert(chat, at: 0)
         messageStore[chat.id] = []
         broadcastChats()

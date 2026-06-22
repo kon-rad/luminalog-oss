@@ -20,6 +20,7 @@ struct HomeView: View {
     private let media: MediaUploader
     private let dailyReports: DailyReportRepository
     private let onRetryProcessing: ((String) -> Void)?
+    private let onStartJournalChat: ((String, String, ChatKind) -> Void)?
 
     init(
         journals: JournalRepository,
@@ -30,7 +31,8 @@ struct HomeView: View {
         onStartJournaling: @escaping (String?) -> Void,
         onShowMore: @escaping () -> Void,
         onPrompt: @escaping (CreateEntryRequest) -> Void,
-        onRetryProcessing: ((String) -> Void)? = nil
+        onRetryProcessing: ((String) -> Void)? = nil,
+        onStartJournalChat: ((String, String, ChatKind) -> Void)? = nil
     ) {
         _viewModel = StateObject(
             wrappedValue: HomeViewModel(journals: journals, profiles: profiles, ai: ai, dailyReports: dailyReports)
@@ -44,6 +46,7 @@ struct HomeView: View {
         self.onShowMore = onShowMore
         self.onPrompt = onPrompt
         self.onRetryProcessing = onRetryProcessing
+        self.onStartJournalChat = onStartJournalChat
     }
 
     var body: some View {
@@ -74,7 +77,8 @@ struct HomeView: View {
                     ai: ai,
                     media: media,
                     onPrompt: onPrompt,
-                    onRetryProcessing: onRetryProcessing
+                    onRetryProcessing: onRetryProcessing,
+                    onStartJournalChat: onStartJournalChat
                 )
             }
         }

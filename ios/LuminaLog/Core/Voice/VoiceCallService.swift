@@ -53,9 +53,10 @@ protocol VoiceCallService: AnyObject {
     var events: AsyncStream<VoiceCallEvent> { get }
 
     /// Begin a call whose transcript persists into `chats/{chatId}`.
+    /// Pass `journalId`/`journalTitle` to anchor the AI on a specific entry.
     /// Throws when the call cannot be set up at all; failures after setup
     /// are reported via `events` (`.failed`).
-    func startCall(chatId: String) async throws
+    func startCall(chatId: String, journalId: String?, journalTitle: String?) async throws
 
     /// Hang up. Emits `.ended` on the event stream.
     func endCall() async

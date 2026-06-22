@@ -50,7 +50,7 @@ final class MockVoiceCallService: VoiceCallService {
         broadcaster.makeStream()
     }
 
-    func startCall(chatId: String) async throws {
+    func startCall(chatId: String, journalId: String?, journalTitle: String?) async throws {
         scriptTask?.cancel()
         broadcaster.send(.connecting)
         scriptTask = Task { [weak self] in

@@ -21,6 +21,10 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
     var recordingPath: String?
     var recordingDurationSeconds: Double?
     var rawTranscript: String?
+    /// ID of the focal journal entry this chat is anchored to, if any.
+    var journalId: String?
+    /// Cached title of the focal entry (avoids an extra Firestore read in the history list).
+    var journalTitle: String?
 
     init(
         id: String = UUID().uuidString,
@@ -34,7 +38,9 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
         endedReason: String? = nil,
         recordingPath: String? = nil,
         recordingDurationSeconds: Double? = nil,
-        rawTranscript: String? = nil
+        rawTranscript: String? = nil,
+        journalId: String? = nil,
+        journalTitle: String? = nil
     ) {
         self.id = id
         self.userId = userId
@@ -48,5 +54,7 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
         self.recordingPath = recordingPath
         self.recordingDurationSeconds = recordingDurationSeconds
         self.rawTranscript = rawTranscript
+        self.journalId = journalId
+        self.journalTitle = journalTitle
     }
 }

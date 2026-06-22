@@ -22,10 +22,12 @@ struct VoiceCallView: View {
         voice: VoiceCallService,
         chats: ChatRepository,
         credits: CreditService,
+        journalId: String? = nil,
+        journalTitle: String? = nil,
         onViewTranscript: @escaping (Chat) -> Void,
         onInsufficientCredits: (() -> Void)? = nil
     ) {
-        _viewModel = StateObject(wrappedValue: VoiceCallViewModel(voice: voice, chats: chats, credits: credits))
+        _viewModel = StateObject(wrappedValue: VoiceCallViewModel(voice: voice, chats: chats, credits: credits, journalId: journalId, journalTitle: journalTitle))
         self.onViewTranscript = onViewTranscript
         self.onInsufficientCredits = onInsufficientCredits
     }
@@ -77,11 +79,30 @@ struct VoiceCallView: View {
         }
     }
 
+    // MARK: - Journal context label
+
+    @ViewBuilder
+    private var journalContextLabel: some View {
+        if let title = viewModel.journalTitle {
+            HStack(spacing: 4) {
+                Image(systemName: "book.closed")
+                    .font(.system(size: 10, weight: .semibold))
+                Text("Context: \(title)")
+                    .font(.captionText)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            .foregroundStyle(Color.accentWarm)
+            .padding(.bottom, Spacing.xs)
+        }
+    }
+
     // MARK: - Connecting
 
     private var connectingContent: some View {
         VStack(spacing: Spacing.l) {
             BreathingOrb(state: .listening, dimmed: true)
+            journalContextLabel
             HStack(spacing: Spacing.s) {
                 ProgressView()
                     .tint(Color.accentWarm)
@@ -110,6 +131,9 @@ struct VoiceCallView: View {
                 .foregroundStyle(Color.textPrimary)
                 .padding(.top, Spacing.m)
                 .accessibilityLabel("Call duration \(viewModel.durationText)")
+
+            journalContextLabel
+                .padding(.top, Spacing.xs)
 
             Text("Voice chat with your journal")
                 .font(.captionText)

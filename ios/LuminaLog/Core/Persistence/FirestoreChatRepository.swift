@@ -89,10 +89,10 @@ final class FirestoreChatRepository: ChatRepository {
         }
     }
 
-    func createChat(kind: ChatKind, title: String) async throws -> Chat {
+    func createChat(kind: ChatKind, title: String, journalId: String?, journalTitle: String?) async throws -> Chat {
         guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
         guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
-        let chat = Chat(userId: uid, kind: kind, title: title)
+        let chat = Chat(userId: uid, kind: kind, title: title, journalId: journalId, journalTitle: journalTitle)
         try await chatsRef.document(chat.id).setData(try chat.firestoreData(cipher: cipher))
         return chat
     }

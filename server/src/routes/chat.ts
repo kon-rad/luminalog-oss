@@ -4,14 +4,26 @@ import { firebaseAuth, db } from '../middleware/firebaseAuth'
 import { retrieveContext } from '../services/journalRetriever'
 import { chatCompletion } from '../services/aiClient'
 import { PROMPTS } from '../services/prompts'
+import { decodeProfileFields } from '../services/profileContext'
 import { getOrCreateDEK } from '../crypto/keyService'
 import { openFieldSafe, encryptField } from '../crypto/fieldCipher'
 
 export const chatRouter = Router()
 
+async function fetchFocalEntry(uid: string, journalId: string, dek: Buffer): Promise<string | undefined> {
+  try {
+    const snap = await db.collection('journals').doc(journalId).get()
+    const data = snap.data()
+    if (!data || data.userId !== uid) return undefined
+    return openFieldSafe(dek, data.content, 'journals.content') || undefined
+  } catch {
+    return undefined
+  }
+}
+
 chatRouter.post('/', firebaseAuth, async (req: Request, res: Response) => {
   const uid = (req as any).uid as string
-  const { chatId, message } = req.body as { chatId?: string; message?: string }
+  const { chatId, message, journalId } = req.body as { chatId?: string; message?: string; journalId?: string }
 
   if (!chatId || !message) {
     res.status(400).json({ error: 'Missing chatId or message' })
@@ -30,6 +42,8 @@ chatRouter.post('/', firebaseAuth, async (req: Request, res: Response) => {
     const bio = openFieldSafe(dek, userSnap.data()?.biography, 'users.biography')
     // Display name is stored plaintext (only biography is field-encrypted).
     const name = (userSnap.data()?.displayName as string | undefined) ?? ''
+    // Extended onboarding profile fields (all optional, field-encrypted).
+    const profile = decodeProfileFields(dek, userSnap.data())
 
     const msgsSnap = await db
       .collection('chats').doc(chatId).collection('messages')
@@ -47,8 +61,9 @@ chatRouter.post('/', firebaseAuth, async (req: Request, res: Response) => {
     const ragQuery = `${message} ${assistantContext}`.slice(-2000)
 
     const journalContext = await retrieveContext(uid, ragQuery, dek)
+    const focalEntry = journalId ? await fetchFocalEntry(uid, journalId, dek) : undefined
 
-    const systemPrompt = PROMPTS.chatSystem(name, bio, journalContext)
+    const systemPrompt = PROMPTS.chatSystem(name, bio, profile, journalContext, focalEntry)
     const messages = [
       { role: 'system', content: systemPrompt },
       ...history,

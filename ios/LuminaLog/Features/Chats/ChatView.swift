@@ -6,6 +6,8 @@ struct ChatView: View {
 
     @StateObject private var viewModel: ChatViewModel
 
+    private let journalTitle: String?
+
     /// True when the user is scrolled near the bottom — only then does new
     /// content auto-scroll (respects reading back through history).
     @State private var isNearBottom = true
@@ -16,6 +18,7 @@ struct ChatView: View {
         chatId: String,
         kind: ChatKind,
         title: String,
+        journalTitle: String? = nil,
         chats: ChatRepository,
         ai: AIService,
         speech: SpeechTranscriber
@@ -30,6 +33,7 @@ struct ChatView: View {
                 speech: speech
             )
         )
+        self.journalTitle = journalTitle
     }
 
     #if DEBUG
@@ -37,6 +41,7 @@ struct ChatView: View {
     /// failed-send, and other transient states).
     init(previewViewModel: ChatViewModel) {
         _viewModel = StateObject(wrappedValue: previewViewModel)
+        self.journalTitle = nil
     }
     #endif
 
@@ -45,6 +50,7 @@ struct ChatView: View {
             if viewModel.isReadOnly {
                 transcriptBanner
             }
+            contextBanner
             conversation
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -177,7 +183,27 @@ struct ChatView: View {
         }
     }
 
-    // MARK: - Read-only banner
+    // MARK: - Banners
+
+    @ViewBuilder
+    private var contextBanner: some View {
+        if let journalTitle {
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: "book.closed")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color.accentWarm)
+                Text("Context: \(journalTitle)")
+                    .font(.captionText)
+                    .foregroundStyle(Color.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Spacer()
+            }
+            .padding(.horizontal, Spacing.m)
+            .padding(.vertical, Spacing.xs)
+            .background(Color.accentWarm.opacity(0.08))
+        }
+    }
 
     private var transcriptBanner: some View {
         HStack(spacing: Spacing.s) {
