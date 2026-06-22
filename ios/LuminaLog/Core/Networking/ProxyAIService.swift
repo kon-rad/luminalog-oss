@@ -184,4 +184,12 @@ final class ProxyAIService: AIService {
         )
         return response.results
     }
+
+    // MARK: - Daily Report
+
+    private struct DailyReportBody: Encodable { let date: String?; let force: Bool }
+
+    func generateDailyReport(date: String?, force: Bool) async throws -> DailyInsightsReport {
+        try await api.post(path: "/v1/ai/daily-report", body: DailyReportBody(date: date, force: force))
+    }
 }

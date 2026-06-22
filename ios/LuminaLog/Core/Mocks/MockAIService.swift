@@ -113,4 +113,17 @@ final class MockAIService: AIService {
         try await Task.sleep(nanoseconds: generationDelay)
         return []
     }
+
+    func generateDailyReport(date: String?, force: Bool) async throws -> DailyInsightsReport {
+        DailyInsightsReport(
+            date: date ?? "2026-06-22",
+            insights: "A recurring thread today was choosing rest without guilt.",
+            findings: "You frame slowing down as falling behind, yet your steadiest progress follows quiet days.",
+            question: "What would change if you treated rest as part of the work?",
+            emotionSummary: "Your day read as calm and quietly hopeful.",
+            totalWords: 12_480, streakCount: 7,
+            emotions: [.init(name: "Calmness", score: 0.82), .init(name: "Contentment", score: 0.64), .init(name: "Hopefulness", score: 0.41)],
+            imageUrl: nil, sourceEntryIds: ["e1"]
+        )
+    }
 }

@@ -63,6 +63,9 @@ protocol AIService: AnyObject {
     /// Semantic vector search across journal chunks and summaries (server-side).
     /// Returns the top 20 results ranked by cosine similarity.
     func searchSemantic(query: String) async throws -> [SearchResult]
+
+    /// Generates (or returns the cached) daily insights report for `date` ("yyyy-MM-dd", default today).
+    func generateDailyReport(date: String?, force: Bool) async throws -> DailyInsightsReport
 }
 
 extension AIService {
