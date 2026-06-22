@@ -17,7 +17,15 @@ protocol ProfileRepository: AnyObject {
     /// Create `users/{uid}` if it does not exist yet (first sign-in), seeded
     /// with provider info and `UserProfile` defaults (empty biography, zeroed
     /// stats, current timezone). Never overwrites an existing document.
-    func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws
+    /// Returns `true` if it created the document, `false` if it already existed.
+    func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws -> Bool
+
+    /// Merge buffered onboarding answers (`[fieldKey: value]`) into the profile.
+    /// When `overwriteExisting` is `true` (a brand-new account) the user's
+    /// explicit onboarding answers win over the provider-seeded defaults; when
+    /// `false` (a returning/reinstalling user) only currently-empty fields are
+    /// filled so existing data is never clobbered.
+    func mergeOnboardingDraft(_ draft: [String: String], overwriteExisting: Bool) async throws
 
     /// Transactionally update `stats` after a journal save: add the word-count
     /// delta and advance the streak only when the day's words reach the daily
@@ -31,4 +39,32 @@ protocol ProfileRepository: AnyObject {
     /// Atomically add `minutes` to the user's cumulative in-app time.
     /// Failures are best-effort — they must not surface to the user.
     func recordTimeSpent(minutes: Int) async throws
+}
+
+/// Applies onboarding `draft` onto `profile`. Non-empty draft values are applied;
+/// when `overwriteExisting` is `false`, a field is skipped if it already has a
+/// value (fill-blanks-only). Returns nil if nothing changed. Shared by every
+/// `ProfileRepository` implementation so the merge rule lives in one place.
+@MainActor
+func applyingOnboardingDraft(
+    _ draft: [String: String],
+    to profile: UserProfile,
+    overwriteExisting: Bool
+) -> UserProfile? {
+    var updated = profile
+    var changed = false
+    for field in ProfileFieldCatalog.all {
+        guard let raw = draft[field.key] else { continue }
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { continue }
+        let current = field.get(profile)
+        if overwriteExisting {
+            guard value != current else { continue }
+        } else {
+            guard current.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+        }
+        field.set(&updated, value)
+        changed = true
+    }
+    return changed ? updated : nil
 }

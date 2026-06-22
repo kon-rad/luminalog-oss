@@ -29,7 +29,7 @@ struct ProfileEditView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 nameSection
-                bioSection
+                groupedSections
             }
             .padding(.horizontal, Spacing.m)
             .padding(.top, Spacing.m)
@@ -133,14 +133,21 @@ struct ProfileEditView: View {
         }
     }
 
-    // MARK: - Name
+    // MARK: - Name (profile header field)
+
+    private var nameField: ProfileField {
+        ProfileFieldCatalog.all.first { $0.isHeader } ?? ProfileFieldCatalog.all[0]
+    }
 
     private var nameSection: some View {
         VStack(alignment: .leading, spacing: Spacing.s) {
             Text("Name")
                 .font(.sectionHeader)
                 .foregroundStyle(Color.textPrimary)
-            TextField("Your name", text: $viewModel.displayNameDraft)
+            TextField("Your name", text: Binding(
+                get: { viewModel.value(for: nameField) },
+                set: { viewModel.setValue($0, for: nameField) }
+            ))
                 .font(.uiBody)
                 .foregroundStyle(Color.textPrimary)
                 .textInputAutocapitalization(.words)
@@ -158,52 +165,54 @@ struct ProfileEditView: View {
         )
     }
 
-    // MARK: - Bio
+    // MARK: - Grouped fields (catalog-driven, with voice dictation)
 
-    private var bioSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.s) {
-            Text("About You")
-                .font(.sectionHeader)
-                .foregroundStyle(Color.textPrimary)
-
-            Text("Write your biography in under 750 words — who you are, your life story, your goals and dreams, your projects, what you're working on now, and your values.")
-                .font(.captionText)
-                .foregroundStyle(Color.textSecondary)
-
-            TextEditor(text: Binding(
-                get: { viewModel.bioDraft },
-                set: { viewModel.setBio($0) }
-            ))
-            .font(.journalBody)
-            .foregroundStyle(Color.textPrimary)
-            .scrollContentBackground(.hidden)
-            .frame(minHeight: 200)
-            .padding(Spacing.s)
+    private var groupedSections: some View {
+        ForEach(ProfileField.Group.allCases, id: \.self) { group in
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                Text(group.title)
+                    .font(.sectionHeader)
+                    .foregroundStyle(Color.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                ForEach(ProfileFieldCatalog.bodyFields(in: group)) { field in
+                    fieldRow(field)
+                }
+            }
+            .padding(Spacing.m)
             .background(
-                RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)
-                    .fill(Color.secondaryBackground.opacity(0.6))
+                RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                    .fill(Color.cardBackground)
             )
-            .accessibilityLabel("Biography")
+        }
+    }
 
-            Text("This bio lets your AI companion know you in your own words, for more personal responses.")
+    @ViewBuilder
+    private func fieldRow(_ field: ProfileField) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text(field.title)
                 .font(.captionText)
                 .foregroundStyle(Color.textSecondary)
-
-            Text("\(viewModel.bioWordCount) / \(ProfileEditViewModel.bioWordLimit) words")
-                .font(.captionText)
-                .foregroundStyle(
-                    viewModel.bioWordCount >= ProfileEditViewModel.bioWordLimit
-                        ? Color.accentWarm
-                        : Color.textSecondary
-                )
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .accessibilityLabel("Bio length \(viewModel.bioWordCount) of \(ProfileEditViewModel.bioWordLimit) words")
+            DictationField(
+                placeholder: field.title,
+                multiline: field.multiline,
+                text: Binding(
+                    get: { viewModel.value(for: field) },
+                    set: { viewModel.setValue($0, for: field) }
+                ),
+                speech: viewModel.speech
+            )
+            if field.key == "biography" {
+                Text("\(viewModel.bioWordCount) / \(ProfileEditViewModel.bioWordLimit) words")
+                    .font(.captionText)
+                    .foregroundStyle(
+                        viewModel.bioWordCount >= ProfileEditViewModel.bioWordLimit
+                            ? Color.accentWarm
+                            : Color.textSecondary
+                    )
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .accessibilityLabel("Bio length \(viewModel.bioWordCount) of \(ProfileEditViewModel.bioWordLimit) words")
+            }
         }
-        .padding(Spacing.m)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
-                .fill(Color.cardBackground)
-        )
     }
 
     // MARK: - Photo loading

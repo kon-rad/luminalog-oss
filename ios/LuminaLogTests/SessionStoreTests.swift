@@ -22,7 +22,8 @@ final class SessionStoreTests: XCTestCase {
             auth: auth,
             keys: UserKeyStore(provider: MockKeyProvider(), secrets: MemorySecretStore()),
             profiles: MockProfileRepository(),
-            subscriptions: subscriptions
+            subscriptions: subscriptions,
+            onboarding: OnboardingStore(defaults: UserDefaults(suiteName: "test-session-\(UUID().uuidString)")!)
         )
     }
 

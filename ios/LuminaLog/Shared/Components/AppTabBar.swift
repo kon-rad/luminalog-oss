@@ -8,7 +8,7 @@ enum AppTab: String, CaseIterable, Identifiable {
     case home
     case journal
     case chats
-    case profile
+    case settings
 
     var id: String { rawValue }
 
@@ -17,7 +17,7 @@ enum AppTab: String, CaseIterable, Identifiable {
         case .home: return "Home"
         case .journal: return "Journal"
         case .chats: return "Chats"
-        case .profile: return "Profile"
+        case .settings: return "Settings"
         }
     }
 
@@ -26,7 +26,7 @@ enum AppTab: String, CaseIterable, Identifiable {
         case .home: return "house"
         case .journal: return "book"
         case .chats: return "bubble.left.and.bubble.right"
-        case .profile: return "person"
+        case .settings: return "gear"
         }
     }
 }
@@ -51,7 +51,7 @@ struct AppTabBar: View {
             tabButton(.journal)
             createButton
             tabButton(.chats)
-            tabButton(.profile)
+            tabButton(.settings)
         }
         .frame(height: Self.barHeight)
         .frame(maxWidth: .infinity)

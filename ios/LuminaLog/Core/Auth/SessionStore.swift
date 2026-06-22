@@ -18,20 +18,31 @@ final class SessionStore: ObservableObject {
 
     @Published private(set) var state: SessionState = .loading
     @Published private(set) var profile: UserProfile?
+    /// True for the duration of the first sign-in session (Firestore document
+    /// was just created). Resets to false on sign-out.
+    @Published private(set) var isNewUser: Bool = false
 
     private let auth: AuthService
     private let keys: UserKeyStore
     private let profiles: ProfileRepository
     private let subscriptions: SubscriptionService
+    private let onboarding: OnboardingStore
 
     private var authTask: Task<Void, Never>?
     private var profileTask: Task<Void, Never>?
 
-    init(auth: AuthService, keys: UserKeyStore, profiles: ProfileRepository, subscriptions: SubscriptionService) {
+    init(
+        auth: AuthService,
+        keys: UserKeyStore,
+        profiles: ProfileRepository,
+        subscriptions: SubscriptionService,
+        onboarding: OnboardingStore
+    ) {
         self.auth = auth
         self.keys = keys
         self.profiles = profiles
         self.subscriptions = subscriptions
+        self.onboarding = onboarding
 
         authTask = Task { [weak self] in
             guard let stream = self?.auth.authStateStream() else { return }
@@ -80,7 +91,9 @@ final class SessionStore: ObservableObject {
                 Self.logger.error("loadCipher failed: \(error.localizedDescription, privacy: .public)")
             }
             state = .signedIn(userId: uid)
-            await ensureUserDocument()
+            let createdNewUser = await ensureUserDocument()
+            isNewUser = createdNewUser
+            await mergeOnboardingDraftIfPresent(overwriteExisting: createdNewUser)
             startProfileStream()
             await subscriptions.setUser(uid)
         } else {
@@ -88,24 +101,49 @@ final class SessionStore: ObservableObject {
             // Decrypted plaintext must not outlive the session.
             Task.detached { await MediaContentCache().purge() }
             state = .signedOut
+            isNewUser = false
             profile = nil
             await subscriptions.setUser(nil)
         }
     }
 
-    /// Creates `users/{uid}` on first sign-in. Failure is logged, not fatal:
-    /// routing into the app must not be blocked by a transient write error.
-    private func ensureUserDocument() async {
+    /// Creates `users/{uid}` on first sign-in. Returns `true` if it created the
+    /// document. Failure is logged, not fatal: routing into the app must not be
+    /// blocked by a transient write error (treated as "not newly created").
+    private func ensureUserDocument() async -> Bool {
         let info = auth.currentUserInfo
         do {
-            try await profiles.ensureUserDocument(
+            return try await profiles.ensureUserDocument(
                 displayName: info?.displayName,
                 email: info?.email,
                 photoURL: info?.photoURL
             )
         } catch {
             Self.logger.error("ensureUserDocument failed: \(error.localizedDescription, privacy: .public)")
+            return false
         }
+    }
+
+    /// Merges buffered onboarding answers into the profile after the user doc is
+    /// ensured, then clears the local draft. For a brand-new account the answers
+    /// win over provider-seeded defaults (`overwriteExisting`); for a returning
+    /// user only blank fields are filled. Best-effort: failures are logged, never
+    /// block routing into the app.
+    private func mergeOnboardingDraftIfPresent(overwriteExisting: Bool) async {
+        let draft = onboarding.loadDraft()
+        guard !draft.isEmpty else { return }
+        do {
+            try await profiles.mergeOnboardingDraft(draft, overwriteExisting: overwriteExisting)
+            onboarding.clearDraft()
+        } catch {
+            Self.logger.error("onboarding merge failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Call after the user completes onboarding while already signed in, so the
+    /// draft answers are merged into their Firestore profile immediately.
+    func mergeOnboardingDraft() async {
+        await mergeOnboardingDraftIfPresent(overwriteExisting: isNewUser)
     }
 
     private func startProfileStream() {

@@ -37,6 +37,7 @@ final class ProfileViewModel: ObservableObject {
     private let subscriptions: SubscriptionService
     private let credits: CreditService
     private let media: MediaUploader
+    private let speech: SpeechTranscriber
 
     private var profileTask: Task<Void, Never>?
     private var entitlementTask: Task<Void, Never>?
@@ -53,18 +54,20 @@ final class ProfileViewModel: ObservableObject {
         profiles: ProfileRepository,
         subscriptions: SubscriptionService,
         credits: CreditService,
-        media: MediaUploader
+        media: MediaUploader,
+        speech: SpeechTranscriber
     ) {
         self.auth = auth
         self.profiles = profiles
         self.subscriptions = subscriptions
         self.credits = credits
         self.media = media
+        self.speech = speech
     }
 
     /// Builds the edit-screen view model, sharing this VM's repositories.
     func makeEditViewModel() -> ProfileEditViewModel {
-        ProfileEditViewModel(profiles: profiles, media: media)
+        ProfileEditViewModel(profiles: profiles, media: media, speech: speech)
     }
 
     deinit {
@@ -142,8 +145,10 @@ final class ProfileViewModel: ObservableObject {
         Task { [weak self] in
             guard let self else { return }
             // `resolvedPhotoKey` is only set on success, so a failed
-            // resolution never latches — the next emission retries.
-            guard let resolved = try? await self.media.viewURL(for: key) else { return }
+            // resolution never latches — the next emission retries. The avatar
+            // is stored AES-encrypted, so it must be downloaded and decrypted to
+            // a local plaintext file before AsyncImage can render it.
+            guard let resolved = try? await self.media.localFileURL(for: key) else { return }
             // Only publish if the profile still points at this photo.
             if self.profile?.photoURL?.absoluteString == key {
                 self.resolvedPhotoKey = key

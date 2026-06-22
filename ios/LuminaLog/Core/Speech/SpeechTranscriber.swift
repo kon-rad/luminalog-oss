@@ -38,9 +38,11 @@ protocol SpeechTranscriber: AnyObject {
     func requestAuthorization() async -> Bool
 
     /// Start live microphone dictation. Yields *cumulative* partial
-    /// transcripts (each element replaces the previous one). The stream
-    /// finishes when `stopLiveTranscription()` is called or recognition ends,
-    /// and throws on authorization/engine/recognition failure.
+    /// transcripts (each element replaces the previous one). The stream stays
+    /// alive for the entire user-initiated session — recognition-request
+    /// restarts after `isFinal` are transparent to the caller. The stream
+    /// finishes only when `stopLiveTranscription()` is called or a fatal error
+    /// occurs; it throws on authorization/engine/recognition failure.
     func startLiveTranscription() -> AsyncThrowingStream<String, Error>
 
     /// Stop the current live dictation session (finishes the stream).

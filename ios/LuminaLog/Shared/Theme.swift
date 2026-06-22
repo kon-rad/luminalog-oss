@@ -104,6 +104,9 @@ extension Font {
     /// Large serif title for journal entries and the wordmark.
     static let journalTitle = Font.system(.largeTitle, design: .serif).weight(.semibold)
 
+    /// Compact serif title for the journal detail header (single line).
+    static let journalDetailTitle = Font.system(.title2, design: .serif).weight(.semibold)
+
     /// Serif body for journal text content.
     static let journalBody = Font.system(.body, design: .serif)
 

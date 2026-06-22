@@ -39,8 +39,17 @@ final class MockProfileRepository: ProfileRepository {
         broadcast()
     }
 
-    func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws {
-        // No-op: the mock is seeded with `MockData.profile` at init.
+    @discardableResult
+    func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws -> Bool {
+        // The mock is seeded at init; report "already existed" so a merge after
+        // this uses fill-blanks-only (matching a returning user).
+        return storedProfile == nil
+    }
+
+    func mergeOnboardingDraft(_ draft: [String: String], overwriteExisting: Bool) async throws {
+        guard let current = storedProfile,
+              let updated = applyingOnboardingDraft(draft, to: current, overwriteExisting: overwriteExisting) else { return }
+        try await update(updated)
     }
 
     func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {

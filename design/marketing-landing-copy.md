@@ -89,9 +89,14 @@ No growth-hacker superlatives ("revolutionary", "10x"), no therapy claims
 *Body:* Every entry gets a summary you can expand at a glance. Ask for insights and LuminaLog finds the themes, feelings, and patterns across your journal — then offers five prompts to go deeper.
 *Visual:* Detail view, Insights tab with generated insights.
 
+**Section 3b — Your Journal Constellation**
+*Headline:* See the shape of your inner life.
+*Body:* Every entry becomes a star. LuminaLog draws the lines between them — connecting the moments that echo each other across months — into a living map of your mind you can explore. Zoom out and the themes of your life appear as constellations; tap any star to return to the moment it came from. A map only you have, growing richer with every entry.
+*Visual:* dark star-map — entries as stars, similar ones clustered and linked, a few theme labels floating between them.
+
 **Section 4 — Talk to your journal**
 *Headline:* A companion who's read every page.
-*Body:* Start a chat — or a real voice conversation — with an AI that knows your biography and your entries. Think out loud, untangle a decision, or revisit how far you've come. It remembers, so you don't have to explain yourself twice.
+*Body:* Start a chat — or a real voice conversation — with an AI that knows your biography and your entries. Think out loud, untangle a decision, or revisit how far you've come. It remembers, so you don't have to explain yourself twice. Chat is included in your subscription; live voice calls run on add-on Voice Credits, so you only pay for the minutes you talk.
 *Visual:* voice call screen with the audio animation + a chat snippet referencing a past entry.
 
 **Section 5 — Built to stay yours**
@@ -111,19 +116,31 @@ No growth-hacker superlatives ("revolutionary", "10x"), no therapy claims
 
 ### 4.5 Pricing section
 
-*Headline:* Start free. Go deeper with Pro.
+> LuminaLog is a paid app — no free tier. One subscription unlocks the whole app;
+> live voice calls run on separate add-on Voice Credits. See [`PRICING.md`](../docs/PRICING.md)
+> (authoritative prices) and [`Subscription-strategy.md`](../docs/Subscription-strategy.md).
 
-| | **Free** | **Pro** |
+*Headline:* Simple, honest pricing.
+*Sub:* Monthly or annual — the whole app, no tiers.
+
+| Plan | Price | |
 |---|---|---|
-| Unlimited text journaling | ✓ | ✓ |
-| Daily personalized prompt | ✓ | ✓ |
-| Voice, video & photo entries | — | ✓ |
-| AI insights, summaries & prompts | limited | unlimited |
-| Chat with your journal | limited | unlimited |
-| Voice conversations | — | ✓ |
+| **Monthly** | **$9.99 / month** | Cancel anytime |
+| **Annual** | **$99.99 / year** | ~$8.33/month · *Save 17%* (two months free) |
 
-*Pro: $X.99/month or $XX.99/year. Cancel anytime.*
-**CTA:** `Try LuminaLog free`
+**Everything is included in your subscription:**
+unlimited text, voice, video & photo entries · AI video intelligence (face + voice) ·
+unlimited AI insights, summaries & patterns · unlimited chat with your companion ·
+your Journal Constellation · daily personalized prompt.
+
+**Voice Credits (add-on, for live calls only).** Real-time voice conversations with
+your companion are powered by consumable Voice Credits — bought separately so you
+only pay for the minutes you talk. **1 credit = $1 = 6 minutes.** Packs: **$4.99**
+(30 min) · **$9.99** (60 min) · **$19.99** (120 min) · **$49.99** (300 min). Same
+per-minute rate at every size. *Voice journaling — recording entries by voice — is
+always included; credits are only for live calls.*
+
+**CTA:** `Start journaling`
 
 ### 4.6 FAQ
 
@@ -131,13 +148,14 @@ No growth-hacker superlatives ("revolutionary", "10x"), no therapy claims
 - **What happens to my voice and video recordings?** They're transcribed on your iPhone and stored encrypted. Only you can play them back.
 - **Can it really read my handwriting?** Photograph your notebook page and LuminaLog converts it to text you can edit, search, and reflect on.
 - **What does the AI actually know about me?** Only what you've written in your journal and your bio — and it only uses that to help *you* reflect.
-- **Do I need a subscription?** No — text journaling and daily prompts are free forever. Pro unlocks voice, video, photos, and unlimited AI.
+- **Do I need a subscription?** Yes. LuminaLog is a paid app — one subscription ($9.99/month or $99.99/year) unlocks everything: unlimited journaling in every format, AI insights, chat, and your Journal Constellation. Cancel anytime.
+- **What are Voice Credits?** Live, real-time voice *calls* with your companion run on Voice Credits, bought separately from your subscription. 1 credit = $1 = 6 minutes of talk time, in packs from $4.99 (30 min) to $49.99 (300 min) — so you only pay for the minutes you use. Recording voice *entries* (voice journaling) is always included in your subscription; credits are only for live calls.
 - **Which devices?** iPhone (iOS 17+). Sign in with Apple or Google.
 
 ### 4.7 Final CTA block
 
 *Headline:* Your story is already happening. Start keeping it.
-*Sub:* Free to start. Two minutes to your first entry.
+*Sub:* $9.99/month or $99.99/year. Two minutes to your first entry.
 **CTA:** `Download LuminaLog`
 
 ### 4.8 Footer microcopy
@@ -172,3 +190,7 @@ For App Store, ads, and social:
 - "On your device" applies to transcription/OCR — AI insights and chat use secure cloud
   processing; phrase as "private, encrypted processing", not "everything on-device".
 - Streak language stays positive; no loss-aversion push ("don't break your streak!" is out).
+- **Voice accuracy.** Never imply live voice *calls* are unlimited or bundled into the
+  subscription — they run on separately-purchased Voice Credits (1 credit = $1 = 6 min;
+  see [`PRICING.md`](../docs/PRICING.md)). Voice *journaling* (recording entries) **is**
+  included; keep the two distinct in all copy.

@@ -15,8 +15,8 @@ final class ProfileEditViewModel: ObservableObject {
     // MARK: Live profile + drafts
 
     @Published private(set) var profile: UserProfile?
-    @Published var displayNameDraft = ""
-    @Published private(set) var bioDraft = ""
+    /// Catalog-keyed working copy of every field, seeded once from the profile.
+    @Published var drafts: [String: String] = [:]
 
     // MARK: Avatar
 
@@ -32,15 +32,18 @@ final class ProfileEditViewModel: ObservableObject {
 
     private let profiles: ProfileRepository
     private let media: MediaUploader
+    /// Exposed so the edit view can attach dictation to each text field.
+    let speech: SpeechTranscriber
 
     private var profileTask: Task<Void, Never>?
     private var hasStarted = false
     private var seeded = false
     private var resolvedPhotoKey: String?
 
-    init(profiles: ProfileRepository, media: MediaUploader) {
+    init(profiles: ProfileRepository, media: MediaUploader, speech: SpeechTranscriber) {
         self.profiles = profiles
         self.media = media
+        self.speech = speech
     }
 
     deinit { profileTask?.cancel() }
@@ -65,41 +68,50 @@ final class ProfileEditViewModel: ObservableObject {
         profile = newProfile
         guard let newProfile else { return }
         if !seeded {
-            displayNameDraft = newProfile.displayName
-            bioDraft = newProfile.biography
+            for field in ProfileFieldCatalog.all { drafts[field.key] = field.get(newProfile) }
             seeded = true
         }
         resolveAvatar(for: newProfile.photoURL)
     }
 
-    // MARK: - Biography (hard 750-word cap)
+    // MARK: - Field access (hard 750-word cap on bio)
 
     static func wordCount(_ text: String) -> Int {
         text.split(whereSeparator: { $0.isWhitespace }).count
     }
 
-    var bioWordCount: Int { Self.wordCount(bioDraft) }
+    func value(for field: ProfileField) -> String { drafts[field.key] ?? "" }
 
-    /// Binding setter for the bio editor — truncates to the first 750 words.
-    func setBio(_ newValue: String) {
-        let words = newValue.split(whereSeparator: { $0.isWhitespace })
-        if words.count > Self.bioWordLimit {
-            bioDraft = words.prefix(Self.bioWordLimit).joined(separator: " ")
+    /// Binding setter for any field — truncates the bio to the first 750 words.
+    func setValue(_ value: String, for field: ProfileField) {
+        if field.key == "biography" {
+            let words = value.split(whereSeparator: { $0.isWhitespace })
+            drafts[field.key] = words.count > Self.bioWordLimit
+                ? words.prefix(Self.bioWordLimit).joined(separator: " ")
+                : value
         } else {
-            bioDraft = newValue
+            drafts[field.key] = value
         }
     }
+
+    var bioWordCount: Int { Self.wordCount(drafts["biography"] ?? "") }
 
     // MARK: - Dirty / save
 
     var isDirty: Bool {
         guard let profile else { return false }
-        let trimmedName = displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        let nameChanged = !trimmedName.isEmpty && trimmedName != profile.displayName
-        return nameChanged || bioDraft != profile.biography
+        return ProfileFieldCatalog.all.contains { field in
+            let draft = drafts[field.key] ?? ""
+            if field.isHeader {
+                // Name: an empty draft means "keep existing".
+                let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+                return !trimmed.isEmpty && trimmed != field.get(profile)
+            }
+            return draft != field.get(profile)
+        }
     }
 
-    /// Commits name + bio in one write. Empty name keeps the stored name.
+    /// Commits every field in one write. An empty name keeps the stored name.
     /// Returns true on success so the view can pop.
     func save() async -> Bool {
         guard var updated = profile, !isSaving else { return false }
@@ -107,14 +119,16 @@ final class ProfileEditViewModel: ObservableObject {
         defer { isSaving = false }
         errorMessage = nil
 
-        let trimmedName = displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedName.isEmpty {
-            updated.displayName = trimmedName
-            displayNameDraft = trimmedName
-        } else {
-            displayNameDraft = updated.displayName
+        for field in ProfileFieldCatalog.all {
+            let draft = drafts[field.key] ?? ""
+            if field.isHeader {
+                let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty { field.set(&updated, trimmed); drafts[field.key] = trimmed }
+                else { drafts[field.key] = field.get(updated) }
+            } else {
+                field.set(&updated, draft)
+            }
         }
-        updated.biography = bioDraft
 
         do {
             try await profiles.update(updated)
@@ -165,7 +179,10 @@ final class ProfileEditViewModel: ObservableObject {
         }
         Task { [weak self] in
             guard let self else { return }
-            guard let resolved = try? await self.media.viewURL(for: key) else { return }
+            // The avatar is stored AES-encrypted, so it must be downloaded and
+            // decrypted to a local plaintext file before AsyncImage can render
+            // it — `viewURL` would hand raw ciphertext to AsyncImage.
+            guard let resolved = try? await self.media.localFileURL(for: key) else { return }
             if self.profile?.photoURL?.absoluteString == key {
                 self.resolvedPhotoKey = key
                 self.avatarURL = resolved
@@ -175,7 +192,7 @@ final class ProfileEditViewModel: ObservableObject {
 
     /// Uppercased initials for the avatar placeholder ("Demo User" → "DU").
     var initials: String {
-        displayNameDraft
+        (drafts["name"] ?? "")
             .split(separator: " ")
             .prefix(2)
             .compactMap { $0.first.map(String.init) }

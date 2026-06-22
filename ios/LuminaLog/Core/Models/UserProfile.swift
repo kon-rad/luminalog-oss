@@ -66,6 +66,43 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         }
     }
 
+    /// Extended onboarding profile fields (spec §5). All free-text, all
+    /// field-encrypted at rest; injected into AI prompts alongside `biography`.
+    struct ProfileDetails: Codable, Equatable, Sendable {
+        var goals: String?
+        var hobbies: String?
+        var age: String?
+        var gender: String?
+        var challenges: String?
+        var dailyHabits: String?
+        var starSign: String?
+        var maritalStatus: String?
+        var location: String?
+        var education: String?
+        var work: String?
+        var favoriteMovies: String?
+        var favoriteArtists: String?
+        var favoriteBooks: String?
+        var languages: String?
+        var friendsDescribe: String?
+
+        init(
+            goals: String? = nil, hobbies: String? = nil, age: String? = nil,
+            gender: String? = nil, challenges: String? = nil, dailyHabits: String? = nil,
+            starSign: String? = nil, maritalStatus: String? = nil, location: String? = nil,
+            education: String? = nil, work: String? = nil, favoriteMovies: String? = nil,
+            favoriteArtists: String? = nil, favoriteBooks: String? = nil,
+            languages: String? = nil, friendsDescribe: String? = nil
+        ) {
+            self.goals = goals; self.hobbies = hobbies; self.age = age
+            self.gender = gender; self.challenges = challenges; self.dailyHabits = dailyHabits
+            self.starSign = starSign; self.maritalStatus = maritalStatus; self.location = location
+            self.education = education; self.work = work; self.favoriteMovies = favoriteMovies
+            self.favoriteArtists = favoriteArtists; self.favoriteBooks = favoriteBooks
+            self.languages = languages; self.friendsDescribe = friendsDescribe
+        }
+    }
+
     /// Today's cached personalized prompt.
     struct DailyPrompt: Codable, Equatable, Sendable {
         var text: String
@@ -94,6 +131,8 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
     var totalMinutesInApp: Int
     var dailyPrompt: DailyPrompt?
     var summaryConfig: SummaryConfig?
+    /// Extended onboarding profile fields (free-text, field-encrypted).
+    var details: ProfileDetails
 
     init(
         id: String,
@@ -107,7 +146,8 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         storageStats: StorageStats = StorageStats(),
         totalMinutesInApp: Int = 0,
         dailyPrompt: DailyPrompt? = nil,
-        summaryConfig: SummaryConfig? = nil
+        summaryConfig: SummaryConfig? = nil,
+        details: ProfileDetails = ProfileDetails()
     ) {
         self.id = id
         self.displayName = displayName
@@ -121,5 +161,6 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         self.totalMinutesInApp = totalMinutesInApp
         self.dailyPrompt = dailyPrompt
         self.summaryConfig = summaryConfig
+        self.details = details
     }
 }

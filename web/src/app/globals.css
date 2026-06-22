@@ -281,7 +281,6 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   .hero-grid .hero-phone-wrap { order: -1; }
   .video-split { grid-template-columns: 1fr !important; gap: 44px !important; }
   .feat-split { grid-template-columns: 1fr !important; gap: 40px !important; }
-  .dim-grid { grid-template-columns: 1fr 1fr !important; }
   .steps-row { grid-template-columns: 1fr !important; }
   .unlock-grid { grid-template-columns: 1fr 1fr !important; }
   .capture-grid { grid-template-columns: 1fr !important; }
@@ -291,7 +290,6 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 @media (max-width: 640px) {
   .wrap { padding-left: 20px !important; padding-right: 20px !important; }
   .plans { grid-template-columns: 1fr !important; }
-  .dim-grid { grid-template-columns: 1fr 1fr !important; }
   .converse-phones { flex-direction: column !important; align-items: center; gap: 20px !important; }
   .converse-copy-row { flex-direction: column !important; align-items: center; gap: 24px !important; }
   .cta-final { padding: 56px 24px !important; border-radius: 24px !important; }

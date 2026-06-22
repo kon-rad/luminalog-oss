@@ -79,3 +79,6 @@ tmp/
 # Local ChromaDB backups (never commit)
 deploy/chroma/chroma-backups/
 chroma-backups/
+
+# Claude Code local worktrees/state
+.claude/

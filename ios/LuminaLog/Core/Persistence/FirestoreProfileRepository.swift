@@ -61,14 +61,15 @@ final class FirestoreProfileRepository: ProfileRepository {
         try await userRef(uid).setData(try profile.firestoreData(cipher: cipher), merge: true)
     }
 
-    func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws {
+    @discardableResult
+    func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws -> Bool {
         guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
         guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
         let ref = userRef(uid)
         let snapshot = try await ref.getDocument()
         // Never overwrite an existing document — returning users keep their
         // biography, stats, and any proxy-written fields.
-        guard !snapshot.exists else { return }
+        guard !snapshot.exists else { return false }
 
         let seed = UserProfile(
             id: uid,
@@ -83,6 +84,18 @@ final class FirestoreProfileRepository: ProfileRepository {
         // Merge so a concurrent first sign-in (or a proxy write racing the
         // exists-check above) can't be clobbered by this seed.
         try await ref.setData(try seed.firestoreData(cipher: cipher), merge: true)
+        return true
+    }
+
+    func mergeOnboardingDraft(_ draft: [String: String], overwriteExisting: Bool) async throws {
+        guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
+        guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
+        // Read the live doc so we merge against server truth, not a stale copy.
+        let snapshot = try await userRef(uid).getDocument()
+        guard let data = snapshot.data() else { return }
+        let current = UserProfile(documentId: snapshot.documentID, data: data, cipher: cipher)
+        guard let updated = applyingOnboardingDraft(draft, to: current, overwriteExisting: overwriteExisting) else { return }
+        try await userRef(uid).setData(try updated.firestoreData(cipher: cipher), merge: true)
     }
 
     func recordMediaUploaded(kind: MediaKind, bytes: Int) async throws {

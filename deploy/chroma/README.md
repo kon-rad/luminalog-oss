@@ -10,7 +10,7 @@ luminalog-api droplet and to back it up to your local machine.
 
 ## Context
 
-- The API (PM2 `luminalog-api`) and Chroma run on the **same droplet** (`165.22.103.109`).
+- The API (PM2 `luminalog-api`) and Chroma run on the **same droplet**.
   The API talks to Chroma via `CHROMA_URL=http://localhost:8000`.
 - Data lives at the host path **`/srv/luminalog/chroma-data`**, bind-mounted into the
   container at `/chroma/chroma`. Because it's on the host (not the container's
@@ -134,7 +134,7 @@ From your **local** checkout (`deploy/chroma/`):
 ./backup-chroma.sh
 
 # custom key / host
-CHROMA_SSH_KEY=~/.ssh/luminalog CHROMA_SSH_HOST=165.22.103.109 ./backup-chroma.sh
+CHROMA_SSH_KEY=~/.ssh/your_key CHROMA_SSH_HOST=your-droplet-host ./backup-chroma.sh
 
 # zero-downtime snapshot (slightly less consistent)
 ./backup-chroma.sh --live

@@ -69,6 +69,16 @@ enum MockData {
             dailyPrompt: UserProfile.DailyPrompt(
                 text: "You've written a lot lately about wanting more unstructured time. If tomorrow had three empty hours in the middle of it, what would you protect them for?",
                 date: daysAgo(0, hour: 5)
+            ),
+            details: UserProfile.ProfileDetails(
+                goals: "Ship work I'm proud of and be kinder to myself in the process.",
+                hobbies: "Film photography, long walks, baking bread.",
+                age: "34",
+                location: "Lisbon, Portugal",
+                work: "Product designer at a small studio.",
+                favoriteBooks: "Bird by Bird, Letters to a Young Poet, The Overstory.",
+                languages: "English, Portuguese, a little Spanish.",
+                friendsDescribe: "Calm, curious, a good listener."
             )
         )
     }

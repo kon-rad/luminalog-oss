@@ -10,12 +10,32 @@ struct LuminaLogApp: App {
     @StateObject private var services: AppServices
     @StateObject private var session: SessionStore
 
-    @AppStorage("ll-force-dark") private var forceDark: Bool = false
+    @AppStorage(ThemeMode.storageKey) private var themeMode: String = ThemeMode.system.rawValue
+    /// Mirrors `OnboardingStore`'s completion flag so the gate re-renders the
+    /// moment onboarding finishes (it writes the same UserDefaults key).
+    @AppStorage(OnboardingStore.completedKey) private var onboardingCompleted: Bool = false
     @Environment(\.scenePhase) private var scenePhase
     @State private var foregroundStart: Date?
 
+    /// Shared onboarding store: the gate reads/writes the flag and the buffered
+    /// draft; SessionStore reads the same draft to merge it after sign-in.
+    private let onboardingStore = OnboardingStore()
+
     init() {
         let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "startup")
+
+        #if DEBUG
+        // Debug builds default to dev mode on (paywall/credit gates off, dev
+        // tools like the onboarding replay visible). Registration only sets the
+        // value when the user hasn't explicitly overridden the key, so toggling
+        // it off still sticks.
+        UserDefaults.standard.register(defaults: [DevFlags.devModeKey: true])
+        #endif
+
+        // Upgrade the legacy `ll-force-dark` boolean to the three-way theme setting
+        // before any view reads it; runs at most once.
+        ThemeMode.migrateLegacyIfNeeded()
+
         FirebaseApp.configure()
         logger.info("Firebase configured.")
 
@@ -23,12 +43,14 @@ struct LuminaLogApp: App {
         // service instances so auth state, profile, and subscription identity
         // stay consistent across the app.
         let services = AppServices.live()
+        let onboarding = onboardingStore
         _services = StateObject(wrappedValue: services)
         _session = StateObject(wrappedValue: SessionStore(
             auth: services.auth,
             keys: services.keys,
             profiles: services.profiles,
-            subscriptions: services.subscriptions
+            subscriptions: services.subscriptions,
+            onboarding: onboarding
         ))
     }
 
@@ -39,27 +61,52 @@ struct LuminaLogApp: App {
                 case .loading:
                     SplashView()
                 case .signedOut:
-                    SignInView()
-                case .signedIn(let uid):
-                    // Hard paywall: Pro is required to use the app. The gate
-                    // renders RootView only once the entitlement resolves to pro.
-                    // Re-key the whole shell per uid: repository streams capture
-                    // the user at creation, so all tab content must be rebuilt
-                    // when the signed-in user changes.
-                    PaywallGate(
-                        subscriptions: services.subscriptions,
-                        onSignOut: { try? services.auth.signOut() }
-                    ) {
-                        RootView()
-                            .id(uid)
+                    // New users walk onboarding first; once completed (or for a
+                    // returning user who has finished it) we route to sign-in.
+                    if onboardingCompleted {
+                        SignInView()
+                    } else {
+                        OnboardingView(
+                            store: onboardingStore,
+                            speech: services.speech,
+                            onComplete: { onboardingCompleted = true }
+                        )
                     }
-                    .id(uid)
-                    // Once the signed-in user is established, resume any durable
-                    // upload-journal records (finalize completed ones, restart the
-                    // rest). Idempotent/guarded; runs once per signed-in user via
-                    // the stable id.
-                    .task(id: uid) {
-                        await services.entryProcessor.resumePendingJobs()
+                case .signedIn(let uid):
+                    if !onboardingCompleted {
+                        // Signed in but onboarding not yet done (new user who
+                        // signed in before completing the pre-auth flow, or
+                        // reinstall). Merge the draft into their profile when
+                        // they finish.
+                        OnboardingView(
+                            store: onboardingStore,
+                            speech: services.speech,
+                            onComplete: {
+                                onboardingCompleted = true
+                                Task { await session.mergeOnboardingDraft() }
+                            }
+                        )
+                    } else {
+                        // Hard paywall: Pro is required to use the app. The gate
+                        // renders RootView only once the entitlement resolves to pro.
+                        // Re-key the whole shell per uid: repository streams capture
+                        // the user at creation, so all tab content must be rebuilt
+                        // when the signed-in user changes.
+                        PaywallGate(
+                            subscriptions: services.subscriptions,
+                            onSignOut: { try? services.auth.signOut() }
+                        ) {
+                            RootView()
+                                .id(uid)
+                        }
+                        .id(uid)
+                        // Once the signed-in user is established, resume any
+                        // durable upload-journal records (finalize completed
+                        // ones, restart the rest). Idempotent/guarded; runs once
+                        // per signed-in user via the stable id.
+                        .task(id: uid) {
+                            await services.entryProcessor.resumePendingJobs()
+                        }
                     }
                 }
             }
@@ -76,7 +123,7 @@ struct LuminaLogApp: App {
             .environmentObject(services)
             .environmentObject(session)
             .tint(.accentWarm)
-            .preferredColorScheme(forceDark ? .dark : nil)
+            .preferredColorScheme((ThemeMode(rawValue: themeMode) ?? .system).colorScheme)
             .onOpenURL { url in
                 _ = GIDSignIn.sharedInstance.handle(url)
             }

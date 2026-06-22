@@ -63,11 +63,16 @@ export async function embedQuery(text: string): Promise<number[]> {
   return vector
 }
 
+// Default chat model for callers that don't override it (e.g. text chat). Must be
+// a serverless model — non-serverless ids (e.g. Llama-4-Maverick) 400 with
+// "create a dedicated endpoint". This matches the model the voice (/llm) path uses.
+export const DEFAULT_CHAT_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
+
 export async function chatCompletion(
   messages: Array<{ role: string; content: string }>,
   opts: { model?: string; stream?: boolean } = {},
 ): Promise<Response> {
-  const model = opts.model ?? 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
+  const model = opts.model ?? DEFAULT_CHAT_MODEL
   return fetch(`${BASE}/chat/completions`, {
     method: 'POST',
     headers: {

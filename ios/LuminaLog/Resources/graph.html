@@ -7,8 +7,13 @@
     html, body { margin: 0; height: 100%; background: #0b0b12; overflow: hidden; }
     #graph { width: 100vw; height: 100vh; }
   </style>
-  <script src="./vendor/3d-force-graph.min.js"></script>
-  <script src="./vendor/three-spritetext.min.js"></script>
+  <!--
+    Self-contained bundle: three r179 + 3d-force-graph + three-spritetext, all
+    sharing ONE three instance (built via esbuild from the npm packages). Exposes
+    window.ForceGraph3D and window.SpriteText. Referenced by bare filename because
+    Xcode flattens bundled resources to the .app root (no ./vendor/ dir survives).
+  -->
+  <script src="./constellation.min.js"></script>
 </head>
 <body>
   <div id="graph"></div>

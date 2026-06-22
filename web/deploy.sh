@@ -3,8 +3,12 @@
 # Usage: ./deploy.sh   (run from luminalog-oss/web)
 set -e
 
-SERVER="root@165.22.103.109"
-SSH_KEY="$HOME/.ssh/2026_do"
+# Host + SSH key come from the environment so no infrastructure details are
+# committed to this public repo. Set both before running, e.g.:
+#   export LUMINALOG_DEPLOY_SERVER=root@your-droplet-host
+#   export LUMINALOG_DEPLOY_SSH_KEY=~/.ssh/your_key
+SERVER="${LUMINALOG_DEPLOY_SERVER:?set LUMINALOG_DEPLOY_SERVER, e.g. root@your-droplet-host}"
+SSH_KEY="${LUMINALOG_DEPLOY_SSH_KEY:?set LUMINALOG_DEPLOY_SSH_KEY, e.g. ~/.ssh/your_key}"
 REMOTE_DIR="/root/luminalog/luminalog-web"
 SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 

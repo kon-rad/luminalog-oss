@@ -72,46 +72,9 @@ final class JournalListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.displayedEntries.count, expectedVoiceCount)
     }
 
-    // MARK: - Search filter
-
-    @MainActor
-    func testSearchMatchesTitleAndContentCaseInsensitively() async {
-        let viewModel = makeViewModel()
-        await viewModel.start()
-
-        // Title match, different case ("Grandma's recipe card").
-        viewModel.searchText = "GRANDMA"
-        XCTAssertTrue(viewModel.displayedEntries.contains { $0.id == "demo-entry-04" })
-
-        // Content-only match ("honey cake" appears in content).
-        viewModel.searchText = "honey cake"
-        XCTAssertTrue(viewModel.displayedEntries.contains { $0.id == "demo-entry-04" })
-
-        // No match → empty, flagged as a filtered-empty (search) state.
-        viewModel.searchText = "xyzzy-no-such-text"
-        XCTAssertTrue(viewModel.displayedEntries.isEmpty)
-        XCTAssertTrue(viewModel.isFilteredEmpty)
-
-        // Clearing restores everything.
-        viewModel.searchText = ""
-        XCTAssertEqual(viewModel.displayedEntries.count, viewModel.entries.count)
-    }
-
-    @MainActor
-    func testSearchIsDiacriticInsensitive() async {
-        let accented = JournalEntry(
-            id: "accented-entry",
-            userId: MockData.userId,
-            type: .text,
-            title: "Café réflexion",
-            content: "Notes from the café."
-        )
-        let viewModel = makeViewModel(entries: [accented])
-        await viewModel.start()
-
-        viewModel.searchText = "cafe reflexion"
-        XCTAssertEqual(viewModel.displayedEntries.map(\.id), ["accented-entry"])
-    }
+    // Client-side `searchText` was removed when search moved server-side
+    // (ADR-0020: keyword/semantic search via AIService). The obsolete
+    // searchText tests were dropped with it.
 
     // MARK: - Pagination
 

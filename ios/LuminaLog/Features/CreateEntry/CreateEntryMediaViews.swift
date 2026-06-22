@@ -1,85 +1,5 @@
 import SwiftUI
 
-// MARK: - Dictation button
-
-/// The live speech-to-text toggle below the editor (design §5.4):
-/// idle (mic + "Dictate") and listening (pulsing red dot + animated bars +
-/// "Listening… tap to stop").
-struct DictationButton: View {
-
-    let state: CreateEntryViewModel.DictationState
-    let action: () -> Void
-
-    @State private var pulsing = false
-
-    private var isListening: Bool { state == .listening }
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: Spacing.s) {
-                if isListening {
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 10, height: 10)
-                        .scaleEffect(pulsing ? 1.25 : 0.75)
-                        .opacity(pulsing ? 1 : 0.6)
-                    ListeningBars()
-                    Text("Listening… tap to stop")
-                } else {
-                    Image(systemName: "mic.fill")
-                    Text("Dictate")
-                }
-            }
-            .font(.uiBody.weight(.medium))
-            .foregroundStyle(isListening ? Color.red : Color.accentWarm)
-            .padding(.horizontal, Spacing.m)
-            .padding(.vertical, Spacing.s + 2)
-            .background(
-                Capsule().fill(
-                    (isListening ? Color.red : Color.accentWarm).opacity(0.12)
-                )
-            )
-        }
-        .buttonStyle(.plain)
-        .onAppear { startPulseIfNeeded() }
-        .onChange(of: isListening) { startPulseIfNeeded() }
-        .accessibilityLabel(isListening ? "Stop dictation" : "Start dictation")
-    }
-
-    private func startPulseIfNeeded() {
-        guard isListening else {
-            pulsing = false
-            return
-        }
-        withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
-            pulsing = true
-        }
-    }
-}
-
-/// Small animated waveform-ish bars shown while listening.
-private struct ListeningBars: View {
-    @State private var animating = false
-
-    var body: some View {
-        HStack(spacing: 3) {
-            ForEach(0..<4, id: \.self) { index in
-                Capsule()
-                    .fill(Color.red.opacity(0.8))
-                    .frame(width: 3, height: animating ? 16 : 5)
-                    .animation(
-                        .easeInOut(duration: 0.45)
-                            .repeatForever(autoreverses: true)
-                            .delay(Double(index) * 0.12),
-                        value: animating
-                    )
-            }
-        }
-        .frame(height: 16)
-        .onAppear { animating = true }
-    }
-}
-
 // MARK: - Attachment strip
 
 /// Horizontal strip of staged attachments with remove (×) controls:
@@ -238,18 +158,20 @@ struct AttachmentStrip: View {
 // MARK: - Media row
 
 /// The fixed capture row at the bottom of the Create view (design §5.5):
-/// voice recording, photo, and video buttons.
+/// voice recording, photo, video, and dictation buttons.
 struct MediaRow: View {
 
     let isRecording: Bool
     let recordingLabel: String
     let isDisabled: Bool
+    let dictationState: CreateEntryViewModel.DictationState
     let onMic: () -> Void
     let onPhoto: () -> Void
     let onVideo: () -> Void
+    let onDictate: () -> Void
 
     var body: some View {
-        HStack(spacing: Spacing.xl) {
+        HStack(spacing: Spacing.l) {
             // Mic — turns into an elapsed-time + stop control while recording.
             Button(action: onMic) {
                 if isRecording {
@@ -283,6 +205,22 @@ struct MediaRow: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Add a video")
+
+                let isListening = dictationState == .listening
+                Button(action: onDictate) {
+                    VStack(spacing: Spacing.xs) {
+                        Image(systemName: "waveform")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundStyle(isListening ? Color.red : Color.accentWarm)
+                            .frame(height: 24)
+                        Text(isListening ? "Stop" : "Dictate")
+                            .font(.captionText)
+                            .foregroundStyle(isListening ? Color.red : Color.textSecondary)
+                    }
+                    .frame(width: 64)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isListening ? "Stop dictation" : "Start dictation")
             }
         }
         .frame(maxWidth: .infinity)

@@ -3,8 +3,7 @@
 import { useEffect } from 'react'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
-
-const APP_STORE_URL = process.env.NEXT_PUBLIC_APP_STORE_URL || '#download'
+import WaitlistForm from '@/components/WaitlistForm'
 
 export default function Home() {
   useEffect(() => {
@@ -35,29 +34,27 @@ export default function Home() {
         <div className="wrap" style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 48, alignItems: 'center', padding: '88px 0 80px' }} className="hero-grid">
             <div>
-              <span className="eyebrow">AI Journaling Companion · Daily Conversation</span>
+              <span className="eyebrow">The Merge · A New Category of Journaling</span>
               <h1 className="serif" style={{ marginTop: 16, fontSize: 'clamp(40px, 5vw, 64px)', lineHeight: 1.04, fontWeight: 600, letterSpacing: '-0.03em', color: 'var(--text)' }}>
                 Merge with AI<br />through daily<br />conversation.
               </h1>
-              <p style={{ marginTop: 22, fontSize: 19, lineHeight: 1.65, color: 'var(--text2)', maxWidth: 480 }}>
-                LuminaLog is your AI journaling companion. Capture your life in text, voice, video, or photos — and talk to an AI that has read every entry you&apos;ve ever written, and shows you patterns you couldn&apos;t see alone.
+              <p style={{ marginTop: 22, fontSize: 19, lineHeight: 1.65, color: 'var(--text2)', maxWidth: 500 }}>
+                LuminaLog is your AI journaling companion — and the first of a new category we call <b style={{ color: 'var(--text)', fontWeight: 600 }}>The Merge</b>: a daily practice of merging with an AI built entirely from your own life. Capture your days in text, voice, video, or photos, talk to an AI that has read every entry you&apos;ve ever written, and grow more articulate and whole as it comes to know you.
               </p>
-              <div style={{ marginTop: 34, display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center' }}>
-                <a href={APP_STORE_URL} className="btn-store" id="download">
-                  <svg width="22" height="26" viewBox="0 0 20 24" fill="#fff"><path d="M16.4 12.7c0-2.6 2.1-3.9 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.1 2.5-1.8 3-.5 7.5 1.2 9.9.8 1.2 1.8 2.5 3.1 2.4 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.5-1-2.5-3.7zM13.9 3.5c.7-.8 1.1-2 1-3.2-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.3z"/></svg>
-                  <span>
-                    <small style={{ display: 'block', fontSize: 10, fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.65, lineHeight: 1 }}>Download on the</small>
-                    <b style={{ display: 'block', fontSize: 18, fontWeight: 600, lineHeight: 1.15, marginTop: 3, letterSpacing: '-0.01em' }}>App Store</b>
-                  </span>
-                </a>
-                <a href="#how" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent)', fontSize: 16, fontWeight: 600 }}>
-                  See how it works
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
-                </a>
+              <div id="waitlist" style={{ marginTop: 34 }}>
+                <WaitlistForm source="hero" />
+                <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
+                  <span style={{ fontSize: 14, color: 'var(--text3)' }}>Not yet on the App Store — join the waitlist for early access.</span>
+                  <a href="#how" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent)', fontSize: 15, fontWeight: 600 }}>
+                    See how it works
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                  </a>
+                </div>
               </div>
               <div style={{ marginTop: 22, display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 12, color: 'var(--text3)', lineHeight: 1.5 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🔒 Encrypted</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>📱 On-device AI</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>📱 On-device transcription</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🎭 Anonymized to the AI</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>⭐ Open source</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🚫 Never trained on your data</span>
               </div>
@@ -184,7 +181,7 @@ export default function Home() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }} className="unlock-grid">
             {[
-              ['Grow in any direction', 'Set any goal — intellectual, creative, spiritual, emotional, professional. The AI links your entries to it and tracks your progress across time.'],
+              ['Grow in any direction', 'Set any goal that matters to you. The AI links your entries to it and tracks your progress across time.'],
               ['See things differently', 'The AI reads across months of entries and returns a view of you that you could never construct from inside your own head. Your perspective expands.'],
               ['Ask the right questions', "LuminaLog doesn't give you answers — it gives you the questions you weren't asking. The ones drawn from your actual history that unlock the next level of clarity."],
               ['Spot invisible patterns', 'Recurring fears, creative blocks, emotional cycles, belief contradictions. The AI finds what repeats and shows it to you plainly, without judgment.'],
@@ -212,7 +209,7 @@ export default function Home() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="capture-grid">
             {[
               { pill: 'Text', pillBg: 'rgba(206,127,68,0.12)', pillColor: 'var(--accentDeep)', title: 'Write what\'s on your mind.', desc: 'A clean, distraction-free editor. No formatting toolbars, no pressure. Just you and the page — and an AI that will remember every word.' },
-              { pill: 'Voice', pillBg: 'rgba(193,108,108,0.12)', pillColor: '#C16C6C', title: 'Speak your thoughts.', desc: 'Record as you go — LuminaLog transcribes in real time, on your device. Your voice stays private. Your tone is analysed for patterns you didn\'t notice.' },
+              { pill: 'Voice', pillBg: 'rgba(193,108,108,0.12)', pillColor: '#C16C6C', title: 'Speak your thoughts.', desc: 'Record as you go — LuminaLog transcribes in real time, on your device. Your voice stays private, and your tone is analysed for patterns you didn\'t notice. The more you speak, the sharper your language — and your ability to put your inner life into words.' },
               { pill: 'Video', pillBg: 'rgba(137,123,168,0.12)', pillColor: '#7B6FA0', title: 'Film yourself.', desc: 'Record a moment, a reflection, a conversation with yourself. The AI reads your words — and watches your face and hears your voice for what\'s beneath them.' },
               { pill: 'Image', pillBg: 'rgba(110,140,119,0.12)', pillColor: '#4E7A5A', title: 'Photograph your notebook.', desc: 'Already journaling on paper? Snap the page. We read your handwriting, make it searchable, and add it to your AI\'s memory.' },
             ].map(({ pill, pillBg, pillColor, title, desc }) => (
@@ -359,6 +356,70 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── CONSTELLATION ── */}
+      <section className="fade-up" style={{ padding: '104px 0', background: 'var(--surfaceAlt)' }}>
+        <div className="wrap">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }} className="feat-split">
+            <div>
+              <span className="eyebrow">Your Journal Constellation</span>
+              <h2 className="serif" style={{ marginTop: 14, fontSize: 'clamp(30px,3.6vw,42px)', fontWeight: 600, letterSpacing: '-0.025em' }}>See the shape of<br />your inner life.</h2>
+              <p style={{ marginTop: 18, fontSize: 17, color: 'var(--text2)', lineHeight: 1.7 }}>Every entry becomes a star. LuminaLog draws the lines between them — connecting the moments that echo each other across months — into a living map of your mind you can explore. Zoom out and the themes of your life appear as constellations; tap any star to return to the moment it came from.</p>
+              <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {[
+                  ['A map only you have', 'Built entirely from your own entries — the more you journal, the richer and more connected your constellation becomes.'],
+                  ['Patterns you can see', 'Clusters reveal the themes you keep returning to; the distance between stars shows how your life connects.'],
+                ].map(([title, desc]) => (
+                  <div key={title as string} style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 18, padding: '18px 20px', boxShadow: 'var(--shadow)', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                    <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5c.5 3.6 1.9 5 5.5 5.5-3.6.5-5 1.9-5.5 5.5-.5-3.6-1.9-5-5.5-5.5 3.6-.5 5-1.9 5.5-5.5z"/></svg>
+                    </span>
+                    <div>
+                      <h4 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{title}</h4>
+                      <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.5, marginTop: 4 }}>{desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Star-map visual */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{ position: 'relative', width: '100%', maxWidth: 460, aspectRatio: '1 / 1', borderRadius: 28, overflow: 'hidden', background: 'radial-gradient(ellipse 70% 70% at 50% 45%, #2A2218, #100D08)', boxShadow: 'var(--shadow)', border: '1px solid var(--dark-hairline)' }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 45%, rgba(206,127,68,0.22), transparent 60%)' }} />
+                {/* edges */}
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+                  {([
+                    [50, 47, 30, 28], [50, 47, 70, 26], [50, 47, 24, 64], [50, 47, 76, 60],
+                    [50, 47, 42, 80], [30, 28, 16, 44], [70, 26, 84, 40], [24, 64, 42, 80],
+                    [76, 60, 84, 40], [42, 80, 64, 82], [64, 82, 76, 60],
+                  ] as number[][]).map(([x1, y1, x2, y2], i) => (
+                    <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(206,127,68,0.32)" strokeWidth="0.4" vectorEffect="non-scaling-stroke" />
+                  ))}
+                </svg>
+                {/* stars */}
+                {([
+                  [50, 47, 16, true], [30, 28, 9], [70, 26, 10], [24, 64, 8],
+                  [76, 60, 11], [42, 80, 9], [64, 82, 7], [16, 44, 6], [84, 40, 8],
+                ] as [number, number, number, boolean?][]).map(([left, top, size, hub], i) => (
+                  <div key={i} style={{
+                    position: 'absolute', left: `${left}%`, top: `${top}%`, width: size, height: size,
+                    transform: 'translate(-50%, -50%)', borderRadius: '50%',
+                    background: hub ? 'linear-gradient(135deg, #F0C18A, var(--accent))' : 'var(--accent)',
+                    boxShadow: hub ? '0 0 22px rgba(206,127,68,0.9)' : '0 0 12px rgba(206,127,68,0.7)',
+                  }} />
+                ))}
+                {/* theme labels */}
+                {([['Creative work', 70, 18], ['Fear', 18, 70], ['Growth', 64, 90]] as [string, number, number][]).map(([label, left, top]) => (
+                  <span key={label} style={{
+                    position: 'absolute', left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)',
+                    fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 12, color: 'rgba(255,255,255,0.66)', whiteSpace: 'nowrap',
+                  }}>{label}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── CONVERSE (DARK) ── */}
       <section className="fade-up" style={{ padding: '104px 0', background: 'var(--dark-bg)' }}>
         <div className="wrap" style={{ textAlign: 'center' }}>
@@ -416,66 +477,13 @@ export default function Home() {
           <div style={{ display: 'flex', justifyContent: 'center', gap: 48 }} className="converse-copy-row">
             {[
               ['Text chat', 'Think out loud. Untangle a decision. Ask about a pattern you\'ve noticed. The AI replies in full, drawing on your biography and your entire journal — never generic, always yours.'],
-              ['Voice call', 'A real-time voice conversation with a companion that already knows your story. It listens with context, asks the questions you need, and notices what you leave out.'],
+              ['Voice call', 'A real-time voice conversation with a companion that already knows your story. It listens with context, asks the questions you need, and notices what you leave out. The more you talk it through out loud, the more articulate you become — your thinking and your words grow sharper every conversation. Live calls run on Voice Credits, bought separately — so you only pay for the minutes you use.'],
             ].map(([title, desc]) => (
               <div key={title as string} style={{ maxWidth: 280, textAlign: 'center' }}>
                 <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark-text)', marginBottom: 10 }}>{title}</h4>
                 <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--dark-text2)' }}>{desc}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── FOUR DIMENSIONS ── */}
-      <section className="fade-up" style={{ padding: '104px 0', background: 'var(--bg)' }}>
-        <div className="wrap" style={{ textAlign: 'center' }}>
-          <span className="eyebrow">Growth dimensions</span>
-          <h2 className="serif" style={{ marginTop: 16, fontSize: 'clamp(28px,3.6vw,44px)' }}>The full spectrum of yourself.</h2>
-          <p style={{ marginTop: 16, fontSize: 17, color: 'var(--text2)', maxWidth: 440, margin: '16px auto 0' }}>Four dimensions to start. Any direction you choose.</p>
-          {/* Prism */}
-          <div style={{ textAlign: 'center', margin: '48px 0 52px' }}>
-            <svg width="440" height="200" viewBox="0 0 440 200" aria-hidden="true" style={{ margin: '0 auto' }}>
-              <defs>
-                <linearGradient id="beam-in" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0)" /><stop offset="100%" stopColor="rgba(255,255,255,0.7)" />
-                </linearGradient>
-              </defs>
-              <polygon points="170,30 210,100 170,170" fill="rgba(206,127,68,0.08)" stroke="rgba(206,127,68,0.25)" strokeWidth="1.5"/>
-              <polygon points="170,30 210,100 170,170 120,100" fill="rgba(255,250,245,0.9)" stroke="rgba(206,127,68,0.18)" strokeWidth="1"/>
-              <line x1="60" y1="100" x2="170" y2="100" stroke="rgba(255,255,255,0.6)" strokeWidth="8" strokeLinecap="round"/>
-              <line x1="60" y1="100" x2="170" y2="100" stroke="rgba(206,127,68,0.4)" strokeWidth="4" strokeLinecap="round"/>
-              <line x1="210" y1="100" x2="380" y2="42" stroke="rgba(74,127,212,0.75)" strokeWidth="7" strokeLinecap="round"/>
-              <line x1="210" y1="100" x2="380" y2="72" stroke="rgba(155,114,207,0.75)" strokeWidth="7" strokeLinecap="round"/>
-              <line x1="210" y1="100" x2="380" y2="126" stroke="rgba(232,116,138,0.75)" strokeWidth="7" strokeLinecap="round"/>
-              <line x1="210" y1="100" x2="380" y2="158" stroke="rgba(125,191,114,0.75)" strokeWidth="7" strokeLinecap="round"/>
-              <text x="390" y="46" fill="#4A7FD4" fontFamily="-apple-system,system-ui" fontSize="12" fontWeight="700" dominantBaseline="middle">Intellect</text>
-              <text x="390" y="76" fill="#9B72CF" fontFamily="-apple-system,system-ui" fontSize="12" fontWeight="700" dominantBaseline="middle">Spirit</text>
-              <text x="390" y="130" fill="#E8748A" fontFamily="-apple-system,system-ui" fontSize="12" fontWeight="700" dominantBaseline="middle">Emotion</text>
-              <text x="390" y="162" fill="#7DBF72" fontFamily="-apple-system,system-ui" fontSize="12" fontWeight="700" dominantBaseline="middle">Art</text>
-              <circle cx="60" cy="100" r="5" fill="rgba(206,127,68,0.6)"/>
-              <text x="60" y="120" fill="#A89F92" fontFamily="-apple-system,system-ui" fontSize="11" textAnchor="middle">Your life</text>
-            </svg>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }} className="dim-grid">
-            {[
-              { icon: '📖', label: 'Intellectual', color: '#4A7FD4', borderColor: 'rgba(74,127,212,0.25)', bg: 'rgba(74,127,212,0.04)', desc: 'Track your ideas, reading, and how your thinking evolves. Ask the AI what you believe now versus six months ago.' },
-              { icon: '✨', label: 'Spiritual', color: '#9B72CF', borderColor: 'rgba(155,114,207,0.25)', bg: 'rgba(155,114,207,0.04)', desc: 'Hold your questions about meaning, practice, and belief. See your inner life take shape over time.' },
-              { icon: '💙', label: 'Emotional', color: '#E8748A', borderColor: 'rgba(232,116,138,0.25)', bg: 'rgba(232,116,138,0.04)', desc: "Witness your feelings without judgment. Let the AI name the patterns you're inside of." },
-              { icon: '🖊', label: 'Artistic', color: '#7DBF72', borderColor: 'rgba(125,191,114,0.25)', bg: 'rgba(125,191,114,0.04)', desc: 'Document your creative process and output. Let your journal become a record of your craft developing.' },
-            ].map(({ icon, label, color, borderColor, bg, desc }) => (
-              <div key={label} style={{ borderRadius: 20, padding: '22px 20px', background: bg, border: `1px solid ${borderColor}`, transition: 'transform .18s ease' }}
-                onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-3px)')}
-                onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}>
-                <div style={{ fontSize: 22, marginBottom: 12 }}>{icon}</div>
-                <h4 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color }}>{label}</h4>
-                <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.55 }}>{desc}</p>
-              </div>
-            ))}
-          </div>
-          <div style={{ background: 'var(--accentSoft)', borderRadius: 20, padding: '28px 40px', marginTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <span style={{ color: 'var(--accent)', fontSize: 18, flexShrink: 0 }}>✦</span>
-            <p style={{ fontSize: 16, color: 'var(--text2)', lineHeight: 1.6, maxWidth: 560 }}>Not limited to these four. Tell LuminaLog what you&apos;re working on — a leadership skill, a creative practice, a relationship pattern, a professional goal — and it tracks your growth in that direction.</p>
           </div>
         </div>
       </section>
@@ -490,28 +498,23 @@ export default function Home() {
           </div>
           <div style={{ background: 'var(--surfaceAlt)', borderRadius: 28, padding: 4, boxShadow: 'var(--shadow)' }}>
             <div style={{ background: 'var(--surface)', borderRadius: 25, padding: '40px 44px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 48px', marginBottom: 24 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 48px' }}>
                 {[
-                  ['Encrypted end-to-end', 'Every entry, voice recording, video, and image is encrypted in transit and at rest. Your data is never sent in plaintext to anyone.'],
-                  ['On-device transcription & OCR', "Speech-to-text and handwriting recognition run entirely on your iPhone using Apple's on-device frameworks. Your voice and handwriting never leave your device."],
-                  ['Never used to train AI', "Your journal is never used to train AI models. Not ours. Not anyone else's. Full stop."],
-                  ['Open source', 'The iOS app and backend API are publicly available on GitHub. Our privacy claims are not trust — they are code anyone can read and verify.'],
-                ].map(([title, desc]) => (
-                  <div key={title as string} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--accentTint)', color: 'var(--accentDeep)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>🔒</div>
+                  ['🔒', 'Encrypted, always', 'Every entry, voice recording, video, and image is encrypted in transit and at rest. Your data is never stored or sent in plaintext.'],
+                  ['📱', 'On-device transcription & OCR', "Speech-to-text and handwriting recognition run entirely on your iPhone using Apple's on-device frameworks. Your voice and handwriting never leave your device."],
+                  ['🎭', 'Anonymized to the AI', 'When the AI helps you, your entries are processed anonymously — never linked to your name or identity. It comes to understand you deeply without ever knowing who you are.'],
+                  ['🚫', 'Never used to train AI', "Your journal is never used to train AI models. Not ours. Not anyone else's. Full stop."],
+                  ['⭐', 'Open source', 'The iOS app and backend API are publicly available on GitHub. Our privacy claims are not trust — they are code anyone can read and verify.'],
+                  ['🗑️', 'Full deletion, always', 'Delete your account and everything goes with it — every entry, every AI vector, every media file. Permanently. One tap. No retention.'],
+                ].map(([icon, title, desc]) => (
+                  <div key={title} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--accentTint)', color: 'var(--accentDeep)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>{icon}</div>
                     <div>
                       <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 5 }}>{title}</h4>
                       <p style={{ fontSize: 14.5, color: 'var(--text2)', lineHeight: 1.55 }}>{desc}</p>
                     </div>
                   </div>
                 ))}
-              </div>
-              <div style={{ borderTop: '1px solid var(--hairline)', paddingTop: 24, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--accentTint)', color: 'var(--accentDeep)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>🗑️</div>
-                <div>
-                  <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 5 }}>Full deletion, always</h4>
-                  <p style={{ fontSize: 14.5, color: 'var(--text2)', lineHeight: 1.55 }}>Delete your account and everything goes with it — every entry, every AI vector, every media file, every record. Permanently. One tap. No retention.</p>
-                </div>
               </div>
               <div style={{ marginTop: 22, textAlign: 'center' }}>
                 <a href="https://github.com/konradgnat/luminalog" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontSize: 14, fontWeight: 600, transition: 'color .15s' }}>View on GitHub →</a>
@@ -549,15 +552,15 @@ export default function Home() {
         <div className="wrap" style={{ textAlign: 'center' }}>
           <span className="eyebrow">Pricing</span>
           <h2 className="serif" style={{ marginTop: 16, fontSize: 'clamp(30px,3.8vw,44px)', fontWeight: 600, letterSpacing: '-0.025em' }}>Simple, honest pricing.</h2>
-          <p style={{ marginTop: 14, fontSize: 18, color: 'var(--text2)' }}>Monthly or annual — everything included, no tiers.</p>
+          <p style={{ marginTop: 14, fontSize: 18, color: 'var(--text2)' }}>Monthly or annual — the whole app, no tiers. Live voice calls run on add-on Voice Credits.</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, maxWidth: 640, margin: '50px auto 0' }} className="plans">
             {/* Monthly */}
             <div style={{ background: 'var(--surface)', border: '1px solid var(--hairline2)', borderRadius: 24, padding: '32px 30px', boxShadow: 'var(--shadow)' }}>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text3)' }}>Monthly</div>
-              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$10 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ month</span></div>
+              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$9.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ month</span></div>
               <div style={{ fontSize: 14, color: 'var(--text3)' }}>Cancel anytime</div>
               <ul style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {['Unlimited text, voice, video & photo entries', 'AI video intelligence (face + voice)', 'Unlimited AI insights & patterns', 'Unlimited chat + live voice calls', 'Daily personalized prompt'].map(f => (
+                {['Unlimited text, voice, video & photo entries', 'AI video intelligence (face + voice)', 'Unlimited AI insights & patterns', 'Unlimited chat with your companion', 'Your Journal Constellation', 'Daily personalized prompt'].map(f => (
                   <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15, textAlign: 'left' }}>
                     <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -567,7 +570,7 @@ export default function Home() {
                 ))}
               </ul>
               <div style={{ marginTop: 28 }}>
-                <a href={APP_STORE_URL} className="btn-amber-full">Get started</a>
+                <a href="#waitlist" className="btn-amber-full">Join the waitlist</a>
               </div>
             </div>
             {/* Annual */}
@@ -575,7 +578,7 @@ export default function Home() {
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'linear-gradient(90deg, var(--accent), var(--accentDeep))' }} />
               <div style={{ position: 'absolute', top: 18, right: 18, background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '4px 10px', borderRadius: 100 }}>Save 17%</div>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accentDeep)' }}>Annual</div>
-              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$100 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ year</span></div>
+              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$99.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ year</span></div>
               <div style={{ fontSize: 14, color: 'var(--text3)' }}>~$8.33 / month · billed once a year</div>
               <ul style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {['Everything in Monthly', 'Two months free', 'Full year of compounding self-knowledge'].map(f => (
@@ -588,9 +591,36 @@ export default function Home() {
                 ))}
               </ul>
               <div style={{ marginTop: 28 }}>
-                <a href={APP_STORE_URL} className="btn-amber-full">Get started</a>
+                <a href="#waitlist" className="btn-amber-full">Join the waitlist</a>
               </div>
               <div style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--text3)', marginTop: 10 }}>Cancel anytime. No tricks.</div>
+            </div>
+          </div>
+
+          {/* Voice credits add-on */}
+          <div style={{ maxWidth: 640, margin: '24px auto 0' }}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 22, padding: '28px 30px', textAlign: 'left', boxShadow: 'var(--shadow)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <span style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--accentTint)', color: 'var(--accentDeep)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 17 }}>🎙️</span>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Live voice calls run on Voice Credits</h3>
+              </div>
+              <p style={{ fontSize: 15, color: 'var(--text2)', lineHeight: 1.6 }}>
+                Everything in LuminaLog is included in your subscription — writing, voice, video &amp; photo entries, AI insights, chat, and your Journal Constellation. <b style={{ color: 'var(--text)', fontWeight: 600 }}>Real-time voice calls</b> with your companion are the one exception: they&apos;re powered by Voice Credits you buy as you go, so you only ever pay for the minutes you actually talk.
+              </p>
+              <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--accentDeep)' }}>
+                <span style={{ background: 'var(--accentSoft)', padding: '5px 12px', borderRadius: 100 }}>1 credit = $1 = 6 minutes</span>
+              </div>
+              <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {[['$4.99', '30 min'], ['$9.99', '60 min'], ['$19.99', '120 min'], ['$49.99', '300 min']].map(([price, mins]) => (
+                  <div key={price} style={{ flex: '1 1 120px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 14, padding: '12px 14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{price}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{mins} of talk time</div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 14, lineHeight: 1.5 }}>
+                Same rate at every pack size — bigger packs just mean fewer interruptions. Voice journaling (recording entries) is always included; credits are only for live calls.
+              </p>
             </div>
           </div>
         </div>
@@ -605,12 +635,9 @@ export default function Home() {
               <div style={{ position: 'absolute', bottom: -100, left: -40, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.09)', filter: 'blur(10px)' }} />
               <h2 className="serif" style={{ position: 'relative', zIndex: 1, fontSize: 'clamp(30px,4.2vw,52px)', fontWeight: 600, lineHeight: 1.06, letterSpacing: '-0.025em' }}>Merge with AI.<br />One conversation at a time.</h2>
               <p className="serif" style={{ position: 'relative', zIndex: 1, fontStyle: 'italic', fontSize: 26, color: 'rgba(255,255,255,0.88)', marginTop: 14 }}>It starts with one entry.</p>
-              <p style={{ position: 'relative', zIndex: 1, fontSize: 17, color: 'rgba(255,255,255,0.75)', marginTop: 10 }}>$10 / month or $100 / year. Two minutes to your first entry.</p>
-              <div style={{ position: 'relative', zIndex: 1, marginTop: 36, display: 'inline-flex' }}>
-                <a href={APP_STORE_URL} className="btn-white">
-                  <svg width="20" height="24" viewBox="0 0 20 24" fill="var(--accentDeep)"><path d="M16.4 12.7c0-2.6 2.1-3.9 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.1 2.5-1.8 3-.5 7.5 1.2 9.9.8 1.2 1.8 2.5 3.1 2.4 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.5-1-2.5-3.7zM13.9 3.5c.7-.8 1.1-2 1-3.2-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.3z"/></svg>
-                  Download LuminaLog
-                </a>
+              <p style={{ position: 'relative', zIndex: 1, fontSize: 17, color: 'rgba(255,255,255,0.75)', marginTop: 10 }}>$9.99 / month or $99.99 / year. Be first in line when we open.</p>
+              <div style={{ position: 'relative', zIndex: 1, marginTop: 36, display: 'flex', justifyContent: 'center' }}>
+                <WaitlistForm variant="onAccent" source="final-cta" />
               </div>
             </div>
           </div>

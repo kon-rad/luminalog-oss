@@ -19,7 +19,7 @@ final class ReminderScheduler: ReminderScheduling {
     private static let identifier = "ll-daily-reminder"
     private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "reminder")
 
-    private let center: UNUserNotificationCenter
+    nonisolated(unsafe) private let center: UNUserNotificationCenter
     private let timezone: TimeZone
 
     nonisolated init(center: UNUserNotificationCenter = .current(), timezone: TimeZone = .current) {

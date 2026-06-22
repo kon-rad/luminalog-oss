@@ -139,6 +139,31 @@ describe('vapi webhook payload parsing', () => {
     const body = { message: { type: 'end-of-call-report', artifact: { recording: { mono: { combinedUrl: 'https://c.wav' } } } } }
     expect(parseWebhookMessage(body).recordingUrl).toBe('https://c.wav')
   })
+
+  it('reads durationSeconds from explicit field', () => {
+    const body = { message: { type: 'end-of-call-report', durationSeconds: 90.5 } }
+    expect(parseWebhookMessage(body).durationSeconds).toBe(90.5)
+  })
+
+  it('calculates durationSeconds from call startedAt/endedAt when no explicit field', () => {
+    const body = {
+      message: {
+        type: 'end-of-call-report',
+        call: {
+          id: 'c1',
+          metadata: { chatId: 'chat_1' },
+          startedAt: '2024-01-01T00:00:00.000Z',
+          endedAt: '2024-01-01T00:01:30.000Z',
+        },
+      },
+    }
+    expect(parseWebhookMessage(body).durationSeconds).toBeCloseTo(90, 0)
+  })
+
+  it('returns null durationSeconds when neither field nor timestamps present', () => {
+    const body = { message: { type: 'end-of-call-report' } }
+    expect(parseWebhookMessage(body).durationSeconds).toBeNull()
+  })
 })
 
 import { accumulateAssistantText } from './vapi'

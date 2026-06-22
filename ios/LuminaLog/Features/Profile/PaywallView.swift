@@ -16,6 +16,7 @@ struct HostedPaywall: View {
 
     @State private var offering: Offering?
     @State private var loadFailed = false
+    @State private var debugMessage: String = ""
 
     var body: some View {
         Group {
@@ -38,23 +39,44 @@ struct HostedPaywall: View {
     private var unavailable: some View {
         ZStack {
             Color.appBackground.ignoresSafeArea()
-            Text("Plans aren't available right now.")
-                .font(.captionText)
-                .foregroundStyle(Color.textSecondary)
+            VStack(spacing: 8) {
+                Text("Plans aren't available right now.")
+                    .font(.captionText)
+                    .foregroundStyle(Color.textSecondary)
+                #if DEBUG
+                Text(debugMessage)
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                #endif
+            }
         }
     }
 
     private func load() async {
-        guard Purchases.isConfigured, offering == nil else { return }
+        guard Purchases.isConfigured, offering == nil else {
+            debugMessage = "Purchases.isConfigured=\(Purchases.isConfigured)"
+            return
+        }
         do {
             let offerings = try await Purchases.shared.offerings()
+            let allKeys = offerings.all.keys.joined(separator: ", ")
             if let id = offeringIdentifier {
                 offering = offerings.offering(identifier: id) ?? offerings.all[id]
+                if offering == nil {
+                    debugMessage = "offering '\(id)' not found. Available: [\(allKeys)]"
+                    loadFailed = true
+                }
             } else {
                 offering = offerings.current
+                if offering == nil {
+                    debugMessage = "current offering is nil. Available: [\(allKeys)]"
+                    loadFailed = true
+                }
             }
-            if offering == nil { loadFailed = true }
         } catch {
+            debugMessage = "offerings() threw: \(error)"
             loadFailed = true
         }
     }

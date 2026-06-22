@@ -1,5 +1,8 @@
 import SwiftUI
 import WebKit
+import os.log
+
+private let graphLog = Logger(subsystem: "com.konradgnat.luminalog", category: "constellation")
 
 /// Hosts the bundled `graph.html` (3d-force-graph) and injects the fetched
 /// graph as JSON. Reports node taps back via `onSelectNode`.
@@ -16,6 +19,26 @@ struct GraphWebView: UIViewRepresentable {
         let config = WKWebViewConfiguration()
         let controller = WKUserContentController()
         controller.add(context.coordinator, name: "inspect")
+        controller.add(context.coordinator, name: "log")
+
+        // Forward JS errors and console output to the native log. Without this,
+        // a failed script load or runtime throw inside the WebView is silent and
+        // the map just renders as a black screen with no explanation.
+        let bridge = """
+        window.onerror = function (msg, src, line, col) {
+          window.webkit.messageHandlers.log.postMessage('JS error: ' + msg + ' @' + (src||'') + ':' + line + ':' + col);
+        };
+        ['error','warn'].forEach(function (level) {
+          var orig = console[level];
+          console[level] = function () {
+            try { window.webkit.messageHandlers.log.postMessage(level + ': ' + Array.prototype.join.call(arguments, ' ')); } catch (e) {}
+            orig.apply(console, arguments);
+          };
+        });
+        """
+        controller.addUserScript(WKUserScript(source: bridge,
+                                              injectionTime: .atDocumentStart,
+                                              forMainFrameOnly: true))
         config.userContentController = controller
 
         let webView = WKWebView(frame: .zero, configuration: config)
@@ -54,6 +77,14 @@ struct GraphWebView: UIViewRepresentable {
             renderIfReady(in: webView)
         }
 
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            graphLog.error("Constellation WebView navigation failed: \(error.localizedDescription, privacy: .public)")
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            graphLog.error("Constellation WebView provisional navigation failed: \(error.localizedDescription, privacy: .public)")
+        }
+
         func renderIfReady(in webView: WKWebView) {
             guard didLoad, let graph = pendingGraph else { return }
             guard let data = try? JSONEncoder().encode(graph),
@@ -64,8 +95,15 @@ struct GraphWebView: UIViewRepresentable {
 
         func userContentController(_ controller: WKUserContentController,
                                    didReceive message: WKScriptMessage) {
-            guard message.name == "inspect", let id = message.body as? String else { return }
-            onSelectNode(id)
+            switch message.name {
+            case "inspect":
+                guard let id = message.body as? String else { return }
+                onSelectNode(id)
+            case "log":
+                graphLog.error("Constellation JS: \(String(describing: message.body), privacy: .public)")
+            default:
+                break
+            }
         }
     }
 }

@@ -66,6 +66,23 @@ describe('revenueCatWebhookHandler', () => {
     expect(res.statusCode).toBe(401)
   })
 
+  it('accepts the secret from the ?secret= URL query param', async () => {
+    const { db, writes } = mockDb(false)
+    const req: any = { query: { secret: 'rc_secret_test' }, headers: {}, body: purchaseEvent() }
+    const res = mockRes()
+    await revenueCatWebhookHandler(req, res, db)
+    expect(res.statusCode).toBe(200)
+    expect(writes.find(w => w.ref.path === 'users/user-123')).toBeTruthy()
+  })
+
+  it('rejects a bad ?secret= query param with 401', async () => {
+    const { db } = mockDb()
+    const req: any = { query: { secret: 'wrong' }, headers: {}, body: purchaseEvent() }
+    const res = mockRes()
+    await revenueCatWebhookHandler(req, res, db)
+    expect(res.statusCode).toBe(401)
+  })
+
   it('credits the user once for a NON_RENEWING_PURCHASE', async () => {
     const { db, writes } = mockDb(false)
     const req: any = { headers: { authorization: 'rc_secret_test' }, body: purchaseEvent() }

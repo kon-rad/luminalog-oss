@@ -44,7 +44,8 @@ final class ProfileViewModelTests: XCTestCase {
             }
         }
 
-        func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws {}
+        func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws -> Bool { false }
+        func mergeOnboardingDraft(_ draft: [String: String], overwriteExisting: Bool) async throws {}
         func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {}
         func recordMediaUploaded(kind: MediaKind, bytes: Int) async throws {}
         func recordTimeSpent(minutes: Int) async throws {}
@@ -108,7 +109,8 @@ final class ProfileViewModelTests: XCTestCase {
                 profiles: profiles,
                 subscriptions: subscriptions,
                 credits: MockCreditService(),
-                media: media
+                media: media,
+                speech: MockSpeechTranscriber()
             )
         }
     }
@@ -152,7 +154,8 @@ final class ProfileViewModelTests: XCTestCase {
             try? await Task.sleep(nanoseconds: 10_000_000)
         }
         XCTAssertEqual(editVM.profile?.id, MockData.profile.id)
-        XCTAssertEqual(editVM.displayNameDraft, MockData.profile.displayName)
+        let nameField = ProfileFieldCatalog.all.first { $0.key == "name" }!
+        XCTAssertEqual(editVM.value(for: nameField), MockData.profile.displayName)
     }
 
     // MARK: - Subscription label

@@ -6,8 +6,8 @@
 # bind-mount into a tarball, downloads it here with a timestamped name, removes
 # the remote temp file, and prunes old local backups.
 #
-# Config via env vars (defaults match the luminalog-api droplet):
-#   CHROMA_SSH_HOST       droplet host/IP            (default 165.22.103.109)
+# Config via env vars (defaults are placeholders — set the host via env):
+#   CHROMA_SSH_HOST       droplet host/IP            (REQUIRED, e.g. root@your-host)
 #   CHROMA_SSH_USER       ssh user                   (default root)
 #   CHROMA_SSH_KEY        ssh private key path       (default ~/.ssh/id_ed25519)
 #   CHROMA_REMOTE_DIR     remote data dir            (default /srv/luminalog/chroma-data)
@@ -23,12 +23,12 @@
 #
 # Examples:
 #   ./backup-chroma.sh
-#   CHROMA_SSH_KEY=~/.ssh/luminalog ./backup-chroma.sh
+#   CHROMA_SSH_KEY=~/.ssh/your_key ./backup-chroma.sh
 #   ./backup-chroma.sh --live
 
 set -euo pipefail
 
-CHROMA_SSH_HOST="${CHROMA_SSH_HOST:-165.22.103.109}"
+CHROMA_SSH_HOST="${CHROMA_SSH_HOST:?set CHROMA_SSH_HOST to your droplet host/IP}"
 CHROMA_SSH_USER="${CHROMA_SSH_USER:-root}"
 CHROMA_SSH_KEY="${CHROMA_SSH_KEY:-$HOME/.ssh/id_ed25519}"
 CHROMA_REMOTE_DIR="${CHROMA_REMOTE_DIR:-/srv/luminalog/chroma-data}"

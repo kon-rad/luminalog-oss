@@ -43,7 +43,6 @@ final class JournalListViewModel: ObservableObject {
     /// True when the first page failed to load — the view shows an error
     /// state with Retry instead of "No entries yet".
     @Published private(set) var loadFailed = false
-    @Published var searchText = ""
     @Published var filter: TypeFilter = .all
 
     /// False once a page comes back shorter than `pageSize`.
@@ -170,13 +169,12 @@ final class JournalListViewModel: ObservableObject {
 
     // MARK: - Filtering & search
 
-    /// Loaded entries after the type filter and search are applied.
+    /// Loaded entries after the type filter is applied.
     var displayedEntries: [JournalEntry] {
-        entries.filter { matchesFilter($0) && matchesSearch($0) }
+        entries.filter { matchesFilter($0) }
     }
 
-    /// True when the empty result comes from an active search/filter
-    /// rather than an empty journal.
+    /// True when the empty result comes from an active filter rather than an empty journal.
     var isFilteredEmpty: Bool {
         displayedEntries.isEmpty && !entries.isEmpty
     }
@@ -186,15 +184,6 @@ final class JournalListViewModel: ObservableObject {
         case .all: return true
         case .type(let type): return entry.type == type
         }
-    }
-
-    /// Case- and diacritic-insensitive match over title + content.
-    private func matchesSearch(_ entry: JournalEntry) -> Bool {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return true }
-        let options: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
-        return entry.title.range(of: query, options: options) != nil
-            || entry.content.range(of: query, options: options) != nil
     }
 
     // MARK: - Date grouping

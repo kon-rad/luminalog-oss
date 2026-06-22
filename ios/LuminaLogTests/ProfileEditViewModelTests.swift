@@ -31,7 +31,12 @@ final class ProfileEditViewModelTests: XCTestCase {
             for continuation in continuations.values { continuation.yield(stored) }
         }
 
-        func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws {}
+        func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws -> Bool { false }
+        func mergeOnboardingDraft(_ draft: [String: String], overwriteExisting: Bool) async throws {
+            guard let current = stored,
+                  let updated = applyingOnboardingDraft(draft, to: current, overwriteExisting: overwriteExisting) else { return }
+            try await update(updated)
+        }
         func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {}
         func recordMediaUploaded(kind: MediaKind, bytes: Int) async throws {}
         func recordTimeSpent(minutes: Int) async throws {}
@@ -41,6 +46,8 @@ final class ProfileEditViewModelTests: XCTestCase {
     private final class SpyMediaUploader: MediaUploader {
         struct UploadError: Error {}
         private(set) var uploads: [(kind: MediaKind, journalId: String)] = []
+        private(set) var viewURLKeys: [String] = []
+        private(set) var localFileURLKeys: [String] = []
         var shouldFail = false
         var s3Key = "profile/avatar-1.jpg"
 
@@ -55,15 +62,18 @@ final class ProfileEditViewModelTests: XCTestCase {
         func presignUpload(s3Key: String?, kind: MediaKind, ext: String, bytes: Int, journalId: String) async throws -> (s3Key: String, url: URL) {
             (s3Key ?? self.s3Key, URL(fileURLWithPath: "/dev/null"))
         }
-        func viewURL(for s3Key: String) async throws -> URL { URL(fileURLWithPath: "/resolved/\(s3Key)") }
-        func localFileURL(for s3Key: String) async throws -> URL { URL(fileURLWithPath: "/resolved/\(s3Key)") }
+        func viewURL(for s3Key: String) async throws -> URL { viewURLKeys.append(s3Key); return URL(fileURLWithPath: "/ciphertext/\(s3Key)") }
+        func localFileURL(for s3Key: String) async throws -> URL { localFileURLKeys.append(s3Key); return URL(fileURLWithPath: "/decrypted/\(s3Key)") }
     }
+
+    private var bioField: ProfileField { ProfileFieldCatalog.all.first { $0.key == "biography" }! }
+    private var nameField: ProfileField { ProfileFieldCatalog.all.first { $0.key == "name" }! }
 
     @MainActor
     private func makeStarted(profile: UserProfile? = MockData.profile) async -> (ProfileEditViewModel, SpyProfileRepository, SpyMediaUploader) {
         let profiles = SpyProfileRepository(profile: profile)
         let media = SpyMediaUploader()
-        let vm = ProfileEditViewModel(profiles: profiles, media: media)
+        let vm = ProfileEditViewModel(profiles: profiles, media: media, speech: MockSpeechTranscriber())
         vm.start()
         let deadline = Date().addingTimeInterval(2)
         while vm.profile == nil && Date() < deadline {
@@ -79,26 +89,26 @@ final class ProfileEditViewModelTests: XCTestCase {
     func testSetBioTruncatesBeyond750Words() async {
         let (vm, _, _) = await makeStarted()
         let longBio = Array(repeating: "word", count: 900).joined(separator: " ")
-        vm.setBio(longBio)
-        XCTAssertEqual(ProfileEditViewModel.wordCount(vm.bioDraft), 750)
+        vm.setValue(longBio, for: bioField)
+        XCTAssertEqual(ProfileEditViewModel.wordCount(vm.value(for: bioField)), 750)
         XCTAssertEqual(vm.bioWordCount, 750)
     }
 
     @MainActor
     func testSetBioKeepsInputUnder750Words() async {
         let (vm, _, _) = await makeStarted()
-        vm.setBio("a short bio")
-        XCTAssertEqual(vm.bioDraft, "a short bio")
+        vm.setValue("a short bio", for: bioField)
+        XCTAssertEqual(vm.value(for: bioField), "a short bio")
         XCTAssertEqual(vm.bioWordCount, 3)
     }
 
-    // MARK: - Save commits name + bio together
+    // MARK: - Save commits all fields together
 
     @MainActor
     func testSaveWritesNameAndBioInOneUpdate() async {
         let (vm, profiles, _) = await makeStarted()
-        vm.displayNameDraft = "  New Name  "
-        vm.setBio("A brand new bio.")
+        vm.setValue("  New Name  ", for: nameField)
+        vm.setValue("A brand new bio.", for: bioField)
         let ok = await vm.save()
         XCTAssertTrue(ok)
         XCTAssertEqual(profiles.updates.count, 1)
@@ -107,10 +117,19 @@ final class ProfileEditViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testSaveWritesDetailFields() async {
+        let (vm, profiles, _) = await makeStarted()
+        let goalsField = ProfileFieldCatalog.all.first { $0.key == "goals" }!
+        vm.setValue("Run a marathon", for: goalsField)
+        _ = await vm.save()
+        XCTAssertEqual(profiles.updates.last?.details.goals, "Run a marathon")
+    }
+
+    @MainActor
     func testSaveWithEmptyNameKeepsStoredName() async {
         let (vm, profiles, _) = await makeStarted()
-        vm.displayNameDraft = "   "
-        vm.setBio("Bio only.")
+        vm.setValue("   ", for: nameField)
+        vm.setValue("Bio only.", for: bioField)
         _ = await vm.save()
         XCTAssertEqual(profiles.updates.last?.displayName, MockData.profile.displayName)
         XCTAssertEqual(profiles.updates.last?.biography, "Bio only.")
@@ -120,7 +139,7 @@ final class ProfileEditViewModelTests: XCTestCase {
     func testSaveFailureSurfacesError() async {
         let (vm, profiles, _) = await makeStarted()
         profiles.shouldFailUpdate = true
-        vm.setBio("changed")
+        vm.setValue("changed", for: bioField)
         let ok = await vm.save()
         XCTAssertFalse(ok)
         XCTAssertNotNil(vm.errorMessage)
@@ -137,13 +156,34 @@ final class ProfileEditViewModelTests: XCTestCase {
         XCTAssertEqual(profiles.updates.last?.photoURL?.absoluteString, "profile/avatar-42.jpg")
     }
 
+    /// The avatar is uploaded as AES-encrypted ciphertext, so display must go
+    /// through `localFileURL` (download + decrypt), never `viewURL` (which
+    /// hands raw ciphertext to AsyncImage and renders nothing).
+    @MainActor
+    func testUploadedAvatarResolvesViaDecryptingPath() async {
+        let (vm, _, media) = await makeStarted()
+        media.s3Key = "users/u/journals/profile/image-1.jpg"
+        await vm.uploadAvatar(imageData: Data("jpeg".utf8))
+
+        let deadline = Date().addingTimeInterval(2)
+        while vm.avatarURL == nil && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        XCTAssertEqual(media.localFileURLKeys, ["users/u/journals/profile/image-1.jpg"],
+                       "Encrypted avatar must be resolved through localFileURL (download + decrypt)")
+        XCTAssertTrue(media.viewURLKeys.isEmpty,
+                      "Avatar ciphertext must not be handed to AsyncImage via viewURL")
+        XCTAssertEqual(vm.avatarURL?.path, "/decrypted/users/u/journals/profile/image-1.jpg")
+    }
+
     // MARK: - Dirty tracking
 
     @MainActor
     func testIsDirtyTracksNameAndBio() async {
         let (vm, _, _) = await makeStarted()
         XCTAssertFalse(vm.isDirty)
-        vm.setBio("different bio")
+        vm.setValue("different bio", for: bioField)
         XCTAssertTrue(vm.isDirty)
     }
 }

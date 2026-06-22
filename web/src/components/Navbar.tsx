@@ -78,9 +78,8 @@ export default function Navbar() {
                   >
                     {signingIn ? 'Signing in…' : 'Sign in'}
                   </button>
-                  <a href={process.env.NEXT_PUBLIC_APP_STORE_URL || '#download'} className="nav-cta hidden md:inline-flex">
-                    <svg width="14" height="16" viewBox="0 0 20 24" fill="currentColor"><path d="M16.4 12.7c0-2.6 2.1-3.9 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.1 2.5-1.8 3-.5 7.5 1.2 9.9.8 1.2 1.8 2.5 3.1 2.4 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.5-1-2.5-3.7zM13.9 3.5c.7-.8 1.1-2 1-3.2-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.3z"/></svg>
-                    Download
+                  <a href="#waitlist" className="nav-cta hidden md:inline-flex">
+                    Join waitlist
                   </a>
                 </div>
               )

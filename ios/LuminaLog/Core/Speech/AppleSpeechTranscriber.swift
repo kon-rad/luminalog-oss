@@ -8,6 +8,13 @@ import Speech
 /// Prefers on-device recognition (`requiresOnDeviceRecognition = true`) when
 /// the recognizer supports it for the current locale; otherwise falls back to
 /// network-based recognition (the OS prompt covers user consent).
+///
+/// The stream returned by `startLiveTranscription()` stays alive for the
+/// entire user-initiated session: when Apple fires `isFinal` (typically after
+/// ~1 min or a long silence), a new `SFSpeechAudioBufferRecognitionRequest` is
+/// started transparently while the audio engine keeps running. The text from
+/// the completed request is prepended to subsequent partials so callers see a
+/// single, continuously growing cumulative transcript.
 @MainActor
 final class AppleSpeechTranscriber: NSObject, SpeechTranscriber {
 
@@ -22,6 +29,10 @@ final class AppleSpeechTranscriber: NSObject, SpeechTranscriber {
     /// Tracks whether the input-node tap is installed so teardown can always
     /// remove it (installing a second tap on bus 0 raises an NSException).
     private var tapInstalled = false
+    /// Text finalized by completed sub-requests within the current user session.
+    /// Prefixed onto each new sub-request's partials so the stream is seamlessly
+    /// cumulative across recognition-request restarts.
+    private var recognitionPrefix = ""
 
     /// File transcription is abandoned (with `.recognitionFailed`) after this
     /// long so a stuck recognizer can't hang the save pipeline forever.
@@ -60,12 +71,7 @@ final class AppleSpeechTranscriber: NSObject, SpeechTranscriber {
 
             // Tear down any forgotten previous session before starting anew.
             stopLiveTranscription()
-
-            let request = SFSpeechAudioBufferRecognitionRequest()
-            request.shouldReportPartialResults = true
-            if recognizer.supportsOnDeviceRecognition {
-                request.requiresOnDeviceRecognition = true
-            }
+            recognitionPrefix = ""
 
             do {
                 let session = AVAudioSession.sharedInstance()
@@ -78,8 +84,12 @@ final class AppleSpeechTranscriber: NSObject, SpeechTranscriber {
 
                 let inputNode = audioEngine.inputNode
                 let format = inputNode.outputFormat(forBus: 0)
-                inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
-                    request.append(buffer)
+                // Weak-self tap so buffer routing always uses the CURRENT
+                // liveRequest. This lets recognition requests restart after
+                // isFinal without ever stopping the audio engine, enabling
+                // continuous 2-3 minute dictation sessions.
+                inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
+                    self?.liveRequest?.append(buffer)
                 }
                 tapInstalled = true
                 audioEngine.prepare()
@@ -93,22 +103,58 @@ final class AppleSpeechTranscriber: NSObject, SpeechTranscriber {
                 return
             }
 
-            liveRequest = request
             liveContinuation = continuation
             // If the consumer cancels or abandons the stream, tear the whole
             // session down so the microphone isn't left hot.
             continuation.onTermination = { [weak self] _ in
                 Task { @MainActor in self?.endLiveSession(error: nil) }
             }
-            liveTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
-                if let result {
-                    continuation.yield(result.bestTranscription.formattedString)
-                    if result.isFinal {
-                        Task { @MainActor in self?.endLiveSession(error: nil) }
+            scheduleNextSubRequest(recognizer: recognizer, continuation: continuation)
+        }
+    }
+
+    /// Starts a fresh `SFSpeechAudioBufferRecognitionRequest` while keeping the
+    /// audio engine running. Called at session start and automatically after
+    /// each `isFinal` so the stream supports 2-3 minutes of uninterrupted
+    /// dictation. The audio tap is already live and routes to `self.liveRequest`
+    /// dynamically, so the transition is seamless.
+    private func scheduleNextSubRequest(
+        recognizer: SFSpeechRecognizer,
+        continuation: AsyncThrowingStream<String, Error>.Continuation
+    ) {
+        guard liveContinuation != nil else { return }
+
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        request.shouldReportPartialResults = true
+        if recognizer.supportsOnDeviceRecognition {
+            request.requiresOnDeviceRecognition = true
+        }
+        liveRequest = request // audio tap now feeds this request
+
+        let prefix = recognitionPrefix
+        liveTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
+            if let result {
+                // Prepend all text finalized by previous sub-requests so callers
+                // see a single growing cumulative transcript for the whole session.
+                let cumulative = prefix.isEmpty
+                    ? result.bestTranscription.formattedString
+                    : prefix + result.bestTranscription.formattedString
+                continuation.yield(cumulative)
+
+                if result.isFinal {
+                    // Commit this sub-request's text and start the next one.
+                    // The audio engine keeps running — no speech is lost.
+                    let nextPrefix = cumulative.isEmpty ? "" : cumulative + " "
+                    Task { @MainActor [weak self] in
+                        guard let self, self.liveContinuation != nil else { return }
+                        self.recognitionPrefix = nextPrefix
+                        self.liveTask = nil
+                        self.liveRequest = nil
+                        self.scheduleNextSubRequest(recognizer: recognizer, continuation: continuation)
                     }
-                } else if let error {
-                    Task { @MainActor in self?.endLiveSession(error: error) }
                 }
+            } else if let error {
+                Task { @MainActor in self?.endLiveSession(error: error) }
             }
         }
     }

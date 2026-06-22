@@ -35,7 +35,7 @@ if ! gzip -t "$ARCHIVE"; then
   exit 1
 fi
 
-CHROMA_SSH_HOST="${CHROMA_SSH_HOST:-165.22.103.109}"
+CHROMA_SSH_HOST="${CHROMA_SSH_HOST:?set CHROMA_SSH_HOST to your droplet host/IP}"
 CHROMA_SSH_USER="${CHROMA_SSH_USER:-root}"
 CHROMA_SSH_KEY="${CHROMA_SSH_KEY:-$HOME/.ssh/id_ed25519}"
 CHROMA_REMOTE_DIR="${CHROMA_REMOTE_DIR:-/srv/luminalog/chroma-data}"

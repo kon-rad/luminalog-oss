@@ -16,9 +16,9 @@ enum ReminderPrefs {
 @MainActor
 final class ReminderCoordinator: ObservableObject {
 
-    private let scheduler: ReminderScheduling
-    private let defaults: UserDefaults
-    private let now: () -> Date
+    nonisolated(unsafe) private let scheduler: ReminderScheduling
+    nonisolated(unsafe) private let defaults: UserDefaults
+    nonisolated(unsafe) private let now: () -> Date
 
     nonisolated init(
         scheduler: ReminderScheduling = ReminderScheduler(),

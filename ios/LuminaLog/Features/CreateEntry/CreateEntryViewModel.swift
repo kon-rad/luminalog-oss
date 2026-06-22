@@ -113,25 +113,36 @@ final class CreateEntryViewModel: ObservableObject {
     /// editor text at session start (`base`) and set `text = base + partial`.
     func startDictation() async {
         guard dictationState == .idle else { return }
+        // Capture base synchronously before any async suspension so the binding
+        // always reads the current editor text, not a potentially stale snapshot.
+        let base = dictationBase(from: text)
         guard await deps.speech.requestAuthorization() else {
             showDictationDeniedAlert = true
             return
         }
-
-        let base = dictationBase(from: text)
         let sessionId = UUID()
         dictationSessionId = sessionId
         dictationState = .listening
         let stream = deps.speech.startLiveTranscription()
 
         dictationTask = Task { [weak self] in
+            var committed = base
+            var lastPartial = ""
             do {
                 for try await partial in stream {
                     guard let self,
                           self.dictationSessionId == sessionId,
                           self.dictationState == .listening
                     else { return }
-                    self.text = base + partial
+                    // Detect Apple on-device mid-session reset (partial shrinks
+                    // to <⅓ of previous without isFinal). Commit current text so
+                    // the next partial appends rather than replaces.
+                    if !lastPartial.isEmpty && partial.count < lastPartial.count / 3 {
+                        let current = self.text
+                        committed = current.isEmpty ? "" : (current.hasSuffix(" ") ? current : current + " ")
+                    }
+                    lastPartial = partial
+                    self.text = committed + partial
                 }
             } catch is SpeechTranscriberError {
                 // Authorization/availability problems → point at Settings.

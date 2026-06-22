@@ -21,9 +21,11 @@ export function creditsForProduct(productId: string | undefined): number | null 
 }
 
 /**
- * RevenueCat webhook. Auth = shared secret in the `Authorization` header
- * (configured in the RevenueCat dashboard). Consumable credit purchases arrive
- * as NON_RENEWING_PURCHASE; we credit `users/{uid}.voiceCredits` exactly once,
+ * RevenueCat webhook. Auth = shared secret passed as the `?secret=` URL query
+ * param (configured in the RevenueCat dashboard webhook URL — sent verbatim,
+ * same trick as the Vapi webhook), falling back to the `Authorization` header
+ * for backward compatibility. Consumable credit purchases arrive as
+ * NON_RENEWING_PURCHASE; we credit `users/{uid}.voiceCredits` exactly once,
  * deduping on the RevenueCat event id inside a Firestore transaction.
  *
  * `database` is injected for testability; the route binds the live `db`.
@@ -33,7 +35,7 @@ export async function revenueCatWebhookHandler(
   res: Response,
   database: FirebaseFirestore.Firestore = db,
 ): Promise<void> {
-  const provided = req.headers.authorization
+  const provided = (req.query?.['secret'] ?? req.headers.authorization) as string | undefined
   if (provided !== config.REVENUECAT_WEBHOOK_SECRET) {
     res.status(401).json({ error: 'Invalid signature' })
     return

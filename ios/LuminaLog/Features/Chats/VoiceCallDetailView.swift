@@ -163,7 +163,7 @@ struct VoiceCallDetailView: View {
     }
 
     private var metadataGrid: some View {
-        let duration = viewModel.chat?.recordingDurationSeconds
+        let duration = viewModel.chat?.recordingDurationSeconds ?? (audio.duration > 0 ? audio.duration : nil)
         let date = viewModel.chat?.createdAt
         return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.m) {
             MetadataTile(label: "Words", value: "\(viewModel.wordCount)")
@@ -179,21 +179,22 @@ struct VoiceCallDetailView: View {
     // MARK: - Transcript tab
 
     @ViewBuilder private var transcriptTab: some View {
-        if let raw = viewModel.chat?.rawTranscript, !raw.isEmpty {
-            ScrollView {
-                Text(raw)
-                    .font(.uiBody)
-                    .foregroundStyle(Color.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(Spacing.m)
-            }
-        } else {
+        if viewModel.messages.isEmpty {
             EmptyStateView(
                 systemImage: "text.bubble",
                 title: "No transcript",
-                message: "The raw transcript will appear here after the call is processed."
+                message: "The transcript will appear here after the call is processed."
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.s) {
+                    ForEach(viewModel.messages) { message in
+                        TranscriptMessageRow(message: message)
+                    }
+                }
+                .padding(Spacing.m)
+            }
         }
     }
 
@@ -240,6 +241,30 @@ private struct MetadataTile: View {
             Text(value)
                 .font(.uiBody.weight(.semibold))
                 .foregroundStyle(Color.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Spacing.m)
+        .background(Color.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous))
+    }
+}
+
+// MARK: - Transcript message row
+
+private struct TranscriptMessageRow: View {
+    let message: ChatMessage
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text(message.role == .user ? "You" : "LuminaLog")
+                .font(.captionText.weight(.semibold))
+                .foregroundStyle(message.role == .user ? Color.accentWarm : Color.textSecondary)
+            Text(message.text)
+                .font(.uiBody)
+                .foregroundStyle(Color.textPrimary)
+            Text(message.createdAt, style: .time)
+                .font(.captionText)
+                .foregroundStyle(Color.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Spacing.m)

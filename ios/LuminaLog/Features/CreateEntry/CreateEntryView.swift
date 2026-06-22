@@ -274,20 +274,10 @@ struct CreateEntryView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Bottom bar (dictation + attachments + media row)
+    // MARK: - Bottom bar (attachments + media row)
 
     private var bottomBar: some View {
         VStack(spacing: 0) {
-            HStack {
-                DictationButton(state: viewModel.dictationState) {
-                    Task { await viewModel.toggleDictation() }
-                }
-                .disabled(recorder.isRecording)
-                Spacer()
-            }
-            .padding(.horizontal, Spacing.m)
-            .padding(.bottom, Spacing.s)
-
             if viewModel.hasVisibleAttachments {
                 AttachmentStrip(
                     attachments: viewModel.attachments,
@@ -305,9 +295,11 @@ struct CreateEntryView: View {
                 isRecording: recorder.isRecording,
                 recordingLabel: recorder.elapsedLabel,
                 isDisabled: false,
+                dictationState: viewModel.dictationState,
                 onMic: handleMicTap,
                 onPhoto: { showPhotoSourceDialog = true },
-                onVideo: { showVideoSourceDialog = true }
+                onVideo: { showVideoSourceDialog = true },
+                onDictate: { Task { await viewModel.toggleDictation() } }
             )
         }
         .background(Color.appBackground.opacity(0.001)) // keep hit-testing sane
