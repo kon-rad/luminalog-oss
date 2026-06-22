@@ -16,6 +16,18 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid;
     }
 
+    // Public marketing waitlist (landing page). Anyone may add their email
+    // (the doc id is the lowercased email, so re-submits upsert idempotently),
+    // but the list is never publicly readable or deletable — it holds PII.
+    match /waitlist/{email} {
+      allow read, delete: if false;
+      allow create, update: if request.resource.data.email is string
+        && request.resource.data.email == email
+        && request.resource.data.email.size() > 3
+        && request.resource.data.email.size() < 320
+        && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$');
+    }
+
     // Chats: top-level collection keyed by a userId field.
     match /chats/{chatId} {
       allow read, update, delete: if request.auth != null
@@ -28,6 +40,12 @@ service cloud.firestore {
         allow read, write: if request.auth != null
           && get(/databases/$(database)/documents/chats/$(chatId)).data.userId == request.auth.uid;
       }
+    }
+
+    // Daily reports: indexed by user (uid) and date. Owner-read only; server-write only.
+    match /dailyReports/{uid}/days/{date} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false; // written only by the server (Admin SDK bypasses rules)
     }
   }
 }
