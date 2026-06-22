@@ -67,7 +67,9 @@ extension JournalEntry {
                 insights: try AIGeneration(data: data["insights"] as? [String: Any], cipher: cipher, context: "journals.insights"),
                 prompts: try AIPrompts(data: data["prompts"] as? [String: Any], cipher: cipher),
                 vector: VectorState(data: data["vector"] as? [String: Any]) ?? VectorState(),
-                wordCount: data["wordCount"] as? Int ?? 0
+                wordCount: data["wordCount"] as? Int ?? 0,
+                emotion: EmotionScore(firestore: data["emotion"] as? [String: Any]),
+                excludeFromShare: data["excludeFromShare"] as? Bool ?? false
             )
         } catch {
             return nil
@@ -96,6 +98,8 @@ extension JournalEntry {
         if let summary { data["summary"] = try summary.firestoreData(cipher: cipher, context: "journals.summary") }
         if let insights { data["insights"] = try insights.firestoreData(cipher: cipher, context: "journals.insights") }
         if let prompts { data["prompts"] = try prompts.firestoreData(cipher: cipher) }
+        data["excludeFromShare"] = excludeFromShare
+        if let emotion { data["emotion"] = emotion.firestoreData() }
         return data
     }
 }
@@ -230,7 +234,8 @@ extension UserProfile {
                       let wordLength = c["wordLength"] as? Int,
                       let systemPrompt = c["systemPrompt"] as? String else { return nil }
                 return UserProfile.SummaryConfig(wordLength: wordLength, systemPrompt: systemPrompt)
-            }()
+            }(),
+            details: UserProfile.ProfileDetails(data: data["profileDetails"] as? [String: Any] ?? [:], cipher: cipher)
         )
     }
 
@@ -252,6 +257,49 @@ extension UserProfile {
                 "wordLength": summaryConfig.wordLength,
                 "systemPrompt": summaryConfig.systemPrompt,
             ]
+        }
+        let detailsData = try details.firestoreData(cipher: cipher)
+        if !detailsData.isEmpty { data["profileDetails"] = detailsData }
+        return data
+    }
+}
+
+extension UserProfile.ProfileDetails {
+
+    /// (Firestore key, keypath) for every encrypted detail field — the single
+    /// place the wire format is enumerated, so a field is added in one spot.
+    private static let fields: [(String, WritableKeyPath<UserProfile.ProfileDetails, String?>)] = [
+        ("goals", \.goals), ("hobbies", \.hobbies), ("age", \.age),
+        ("gender", \.gender), ("challenges", \.challenges), ("dailyHabits", \.dailyHabits),
+        ("starSign", \.starSign), ("maritalStatus", \.maritalStatus), ("location", \.location),
+        ("education", \.education), ("work", \.work), ("favoriteMovies", \.favoriteMovies),
+        ("favoriteArtists", \.favoriteArtists), ("favoriteBooks", \.favoriteBooks),
+        ("languages", \.languages), ("friendsDescribe", \.friendsDescribe),
+    ]
+
+    init(data: [String: Any], cipher: FieldCipher) {
+        var details = UserProfile.ProfileDetails()
+        for (key, keyPath) in Self.fields {
+            details[keyPath: keyPath] =
+                try? cipher.openedIfPresent(data[key], "users.profileDetails.\(key)")
+        }
+        self = details
+    }
+
+    /// Wire format per field, written with `setData(merge: true)`:
+    /// - `nil` (never set) → omitted, leaving any existing value untouched;
+    /// - empty/whitespace (explicitly cleared on the edit screen) →
+    ///   `FieldValue.delete()` so the stored value is removed;
+    /// - non-empty → AES-256-GCM envelope.
+    func firestoreData(cipher: FieldCipher) throws -> [String: Any] {
+        var data: [String: Any] = [:]
+        for (key, keyPath) in Self.fields {
+            guard let value = self[keyPath: keyPath] else { continue }
+            if value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                data[key] = FieldValue.delete()
+            } else {
+                data[key] = try cipher.sealed(value, "users.profileDetails.\(key)")
+            }
         }
         return data
     }
@@ -433,5 +481,75 @@ extension MessageSource {
             "date": date,
             "score": score,
         ]
+    }
+}
+
+// MARK: - EmotionScore
+
+extension EmotionScore {
+
+    /// Plaintext map (derived numeric — not field-encrypted).
+    init?(firestore data: [String: Any]?) {
+        guard let data, let source = data["source"] as? String else { return nil }
+        let scores = (data["scores"] as? [String: Any] ?? [:]).compactMapValues {
+            ($0 as? NSNumber)?.doubleValue
+        }
+        let top = (data["top"] as? [[String: Any]] ?? []).compactMap { d -> EmotionScore.Pick? in
+            guard let n = d["name"] as? String,
+                  let s = (d["score"] as? NSNumber)?.doubleValue else { return nil }
+            return .init(name: n, score: s)
+        }
+        self.init(
+            source: source,
+            scores: scores,
+            top: top,
+            model: data["model"] as? String ?? "",
+            scoredAt: timestamp(data["scoredAt"])
+        )
+    }
+
+    func firestoreData() -> [String: Any] {
+        var data: [String: Any] = [
+            "source": source,
+            "scores": scores,
+            "model": model,
+            "top": top.map { ["name": $0.name, "score": $0.score] },
+        ]
+        if let scoredAt { data["scoredAt"] = Timestamp(date: scoredAt) }
+        return data
+    }
+}
+
+// MARK: - DailyInsightsReport
+
+extension DailyInsightsReport {
+
+    /// Decrypt the four text fields; the rest are plaintext.
+    init(firestore data: [String: Any], cipher: FieldCipher) throws {
+        func dec(_ key: String) throws -> String {
+            try cipher.opened(data[key], "dailyReports.\(key)")
+        }
+        self.init(
+            date: data["date"] as? String ?? "",
+            insights: try dec("insights"),
+            findings: try dec("findings"),
+            question: try dec("question"),
+            emotionSummary: try dec("emotionSummary"),
+            totalWords: data["totalWords"] as? Int ?? 0,
+            streakCount: data["streakCount"] as? Int ?? 0,
+            emotions: (data["emotions"] as? [[String: Any]] ?? []).compactMap {
+                guard let n = $0["name"] as? String,
+                      let s = ($0["score"] as? NSNumber)?.doubleValue else { return nil }
+                return .init(name: n, score: s)
+            },
+            imageUrl: (data["imageUrl"] as? String).flatMap(URL.init),
+            imageThumbUrl: (data["imageThumbUrl"] as? String).flatMap(URL.init),
+            imageQuery: data["imageQuery"] as? String,
+            photographerName: data["photographerName"] as? String,
+            photographerUrl: (data["photographerUrl"] as? String).flatMap(URL.init),
+            sourceEntryIds: data["sourceEntryIds"] as? [String] ?? [],
+            model: data["model"] as? String ?? "",
+            generatedAt: timestamp(data["generatedAt"])
+        )
     }
 }
