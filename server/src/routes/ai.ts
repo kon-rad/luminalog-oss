@@ -8,11 +8,14 @@ import { indexJournalEntry } from '../services/journalIndexer'
 import { extractAudio } from '../services/audioExtractor'
 import { PROMPTS } from '../services/prompts'
 import { generateSummaryText } from '../services/summaryGenerator'
+import { ensureEntrySummaryIndexed } from '../services/summaryService'
+import { invalidateGraph } from '../services/graphBuilder'
 import { config } from '../config'
 import { getOrCreateDEK } from '../crypto/keyService'
 import { openField, encryptField } from '../crypto/fieldCipher'
 import { decryptMedia } from '../crypto/mediaCipher'
 import { nextStats, type GoalStats } from '../services/dailyGoalStreak'
+import { scoreEntryEmotion } from '../services/entryEmotion'
 
 export const aiRouter = Router()
 
@@ -156,7 +159,7 @@ aiRouter.post('/daily-prompt', firebaseAuth, async (req: Request, res: Response)
 // Downloads the audio/video file from S3, sends to Together AI, updates
 // Firestore content+transcriptStatus, then re-indexes to Chroma.
 
-aiRouter.post('/transcribe', firebaseAuth, async (req: Request, res: Response) => {
+export async function transcribeHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
   const { journalId } = req.body as { journalId?: string }
   if (!journalId) { res.status(400).json({ error: 'Missing journalId' }); return }
@@ -268,13 +271,47 @@ aiRouter.post('/transcribe', firebaseAuth, async (req: Request, res: Response) =
       dek,
     })
 
+    // The transcript is the entry's first real content, so generate + index its
+    // summary vector here too. Without this, voice/video entries (which only ever
+    // reach the server via transcription) would never get a summary vector and
+    // would be invisible to the constellation graph and the "Related" tab.
+    // force: true because the freshly added transcript materially changes content.
+    let summaryIndexed = false
+    try {
+      summaryIndexed = await ensureEntrySummaryIndexed({
+        uid,
+        journalId,
+        data,
+        content: newContent,
+        title: openField(dek, data.title, 'journals.title'),
+        type: data.type ?? 'voice',
+        date: new Date().toISOString().slice(0, 10),
+        dek,
+        force: true,
+      })
+    } catch (err) {
+      console.error('[ai/transcribe] summary step failed (transcript kept)', err)
+    }
+
     await db.collection('journals').doc(journalId).update({
       vector: {
         status: 'indexed',
         chunkCount: indexResult.chunks,
+        summaryIndexed,
         indexedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
     })
+
+    // Emotion scoring reuses the audio already decoded above (no second S3 fetch).
+    await scoreEntryEmotion({
+      uid, journalId, content: newContent, data,
+      downloadAudio: async () => audioBuffer,
+      force: true, // transcript is the entry's first real content
+    })
+
+    // The user's similarity graph changed — drop the cache so the next /graph
+    // call rebuilds with this entry's new summary vector.
+    invalidateGraph(uid)
 
     res.json({ transcribed: true, chunks: indexResult.chunks })
   } catch (err) {
@@ -284,4 +321,6 @@ aiRouter.post('/transcribe', firebaseAuth, async (req: Request, res: Response) =
       .catch(() => {})
     res.status(500).json({ error: 'Transcription failed' })
   }
-})
+}
+
+aiRouter.post('/transcribe', firebaseAuth, transcribeHandler)
