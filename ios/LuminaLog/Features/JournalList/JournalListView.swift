@@ -38,6 +38,7 @@ struct JournalListView: View {
 
     @State private var isSearchPresented = false
     @State private var isMapPresented = false
+    @State private var isInsightsPresented = false
 
     var body: some View {
         NavigationStack {
@@ -69,6 +70,14 @@ struct JournalListView: View {
                         Image(systemName: "circle.hexagongrid")
                     }
                     .accessibilityLabel("Open journal map")
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        isInsightsPresented = true
+                    } label: {
+                        Image(systemName: "chart.bar.xaxis")
+                    }
+                    .accessibilityLabel("Journal insights")
                 }
             }
             .navigationDestination(for: JournalDetailRoute.self) { route in
@@ -102,6 +111,9 @@ struct JournalListView: View {
                     onPrompt: onPrompt,
                     onRetryProcessing: onRetryProcessing
                 )
+            }
+            .fullScreenCover(isPresented: $isInsightsPresented) {
+                InsightsView(journals: journals)
             }
         }
         .task {
