@@ -31,6 +31,12 @@ protocol JournalRepository: AnyObject {
     /// Pass nil for the first page.
     func entries(after: Date?, limit: Int) async throws -> [JournalEntry]
 
+    /// One-shot fetch of ALL of the signed-in user's entries (newest first),
+    /// decrypted in-memory. Used by the Insights dashboard for whole-corpus
+    /// analysis. Not a listener — a single read. Returns [] when signed out
+    /// or the key is unavailable (same convention as `entries(after:)`).
+    func fetchAllEntries() async throws -> [JournalEntry]
+
     /// Live-updating stream of a single entry; emits nil if it does not exist
     /// or is deleted.
     ///

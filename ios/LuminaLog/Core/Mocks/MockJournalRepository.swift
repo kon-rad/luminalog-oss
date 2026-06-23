@@ -41,6 +41,11 @@ final class MockJournalRepository: JournalRepository {
         return Array(page)
     }
 
+    func fetchAllEntries() async throws -> [JournalEntry] {
+        // `store` is kept sorted newest-first.
+        store
+    }
+
     func entry(id: String) -> AsyncStream<JournalEntry?> {
         AsyncStream { continuation in
             let key = UUID()

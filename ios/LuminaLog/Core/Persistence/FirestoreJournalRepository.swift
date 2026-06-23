@@ -87,6 +87,18 @@ final class FirestoreJournalRepository: JournalRepository {
         }
     }
 
+    func fetchAllEntries() async throws -> [JournalEntry] {
+        guard let uid = auth.currentUserId else { return [] }
+        guard let cipher = keys.currentCipher else { return [] }
+        let snapshot = try await journals
+            .whereField("userId", isEqualTo: uid)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+        return snapshot.documents.compactMap {
+            JournalEntry(documentId: $0.documentID, data: $0.data(), cipher: cipher)
+        }
+    }
+
     func entry(id: String) -> AsyncStream<JournalEntry?> {
         AsyncStream { continuation in
             let listener = self.journals.document(id)

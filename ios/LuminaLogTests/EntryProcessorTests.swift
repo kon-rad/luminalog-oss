@@ -110,6 +110,7 @@ final class EntryProcessorTests: XCTestCase {
 
         func recentEntries(limit: Int) -> AsyncStream<[JournalEntry]> { AsyncStream { $0.finish() } }
         func entries(after: Date?, limit: Int) async throws -> [JournalEntry] { store }
+        func fetchAllEntries() async throws -> [JournalEntry] { store }
         func entry(id: String) -> AsyncStream<JournalEntry?> { AsyncStream { $0.finish() } }
 
         func save(_ entry: JournalEntry) async throws {

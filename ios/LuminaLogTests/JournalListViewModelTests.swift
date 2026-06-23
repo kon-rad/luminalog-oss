@@ -27,6 +27,10 @@ final class JournalListViewModelTests: XCTestCase {
             return Array(filtered.prefix(limit))
         }
 
+        func fetchAllEntries() async throws -> [JournalEntry] {
+            seed.sorted { $0.createdAt > $1.createdAt }
+        }
+
         func entry(id: String) -> AsyncStream<JournalEntry?> {
             AsyncStream { $0.finish() }
         }
