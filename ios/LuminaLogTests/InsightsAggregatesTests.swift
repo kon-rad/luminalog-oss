@@ -34,6 +34,19 @@ final class InsightsAggregatesTests: XCTestCase {
         XCTAssertEqual(slices.map(\.count), [2, 1])
     }
 
+    func testTypeBreakdownTieBreaksByEnumOrder() {
+        // Equal counts must order by enum slot (text < voice < video < image).
+        let entries = [
+            entry(type: .voice, on: date(2026, 6, 1)),
+            entry(type: .text, on: date(2026, 6, 2)),
+            entry(type: .image, on: date(2026, 6, 3)),
+            entry(type: .video, on: date(2026, 6, 4)),
+        ]
+        let slices = InsightsAggregates.typeBreakdown(from: entries)
+        XCTAssertEqual(slices.map(\.count), [1, 1, 1, 1])
+        XCTAssertEqual(slices.map(\.type), [.text, .voice, .video, .image])
+    }
+
     func testEmotionTrendBucketsByDayAndDominantEmotion() {
         let entries = [
             entry(type: .text, on: date(2026, 6, 1), emotion: "joy"),

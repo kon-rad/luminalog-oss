@@ -10,7 +10,10 @@ enum InsightsAggregates {
         for e in entries { counts[e.type, default: 0] += 1 }
         return JournalType.allCases
             .compactMap { type in counts[type].map { EntryTypeSlice(type: type, count: $0) } }
-            .sorted { ($0.count, slot($1.type)) > ($1.count, slot($0.type)) }
+            .sorted { a, b in
+                // Count descending; on a tie, ascending enum order (text→image).
+                a.count != b.count ? a.count > b.count : slot(a.type) < slot(b.type)
+            }
     }
 
     /// Daily count of entries grouped by their dominant emotion (`emotion.top.first`).
