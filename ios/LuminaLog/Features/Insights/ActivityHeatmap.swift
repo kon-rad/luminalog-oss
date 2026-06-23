@@ -31,6 +31,9 @@ struct ActivityHeatmap: View {
         return Color.accentWarm.opacity(0.25 + 0.75 * t)
     }
 
+    private var totalEntries: Int { days.reduce(0) { $0 + $1.entryCount } }
+    private var activeDays: Int { days.filter { $0.entryCount > 0 }.count }
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 3) {
@@ -45,6 +48,9 @@ struct ActivityHeatmap: View {
                 }
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Journaling activity calendar")
+        .accessibilityValue(Text("\(totalEntries) entries across \(activeDays) active days"))
     }
 }
 

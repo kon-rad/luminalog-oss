@@ -5,6 +5,12 @@ import Charts
 struct EmotionTrendChart: View {
     let points: [EmotionTrendPoint]
 
+    /// Distinct emotions in first-appearance order, for the a11y summary.
+    private var emotions: [String] {
+        var seen = Set<String>()
+        return points.map(\.emotion).filter { seen.insert($0).inserted }
+    }
+
     var body: some View {
         Chart(points) { point in
             LineMark(x: .value("Date", point.date),
@@ -17,6 +23,10 @@ struct EmotionTrendChart: View {
         }
         .chartLegend(position: .bottom)
         .frame(height: 220)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Emotional trends over time")
+        .accessibilityValue(Text(emotions.isEmpty ? "No data"
+            : "Emotions tracked: \(emotions.joined(separator: ", "))"))
     }
 }
 

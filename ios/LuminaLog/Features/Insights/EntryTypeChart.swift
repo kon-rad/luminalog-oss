@@ -18,6 +18,10 @@ struct EntryTypeChart: View {
         .chartForegroundStyleScale(domain: slices.map { $0.type.displayName },
                                    range: slices.map { $0.type.tint })
         .frame(height: 200)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Entries by type")
+        .accessibilityValue(Text(slices.map { "\($0.type.displayName) \($0.count)" }
+            .joined(separator: ", ")))
     }
 }
 
