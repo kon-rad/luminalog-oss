@@ -56,7 +56,10 @@ function decryptReport(dek: Buffer, data: Record<string, any>): Record<string, a
 }
 
 async function llm(prompt: string): Promise<string> {
-  const r = await chatCompletion([{ role: 'user', content: prompt }], { model: DEFAULT_CHAT_MODEL })
+  const r = await chatCompletion(
+    [{ role: 'user', content: prompt }],
+    { model: DEFAULT_CHAT_MODEL, response_format: { type: 'json_object' } },
+  )
   if (!r.ok) throw new Error(`LLM error ${r.status}`)
   return ((await r.json()) as { choices: Array<{ message: { content: string } }> })?.choices?.[0]?.message?.content ?? ''
 }
@@ -100,9 +103,16 @@ export async function dailyReportHandler(req: Request, res: Response): Promise<v
       name: (user.displayName as string)?.split(' ')[0] ?? '',
       todayText, relatedContext, topEmotions,
     })
-    let parsed = parseReportJson(await llm(prompt))
-    if (!parsed) parsed = parseReportJson(await llm(prompt))
-    if (!parsed) { res.status(502).json({ error: 'Could not generate report' }); return }
+    const raw1 = await llm(prompt)
+    let parsed = parseReportJson(raw1)
+    if (!parsed) {
+      const raw2 = await llm(prompt)
+      parsed = parseReportJson(raw2)
+      if (!parsed) {
+        console.error('[daily-report] LLM non-JSON:', raw2.slice(0, 500))
+        res.status(502).json({ error: 'Could not generate report' }); return
+      }
+    }
 
     const photo = await searchPhoto(parsed.imageQuery).catch(() => null)
     const stats = (user.stats as Record<string, number>) ?? {}

@@ -70,15 +70,17 @@ export const DEFAULT_CHAT_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
 
 export async function chatCompletion(
   messages: Array<{ role: string; content: string }>,
-  opts: { model?: string; stream?: boolean } = {},
+  opts: { model?: string; stream?: boolean; response_format?: { type: string } } = {},
 ): Promise<Response> {
   const model = opts.model ?? DEFAULT_CHAT_MODEL
+  const body: Record<string, unknown> = { model, messages, stream: opts.stream ?? false }
+  if (opts.response_format) body.response_format = opts.response_format
   return fetch(`${BASE}/chat/completions`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${config.TOGETHER_AI_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ model, messages, stream: opts.stream ?? false }),
+    body: JSON.stringify(body),
   })
 }
