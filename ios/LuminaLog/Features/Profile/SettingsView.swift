@@ -10,8 +10,11 @@ struct SettingsView: View {
     private let credits: CreditService
     /// Only needed by the DEBUG-only onboarding replay; nil in the testing init.
     private let speech: SpeechTranscriber?
+    private let leaderboard: LeaderboardService
+    private let currentUserId: String?
 
     @State private var showProfileDetail = false
+    @State private var showLeaderboard = false
     @State private var showPaywall = false
     @State private var showCredits = false
     @State private var showConfig = false
@@ -36,7 +39,8 @@ struct SettingsView: View {
         credits: CreditService,
         media: MediaUploader,
         speech: SpeechTranscriber,
-        reminders: ReminderCoordinator
+        reminders: ReminderCoordinator,
+        leaderboard: LeaderboardService
     ) {
         self.init(
             viewModel: ProfileViewModel(
@@ -50,7 +54,9 @@ struct SettingsView: View {
             subscriptions: subscriptions,
             credits: credits,
             reminders: reminders,
-            speech: speech
+            speech: speech,
+            leaderboard: leaderboard,
+            currentUserId: auth.currentUserId
         )
     }
 
@@ -59,13 +65,17 @@ struct SettingsView: View {
         subscriptions: SubscriptionService,
         credits: CreditService,
         reminders: ReminderCoordinator,
-        speech: SpeechTranscriber? = nil
+        speech: SpeechTranscriber? = nil,
+        leaderboard: LeaderboardService = MockLeaderboardService(),
+        currentUserId: String? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         self.subscriptions = subscriptions
         self.credits = credits
         self.reminders = reminders
         self.speech = speech
+        self.leaderboard = leaderboard
+        self.currentUserId = currentUserId
     }
 
     var body: some View {
@@ -73,6 +83,7 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: Spacing.l) {
                     profileCard
+                    leaderboardRow
                     if let message = viewModel.errorMessage {
                         errorBanner(message)
                     }
@@ -96,6 +107,9 @@ struct SettingsView: View {
             .scrollDismissesKeyboard(.interactively)
             .navigationDestination(isPresented: $showProfileDetail) {
                 ProfileDetailView(viewModel: viewModel)
+            }
+            .navigationDestination(isPresented: $showLeaderboard) {
+                LeaderboardView(service: leaderboard, currentUserId: currentUserId)
             }
         }
         .task { viewModel.start() }
@@ -200,6 +214,44 @@ struct SettingsView: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Profile, \(viewModel.profile?.displayName ?? "")")
         .accessibilityHint("Opens your full profile")
+    }
+
+    // MARK: - Leaderboard row
+
+    private var leaderboardRow: some View {
+        Button { showLeaderboard = true } label: {
+            HStack(spacing: Spacing.m) {
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.accentWarm)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.small, style: .continuous)
+                            .fill(Color.accentWarm.opacity(0.12))
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Leaderboard")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Streaks & words")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+            }
+            .padding(Spacing.m)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                    .fill(Color.cardBackground)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Leaderboard")
+        .accessibilityHint("Opens the streaks and words leaderboard")
     }
 
     @ViewBuilder
@@ -682,7 +734,8 @@ struct SettingsView: View {
         credits: MockCreditService(balance: 45),
         media: MockMediaUploader(),
         speech: AppleSpeechTranscriber(),
-        reminders: ReminderCoordinator()
+        reminders: ReminderCoordinator(),
+        leaderboard: MockLeaderboardService()
     )
 }
 
@@ -698,7 +751,8 @@ struct SettingsView: View {
         credits: MockCreditService(balance: 120),
         media: MockMediaUploader(),
         speech: AppleSpeechTranscriber(),
-        reminders: ReminderCoordinator()
+        reminders: ReminderCoordinator(),
+        leaderboard: MockLeaderboardService()
     )
 }
 
@@ -710,7 +764,8 @@ struct SettingsView: View {
         credits: MockCreditService(balance: 0),
         media: MockMediaUploader(),
         speech: AppleSpeechTranscriber(),
-        reminders: ReminderCoordinator()
+        reminders: ReminderCoordinator(),
+        leaderboard: MockLeaderboardService()
     )
     .preferredColorScheme(.dark)
 }

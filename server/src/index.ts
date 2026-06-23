@@ -9,6 +9,7 @@ import { vapiRouter } from './routes/vapi'
 import { revenueCatRouter } from './routes/revenuecat'
 import { mediaRouter } from './routes/media'
 import { keysRouter } from './routes/keys'
+import { leaderboardRouter } from './routes/leaderboard'
 
 const app = express()
 
@@ -22,6 +23,7 @@ app.use('/v1/vapi', vapiRouter)
 app.use('/v1/revenuecat', revenueCatRouter)
 app.use('/v1/media', mediaRouter)
 app.use('/v1/keys', keysRouter)
+app.use('/v1/leaderboards', leaderboardRouter)
 
 // Backstop error middleware — catches anything routes forward via next(err).
 // (Express 4 does not auto-forward async-handler rejections; that's handled

@@ -229,6 +229,7 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
       const s = (uData.stats as Record<string, unknown>) ?? {}
       const current: GoalStats = {
         streakCount: (s.streakCount as number) ?? 0,
+        maxStreakCount: (s.maxStreakCount as number) ?? 0,
         lastEntryDate:
           (s.lastEntryDate as admin.firestore.Timestamp | undefined)?.toDate() ?? null,
         totalWords: (s.totalWords as number) ?? 0,
@@ -249,6 +250,7 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
       // field we track, so the merged replacement of `stats` is safe.
       const statsPayload: Record<string, unknown> = {
         streakCount: next.streakCount,
+        maxStreakCount: next.maxStreakCount,
         totalWords: next.totalWords,
         goalDayWords: next.goalDayWords,
       }

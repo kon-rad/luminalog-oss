@@ -6,6 +6,8 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
     /// Journaling stats maintained transactionally on every save (spec §3).
     struct Stats: Codable, Equatable, Sendable {
         var streakCount: Int
+        /// Best-ever value of `streakCount` (drives the leaderboard ranking).
+        var maxStreakCount: Int
         /// The last *qualifying* day (its entries reached `DailyGoal.wordTarget`).
         var lastEntryDate: Date?
         var totalWords: Int
@@ -16,12 +18,14 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
 
         init(
             streakCount: Int = 0,
+            maxStreakCount: Int = 0,
             lastEntryDate: Date? = nil,
             totalWords: Int = 0,
             goalDayDate: Date? = nil,
             goalDayWords: Int = 0
         ) {
             self.streakCount = streakCount
+            self.maxStreakCount = maxStreakCount
             self.lastEntryDate = lastEntryDate
             self.totalWords = totalWords
             self.goalDayDate = goalDayDate

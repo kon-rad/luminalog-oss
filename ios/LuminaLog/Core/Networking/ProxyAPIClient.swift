@@ -78,6 +78,19 @@ final class ProxyAPIClient {
         try Self.validate(response: response, data: data)
     }
 
+    /// GET a path (query string allowed) and decode a JSON response.
+    /// Retries exactly once with a force-refreshed token on HTTP 401.
+    func get<T: Decodable>(path: String) async throws -> T {
+        let request = try await makeBodylessRequest(path: path, method: "GET")
+        var (data, response) = try await session.data(for: request)
+        if (response as? HTTPURLResponse)?.statusCode == 401 {
+            let retry = try await makeBodylessRequest(path: path, method: "GET", forceRefresh: true)
+            (data, response) = try await session.data(for: retry)
+        }
+        try Self.validate(response: response, data: data)
+        return try decoder.decode(T.self, from: data)
+    }
+
     /// POST raw bytes with an explicit content type and decode a JSON response.
     /// Used for binary uploads (e.g. audio clips) that aren't JSON-encoded.
     func postRaw<T: Decodable>(path: String, body: Data, contentType: String) async throws -> T {

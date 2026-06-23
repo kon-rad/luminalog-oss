@@ -15,6 +15,7 @@ export const WORD_TARGET = 750
 
 export interface GoalStats {
   streakCount: number
+  maxStreakCount: number
   lastEntryDate: Date | null
   totalWords: number
   goalDayDate: Date | null
@@ -77,6 +78,9 @@ export function nextStats(
     }
   }
   // Otherwise streakCount and lastEntryDate stay as `current`.
+
+  // Best-ever streak — only ever rises (drives the leaderboard ranking).
+  next.maxStreakCount = Math.max(current.maxStreakCount ?? 0, next.streakCount)
 
   return next
 }

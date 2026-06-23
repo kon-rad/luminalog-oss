@@ -8,6 +8,7 @@ const day18 = new Date('2026-06-18T17:00:00Z')
 
 const empty: GoalStats = {
   streakCount: 0,
+  maxStreakCount: 0,
   lastEntryDate: null,
   totalWords: 0,
   goalDayDate: null,
@@ -37,6 +38,7 @@ describe('nextStats', () => {
   it('does not double-credit the streak once a day already qualified', () => {
     const credited: GoalStats = {
       streakCount: 1,
+      maxStreakCount: 1,
       lastEntryDate: day19,
       totalWords: 800,
       goalDayDate: day19,
@@ -50,6 +52,7 @@ describe('nextStats', () => {
   it('a new qualifying day adjacent to the last increments the streak', () => {
     const prev: GoalStats = {
       streakCount: 3,
+      maxStreakCount: 3,
       lastEntryDate: day18,
       totalWords: 3000,
       goalDayDate: day18,
@@ -64,6 +67,7 @@ describe('nextStats', () => {
   it('negative delta lowers the day total but never revokes a credited streak', () => {
     const credited: GoalStats = {
       streakCount: 2,
+      maxStreakCount: 2,
       lastEntryDate: day19,
       totalWords: 800,
       goalDayDate: day19,
@@ -72,5 +76,46 @@ describe('nextStats', () => {
     const next = nextStats(credited, -300, day19, TZ)
     expect(next.goalDayWords).toBe(500)
     expect(next.streakCount).toBe(2)
+  })
+
+  it('seeds maxStreakCount to the first credited streak', () => {
+    const next = nextStats(
+      { ...empty, goalDayDate: day19, goalDayWords: 700 },
+      60,
+      day19,
+      TZ,
+    )
+    expect(next.streakCount).toBe(1)
+    expect(next.maxStreakCount).toBe(1)
+  })
+
+  it('raises maxStreakCount as the current streak grows', () => {
+    const prev: GoalStats = {
+      streakCount: 3,
+      maxStreakCount: 3,
+      lastEntryDate: day18,
+      totalWords: 3000,
+      goalDayDate: day18,
+      goalDayWords: 900,
+    }
+    const next = nextStats(prev, 800, day19, TZ)
+    expect(next.streakCount).toBe(4)
+    expect(next.maxStreakCount).toBe(4)
+  })
+
+  it('keeps the best maxStreakCount when the current streak resets', () => {
+    // Last credited day is day18; jumping to day20 is a 2-day gap → reset to 1.
+    const day20 = new Date('2026-06-20T17:00:00Z')
+    const prev: GoalStats = {
+      streakCount: 5,
+      maxStreakCount: 5,
+      lastEntryDate: day18,
+      totalWords: 5000,
+      goalDayDate: day18,
+      goalDayWords: 900,
+    }
+    const next = nextStats(prev, 800, day20, TZ)
+    expect(next.streakCount).toBe(1)
+    expect(next.maxStreakCount).toBe(5)
   })
 })

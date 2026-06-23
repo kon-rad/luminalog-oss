@@ -310,6 +310,7 @@ extension UserProfile.Stats {
     init(data: [String: Any]) {
         self.init(
             streakCount: data["streakCount"] as? Int ?? 0,
+            maxStreakCount: data["maxStreakCount"] as? Int ?? 0,
             lastEntryDate: timestamp(data["lastEntryDate"]),
             totalWords: data["totalWords"] as? Int ?? 0,
             goalDayDate: timestamp(data["goalDayDate"]),
@@ -320,6 +321,7 @@ extension UserProfile.Stats {
     var firestoreData: [String: Any] {
         var data: [String: Any] = [
             "streakCount": streakCount,
+            "maxStreakCount": maxStreakCount,
             "totalWords": totalWords,
             "goalDayWords": goalDayWords,
         ]

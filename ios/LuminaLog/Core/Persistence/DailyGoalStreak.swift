@@ -44,6 +44,9 @@ enum DailyGoalStreak {
         }
         // Otherwise streakCount and lastEntryDate stay as `current`.
 
+        // Best-ever streak — only ever rises (drives the leaderboard ranking).
+        next.maxStreakCount = max(current.maxStreakCount, next.streakCount)
+
         return next
     }
 }

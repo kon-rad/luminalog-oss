@@ -88,4 +88,34 @@ final class DailyGoalStreakTests: XCTestCase {
         XCTAssertEqual(result.lastEntryDate, date(2026, 6, 10))
         XCTAssertEqual(result.goalDayWords, 750)
     }
+
+    func testMaxStreakCountRisesWithNewPeak() {
+        let start = UserProfile.Stats(
+            streakCount: 3,
+            maxStreakCount: 3,
+            lastEntryDate: date(2026, 6, 9),
+            totalWords: 3000,
+            goalDayDate: date(2026, 6, 9),
+            goalDayWords: 900
+        )
+        let result = next(start, delta: 800, on: date(2026, 6, 10))
+        XCTAssertEqual(result.streakCount, 4)
+        XCTAssertEqual(result.maxStreakCount, 4)
+    }
+
+    func testMaxStreakCountHoldsWhenCurrentStreakResets() {
+        // Best streak of 5, last credited on the 9th; jumping to the 11th is a
+        // 2-day gap → current streak resets to 1, max stays 5.
+        let start = UserProfile.Stats(
+            streakCount: 5,
+            maxStreakCount: 5,
+            lastEntryDate: date(2026, 6, 9),
+            totalWords: 5000,
+            goalDayDate: date(2026, 6, 9),
+            goalDayWords: 900
+        )
+        let result = next(start, delta: 800, on: date(2026, 6, 11))
+        XCTAssertEqual(result.streakCount, 1)
+        XCTAssertEqual(result.maxStreakCount, 5)
+    }
 }

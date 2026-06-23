@@ -88,7 +88,8 @@ struct RootView: View {
                     credits: services.credits,
                     media: services.media,
                     speech: services.speech,
-                    reminders: reminders
+                    reminders: reminders,
+                    leaderboard: services.leaderboard
                 )
             }
         }
