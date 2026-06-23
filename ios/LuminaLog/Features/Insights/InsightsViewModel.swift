@@ -7,12 +7,27 @@ import OSLog
 @MainActor
 final class InsightsViewModel: ObservableObject {
 
-    /// Render-ready datasets for the dashboard.
+    /// Render-ready datasets for the dashboard. The `show*` predicates are the
+    /// single source of truth for which cards are meaningful enough to render —
+    /// shared by `InsightsView` (which card to show) and `load()` (whether the
+    /// loaded state has any card at all, else it collapses to `.empty`).
     struct Insights: Equatable {
         var words: [WordFrequency]
         var emotionTrend: [EmotionTrendPoint]
         var activity: [ActivityDay]
         var types: [EntryTypeSlice]
+
+        /// Show the word cloud once there are any words.
+        var showWords: Bool { !words.isEmpty }
+        /// Show the emotion trend once any entry carries a dominant emotion.
+        var showEmotionTrend: Bool { !emotionTrend.isEmpty }
+        /// Show the heatmap once there's at least one active day in the window
+        /// (the array is always dense, so `.isEmpty` is never the right gate).
+        var showActivity: Bool { activity.contains { $0.entryCount > 0 } }
+        /// A single slice isn't a "breakdown" — need at least two types.
+        var showTypes: Bool { types.count > 1 }
+        /// Whether any card would render at all.
+        var hasAnyCard: Bool { showWords || showEmotionTrend || showActivity || showTypes }
     }
 
     enum State: Equatable {
@@ -57,7 +72,10 @@ final class InsightsViewModel: ObservableObject {
             let analyzeMs = analyzeStart.duration(to: .now).milliseconds
             Self.log.info("insights analysis: \(analyzeMs, format: .fixed(precision: 1)) ms for \(entries.count) entries")
 
-            state = .loaded(insights)
+            // Entries exist but produced no meaningful card (e.g. a couple of
+            // short, single-type, unscored entries) → show the empty state
+            // rather than a blank scroll.
+            state = insights.hasAnyCard ? .loaded(insights) : .empty
         } catch {
             Self.log.error("insights load failed: \(error.localizedDescription, privacy: .public)")
             state = .failed

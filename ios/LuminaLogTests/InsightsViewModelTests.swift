@@ -35,6 +35,20 @@ final class InsightsViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testLoadCollapsesToEmptyWhenNoMeaningfulCards() async {
+        // One old (outside the activity window), empty, single-type, unscored
+        // entry → no card is meaningful, so a loaded result collapses to .empty.
+        let old = Date().addingTimeInterval(-200 * 24 * 3600)
+        let entries = [
+            JournalEntry(userId: "u", type: .text, title: "", createdAt: old,
+                         content: "", wordCount: 0)
+        ]
+        let vm = InsightsViewModel(journals: MockJournalRepository(entries: entries))
+        await vm.load()
+        XCTAssertEqual(vm.state, .empty)
+    }
+
+    @MainActor
     func testLoadFailureIsFailedState() async {
         let vm = InsightsViewModel(journals: ThrowingRepo())
         await vm.load()

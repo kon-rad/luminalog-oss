@@ -49,21 +49,25 @@ struct InsightsView: View {
         case .loaded(let insights):
             ScrollView {
                 VStack(spacing: Spacing.m) {
-                    if !insights.words.isEmpty {
+                    if insights.showWords {
                         InsightsCard(title: "Your words", subtitle: "Most-used words across your journal") {
                             WordCloudView(words: insights.words)
                         }
                     }
-                    if !insights.emotionTrend.isEmpty {
+                    if insights.showEmotionTrend {
                         InsightsCard(title: "Emotional trends", subtitle: "Dominant emotion by day") {
                             EmotionTrendChart(points: insights.emotionTrend)
                         }
                     }
-                    InsightsCard(title: "Activity", subtitle: "Your journaling over the last few months") {
-                        ActivityHeatmap(days: insights.activity)
+                    if insights.showActivity {
+                        InsightsCard(title: "Activity", subtitle: "Your journaling over the last few months") {
+                            ActivityHeatmap(days: insights.activity)
+                        }
                     }
-                    InsightsCard(title: "How you journal", subtitle: "Entries by type") {
-                        EntryTypeChart(slices: insights.types)
+                    if insights.showTypes {
+                        InsightsCard(title: "How you journal", subtitle: "Entries by type") {
+                            EntryTypeChart(slices: insights.types)
+                        }
                     }
                 }
                 .padding(Spacing.m)
