@@ -1,10 +1,11 @@
 import SwiftUI
 
 /// Maps a word's frequency to a font size in [14, 44]. Uniform frequency
-/// (max == min) maps to a single mid size so there's no divide-by-zero.
+/// (max == min) maps to a calm lower-third size so there's no divide-by-zero.
 func wordCloudFontSize(count: Int, minCount: Int, maxCount: Int,
                        minSize: CGFloat = 14, maxSize: CGFloat = 44) -> CGFloat {
-    // Uniform frequency → a single mid size; avoids divide-by-zero below.
+    // Uniform frequency → a calm lower-third size (24 for the defaults);
+    // also avoids divide-by-zero in the interpolation below.
     guard maxCount > minCount else { return minSize + (maxSize - minSize) / 3 }
     let t = CGFloat(count - minCount) / CGFloat(maxCount - minCount)
     return minSize + t * (maxSize - minSize)
