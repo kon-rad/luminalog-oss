@@ -12,10 +12,10 @@ final class HomeViewModel: ObservableObject {
     /// How many entries the "Recent entries" section shows (design §2).
     static let recentLimit = 10
 
-    /// Daily prompt card state.
+    /// Daily prompt carousel state.
     enum PromptState: Equatable {
         case loading
-        case loaded(String)
+        case loaded([DailyPromptItem])
     }
 
     /// nil while the first emission is in flight (skeleton state).
@@ -44,9 +44,9 @@ final class HomeViewModel: ObservableObject {
     /// cancels an in-flight AI fetch instead of leaking it.
     private var promptResolutionTask: Task<Void, Never>?
 
-    /// In-memory cache for a prompt fetched from the AI service, so the
+    /// In-memory cache for the prompts fetched from the AI service, so the
     /// service is called at most once per screen lifetime.
-    private var fetchedPrompt: String?
+    private var fetchedPrompts: [DailyPromptItem]?
     private var isResolvingPrompt = false
 
     private var hasStarted = false
@@ -102,6 +102,8 @@ final class HomeViewModel: ObservableObject {
     }
 
     // MARK: - Milestone + daily report
+
+    var todayKeyPublic: String { todayKey() }
 
     /// "yyyy-MM-dd" in the user's timezone.
     private func todayKey() -> String {
@@ -193,51 +195,62 @@ final class HomeViewModel: ObservableObject {
     /// the app stays open across midnight the displayed prompt is not
     /// refreshed until the next emission or screen recreation (v1 tradeoff).
     private func resolveDailyPromptIfNeeded() async {
-        if let prompt = todaysProfilePrompt() {
-            promptState = .loaded(prompt)
+        if let prompts = todaysProfilePrompts() {
+            promptState = .loaded(prompts)
             return
         }
-        if let fetchedPrompt {
-            promptState = .loaded(fetchedPrompt)
+        if let fetchedPrompts {
+            promptState = .loaded(fetchedPrompts)
             return
         }
         guard !isResolvingPrompt else { return }
         isResolvingPrompt = true
         defer { isResolvingPrompt = false }
         do {
-            let prompt = try await ai.dailyPrompt()
-            fetchedPrompt = prompt
+            let prompts = try await ai.dailyPrompt()
+            guard !prompts.isEmpty else {
+                if case .loading = promptState { promptState = .loaded(Self.fallbackPrompts) }
+                return
+            }
+            fetchedPrompts = prompts
             // A profile prompt that arrived while fetching wins.
             if case .loading = promptState {
-                promptState = .loaded(prompt)
+                promptState = .loaded(prompts)
             }
             // Persist so subsequent app launches skip the LLM call.
             if var updated = profile {
-                updated.dailyPrompt = UserProfile.DailyPrompt(text: prompt)
+                updated.dailyPrompt = UserProfile.DailyPrompt(items: prompts)
                 try? await profiles.update(updated)
             }
         } catch {
             Self.logger.error("dailyPrompt failed: \(error.localizedDescription, privacy: .public)")
             if case .loading = promptState {
-                promptState = .loaded("What's on your mind today?")
+                promptState = .loaded(Self.fallbackPrompts)
             }
         }
     }
 
-    /// The profile's cached prompt, only if its date is today in the user's timezone.
-    private func todaysProfilePrompt() -> String? {
+    /// Shown when the AI service fails and there is no cached set for today.
+    private static let fallbackPrompts: [DailyPromptItem] = [
+        DailyPromptItem(area: "Reflection", text: "What's on your mind today?"),
+    ]
+
+    /// The profile's cached prompts, only if their date is today in the user's timezone.
+    private func todaysProfilePrompts() -> [DailyPromptItem]? {
         guard let profile, let dailyPrompt = profile.dailyPrompt else { return nil }
         var calendar = Calendar.current
         if let timezone = TimeZone(identifier: profile.timezone) {
             calendar.timeZone = timezone
         }
         guard calendar.isDate(dailyPrompt.date, inSameDayAs: Date()) else { return nil }
-        return dailyPrompt.text
+        let items = dailyPrompt.items
+        return items.isEmpty ? nil : items
     }
 
-    /// The currently displayed prompt, if resolved — passed to the Create flow.
+    /// The first resolved prompt's text, if any — used to seed the Create flow
+    /// from the empty state. The carousel itself seeds from the visible card.
     var currentPromptText: String? {
-        if case .loaded(let text) = promptState { return text }
+        if case .loaded(let prompts) = promptState { return prompts.first?.text }
         return nil
     }
 }

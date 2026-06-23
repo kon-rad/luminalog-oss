@@ -57,6 +57,7 @@ struct HomeView: View {
                     promptCard
                     statsRow
                     insightsCardEntry
+                    reflectionsScroll
                     recentSection
                 }
                 .padding(.horizontal, Spacing.m)
@@ -112,11 +113,10 @@ struct HomeView: View {
         switch viewModel.promptState {
         case .loading:
             promptLoadingCard
-        case .loaded(let question):
-            PromptCard.hero(
-                question: question,
-                actionTitle: "Start Journaling",
-                action: { onStartJournaling(question) }
+        case .loaded(let prompts):
+            DailyPromptCarousel(
+                prompts: prompts,
+                onStart: { onStartJournaling($0.text) }
             )
         }
     }
@@ -189,6 +189,16 @@ struct HomeView: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    // MARK: - Daily Reflections carousel
+
+    private var reflectionsScroll: some View {
+        DailyReflectionsScrollView(
+            repository: dailyReports,
+            ai: ai,
+            today: viewModel.todayKeyPublic
+        )
     }
 
     // MARK: - Stats
