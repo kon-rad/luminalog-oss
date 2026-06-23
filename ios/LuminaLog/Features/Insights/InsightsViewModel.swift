@@ -39,19 +39,16 @@ final class InsightsViewModel: ObservableObject {
     func load() async {
         state = .loading
         let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        // Fall back to `today` (an empty same-day window) rather than `Date()`,
+        // which could invert the interval and trap DateInterval.
         let window = DateInterval(
-            start: calendar.date(byAdding: .day, value: -activityWindowDays,
-                                 to: calendar.startOfDay(for: Date())) ?? Date(),
-            end: calendar.startOfDay(for: Date())
+            start: calendar.date(byAdding: .day, value: -activityWindowDays, to: today) ?? today,
+            end: today
         )
 
         do {
-            let fetchState = Self.signposter.beginInterval("fetchAllEntries")
-            let fetchStart = ContinuousClock.now
-            let entries = try await journals.fetchAllEntries()
-            let fetchMs = fetchStart.duration(to: .now).milliseconds
-            Self.signposter.endInterval("fetchAllEntries", fetchState)
-            Self.log.info("fetchAllEntries: \(entries.count) entries in \(fetchMs, format: .fixed(precision: 1)) ms")
+            let entries = try await fetchTimed()
 
             guard !entries.isEmpty else { state = .empty; return }
 
@@ -68,6 +65,19 @@ final class InsightsViewModel: ObservableObject {
     }
 
     func retry() async { await load() }
+
+    /// Fetches all entries, bracketing just the fetch in a signpost interval
+    /// (closed via `defer`, so it never leaks if the fetch throws) and logging
+    /// the elapsed time. Rethrows so `load()` can transition to `.failed`.
+    private func fetchTimed() async throws -> [JournalEntry] {
+        let fetchState = Self.signposter.beginInterval("fetchAllEntries")
+        defer { Self.signposter.endInterval("fetchAllEntries", fetchState) }
+        let fetchStart = ContinuousClock.now
+        let entries = try await journals.fetchAllEntries()
+        let fetchMs = fetchStart.duration(to: .now).milliseconds
+        Self.log.info("fetchAllEntries: \(entries.count) entries in \(fetchMs, format: .fixed(precision: 1)) ms")
+        return entries
+    }
 
     /// Runs the pure analyzers off the main actor. `JournalEntry` is `Sendable`.
     private static func analyze(entries: [JournalEntry], window: DateInterval,
