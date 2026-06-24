@@ -13,7 +13,7 @@ struct DictationField: View {
     @State private var task: Task<Void, Never>?
 
     var body: some View {
-        HStack(alignment: .top, spacing: Spacing.s) {
+        VStack(spacing: Spacing.s) {
             Group {
                 if multiline {
                     TextEditor(text: $text)

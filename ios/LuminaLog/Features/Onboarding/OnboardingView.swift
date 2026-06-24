@@ -27,7 +27,6 @@ struct OnboardingView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: Spacing.m) {
-                        graphicSlot(viewModel.current.graphicAsset)
                         Text(viewModel.current.question)
                             .font(.system(.title2, design: .serif).weight(.semibold))
                             .foregroundStyle(Color.textPrimary)
@@ -68,29 +67,15 @@ struct OnboardingView: View {
 
     private var valueProp: some View {
         VStack(spacing: Spacing.s) {
-            Text("Welcome to LuminaLog")
+            Text("Your AI journaling companion")
                 .font(.journalTitle)
                 .foregroundStyle(Color.textPrimary)
-            Text("A daily journal for self-discovery, self-knowledge, and self-actualization — open-ended writing about what matters to you, with AI insights, prompts, and a companion who remembers. Aim for 750 words a day to build a streak that grows your vocabulary, your ideas, and your connection with yourself.")
+            Text("Talk, write, or film your day — and meet the AI companion that remembers everything you share. It grows to know you deeply, asks the question no one else would think to ask, and remembers the fear you mentioned in March. Aim for 750 words a day to build your streak and deepen the merge.")
                 .font(.captionText)
                 .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .padding(.horizontal, Spacing.l)
-    }
-
-    /// Placeholder illustration slot until the SVG art (follow-on) is produced.
-    private func graphicSlot(_ name: String) -> some View {
-        RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
-            .fill(Color.accentWarm.opacity(0.10))
-            .frame(height: 160)
-            .frame(maxWidth: .infinity)
-            .overlay(
-                Image(systemName: "sparkles")
-                    .font(.system(size: 40, weight: .light))
-                    .foregroundStyle(Color.accentWarm.opacity(0.5))
-            )
-            .accessibilityHidden(true)
     }
 
     private var navButtons: some View {

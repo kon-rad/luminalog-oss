@@ -34,7 +34,7 @@ export default function Home() {
         <div className="wrap" style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 48, alignItems: 'center', padding: '88px 0 80px' }} className="hero-grid">
             <div>
-              <span className="eyebrow">The Merge · A New Category of Journaling</span>
+              <span className="eyebrow">Your AI journaling companion</span>
               <h1 className="serif" style={{ marginTop: 16, fontSize: 'clamp(40px, 5vw, 64px)', lineHeight: 1.04, fontWeight: 600, letterSpacing: '-0.03em', color: 'var(--text)' }}>
                 Merge with AI<br />through daily<br />conversation.
               </h1>
@@ -356,18 +356,19 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── CONSTELLATION ── */}
-      <section className="fade-up" style={{ padding: '104px 0', background: 'var(--surfaceAlt)' }}>
+      {/* ── DAILY PRACTICE: 750-WORD STREAK + INSIGHTS CARD ── */}
+      <section className="fade-up" id="practice" style={{ padding: '104px 0', background: 'var(--surfaceAlt)' }}>
         <div className="wrap">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, alignItems: 'center' }} className="feat-split">
             <div>
-              <span className="eyebrow">Your Journal Constellation</span>
-              <h2 className="serif" style={{ marginTop: 14, fontSize: 'clamp(30px,3.6vw,42px)', fontWeight: 600, letterSpacing: '-0.025em' }}>See the shape of<br />your inner life.</h2>
-              <p style={{ marginTop: 18, fontSize: 17, color: 'var(--text2)', lineHeight: 1.7 }}>Every entry becomes a star. LuminaLog draws the lines between them — connecting the moments that echo each other across months — into a living map of your mind you can explore. Zoom out and the themes of your life appear as constellations; tap any star to return to the moment it came from.</p>
+              <span className="eyebrow">The daily practice · 750 words</span>
+              <h2 className="serif" style={{ marginTop: 14, fontSize: 'clamp(30px,3.6vw,42px)', fontWeight: 600, letterSpacing: '-0.025em' }}>A streak that gives you<br />something back.</h2>
+              <p style={{ marginTop: 18, fontSize: 17, color: 'var(--text2)', lineHeight: 1.7 }}>Three pages a day — about 750 words. Write them, speak them on a walk, or film them before bed; LuminaLog transcribes it all and counts every word toward your day. Cross 750 and the day is yours: your streak grows, and it stays grown. Miss a day and the journal simply waits — no guilt, no pressure. The more days you give it, the more your companion comes to understand you.</p>
               <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {[
-                  ['A map only you have', 'Built entirely from your own entries — the more you journal, the richer and more connected your constellation becomes.'],
-                  ['Patterns you can see', 'Clusters reveal the themes you keep returning to; the distance between stars shows how your life connects.'],
+                  ['Three pages, any format', 'Text, voice, or video — it all transcribes and adds up toward your daily 750.'],
+                  ['Cross 750, get your card', 'Hit the goal and LuminaLog reads the day back to you as a beautiful, shareable Daily Insights card.'],
+                  ['Your streak grows — and stays grown', 'Days you earn are never taken back. A gap is simply a fresh start, never a loss.'],
                 ].map(([title, desc]) => (
                   <div key={title as string} style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 18, padding: '18px 20px', boxShadow: 'var(--shadow)', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                     <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }}>
@@ -380,40 +381,57 @@ export default function Home() {
                   </div>
                 ))}
               </div>
+              <p style={{ marginTop: 18, fontSize: 13.5, color: 'var(--text3)', lineHeight: 1.55 }}>You choose what to share. Mark any entry private and it stays out — of the card and the insights.</p>
             </div>
-            {/* Star-map visual */}
+            {/* Daily Insights card mock */}
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <div style={{ position: 'relative', width: '100%', maxWidth: 460, aspectRatio: '1 / 1', borderRadius: 28, overflow: 'hidden', background: 'radial-gradient(ellipse 70% 70% at 50% 45%, #2A2218, #100D08)', boxShadow: 'var(--shadow)', border: '1px solid var(--dark-hairline)' }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 45%, rgba(206,127,68,0.22), transparent 60%)' }} />
-                {/* edges */}
-                <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-                  {([
-                    [50, 47, 30, 28], [50, 47, 70, 26], [50, 47, 24, 64], [50, 47, 76, 60],
-                    [50, 47, 42, 80], [30, 28, 16, 44], [70, 26, 84, 40], [24, 64, 42, 80],
-                    [76, 60, 84, 40], [42, 80, 64, 82], [64, 82, 76, 60],
-                  ] as number[][]).map(([x1, y1, x2, y2], i) => (
-                    <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(206,127,68,0.32)" strokeWidth="0.4" vectorEffect="non-scaling-stroke" />
-                  ))}
-                </svg>
-                {/* stars */}
-                {([
-                  [50, 47, 16, true], [30, 28, 9], [70, 26, 10], [24, 64, 8],
-                  [76, 60, 11], [42, 80, 9], [64, 82, 7], [16, 44, 6], [84, 40, 8],
-                ] as [number, number, number, boolean?][]).map(([left, top, size, hub], i) => (
-                  <div key={i} style={{
-                    position: 'absolute', left: `${left}%`, top: `${top}%`, width: size, height: size,
-                    transform: 'translate(-50%, -50%)', borderRadius: '50%',
-                    background: hub ? 'linear-gradient(135deg, #F0C18A, var(--accent))' : 'var(--accent)',
-                    boxShadow: hub ? '0 0 22px rgba(206,127,68,0.9)' : '0 0 12px rgba(206,127,68,0.7)',
-                  }} />
-                ))}
-                {/* theme labels */}
-                {([['Creative work', 70, 18], ['Fear', 18, 70], ['Growth', 64, 90]] as [string, number, number][]).map(([label, left, top]) => (
-                  <span key={label} style={{
-                    position: 'absolute', left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)',
-                    fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 12, color: 'rgba(255,255,255,0.66)', whiteSpace: 'nowrap',
-                  }}>{label}</span>
-                ))}
+              <div style={{ position: 'relative', width: 300, maxWidth: '100%' }}>
+                <div style={{ position: 'absolute', inset: -22, borderRadius: 38, background: 'radial-gradient(circle, rgba(206,127,68,0.24), transparent 70%)', filter: 'blur(10px)', zIndex: 0 }} />
+                <div style={{ position: 'relative', zIndex: 1, width: '100%', aspectRatio: '320 / 580', borderRadius: 26, overflow: 'hidden', boxShadow: '0 30px 70px rgba(0,0,0,0.30)', background: 'linear-gradient(160deg, #4A3826, #18110A)' }}>
+                  <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 85% 55% at 72% 12%, rgba(232,160,90,0.5), transparent 60%)' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.22), rgba(0,0,0,0.80))' }} />
+                  <div style={{ position: 'relative', zIndex: 2, height: '100%', display: 'flex', flexDirection: 'column', padding: '22px 20px' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: '#F0C18A' }}>Daily Insights</div>
+                    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 13 }}>
+                      {[
+                        ['Insights', 'You wrote about the meeting with more calm than the version of you from March would have.'],
+                        ['A new perspective', 'The hesitation you keep noting may be care, not doubt — you slow down for what matters.'],
+                        ['Reflect on', 'What would change if you trusted that instinct a little sooner?'],
+                      ].map(([label, text]) => (
+                        <div key={label}>
+                          <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>{label}</div>
+                          <div className="serif" style={{ fontSize: 13, lineHeight: 1.42, color: 'rgba(255,255,255,0.94)' }}>{text}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                      {[['2,847', 'Total words'], ['🔥 12', 'Day streak']].map(([v, l]) => (
+                        <div key={l} style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 12px' }}>
+                          <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{v}</div>
+                          <div style={{ fontSize: 9, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>{l}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                      {([['Hope', 0.82], ['Resolve', 0.64], ['Calm', 0.5]] as [string, number][]).map(([name, score]) => (
+                        <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 10.5, width: 56, flexShrink: 0, color: 'rgba(255,255,255,0.8)' }}>{name}</span>
+                          <span style={{ flex: 1, height: 5, borderRadius: 100, background: 'rgba(255,255,255,0.16)', overflow: 'hidden' }}>
+                            <span style={{ display: 'block', height: '100%', width: `${score * 100}%`, background: 'linear-gradient(90deg, #F0C18A, var(--accent))', borderRadius: 100 }} />
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 'auto', paddingTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', color: 'rgba(255,255,255,0.85)' }}>LUMINALOG</span>
+                      <span style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.45)' }}>Photo · Unsplash</span>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ position: 'absolute', zIndex: 3, bottom: -16, left: '50%', transform: 'translateX(-50%)', display: 'inline-flex', alignItems: 'center', gap: 7, background: 'var(--surface)', border: '1px solid var(--hairline2)', borderRadius: 100, padding: '9px 18px', boxShadow: 'var(--shadow)', fontSize: 13, fontWeight: 600, color: 'var(--accentDeep)', whiteSpace: 'nowrap' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v14"/></svg>
+                  Share today&apos;s card
+                </div>
               </div>
             </div>
           </div>
@@ -560,7 +578,7 @@ export default function Home() {
               <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$9.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ month</span></div>
               <div style={{ fontSize: 14, color: 'var(--text3)' }}>Cancel anytime</div>
               <ul style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {['Unlimited text, voice, video & photo entries', 'AI video intelligence (face + voice)', 'Unlimited AI insights & patterns', 'Unlimited chat with your companion', 'Your Journal Constellation', 'Daily personalized prompt'].map(f => (
+                {['Unlimited text, voice, video & photo entries', 'AI video intelligence (face + voice)', 'Unlimited AI insights & patterns', 'Unlimited chat with your companion', 'Daily 750-word streak + shareable insights card', 'Daily personalized prompt'].map(f => (
                   <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15, textAlign: 'left' }}>
                     <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -658,7 +676,7 @@ export default function Home() {
               <p className="serif" style={{ fontStyle: 'italic', fontSize: 16, color: 'var(--text2)', marginTop: 14, maxWidth: 280 }}>Merge with AI through daily conversation with your journaling companion.</p>
             </div>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', paddingTop: 6 }}>
-              {[['Privacy Policy', '#'], ['Terms', '#'], ['Support', '#'], ['GitHub', 'https://github.com/konradgnat/luminalog']].map(([label, href]) => (
+              {[['Privacy Policy', '/privacy'], ['Terms', '/terms'], ['Send me a tweet', 'https://x.com/konrad_gnat'], ['Support', 'mailto:konradmgnat@gmail.com'], ['GitHub', 'https://github.com/konradgnat/luminalog']].map(([label, href]) => (
                 <a key={label} href={href} style={{ fontSize: 14, color: 'var(--text2)', transition: 'color .15s' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--accentDeep)')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--text2)')}>
@@ -667,7 +685,10 @@ export default function Home() {
               ))}
             </div>
           </div>
-          <p style={{ marginTop: 36, fontSize: 13, color: 'var(--text3)' }}>© 2026 LuminaLog</p>
+          <p style={{ marginTop: 36, fontSize: 13, color: 'var(--text3)' }}>
+            © 2026 LuminaLog · Built by{' '}
+            <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accentDeep)', fontWeight: 600 }}>Konrad Gnat</a>
+          </p>
         </div>
       </footer>
 
