@@ -11,12 +11,32 @@ final class AudioRecorderController: NSObject, ObservableObject {
     /// Set when the microphone permission is denied (view shows a Settings alert).
     @Published var permissionDenied = false
 
+    /// Rolling buffer of normalized mic power (0...1), newest last, for the waveform.
+    @Published private(set) var levels: [CGFloat] = []
+
+    /// Max number of samples retained in `levels` (waveform bar count).
+    static let maxLevelSamples = 50
+
+    /// dBFS value mapped to 0 (silence floor). 0 dBFS maps to 1.
+    static let meterFloorDB: Float = -50
+
     private var recorder: AVAudioRecorder?
     private var timer: Timer?
 
     var elapsedLabel: String {
         let seconds = Int(elapsed)
         return String(format: "%d:%02d", seconds / 60, seconds % 60)
+    }
+
+    /// Normalizes an `averagePower` dBFS reading to 0...1 and appends it to the
+    /// rolling `levels` buffer, trimming to `maxLevelSamples`.
+    func appendMeterSample(power: Float) {
+        let clampedDB = max(Self.meterFloorDB, min(0, power))
+        let normalized = CGFloat((clampedDB - Self.meterFloorDB) / -Self.meterFloorDB)
+        levels.append(normalized)
+        if levels.count > Self.maxLevelSamples {
+            levels.removeFirst(levels.count - Self.maxLevelSamples)
+        }
     }
 
     /// Requests mic permission and starts recording. Returns false when
@@ -43,6 +63,7 @@ final class AudioRecorderController: NSObject, ObservableObject {
                 AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
             ]
             let recorder = try AVAudioRecorder(url: url, settings: settings)
+            recorder.isMeteringEnabled = true
             guard recorder.record() else {
                 deactivateSession()
                 return false
@@ -52,10 +73,13 @@ final class AudioRecorderController: NSObject, ObservableObject {
             isRecording = true
             RecordingState.shared.setRecording(true)
             elapsed = 0
-            timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            levels = []
+            timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
                 Task { @MainActor in
                     guard let self, let recorder = self.recorder else { return }
                     self.elapsed = recorder.currentTime
+                    recorder.updateMeters()
+                    self.appendMeterSample(power: recorder.averagePower(forChannel: 0))
                 }
             }
             return true
@@ -83,6 +107,7 @@ final class AudioRecorderController: NSObject, ObservableObject {
         isRecording = false
         RecordingState.shared.setRecording(false)
         elapsed = 0
+        levels = []
         try? AVAudioSession.sharedInstance()
             .setActive(false, options: .notifyOthersOnDeactivation)
         return AudioAttachment(url: recorder.url, durationSec: duration)
@@ -99,6 +124,7 @@ final class AudioRecorderController: NSObject, ObservableObject {
         isRecording = false
         RecordingState.shared.setRecording(false)
         elapsed = 0
+        levels = []
         try? FileManager.default.removeItem(at: url)
         try? AVAudioSession.sharedInstance()
             .setActive(false, options: .notifyOthersOnDeactivation)

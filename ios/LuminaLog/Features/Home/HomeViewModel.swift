@@ -2,6 +2,27 @@ import Foundation
 import OSLog
 import Combine
 
+/// One row in the Home recent list: a committed/processing entry or a local draft.
+enum HomeListItem: Identifiable, Equatable {
+    case entry(JournalEntry)
+    case draft(DraftEntry)
+
+    var id: String {
+        switch self {
+        case .entry(let e): return e.id
+        case .draft(let d): return d.draftId
+        }
+    }
+
+    /// Sort key: entries by createdAt, drafts by updatedAt.
+    var sortDate: Date {
+        switch self {
+        case .entry(let e): return e.createdAt
+        case .draft(let d): return d.updatedAt
+        }
+    }
+}
+
 /// Drives the Home screen (design §2): live recent entries, live profile
 /// (greeting + stats), and the daily prompt hero card.
 @MainActor
@@ -37,10 +58,12 @@ final class HomeViewModel: ObservableObject {
     private let ai: AIService
     private let dailyReports: DailyReportRepository
     private let activity: AppActivityMonitor
+    private let drafts: DraftStore
     private let recording = RecordingState.shared
     private var coordinator: MilestoneCoordinator?
     private var recordingCancellable: AnyCancellable?
     private var activityCancellable: AnyCancellable?
+    private var draftsCancellable: AnyCancellable?
 
     private var entriesTask: Task<Void, Never>?
     private var profileTask: Task<Void, Never>?
@@ -55,12 +78,17 @@ final class HomeViewModel: ObservableObject {
 
     private var hasStarted = false
 
-    init(journals: JournalRepository, profiles: ProfileRepository, ai: AIService, dailyReports: DailyReportRepository, activity: AppActivityMonitor) {
+    /// The merged recent list (entries + drafts). nil while the first entries
+    /// emission is in flight (skeleton state).
+    @Published private(set) var listItems: [HomeListItem]?
+
+    init(journals: JournalRepository, profiles: ProfileRepository, ai: AIService, dailyReports: DailyReportRepository, activity: AppActivityMonitor, drafts: DraftStore) {
         self.activity = activity
         self.journals = journals
         self.profiles = profiles
         self.ai = ai
         self.dailyReports = dailyReports
+        self.drafts = drafts
     }
 
     deinit {
@@ -69,6 +97,7 @@ final class HomeViewModel: ObservableObject {
         promptResolutionTask?.cancel()
         recordingCancellable = nil
         activityCancellable = nil
+        draftsCancellable = nil
     }
 
     // MARK: - Lifecycle
@@ -92,12 +121,17 @@ final class HomeViewModel: ObservableObject {
                 self.coordinator?.update(goalWords: self.goalProgressWords, canPresent: self.activity.canPresentInterruption)
             }
 
+        draftsCancellable = drafts.$drafts
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.recomputeList() }
+
         entriesTask = Task { [weak self] in
             guard let stream = self?.journals.recentEntries(limit: Self.recentLimit) else { return }
             for await entries in stream {
                 guard let self, !Task.isCancelled else { return }
                 self.recentEntries = entries
                 self.activity.setProcessingEntry(Self.anyProcessing(entries))
+                self.recomputeList()
             }
         }
 
@@ -154,6 +188,20 @@ final class HomeViewModel: ObservableObject {
             return entry.transcriptStatus == .processing
         }
     }
+
+    /// Merges entries and drafts into one list, newest first.
+    static func mergeListItems(entries: [JournalEntry], drafts: [DraftEntry]) -> [HomeListItem] {
+        let items = entries.map(HomeListItem.entry) + drafts.map(HomeListItem.draft)
+        return items.sorted { $0.sortDate > $1.sortDate }
+    }
+
+    private func recomputeList() {
+        guard let entries = recentEntries else { return }   // keep skeleton until first entries arrive
+        listItems = Self.mergeListItems(entries: entries, drafts: drafts.drafts)
+    }
+
+    /// Discard passthrough used by the Home context menu action.
+    func discardDraft(_ draftId: String) { drafts.delete(draftId) }
 
     // MARK: - Greeting
 

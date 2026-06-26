@@ -11,6 +11,7 @@ struct CreateEntryView: View {
     @StateObject private var recorder = AudioRecorderController()
 
     // Local presentation state.
+    @State private var isRecorderPresented = false
     @State private var showCloseDialog = false
     @State private var isDiscarding = false
     @State private var showPhotoSourceDialog = false
@@ -314,6 +315,9 @@ struct CreateEntryView: View {
             )
         }
         .background(Color.appBackground.opacity(0.001)) // keep hit-testing sane
+        .fullScreenCover(isPresented: $isRecorderPresented) {
+            RecordingOverlayView(recorder: recorder, onStop: stopAndAttach)
+        }
     }
 
     // MARK: - Capture handlers
@@ -343,10 +347,21 @@ struct CreateEntryView: View {
     private func startRecording() {
         Task {
             let started = await recorder.start()
-            if !started, !recorder.permissionDenied {
+            if started {
+                isRecorderPresented = true
+            } else if !recorder.permissionDenied {
                 viewModel.attachmentNotice = "Recording couldn't start. Please try again."
             }
         }
+    }
+
+    /// Finalizes the in-flight recording, attaches the clip, and dismisses the
+    /// full-screen recorder. Shared by the overlay's X and Stop buttons.
+    private func stopAndAttach() {
+        if let audio = recorder.stop() {
+            viewModel.attachAudio(audio)
+        }
+        isRecorderPresented = false
     }
 
     /// Stages a spinner per item, then decodes each and resolves it in place.

@@ -23,6 +23,8 @@ struct HomeView: View {
     private let onRetryProcessing: ((String) -> Void)?
     private let onStartJournalChat: ((String, String, ChatKind) -> Void)?
     private let activity: AppActivityMonitor
+    /// Reopens a draft in the Create flow.
+    let onResumeDraft: (String) -> Void
 
     init(
         journals: JournalRepository,
@@ -32,15 +34,17 @@ struct HomeView: View {
         dailyReports: DailyReportRepository,
         failedReports: FailedReportStore,
         activity: AppActivityMonitor,
+        drafts: DraftStore,
         onStartJournaling: @escaping (String?) -> Void,
         onShowMore: @escaping () -> Void,
         onPrompt: @escaping (CreateEntryRequest) -> Void,
+        onResumeDraft: @escaping (String) -> Void,
         onRetryProcessing: ((String) -> Void)? = nil,
         onStartJournalChat: ((String, String, ChatKind) -> Void)? = nil
     ) {
         self.activity = activity
         _viewModel = StateObject(
-            wrappedValue: HomeViewModel(journals: journals, profiles: profiles, ai: ai, dailyReports: dailyReports, activity: activity)
+            wrappedValue: HomeViewModel(journals: journals, profiles: profiles, ai: ai, dailyReports: dailyReports, activity: activity, drafts: drafts)
         )
         self.journals = journals
         self.profiles = profiles
@@ -51,6 +55,7 @@ struct HomeView: View {
         self.onStartJournaling = onStartJournaling
         self.onShowMore = onShowMore
         self.onPrompt = onPrompt
+        self.onResumeDraft = onResumeDraft
         self.onRetryProcessing = onRetryProcessing
         self.onStartJournalChat = onStartJournalChat
     }
@@ -229,7 +234,7 @@ struct HomeView: View {
             switch viewModel.recentEntries {
             case nil:
                 skeletonRows
-            case .some(let entries) where entries.isEmpty:
+            case .some(let entries) where entries.isEmpty && viewModel.listItems?.isEmpty != false:
                 EmptyStateView(
                     systemImage: "book.closed",
                     title: "No entries yet",
@@ -237,12 +242,36 @@ struct HomeView: View {
                     actionTitle: "Write your first entry",
                     action: { onStartJournaling(viewModel.currentPromptText) }
                 )
-            case .some(let entries):
-                ForEach(entries) { entry in
-                    NavigationLink(value: JournalDetailRoute(entryId: entry.id)) {
-                        EntryRow(entry: entry, showsTime: false, media: media)
+            case .some:
+                ForEach(viewModel.listItems ?? []) { item in
+                    switch item {
+                    case .entry(let entry):
+                        NavigationLink(value: JournalDetailRoute(entryId: entry.id)) {
+                            EntryRow(entry: entry, showsTime: false, media: media)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            if entry.processingStatus == .failed, let onRetryProcessing {
+                                Button {
+                                    onRetryProcessing(entry.id)
+                                } label: {
+                                    Label("Retry", systemImage: "arrow.clockwise")
+                                }
+                            }
+                        }
+                    case .draft(let draft):
+                        Button { onResumeDraft(draft.draftId) } label: {
+                            DraftRow(draft: draft)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                viewModel.discardDraft(draft.draftId)
+                            } label: {
+                                Label("Discard", systemImage: "trash")
+                            }
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
                 showMoreRow
             }
@@ -298,9 +327,11 @@ private struct HomePreview: View {
             dailyReports: MockDailyReportRepository(),
             failedReports: FailedReportStore(auth: MockAuthService(signedIn: true), directory: FileManager.default.temporaryDirectory),
             activity: AppActivityMonitor(),
+            drafts: DraftStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent("PreviewDrafts")),
             onStartJournaling: { _ in },
             onShowMore: {},
-            onPrompt: { _ in }
+            onPrompt: { _ in },
+            onResumeDraft: { _ in }
         )
     }
 }

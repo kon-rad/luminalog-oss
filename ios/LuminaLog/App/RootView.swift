@@ -43,6 +43,7 @@ struct RootView: View {
                     dailyReports: services.dailyReports,
                     failedReports: services.failedReports,
                     activity: services.activity,
+                    drafts: services.drafts,
                     onStartJournaling: { prompt in
                         createRequest = CreateEntryRequest(promptText: prompt)
                     },
@@ -51,6 +52,9 @@ struct RootView: View {
                     },
                     onPrompt: { request in
                         createRequest = request
+                    },
+                    onResumeDraft: { draftId in
+                        createRequest = CreateEntryRequest(resumeDraftId: draftId)
                     },
                     onRetryProcessing: { services.entryProcessor.retry(draftId: $0) },
                     onStartJournalChat: onStartJournalChat
@@ -149,6 +153,7 @@ struct RootView: View {
             // Self-heal after a fired notification or a day rollover.
             if phase == .active {
                 Task { await reminders.refresh(profile: latestProfile) }
+                services.drafts.reload()
             }
         }
     }

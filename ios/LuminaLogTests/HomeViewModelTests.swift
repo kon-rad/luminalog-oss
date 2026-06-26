@@ -76,7 +76,8 @@ final class HomeViewModelTests: XCTestCase {
             profiles: MockProfileRepository(profile: profile),
             ai: ai,
             dailyReports: MockDailyReportRepository(),
-            activity: AppActivityMonitor()
+            activity: AppActivityMonitor(),
+            drafts: DraftStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
         )
 
         viewModel.start()
@@ -100,7 +101,8 @@ final class HomeViewModelTests: XCTestCase {
             profiles: MockProfileRepository(profile: profile),
             ai: ai,
             dailyReports: MockDailyReportRepository(),
-            activity: AppActivityMonitor()
+            activity: AppActivityMonitor(),
+            drafts: DraftStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
         )
 
         viewModel.start()
@@ -120,7 +122,8 @@ final class HomeViewModelTests: XCTestCase {
             profiles: MockProfileRepository(profile: profile),
             ai: ai,
             dailyReports: MockDailyReportRepository(),
-            activity: AppActivityMonitor()
+            activity: AppActivityMonitor(),
+            drafts: DraftStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
         )
 
         viewModel.start()
@@ -143,7 +146,8 @@ final class HomeViewModelTests: XCTestCase {
             profiles: MockProfileRepository(),
             ai: SpyAIService(),
             dailyReports: MockDailyReportRepository(),
-            activity: AppActivityMonitor()
+            activity: AppActivityMonitor(),
+            drafts: DraftStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
         )
 
         viewModel.start()
