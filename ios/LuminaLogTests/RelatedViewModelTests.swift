@@ -49,7 +49,7 @@ private final class StubFailingAIService: AIService {
 
     func generatePrompts(journalId: String) async throws -> [String] { [] }
 
-    func dailyPrompt() async throws -> String { "" }
+    func dailyPrompt() async throws -> [DailyPromptItem] { [] }
 
     func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { $0.finish() }

@@ -124,7 +124,7 @@ struct SignInView: View {
         if let authError = error as? AuthServiceError {
             return authError.localizedDescription
         }
-        return "Something went wrong signing you in. Please try again."
+        return error.localizedDescription
     }
 }
 

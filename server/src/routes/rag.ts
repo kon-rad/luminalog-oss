@@ -11,30 +11,8 @@ import { deleteMediaObjects } from '../services/s3'
 import { getJournalsCollection, getSummariesCollection } from '../db/chroma'
 import { embedQuery } from '../services/aiClient'
 import { getGraph, invalidateGraph } from '../services/graphBuilder'
-import { scoreEntryEmotion } from '../services/entryEmotion'
-import { decryptMedia } from '../crypto/mediaCipher'
-import { extractAudio } from '../services/audioExtractor'
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
-import { streamToBuffer } from '../services/aiClient'
 
 export const ragRouter = Router()
-
-const s3 = new S3Client({
-  region: config.AWS_REGION,
-  credentials: { accessKeyId: config.AWS_ACCESS_KEY_ID, secretAccessKey: config.AWS_SECRET_ACCESS_KEY },
-})
-
-/** Decrypt the entry's audio (de-mux video) for prosody scoring, or null. */
-async function audioBytesFor(data: any, dek: Buffer): Promise<Buffer | null> {
-  const item = (data.media ?? []).find((m: any) => m.kind === 'audio' || m.kind === 'video')
-  if (!item) return null
-  try {
-    const obj = await s3.send(new GetObjectCommand({ Bucket: config.AWS_S3_BUCKET, Key: item.s3Key }))
-    if (!obj.Body) return null
-    const raw = decryptMedia(dek, await streamToBuffer(obj.Body as any))
-    return item.kind === 'video' ? await extractAudio(raw) : raw
-  } catch { return null }
-}
 
 ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
   const uid = (req as any).uid as string
@@ -99,12 +77,6 @@ ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
       summaryIndexed,
       indexedAt: admin.firestore.FieldValue.serverTimestamp(),
     },
-  })
-
-  // Best-effort emotion scoring (Hume). Never blocks indexing.
-  await scoreEntryEmotion({
-    uid, journalId, content, data,
-    downloadAudio: () => audioBytesFor(data, dek),
   })
 
   // The user's similarity graph may have changed — drop the cache so the next

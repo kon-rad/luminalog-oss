@@ -39,7 +39,7 @@ final class JournalDetailViewModelTests: XCTestCase {
             return (1...5).map { "Spy prompt \($0)" }
         }
 
-        func dailyPrompt() async throws -> String { "spy daily prompt" }
+        func dailyPrompt() async throws -> [DailyPromptItem] { [DailyPromptItem(area: "Inner World", text: "spy daily prompt")] }
 
         func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error> {
             AsyncThrowingStream { $0.finish() }

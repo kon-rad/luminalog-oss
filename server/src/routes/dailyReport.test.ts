@@ -3,6 +3,15 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 const today: any[] = []
 vi.mock('../middleware/firebaseAuth', () => {
   const reportDoc = { get: async () => ({ exists: false, data: () => undefined }), set: async () => {} }
+  // Days subcollection supports both the latest-of-day query chain and per-id writes.
+  const daysCol: any = {
+    doc: () => reportDoc,
+    orderBy: () => daysCol,
+    startAt: () => daysCol,
+    endAt: () => daysCol,
+    limit: () => daysCol,
+    get: async () => ({ empty: true, docs: [] }),
+  }
   return {
     firebaseAuth: (req: any, _res: any, next: any) => { req.uid = 'u'; next() },
     db: {
@@ -10,7 +19,7 @@ vi.mock('../middleware/firebaseAuth', () => {
         where: () => ({ where: () => ({ where: () => ({ get: async () => ({ docs: today }) }) }) }),
         doc: () => ({
           get: async () => ({ exists: name === 'users', data: () => ({ timezone: 'UTC', displayName: 'Sam', stats: { totalWords: 1000, streakCount: 3 } }) }),
-          collection: () => ({ doc: () => reportDoc }),
+          collection: () => daysCol,
         }),
       }),
     },
@@ -19,12 +28,19 @@ vi.mock('../middleware/firebaseAuth', () => {
 vi.mock('../crypto/keyService', () => ({ getOrCreateDEK: vi.fn(async () => Buffer.alloc(32)) }))
 vi.mock('../crypto/fieldCipher', () => ({
   openField: (_k: any, v: any) => (typeof v === 'string' ? v : ''),
+  openFieldSafe: (_k: any, v: any) => (typeof v === 'string' ? v : ''),
   encryptField: (_k: any, v: string) => ({ ct: v }),
 }))
 vi.mock('../services/journalRetriever', () => ({ retrieveContext: vi.fn(async () => 'Past: worked too hard.') }))
 vi.mock('../services/unsplashService', () => ({ searchPhoto: vi.fn(async () => ({ imageUrl: 'R', imageThumbUrl: 'T', photographerName: 'Jane', photographerUrl: 'U' })) }))
+vi.mock('../services/humeService', () => ({
+  scoreText: vi.fn(async () => ({
+    scores: { Calmness: 0.8, Joy: 0.4 },
+    top: [{ name: 'Calmness', score: 0.8 }, { name: 'Joy', score: 0.4 }],
+  })),
+}))
 vi.mock('../services/aiClient', () => ({
-  chatCompletion: vi.fn(async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ insights: 'i', findings: 'f', question: 'q?', emotionSummary: 'e', imageQuery: 'calm sea' }) } }] }) })),
+  chatCompletion: vi.fn(async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ insights: 'i', findings: 'f', gem: 'q?', emotionSummary: 'e', imageQuery: 'calm sea' }) } }] }) })),
   DEFAULT_CHAT_MODEL: 'm',
 }))
 vi.mock('../services/prompts', () => ({ PROMPTS: { dailyReport: () => 'PROMPT' } }))

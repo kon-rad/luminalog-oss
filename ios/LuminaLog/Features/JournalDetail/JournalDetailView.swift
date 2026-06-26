@@ -304,7 +304,8 @@ struct JournalDetailView: View {
                 isRegenerating: viewModel.summaryState == .loading,
                 onRegenerate: { Task { await viewModel.generateSummary() } }
             )
-        } else {
+        } else if !entry.content.isEmpty {
+            // Only show generation states when content exists to summarize.
             switch viewModel.summaryState {
             case .loading:
                 SummaryPendingCard()
@@ -313,7 +314,6 @@ struct JournalDetailView: View {
                     Task { await viewModel.generateSummary() }
                 }
             case .idle:
-                // Pre-start instant; the lazy generation kicks in on start.
                 EmptyView()
             }
         }

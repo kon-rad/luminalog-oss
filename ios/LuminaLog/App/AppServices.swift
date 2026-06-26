@@ -10,6 +10,7 @@ final class AppServices: ObservableObject {
     let journals: JournalRepository
     let profiles: ProfileRepository
     let dailyReports: DailyReportRepository
+    let failedReports: FailedReportStore
     let chats: ChatRepository
     let ai: AIService
     let media: MediaUploader
@@ -36,6 +37,7 @@ final class AppServices: ObservableObject {
         journals: JournalRepository,
         profiles: ProfileRepository,
         dailyReports: DailyReportRepository,
+        failedReports: FailedReportStore,
         chats: ChatRepository,
         ai: AIService,
         media: MediaUploader,
@@ -54,6 +56,7 @@ final class AppServices: ObservableObject {
         self.journals = journals
         self.profiles = profiles
         self.dailyReports = dailyReports
+        self.failedReports = failedReports
         self.chats = chats
         self.ai = ai
         self.media = media
@@ -93,6 +96,7 @@ final class AppServices: ObservableObject {
         let journals = FirestoreJournalRepository(auth: auth, keys: keys)
         let profiles = FirestoreProfileRepository(auth: auth, keys: keys)
         let dailyReports = FirestoreDailyReportRepository(auth: auth, keys: keys)
+        let failedReports = FailedReportStore(auth: auth)
         let ai = ProxyAIService(api: api)
         let media = ProxyMediaUploader(api: api, keys: keys)
         let ocr = VisionOCRService()
@@ -129,6 +133,7 @@ final class AppServices: ObservableObject {
             journals: journals,
             profiles: profiles,
             dailyReports: dailyReports,
+            failedReports: failedReports,
             chats: FirestoreChatRepository(auth: auth, keys: keys),
             ai: ai,
             media: media,
@@ -152,11 +157,13 @@ final class AppServices: ObservableObject {
 
     /// All-mock wiring — previews and unit tests only.
     static func mocks() -> AppServices {
+        let auth = MockAuthService(signedIn: false)
         let chats = MockChatRepository()
         let keys = UserKeyStore(provider: MockKeyProvider(), secrets: KeychainStore())
         let journals = MockJournalRepository()
         let profiles = MockProfileRepository()
         let dailyReports = MockDailyReportRepository()
+        let failedReports = FailedReportStore(auth: auth, directory: FileManager.default.temporaryDirectory)
         let ai = MockAIService()
         let media = MockMediaUploader()
         let ocr = VisionOCRService()
@@ -175,11 +182,12 @@ final class AppServices: ObservableObject {
         )
 
         return AppServices(
-            auth: MockAuthService(signedIn: false),
+            auth: auth,
             keys: keys,
             journals: journals,
             profiles: profiles,
             dailyReports: dailyReports,
+            failedReports: failedReports,
             chats: chats,
             ai: ai,
             media: media,

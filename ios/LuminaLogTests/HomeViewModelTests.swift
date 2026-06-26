@@ -10,9 +10,9 @@ final class HomeViewModelTests: XCTestCase {
     @MainActor
     private final class SpyAIService: AIService {
         private(set) var dailyPromptCalls = 0
-        var dailyPromptResult = "Spy daily prompt"
+        var dailyPromptResult = [DailyPromptItem(area: "Inner World", text: "Spy daily prompt")]
 
-        func dailyPrompt() async throws -> String {
+        func dailyPrompt() async throws -> [DailyPromptItem] {
             dailyPromptCalls += 1
             return dailyPromptResult
         }
@@ -81,7 +81,7 @@ final class HomeViewModelTests: XCTestCase {
         viewModel.start()
 
         await waitUntil("Today's profile prompt is shown") {
-            viewModel.promptState == .loaded("Today's cached prompt")
+            viewModel.promptState == .loaded([DailyPromptItem(area: "Reflection", text: "Today's cached prompt")])
         }
         // Give a potential stray fetch a beat to surface before asserting.
         try? await Task.sleep(nanoseconds: 100_000_000)
@@ -104,7 +104,7 @@ final class HomeViewModelTests: XCTestCase {
         viewModel.start()
 
         await waitUntil("Stale profile prompt falls back to the AI service") {
-            viewModel.promptState == .loaded("Spy daily prompt")
+            viewModel.promptState == .loaded(ai.dailyPromptResult)
         }
         XCTAssertEqual(ai.dailyPromptCalls, 1)
     }
@@ -123,7 +123,7 @@ final class HomeViewModelTests: XCTestCase {
         viewModel.start()
 
         await waitUntil("Missing profile prompt falls back to the AI service") {
-            viewModel.promptState == .loaded("Spy daily prompt")
+            viewModel.promptState == .loaded(ai.dailyPromptResult)
         }
         XCTAssertEqual(ai.dailyPromptCalls, 1)
     }

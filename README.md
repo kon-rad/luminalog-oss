@@ -116,6 +116,13 @@ good place to understand how a feature was reasoned about before it was built.
 If you discover a security issue, please open a private report (or an issue without sensitive
 details) rather than a public proof-of-concept.
 
+## Credits
+
+Background photos for the daily insights cards are provided by
+[Unsplash](https://unsplash.com) and its community of photographers. We're
+grateful to Unsplash and the photographers whose work makes these cards
+beautiful.
+
 ## License
 
 [MIT](LICENSE) © 2026 Konrad Gnat

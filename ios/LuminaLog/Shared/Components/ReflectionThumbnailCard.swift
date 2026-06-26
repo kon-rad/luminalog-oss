@@ -3,6 +3,7 @@ import SwiftUI
 /// 120×150 pt thumbnail card shown in the Daily Reflections carousel.
 struct ReflectionThumbnailCard: View {
     let report: DailyInsightsReport
+    var badge: String? = nil
 
     private var displayDate: String {
         let parser = DateFormatter()
@@ -21,9 +22,18 @@ struct ReflectionThumbnailCard: View {
                 endPoint: .bottomTrailing
             )
             VStack(alignment: .leading, spacing: 0) {
-                Text(displayDate)
-                    .font(.captionText.weight(.semibold))
-                    .foregroundStyle(Color.accentWarm)
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                    Text(displayDate)
+                        .font(.captionText.weight(.semibold))
+                        .foregroundStyle(Color.accentWarm)
+                    if let badge {
+                        Text(badge)
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 4).padding(.vertical, 1)
+                            .background(Capsule().fill(Color.accentWarm))
+                    }
+                }
 
                 Spacer(minLength: Spacing.s)
 
@@ -62,7 +72,7 @@ struct ReflectionThumbnailCard: View {
 #Preview {
     ReflectionThumbnailCard(report: .init(
         date: "2026-06-22",
-        insights: "", findings: "", question: "", emotionSummary: "",
+        insights: "", findings: "", gem: "", emotionSummary: "",
         totalWords: 847, streakCount: 14,
         emotions: [.init(name: "Calm", score: 0.72)]
     ))

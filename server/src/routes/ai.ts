@@ -15,7 +15,9 @@ import { getOrCreateDEK } from '../crypto/keyService'
 import { openField, encryptField } from '../crypto/fieldCipher'
 import { decryptMedia } from '../crypto/mediaCipher'
 import { nextStats, type GoalStats } from '../services/dailyGoalStreak'
-import { scoreEntryEmotion } from '../services/entryEmotion'
+import { decodeProfileFields } from '../services/profileContext'
+import { DAILY_PROMPT_AREAS, parseDailyPrompts, fallbackDailyPrompts } from '../services/dailyPrompts'
+import { dailyReportHandler } from './dailyReport'
 
 export const aiRouter = Router()
 
@@ -128,16 +130,27 @@ aiRouter.post('/prompts', firebaseAuth, async (req: Request, res: Response) => {
   }
 })
 
+// Generates five personalized prompts (one per life area in DAILY_PROMPT_AREAS)
+// in a SINGLE LLM call. Called on-demand when the app opens; the client caches
+// the result for the day (keyed to the user's local midnight). `text` mirrors
+// the first prompt for backward-compatibility with older clients that expect a
+// single string.
 aiRouter.post('/daily-prompt', firebaseAuth, async (req: Request, res: Response) => {
   const uid = (req as any).uid as string
 
   try {
-    const snap = await db.collection('journals')
-      .where('userId', '==', uid)
-      .orderBy('createdAt', 'desc')
-      .limit(5)
-      .get()
     const dek = await getOrCreateDEK(uid)
+
+    const [snap, userSnap] = await Promise.all([
+      db.collection('journals')
+        .where('userId', '==', uid)
+        .orderBy('createdAt', 'desc')
+        .limit(5)
+        .get(),
+      db.collection('users').doc(uid).get(),
+    ])
+
+    const sourceEntryIds = snap.docs.map(d => d.id)
     const context = snap.docs
       .map(d => {
         const data = d.data()
@@ -146,8 +159,19 @@ aiRouter.post('/daily-prompt', firebaseAuth, async (req: Request, res: Response)
         return `[${data.type ?? 'text'} · ${title}]\n${content.slice(0, 500)}`
       })
       .join('\n\n---\n\n')
-    const text = await generate(PROMPTS.dailyPrompt(), context || 'No entries yet.')
-    res.json({ text })
+
+    const userData = userSnap.data() ?? {}
+    const name = ((userData.displayName as string) ?? '').split(' ')[0] ?? ''
+    const profile = decodeProfileFields(dek, userData)
+
+    const systemPrompt = PROMPTS.dailyPrompts({
+      name, profile, journalContext: context, areas: DAILY_PROMPT_AREAS,
+    })
+    let prompts = parseDailyPrompts(await generate(systemPrompt, 'Generate the prompts now.'))
+    if (!prompts) prompts = parseDailyPrompts(await generate(systemPrompt, 'Generate the prompts now.'))
+    if (!prompts) prompts = fallbackDailyPrompts()
+
+    res.json({ prompts, text: prompts[0].text, sourceEntryIds })
   } catch (err: any) {
     console.error('[ai/daily-prompt]', err)
     res.status(500).json({ error: err.message })
@@ -304,13 +328,6 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
       },
     })
 
-    // Emotion scoring reuses the audio already decoded above (no second S3 fetch).
-    await scoreEntryEmotion({
-      uid, journalId, content: newContent, data,
-      downloadAudio: async () => audioBuffer,
-      force: true, // transcript is the entry's first real content
-    })
-
     // The user's similarity graph changed — drop the cache so the next /graph
     // call rebuilds with this entry's new summary vector.
     invalidateGraph(uid)
@@ -326,3 +343,5 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
 }
 
 aiRouter.post('/transcribe', firebaseAuth, transcribeHandler)
+
+aiRouter.post('/daily-report', firebaseAuth, dailyReportHandler)

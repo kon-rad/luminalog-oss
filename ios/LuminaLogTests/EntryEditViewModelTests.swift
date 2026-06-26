@@ -9,7 +9,7 @@ final class EntryEditViewModelTests: XCTestCase {
         func generateSummary(journalId: String) async throws -> AIGeneration { .init(text: "", model: "") }
         func generateInsights(journalId: String) async throws -> AIGeneration { .init(text: "", model: "") }
         func generatePrompts(journalId: String) async throws -> [String] { [] }
-        func dailyPrompt() async throws -> String { "" }
+        func dailyPrompt() async throws -> [DailyPromptItem] { [] }
         func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error> {
             AsyncThrowingStream { $0.finish() }
         }

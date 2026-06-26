@@ -31,9 +31,9 @@ final class MockAIService: AIService {
         return MockData.cannedPrompts
     }
 
-    func dailyPrompt() async throws -> String {
+    func dailyPrompt() async throws -> [DailyPromptItem] {
         try await Task.sleep(nanoseconds: generationDelay)
-        return MockData.cannedDailyPrompt
+        return MockData.cannedDailyPrompts
     }
 
     func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error> {
@@ -119,9 +119,9 @@ final class MockAIService: AIService {
             date: date ?? "2026-06-22",
             insights: "A recurring thread today was choosing rest without guilt.",
             findings: "You frame slowing down as falling behind, yet your steadiest progress follows quiet days.",
-            question: "What would change if you treated rest as part of the work?",
+            gem: "Rest, treated as part of the work, is where the steady progress hides.",
             emotionSummary: "Your day read as calm and quietly hopeful.",
-            totalWords: 12_480, streakCount: 7,
+            totalWords: 12_480, wordsToday: 812, streakCount: 7,
             emotions: [.init(name: "Calmness", score: 0.82), .init(name: "Contentment", score: 0.64), .init(name: "Hopefulness", score: 0.41)],
             imageUrl: nil, sourceEntryIds: ["e1"]
         )

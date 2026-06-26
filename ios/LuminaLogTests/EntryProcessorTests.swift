@@ -17,7 +17,7 @@ final class EntryProcessorTests: XCTestCase {
         func generateSummary(journalId: String) async throws -> AIGeneration { AIGeneration(text: "", model: "") }
         func generateInsights(journalId: String) async throws -> AIGeneration { AIGeneration(text: "", model: "") }
         func generatePrompts(journalId: String) async throws -> [String] { [] }
-        func dailyPrompt() async throws -> String { "" }
+        func dailyPrompt() async throws -> [DailyPromptItem] { [] }
         func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error> {
             AsyncThrowingStream { $0.finish() }
         }
@@ -122,6 +122,14 @@ final class EntryProcessorTests: XCTestCase {
         func applyEntryEdit(id: String, title: String, content: String, wordCount: Int, contentEditedAt: Date?, edit: EditRecord) async throws {}
         func delete(id: String) async throws { store.removeAll { $0.id == id } }
         func setExcludeFromShare(entryId: String, value: Bool) async throws {}
+        func countEntries(on date: Date, excluding draftId: String) async throws -> Int {
+            let calendar = Calendar.current
+            let start = calendar.startOfDay(for: date)
+            guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return 0 }
+            return store.filter { e in
+                e.id != draftId && e.createdAt >= start && e.createdAt < end
+            }.count
+        }
     }
 
     // MARK: - Harness
@@ -245,17 +253,36 @@ final class EntryProcessorTests: XCTestCase {
     }
 
     @MainActor
-    func testTitleUsesPromptThenFirstLine() async throws {
-        // A prompt becomes the title; the content stays pure.
+    func testTitleUsesPromptThenDate() async throws {
+        // A prompt becomes the title (first line only); content is unchanged.
         let h1 = Harness()
         await h1.run(textJob(text: "Making breakfast.", promptText: "What felt easy today?"))
         XCTAssertEqual(try h1.savedEntry().title, "What felt easy today?")
         XCTAssertEqual(try h1.savedEntry().content, "Making breakfast.")
 
-        // No prompt → first non-empty content line.
+        // Multi-line prompt → only the first line is used.
         let h2 = Harness()
-        await h2.run(textJob(text: "\n\nFirst line\nSecond line"))
-        XCTAssertEqual(try h2.savedEntry().title, "First line")
+        await h2.run(textJob(text: "Some thoughts.", promptText: "Line one\nLine two"))
+        XCTAssertEqual(try h2.savedEntry().title, "Line one")
+
+        // No prompt → date-based title (long format, no time).
+        let h3 = Harness()
+        let expectedDate = Date().formatted(date: .long, time: .omitted)
+        await h3.run(textJob(text: "\n\nFirst line\nSecond line"))
+        XCTAssertEqual(try h3.savedEntry().title, expectedDate)
+
+        // Second entry on the same day → title gets a " 2" suffix.
+        let h4 = Harness()
+        let now = Date()
+        let existing = JournalEntry(
+            id: "prior-entry", userId: "user-1", type: .text,
+            title: now.formatted(date: .long, time: .omitted),
+            createdAt: now, updatedAt: now, content: "Earlier entry", wordCount: 2
+        )
+        try await h4.journals.save(existing)
+        await h4.run(textJob(text: "Second entry today"))
+        let newEntry = try XCTUnwrap(h4.journals.store.first { $0.id != "prior-entry" })
+        XCTAssertEqual(newEntry.title, "\(now.formatted(date: .long, time: .omitted)) 2")
     }
 
     // MARK: - Image (OCR)

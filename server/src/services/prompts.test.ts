@@ -67,7 +67,7 @@ describe('PROMPTS.dailyReport', () => {
   })
   it('demands strict JSON with the five keys', () => {
     expect(p).toMatch(/insights/); expect(p).toMatch(/findings/)
-    expect(p).toMatch(/question/); expect(p).toMatch(/emotionSummary/)
+    expect(p).toMatch(/gem/); expect(p).toMatch(/emotionSummary/)
     expect(p).toMatch(/imageQuery/); expect(p).toMatch(/JSON/i)
   })
   it('encodes the public/share-safe privacy constraints', () => {

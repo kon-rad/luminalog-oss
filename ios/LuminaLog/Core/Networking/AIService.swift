@@ -14,8 +14,9 @@ protocol AIService: AnyObject {
     /// Generate 5 follow-up journaling prompts for an entry.
     func generatePrompts(journalId: String) async throws -> [String]
 
-    /// Today's personalized prompt (server caches one per day).
-    func dailyPrompt() async throws -> String
+    /// Today's five personalized prompts — one per life area — generated in a
+    /// single server-side LLM call. The client caches them for the day.
+    func dailyPrompt() async throws -> [DailyPromptItem]
 
     /// Streaming assistant reply — yields token/word deltas as they arrive.
     func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error>

@@ -107,17 +107,42 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         }
     }
 
-    /// Today's cached personalized prompt.
+    /// Today's cached personalized prompts (five, one per life area).
     struct DailyPrompt: Codable, Equatable, Sendable {
+        /// First prompt's text — kept for backward-compat with older docs that
+        /// stored a single prompt and only have this field.
         var text: String
         var date: Date
-        /// Journal entry ids the prompt was personalized from (proxy-written).
+        /// Journal entry ids the prompts were personalized from (proxy-written).
         var sourceEntryIds: [String]?
+        /// The five area-anchored prompts. Absent on legacy single-prompt docs.
+        var prompts: [DailyPromptItem]?
 
-        init(text: String, date: Date = Date(), sourceEntryIds: [String]? = nil) {
+        /// The prompts to show — the stored five, or a single-item fallback
+        /// synthesized from `text` for legacy docs.
+        var items: [DailyPromptItem] {
+            if let prompts, !prompts.isEmpty { return prompts }
+            return [DailyPromptItem(area: "Reflection", text: text)]
+        }
+
+        init(
+            text: String,
+            date: Date = Date(),
+            sourceEntryIds: [String]? = nil,
+            prompts: [DailyPromptItem]? = nil
+        ) {
             self.text = text
             self.date = date
             self.sourceEntryIds = sourceEntryIds
+            self.prompts = prompts
+        }
+
+        /// Builds from a non-empty prompt set (first item populates `text`).
+        init(items: [DailyPromptItem], date: Date = Date(), sourceEntryIds: [String]? = nil) {
+            self.text = items.first?.text ?? ""
+            self.date = date
+            self.sourceEntryIds = sourceEntryIds
+            self.prompts = items
         }
     }
 

@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// A text field (or multi-line editor) with a mic button that appends live
-/// dictation to the bound value. Cumulative partials replace the dictated tail,
-/// matching `SpeechTranscriber`'s contract.
+/// A text field with a large multiline editor and dictation controls. The mic
+/// button streams live speech into the bound value; the paste button inserts
+/// clipboard text. Both controls sit at the bottom-left under the editor.
 struct DictationField: View {
     let placeholder: String
     let multiline: Bool
@@ -12,26 +12,38 @@ struct DictationField: View {
     @State private var isListening = false
     @State private var task: Task<Void, Never>?
 
-    var body: some View {
-        VStack(spacing: Spacing.s) {
-            Group {
-                if multiline {
-                    TextEditor(text: $text)
-                        .frame(minHeight: 120)
-                        .scrollContentBackground(.hidden)
-                } else {
-                    TextField(placeholder, text: $text, axis: .vertical)
-                }
-            }
-            .font(.uiBody)
-            .foregroundStyle(Color.textPrimary)
-            .padding(Spacing.s)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)
-                    .fill(Color.secondaryBackground.opacity(0.6))
-            )
+    // ~42% of screen height gives a spacious writing area across all devices.
+    private let textAreaHeight: CGFloat = UIScreen.main.bounds.height * 0.42
 
-            micButton
+    var body: some View {
+        VStack(spacing: Spacing.xs) {
+            TextEditor(text: $text)
+                .frame(height: textAreaHeight)
+                .scrollContentBackground(.hidden)
+                .font(.uiBody)
+                .foregroundStyle(Color.textPrimary)
+                .padding(Spacing.s)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)
+                        .fill(Color.secondaryBackground.opacity(0.6))
+                )
+                .overlay(alignment: .topLeading) {
+                    if text.isEmpty {
+                        Text(placeholder)
+                            .font(.uiBody)
+                            .foregroundStyle(Color.textSecondary.opacity(0.5))
+                            .padding(.top, Spacing.s + 8)
+                            .padding(.leading, Spacing.s + 5)
+                            .allowsHitTesting(false)
+                    }
+                }
+
+            // Mic + paste buttons anchored to the left
+            HStack(spacing: Spacing.s) {
+                micButton
+                pasteButton
+                Spacer()
+            }
         }
         // Stop any in-flight dictation when this field leaves the hierarchy
         // (e.g. the onboarding screen advances), so its recognition task can't
@@ -53,6 +65,23 @@ struct DictationField: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isListening ? "Stop dictation" : "Start dictation")
+    }
+
+    private var pasteButton: some View {
+        Button {
+            guard let paste = UIPasteboard.general.string, !paste.isEmpty else { return }
+            text = text.isEmpty ? paste : text + " " + paste
+        } label: {
+            Image(systemName: "doc.on.clipboard")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Color.textSecondary)
+                .frame(width: 38, height: 38)
+                .background(
+                    Circle().fill(Color.secondaryBackground.opacity(0.8))
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Paste transcript from clipboard")
     }
 
     private func start() {

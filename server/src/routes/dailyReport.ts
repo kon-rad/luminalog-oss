@@ -2,9 +2,10 @@ import { Request, Response } from 'express'
 import admin from 'firebase-admin'
 import { db } from '../middleware/firebaseAuth'
 import { getOrCreateDEK } from '../crypto/keyService'
-import { openField, encryptField } from '../crypto/fieldCipher'
+import { openField, openFieldSafe, encryptField } from '../crypto/fieldCipher'
 import { retrieveContext } from '../services/journalRetriever'
 import { searchPhoto } from '../services/unsplashService'
+import { scoreText } from '../services/humeService'
 import { chatCompletion, DEFAULT_CHAT_MODEL } from '../services/aiClient'
 import { PROMPTS } from '../services/prompts'
 
@@ -23,19 +24,7 @@ export function dayBounds(date: Date, timeZone: string): { start: Date; end: Dat
   return { start, end }
 }
 
-function aggregateEmotions(entries: Array<Record<string, any>>): Array<{ name: string; score: number }> {
-  const sums: Record<string, { total: number; n: number }> = {}
-  for (const e of entries) {
-    const scores: Record<string, number> = e.emotion?.scores ?? {}
-    for (const [name, score] of Object.entries(scores)) {
-      const acc = (sums[name] ??= { total: 0, n: 0 }); acc.total += score; acc.n += 1
-    }
-  }
-  return Object.entries(sums).map(([name, { total, n }]) => ({ name, score: total / n }))
-    .sort((a, b) => b.score - a.score).slice(0, 3)
-}
-
-function parseReportJson(raw: string): { insights: string; findings: string; question: string; emotionSummary: string; imageQuery: string } | null {
+function parseReportJson(raw: string): { insights: string; findings: string; gem: string; emotionSummary: string; imageQuery: string } | null {
   try {
     const match = raw.match(/\{[\s\S]*\}/)
     return match ? JSON.parse(match[0]) : null
@@ -55,9 +44,14 @@ function decryptReport(dek: Buffer, data: Record<string, any>): Record<string, a
   return out
 }
 
-async function llm(prompt: string): Promise<string> {
+// The full instructions + the day's writing + RAG context live in the SYSTEM
+// prompt (PROMPTS.dailyReport); the user turn just triggers generation.
+async function llm(systemPrompt: string): Promise<string> {
   const r = await chatCompletion(
-    [{ role: 'user', content: prompt }],
+    [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: 'Generate the shareable daily insights card now as strict JSON.' },
+    ],
     { model: DEFAULT_CHAT_MODEL, response_format: { type: 'json_object' } },
   )
   if (!r.ok) throw new Error(`LLM error ${r.status}`)
@@ -77,9 +71,24 @@ export async function dailyReportHandler(req: Request, res: Response): Promise<v
     const now = dateArg ? new Date(`${dateArg}T12:00:00`) : new Date()
     const dateKey = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
 
-    const reportRef = db.collection('dailyReports').doc(uid).collection('days').doc(dateKey)
-    const existing = await reportRef.get()
-    if (existing.exists && !force) { res.json(decryptReport(dek, existing.data()!)); return }
+    // Reports are stored one document per generation, keyed `{dateKey}_{millis}`,
+    // so a single day can hold several. On a non-forced request, return the most
+    // recent report already saved for the day instead of regenerating; `force`
+    // (the dev tool, and retry) always generates and appends a fresh document.
+    const daysCol = db.collection('dailyReports').doc(uid).collection('days')
+    if (!force) {
+      const latest = await daysCol
+        .orderBy(admin.firestore.FieldPath.documentId(), 'desc')
+        .startAt(`${dateKey}_`)
+        .endAt(`${dateKey}_`)
+        .limit(1)
+        .get()
+      if (!latest.empty) {
+        const doc = latest.docs[0]
+        res.json({ id: doc.id, ...decryptReport(dek, doc.data()) })
+        return
+      }
+    }
 
     const { start, end } = dayBounds(now, timeZone)
     const snap = await db.collection('journals')
@@ -93,20 +102,38 @@ export async function dailyReportHandler(req: Request, res: Response): Promise<v
       .filter((e: any) => e.excludeFromShare !== true)
     if (entries.length === 0) { res.status(409).json({ error: 'No entries to share today' }); return }
 
+    // Full day's writing — the entire day's entries, never truncated — is what
+    // the report reflects on and what we score for emotion.
     const todayText = entries
       .map((e: any) => openField(dek, e.content, 'journals.content'))
       .filter(Boolean).join('\n\n')
-    const relatedContext = await retrieveContext(uid, todayText.slice(0, 1000), dek).catch(() => '')
-    const topEmotions = aggregateEmotions(entries as any)
 
-    const prompt = PROMPTS.dailyReport({
+    // Words the user entered today across ALL entry types — typed text plus
+    // transcribed voice/video all land in `content`, so counting `todayText`
+    // covers every modality. Shown on the card under "WORDS TODAY".
+    const wordsToday = todayText.trim() ? todayText.trim().split(/\s+/).length : 0
+
+    // RAG retrieval is driven by the SUMMARY of the day's entries (the per-entry
+    // summaries we already persist), so related past reflections are matched on
+    // the day's distilled themes rather than its raw opening words. Falls back to
+    // the full day's text when no entry has a summary yet.
+    const daySummary = entries
+      .map((e: any) => openFieldSafe(dek, e.summary?.text, 'journals.summary.text'))
+      .filter(Boolean).join('\n\n')
+    const relatedContext = await retrieveContext(uid, daySummary || todayText, dek).catch(() => '')
+    const hume = await scoreText(todayText).catch(() => null)
+    const topEmotions: Array<{ name: string; score: number }> = hume ? hume.top.slice(0, 3) : []
+
+    // System prompt carries the instructions, the full day's writing, and the
+    // RAG-retrieved related reflections (see PROMPTS.dailyReport).
+    const systemPrompt = PROMPTS.dailyReport({
       name: (user.displayName as string)?.split(' ')[0] ?? '',
       todayText, relatedContext, topEmotions,
     })
-    const raw1 = await llm(prompt)
+    const raw1 = await llm(systemPrompt)
     let parsed = parseReportJson(raw1)
     if (!parsed) {
-      const raw2 = await llm(prompt)
+      const raw2 = await llm(systemPrompt)
       parsed = parseReportJson(raw2)
       if (!parsed) {
         console.error('[daily-report] LLM non-JSON:', raw2.slice(0, 500))
@@ -119,9 +146,12 @@ export async function dailyReportHandler(req: Request, res: Response): Promise<v
 
     const report = {
       date: dateKey,
-      insights: parsed.insights, findings: parsed.findings, question: parsed.question,
+      // The LLM emits `gem`; we keep the stored/encrypted field name `question`
+      // (AAD `dailyReports.question`) unchanged for backward compat — see ADR-0038.
+      insights: parsed.insights, findings: parsed.findings, question: parsed.gem,
       emotionSummary: parsed.emotionSummary,
       totalWords: stats.totalWords ?? 0,
+      wordsToday,
       streakCount: stats.streakCount ?? 0,
       emotions: topEmotions,
       imageUrl: photo?.imageUrl ?? null,
@@ -134,8 +164,11 @@ export async function dailyReportHandler(req: Request, res: Response): Promise<v
       generatedAt: new Date().toISOString(),
     }
 
-    await reportRef.set(encryptReport(dek, report))
-    res.json(report)
+    // One document per generation: `{dateKey}_{millis}` keeps the day's reports
+    // ordered chronologically by id and lets a day hold multiple cards.
+    const reportId = `${dateKey}_${Date.now()}`
+    await daysCol.doc(reportId).set(encryptReport(dek, report))
+    res.json({ id: reportId, ...report })
   } catch (err: any) {
     console.error('[ai/daily-report]', err)
     res.status(500).json({ error: err.message })

@@ -2,13 +2,20 @@ import Foundation
 import FirebaseFirestore
 
 protocol DailyReportRepository: AnyObject {
-    /// Loads a saved report for `date` ("yyyy-MM-dd"), or nil if none exists yet.
+    /// The most recent report generated for `date` ("yyyy-MM-dd"), or nil. A day
+    /// can hold several reports; this returns the latest one.
     func report(for date: String) async throws -> DailyInsightsReport?
-    /// Returns up to `limit` reports for dates strictly before `date`, most recent first.
-    func reports(before date: String, limit: Int) async throws -> [DailyInsightsReport]
+    /// Up to `limit` reports across all days, most recent first. Pass the id of
+    /// the last report already loaded to page further back; nil loads the first page.
+    func recentReports(limit: Int, after lastId: String?) async throws -> [DailyInsightsReport]
+    /// Permanently deletes the report with Firestore document `id`.
+    func deleteReport(id: String) async throws
 }
 
-/// `DailyReportRepository` backed by `dailyReports/{uid}/days/{yyyy-MM-dd}`.
+/// `DailyReportRepository` backed by `dailyReports/{uid}/days/{yyyy-MM-dd}_{millis}`.
+/// Document ids embed the date then generation time, so lexical id order is
+/// chronological — the recent feed and latest-of-day both order by document id
+/// (auto-indexed; no composite index required).
 @MainActor
 final class FirestoreDailyReportRepository: DailyReportRepository {
 
@@ -21,26 +28,40 @@ final class FirestoreDailyReportRepository: DailyReportRepository {
         self.keys = keys
     }
 
+    private func daysCollection(_ uid: String) -> CollectionReference {
+        db.collection("dailyReports").document(uid).collection("days")
+    }
+
     func report(for date: String) async throws -> DailyInsightsReport? {
         guard let uid = auth.currentUserId else { return nil }
         guard let cipher = keys.currentCipher else { return nil }
-        let snap = try await db.collection("dailyReports").document(uid)
-            .collection("days").document(date).getDocument()
-        guard let data = snap.data() else { return nil }
-        return try DailyInsightsReport(firestore: data, cipher: cipher)
+        // Latest document whose id has the `{date}_` prefix.
+        let snap = try await daysCollection(uid)
+            .order(by: FieldPath.documentID(), descending: true)
+            .start(at: ["\(date)_\u{f8ff}"])
+            .end(at: ["\(date)_"])
+            .limit(to: 1)
+            .getDocuments()
+        guard let doc = snap.documents.first else { return nil }
+        return try DailyInsightsReport(firestore: doc.data(), id: doc.documentID, cipher: cipher)
     }
 
-    func reports(before date: String, limit: Int) async throws -> [DailyInsightsReport] {
+    func recentReports(limit: Int, after lastId: String?) async throws -> [DailyInsightsReport] {
         guard let uid = auth.currentUserId else { return [] }
         guard let cipher = keys.currentCipher else { return [] }
-        let snap = try await db.collection("dailyReports").document(uid)
-            .collection("days")
-            .order(by: "date", descending: true)
-            .start(after: [date])
-            .limit(to: limit)
-            .getDocuments()
-        return snap.documents.compactMap { doc in
-            try? DailyInsightsReport(firestore: doc.data(), cipher: cipher)
+        var query: Query = daysCollection(uid)
+            .order(by: FieldPath.documentID(), descending: true)
+        if let lastId {
+            query = query.start(after: [lastId])
         }
+        let snap = try await query.limit(to: limit).getDocuments()
+        return snap.documents.compactMap { doc in
+            try? DailyInsightsReport(firestore: doc.data(), id: doc.documentID, cipher: cipher)
+        }
+    }
+
+    func deleteReport(id: String) async throws {
+        guard let uid = auth.currentUserId else { return }
+        try await daysCollection(uid).document(id).delete()
     }
 }

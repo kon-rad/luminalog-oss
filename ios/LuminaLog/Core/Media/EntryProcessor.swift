@@ -120,12 +120,13 @@ final class BackgroundEntryProcessor: EntryProcessor {
         }
 
         let typed = job.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = await resolvedTitle(for: job)
 
         var entry = JournalEntry(
             id: job.draftId,
             userId: job.userId,
             type: type,
-            title: Self.title(promptText: job.promptText, content: typed),
+            title: title,
             createdAt: job.createdAt,
             content: typed,
             media: [],
@@ -150,7 +151,6 @@ final class BackgroundEntryProcessor: EntryProcessor {
             let derived = try await deriveContent(job)
             entry.content = derived.content
             entry.transcriptStatus = derived.status
-            entry.title = Self.title(promptText: job.promptText, content: derived.content)
             entry.wordCount = WordCount.of(derived.content)
 
             // 3) Upload staged media.
@@ -200,12 +200,13 @@ final class BackgroundEntryProcessor: EntryProcessor {
     private func processAudioVisual(_ job: EntryProcessingJob) async {
         let type = job.type
         let typed = job.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = await resolvedTitle(for: job)
 
         var entry = JournalEntry(
             id: job.draftId,
             userId: job.userId,
             type: type,
-            title: Self.title(promptText: job.promptText, content: typed),
+            title: title,
             createdAt: job.createdAt,
             content: typed,
             media: [],
@@ -222,7 +223,6 @@ final class BackgroundEntryProcessor: EntryProcessor {
             let derived = try await deriveContent(job)
             entry.content = derived.content
             entry.transcriptStatus = derived.status
-            entry.title = Self.title(promptText: job.promptText, content: derived.content)
             entry.wordCount = WordCount.of(derived.content)
 
             // 3) Stage encrypted ciphertext + mint stable keys for each attachment.
@@ -514,21 +514,36 @@ final class BackgroundEntryProcessor: EntryProcessor {
 
     // MARK: Helpers
 
-    /// Title rule (mirrors the Create flow): the prompt question (≤80 chars)
-    /// when answering a prompt, else the first non-empty content line (≤80),
-    /// else the formatted date.
-    static func title(promptText: String?, content: String) -> String {
-        if let promptText {
-            return truncate(promptText, to: 80)
+    /// Computes the entry title for a job: prompt text (first line, ≤80 chars)
+    /// when answering a prompt, else a date-based title with a same-day suffix.
+    private func resolvedTitle(for job: EntryProcessingJob) async -> String {
+        if let promptText = job.promptText {
+            return Self.promptTitle(promptText)
         }
-        let firstLine = content
-            .split(separator: "\n", omittingEmptySubsequences: true)
+        return await dateTitle(for: job.createdAt, excluding: job.draftId)
+    }
+
+    /// Date-based title for the given day. Appends " N" when N-1 other entries
+    /// already exist on that calendar day (e.g. "June 26, 2026 2").
+    private func dateTitle(for date: Date, excluding draftId: String) async -> String {
+        let base = date.formatted(date: .long, time: .omitted)
+        do {
+            let count = try await deps.journals.countEntries(on: date, excluding: draftId)
+            return count == 0 ? base : "\(base) \(count + 1)"
+        } catch {
+            Self.logger.error("countEntries failed: \(error.localizedDescription, privacy: .public)")
+            return base
+        }
+    }
+
+    /// First line of the prompt text, truncated to ≤80 chars.
+    static func promptTitle(_ promptText: String) -> String {
+        let firstLine = promptText
+            .split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: true)
+            .first
             .map { $0.trimmingCharacters(in: .whitespaces) }
-            .first { !$0.isEmpty }
-        if let firstLine {
-            return truncate(firstLine, to: 80)
-        }
-        return Date().formatted(date: .long, time: .omitted)
+            ?? promptText.trimmingCharacters(in: .whitespaces)
+        return truncate(firstLine, to: 80)
     }
 
     private static func truncate(_ string: String, to limit: Int) -> String {

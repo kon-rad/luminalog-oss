@@ -67,7 +67,7 @@ enum MockData {
                 totalWords: 24_310
             ),
             dailyPrompt: UserProfile.DailyPrompt(
-                text: "You've written a lot lately about wanting more unstructured time. If tomorrow had three empty hours in the middle of it, what would you protect them for?",
+                items: cannedDailyPrompts,
                 date: daysAgo(0, hour: 5)
             ),
             details: UserProfile.ProfileDetails(
@@ -283,6 +283,15 @@ enum MockData {
     ]
 
     static let cannedDailyPrompt = "Yesterday you wrote about the gap between dread and effort. What's one avoided task you could give just ten minutes to this morning?"
+
+    /// Five area-anchored prompts for demo mode's daily-prompt carousel.
+    static let cannedDailyPrompts: [DailyPromptItem] = [
+        DailyPromptItem(area: "Relationships", text: "You laughed with Sam about the camping trip — who else pulls you out of your head, and when did you last tell them?"),
+        DailyPromptItem(area: "Work & Purpose", text: "You've been polishing work as a form of hiding; what would you share one day earlier today if you trusted it was enough?"),
+        DailyPromptItem(area: "Health & Body", text: "The cold plunge taught you the dread is worse than the water — what small thing is your body asking you to stop negotiating with this morning?"),
+        DailyPromptItem(area: "Inner World", text: "You keep noticing that slow mornings make for your best days; what would you protect tomorrow's first hour for?"),
+        DailyPromptItem(area: "Joy & Play", text: "Your favorite entries are the boring-Tuesday ones with small textures — what tiny moment from yesterday do you want to keep?"),
+    ]
 
     static let cannedChatReply = "That sounds like it's been quietly weighing on you for a while. Reading back through your recent entries, I notice you tend to move forward fastest when you shrink the first step until it's almost embarrassingly small — the two-sentence email, the ten-minute Sunday reset, the list instead of the rewrite. What would the embarrassingly small version of this look like? I'd also gently point out that the last three times you dreaded something, the doing turned out lighter than the anticipating. Maybe this is another dock moment."
 }

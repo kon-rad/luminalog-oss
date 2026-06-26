@@ -35,7 +35,11 @@ final class ProxyAIService: AIService {
     }
 
     private struct DailyPromptResponse: Decodable {
-        let text: String
+        /// The five area-anchored prompts (new server). Optional so an older
+        /// server that returns only `text` still decodes.
+        let prompts: [DailyPromptItem]?
+        /// First prompt's text — always present; the single-prompt fallback.
+        let text: String?
     }
 
     private struct ChatBody: Encodable {
@@ -89,10 +93,17 @@ final class ProxyAIService: AIService {
         return response.items
     }
 
-    func dailyPrompt() async throws -> String {
+    func dailyPrompt() async throws -> [DailyPromptItem] {
         let response: DailyPromptResponse =
             try await api.post(path: "/v1/ai/daily-prompt", body: EmptyBody())
-        return response.text
+        if let prompts = response.prompts, !prompts.isEmpty {
+            return prompts
+        }
+        // Older server: only a single `text` — wrap it so the carousel still renders.
+        if let text = response.text, !text.isEmpty {
+            return [DailyPromptItem(area: "Reflection", text: text)]
+        }
+        return []
     }
 
     func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error> {

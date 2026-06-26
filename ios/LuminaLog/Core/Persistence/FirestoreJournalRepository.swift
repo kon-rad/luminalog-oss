@@ -216,4 +216,17 @@ final class FirestoreJournalRepository: JournalRepository {
     func setExcludeFromShare(entryId: String, value: Bool) async throws {
         try await journals.document(entryId).updateData(["excludeFromShare": value])
     }
+
+    func countEntries(on date: Date, excluding draftId: String) async throws -> Int {
+        guard let uid = auth.currentUserId else { return 0 }
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return 0 }
+        let snapshot = try await journals
+            .whereField("userId", isEqualTo: uid)
+            .whereField("createdAt", isGreaterThanOrEqualTo: Timestamp(date: start))
+            .whereField("createdAt", isLessThan: Timestamp(date: end))
+            .getDocuments()
+        return snapshot.documents.filter { $0.documentID != draftId }.count
+    }
 }

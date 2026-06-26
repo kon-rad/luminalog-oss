@@ -88,4 +88,9 @@ protocol JournalRepository: AnyObject {
 
     /// Sets whether this entry is excluded from the shareable daily insights card.
     func setExcludeFromShare(entryId: String, value: Bool) async throws
+
+    /// Count of entries created on the same calendar day as `date` (device
+    /// locale), excluding `draftId`. Used to suffix same-day date-titled
+    /// entries ("June 26, 2026 2", "June 26, 2026 3", …).
+    func countEntries(on date: Date, excluding draftId: String) async throws -> Int
 }

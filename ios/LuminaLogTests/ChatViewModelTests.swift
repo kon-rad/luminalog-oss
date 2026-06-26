@@ -117,7 +117,7 @@ final class StubChatAIService: AIService {
 
     func generatePrompts(journalId: String) async throws -> [String] { [] }
 
-    func dailyPrompt() async throws -> String { "" }
+    func dailyPrompt() async throws -> [DailyPromptItem] { [] }
 
     func requestIndex(journalId: String) async {}
     func deleteEntry(journalId: String) async throws {}

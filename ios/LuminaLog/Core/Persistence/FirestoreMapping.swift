@@ -362,10 +362,18 @@ extension UserProfile.DailyPrompt {
         guard let data,
               let text = try? cipher.openedIfPresent(data["text"], "users.dailyPrompt.text")
         else { return nil }
+        // Each prompt's question is field-encrypted; the area label is plaintext.
+        let prompts: [DailyPromptItem]? = (data["prompts"] as? [[String: Any]])?.compactMap { item in
+            guard let area = item["area"] as? String,
+                  let text = try? cipher.openedIfPresent(item["text"], "users.dailyPrompt.prompts.text")
+            else { return nil }
+            return DailyPromptItem(area: area, text: text)
+        }
         self.init(
             text: text,
             date: timestamp(data["date"]) ?? Date(),
-            sourceEntryIds: data["sourceEntryIds"] as? [String]
+            sourceEntryIds: data["sourceEntryIds"] as? [String],
+            prompts: (prompts?.isEmpty ?? true) ? nil : prompts
         )
     }
 
@@ -375,6 +383,14 @@ extension UserProfile.DailyPrompt {
             "date": Timestamp(date: date),
         ]
         if let sourceEntryIds { data["sourceEntryIds"] = sourceEntryIds }
+        if let prompts, !prompts.isEmpty {
+            data["prompts"] = try prompts.map { item in
+                [
+                    "area": item.area,
+                    "text": try cipher.sealed(item.text, "users.dailyPrompt.prompts.text"),
+                ]
+            }
+        }
         return data
     }
 }
@@ -530,18 +546,21 @@ extension EmotionScore {
 
 extension DailyInsightsReport {
 
-    /// Decrypt the four text fields; the rest are plaintext.
-    init(firestore data: [String: Any], cipher: FieldCipher) throws {
+    /// Decrypt the four text fields; the rest are plaintext. `id` is the Firestore
+    /// document id (`{date}_{millis}`), which uniquely identifies one generation.
+    init(firestore data: [String: Any], id: String, cipher: FieldCipher) throws {
         func dec(_ key: String) throws -> String {
             try cipher.opened(data[key], "dailyReports.\(key)")
         }
         self.init(
+            id: id,
             date: data["date"] as? String ?? "",
             insights: try dec("insights"),
             findings: try dec("findings"),
-            question: try dec("question"),
+            gem: try dec("question"),   // legacy field name; AAD stays dailyReports.question
             emotionSummary: try dec("emotionSummary"),
             totalWords: data["totalWords"] as? Int ?? 0,
+            wordsToday: data["wordsToday"] as? Int ?? 0,
             streakCount: data["streakCount"] as? Int ?? 0,
             emotions: (data["emotions"] as? [[String: Any]] ?? []).compactMap {
                 guard let n = $0["name"] as? String,

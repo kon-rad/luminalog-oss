@@ -27,3 +27,11 @@ enum DevFlags {
         set { UserDefaults.standard.set(newValue, forKey: forceOnboardingKey) }
     }
 }
+
+extension Notification.Name {
+    /// Posted after a daily report is successfully generated and saved (by the
+    /// milestone flow or the DEBUG-only developer tool), so Home's Daily
+    /// Reflections feed reloads and the new card appears. Reports persist to
+    /// Firestore the same way regardless of how generation was triggered.
+    static let dailyReportGenerated = Notification.Name("ll-daily-report-generated")
+}

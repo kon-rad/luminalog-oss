@@ -12,6 +12,8 @@ struct SettingsView: View {
     private let speech: SpeechTranscriber?
     private let leaderboard: LeaderboardService
     private let currentUserId: String?
+    /// Only used by the DEBUG-only "Generate Daily Report" developer tool.
+    private let ai: AIService
 
     @State private var showProfileDetail = false
     @State private var showLeaderboard = false
@@ -23,6 +25,10 @@ struct SettingsView: View {
     @State private var showDeleteFinalAlert = false
     /// DEBUG-only: drives the onboarding-replay full-screen cover.
     @State private var showOnboardingPreview = false
+    /// DEBUG-only: true while the "Generate Daily Report" tool is regenerating.
+    @State private var isGeneratingReport = false
+    /// DEBUG-only: set when report generation fails, shown inline on the row.
+    @State private var generateReportFailed = false
 
     @AppStorage(ThemeMode.storageKey) private var themeMode: String = ThemeMode.system.rawValue
 
@@ -40,7 +46,8 @@ struct SettingsView: View {
         media: MediaUploader,
         speech: SpeechTranscriber,
         reminders: ReminderCoordinator,
-        leaderboard: LeaderboardService
+        leaderboard: LeaderboardService,
+        ai: AIService
     ) {
         self.init(
             viewModel: ProfileViewModel(
@@ -56,6 +63,7 @@ struct SettingsView: View {
             reminders: reminders,
             speech: speech,
             leaderboard: leaderboard,
+            ai: ai,
             currentUserId: auth.currentUserId
         )
     }
@@ -67,6 +75,7 @@ struct SettingsView: View {
         reminders: ReminderCoordinator,
         speech: SpeechTranscriber? = nil,
         leaderboard: LeaderboardService = MockLeaderboardService(),
+        ai: AIService,
         currentUserId: String? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -75,6 +84,7 @@ struct SettingsView: View {
         self.reminders = reminders
         self.speech = speech
         self.leaderboard = leaderboard
+        self.ai = ai
         self.currentUserId = currentUserId
     }
 
@@ -154,24 +164,15 @@ struct SettingsView: View {
         .fullScreenCover(isPresented: $showOnboardingPreview) {
             // Replay the full onboarding sequence against an isolated UserDefaults
             // suite so the dev preview never touches the user's real onboarding
-            // completion flag or buffered draft. onComplete just dismisses.
+            // completion flag or buffered draft. onComplete/onDismiss both dismiss.
             OnboardingView(
                 store: OnboardingStore(
                     defaults: UserDefaults(suiteName: "ll-dev-onboarding-preview") ?? .standard
                 ),
                 speech: speech ?? AppleSpeechTranscriber(),
-                onComplete: { showOnboardingPreview = false }
+                onComplete: { showOnboardingPreview = false },
+                onDismiss: { showOnboardingPreview = false }
             )
-            .overlay(alignment: .topTrailing) {
-                // Onboarding has no built-in dismiss; give dev an escape hatch.
-                Button { showOnboardingPreview = false } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 28))
-                        .foregroundStyle(Color.textSecondary)
-                        .padding(Spacing.m)
-                }
-                .accessibilityLabel("Close onboarding preview")
-            }
         }
         #endif
     }
@@ -515,11 +516,71 @@ struct SettingsView: View {
 
             VStack(spacing: 0) {
                 showOnboardingRow
+                rowDivider
+                generateReportRow
             }
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
                     .fill(Color.cardBackground)
             )
+        }
+    }
+
+    /// Generates a *fresh* report for the current day from the latest data and
+    /// appends it as a new card in Home's Daily Reflections section. Each press
+    /// adds another independently-previewable card (it never overwrites the
+    /// previous one), so the feature can be exercised on demand.
+    private var generateReportRow: some View {
+        Button {
+            generateDailyReport()
+        } label: {
+            HStack(spacing: Spacing.m) {
+                settingsIcon("sparkles.rectangle.stack", tint: .accentWarm)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Generate Daily Report")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text(generateReportFailed
+                         ? "Generation failed — tap to retry"
+                         : "Append a fresh insights card to Home")
+                        .font(.captionText)
+                        .foregroundStyle(generateReportFailed ? Color.danger : Color.textSecondary)
+                }
+                Spacer()
+                if isGeneratingReport {
+                    ProgressView()
+                        .tint(Color.accentWarm)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.textSecondary.opacity(0.6))
+                }
+            }
+            .padding(Spacing.m)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isGeneratingReport)
+        .accessibilityLabel("Generate Daily Report, append a fresh insights card to Home")
+    }
+
+    /// Force-generates a fresh report for today via the same `ai.generateDailyReport`
+    /// the milestone flow uses, which saves a new document to Firestore. Posts
+    /// `.dailyReportGenerated` so Home reloads its feed and the new card appears
+    /// in the Daily Reflections section — stored and rendered identically to any
+    /// other daily report.
+    private func generateDailyReport() {
+        guard !isGeneratingReport else { return }
+        isGeneratingReport = true
+        generateReportFailed = false
+        Task {
+            defer { isGeneratingReport = false }
+            do {
+                _ = try await ai.generateDailyReport(date: nil, force: true)
+                NotificationCenter.default.post(name: .dailyReportGenerated, object: nil)
+            } catch {
+                generateReportFailed = true
+            }
         }
     }
 
@@ -735,7 +796,8 @@ struct SettingsView: View {
         media: MockMediaUploader(),
         speech: AppleSpeechTranscriber(),
         reminders: ReminderCoordinator(),
-        leaderboard: MockLeaderboardService()
+        leaderboard: MockLeaderboardService(),
+        ai: MockAIService()
     )
 }
 
@@ -752,7 +814,8 @@ struct SettingsView: View {
         media: MockMediaUploader(),
         speech: AppleSpeechTranscriber(),
         reminders: ReminderCoordinator(),
-        leaderboard: MockLeaderboardService()
+        leaderboard: MockLeaderboardService(),
+        ai: MockAIService()
     )
 }
 
@@ -765,7 +828,8 @@ struct SettingsView: View {
         media: MockMediaUploader(),
         speech: AppleSpeechTranscriber(),
         reminders: ReminderCoordinator(),
-        leaderboard: MockLeaderboardService()
+        leaderboard: MockLeaderboardService(),
+        ai: MockAIService()
     )
     .preferredColorScheme(.dark)
 }

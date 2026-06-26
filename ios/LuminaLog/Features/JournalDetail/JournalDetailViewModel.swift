@@ -83,7 +83,13 @@ final class JournalDetailViewModel: ObservableObject {
             guard let stream = self?.journals.entry(id: self?.entryId ?? "") else { return }
             for await entry in stream {
                 guard let self, !Task.isCancelled else { return }
+                let hadContent = !(self.entry?.content ?? "").isEmpty
                 self.entry = entry
+                // Re-trigger summary generation when content becomes available
+                // (e.g. voice/video transcript arrives after initial open).
+                if !hadContent, let entry, !entry.content.isEmpty, entry.summary == nil {
+                    Task { await self.generateSummaryIfMissing() }
+                }
             }
         }
     }
@@ -102,7 +108,7 @@ final class JournalDetailViewModel: ObservableObject {
     }
 
     private func generateSummaryIfMissing() async {
-        guard let entry, entry.summary == nil else { return }
+        guard let entry, entry.summary == nil, !entry.content.isEmpty else { return }
         await generateSummary()
     }
 

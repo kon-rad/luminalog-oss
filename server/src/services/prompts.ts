@@ -75,8 +75,46 @@ Format your response using Markdown: use a short \`##\` heading for each theme o
 Generate exactly 5 open-ended questions that invite deeper reflection on the themes in this entry. Each prompt must be a single sentence ending with a question mark. Number them 1-5.`,
 
   dailyPrompt: (): string => `You are generating a personalized daily journaling prompt.
-Based on the user's recent journal entries below, ask one specific, meaningful question that invites reflection today. The question should feel deeply personal, not generic. Return only the question itself — one sentence, ending with a question mark.`,
+Based on the user's recent journal entries below, ask one specific, meaningful question that invites reflection today. The question should feel deeply personal, not generic. Write a clear, complete sentence — ideally 15-30 words. Ask ONE thing: no compound questions, no "and how will you…" tails, no run-ons. Return only the question itself — a single sentence ending with a question mark.`,
 
+  /**
+   * Generates FIVE personalized daily journaling prompts in a single call —
+   * one per life area in `DAILY_PROMPT_AREAS` — returned as strict JSON. The
+   * area labels are fixed so the iOS carousel can render a stable chip per card;
+   * only the question is personalized from the user's name, profile, and recent
+   * entries.
+   */
+  dailyPrompts: (ctx: {
+    name: string
+    profile: ProfileFields
+    journalContext: string
+    areas: readonly string[]
+  }): string => `You are generating a set of personalized daily journaling prompts, one for each of the user's areas of life.
+
+${nameBlock(ctx.name)}${profileBlock(ctx.profile)}USER'S RECENT JOURNAL ENTRIES:
+${ctx.journalContext || 'No entries yet.'}
+
+Write exactly ${ctx.areas.length} journaling prompts — one for each of these areas, in this order:
+${ctx.areas.map((a, i) => `${i + 1}. ${a}`).join('\n')}
+
+Rules for every prompt:
+- One specific, meaningful question that invites reflection today.
+- Make it feel deeply personal to THIS user — draw on their entries and profile above. Avoid generic, fortune-cookie questions.
+- Write a full, complete sentence — ideally 15-30 words. Be clear and specific; avoid terse fragments or overly brief phrasing.
+- Ask ONE thing. No compound questions, no "and how will you…" tails, no stacked clauses, no run-on sentences.
+- A single sentence ending with a question mark.
+- Do not name the area inside the question text.
+
+Return STRICT JSON ONLY (no markdown, no preamble), exactly this shape:
+{"prompts":[${ctx.areas.map(a => `{"area":"${a}","question":"…"}`).join(',')}]}`,
+
+  /**
+   * SYSTEM prompt for the daily shareable-card LLM call (`/v1/ai/daily-report`).
+   * It carries the FULL text of every entry the user wrote today (never
+   * truncated — "all 750 words and more") plus the related past reflections the
+   * RAG pipeline retrieved from the summary of today's entries. Sent as the
+   * `system` message; the user turn only triggers generation.
+   */
   dailyReport: (ctx: {
     name: string
     todayText: string
@@ -84,10 +122,10 @@ Based on the user's recent journal entries below, ask one specific, meaningful q
     topEmotions: Array<{ name: string; score: number }>
   }): string => `You are writing a PUBLIC, social-media SHAREABLE "daily insights" card for a journaling app.
 
-${ctx.name ? `The user's first name is ${ctx.name}.\n` : ''}TODAY'S JOURNALING (private — do not quote or reveal):
+${ctx.name ? `The user's first name is ${ctx.name}.\n` : ''}TODAY'S JOURNALING — the user's complete writing for today (private — do not quote or reveal):
 ${ctx.todayText}
 
-RELATED PAST REFLECTIONS (private — do not quote or reveal):
+RELATED PAST REFLECTIONS — retrieved by RAG from the summary of today's entries (private — do not quote or reveal):
 ${ctx.relatedContext || 'None.'}
 
 TOP EMOTIONS DETECTED TODAY: ${ctx.topEmotions.map(e => e.name).join(', ') || 'unknown'}
@@ -97,11 +135,15 @@ This card will be shared publicly. It is CRITICAL that it is safe to post:
 - Write only abstracted, universal reflections the user would be proud to share publicly.
 - Be warm, second-person ("you"), and genuinely insightful — not generic.
 
+"insights" must be a short, declarative STATEMENT — NOT a question. Never end it with a question mark. No compound sentences, no "and how would…" tails, no stacked clauses. Favor a single clear, punchy line over anything long.
+
+"gem" must be an original HAIKU: three short lines, roughly 5-7-5 syllables, separated by newline characters (\\n). Make it evocative and image-rich — lean on a concrete natural image (light, water, season, breath) to carry the meaning — yet quietly insightful, distilling the single truth the user touched today. Never a question, no title, no quotation marks, no end punctuation needed.
+
 Return STRICT JSON ONLY (no markdown, no preamble) with exactly these keys:
 {
-  "insights": "1-2 sentences of insight about today's writing and how it relates to past reflections",
+  "insights": "ONE short, declarative statement (under 18 words) naming the key insight from today's writing and how it relates to past reflections. A statement, not a question.",
   "findings": "1-2 sentences naming an unsurprising-but-unnoticed observation about the user from another perspective",
-  "question": "one open-ended question (ending with '?') prompting deeper self-discovery",
+  "gem": "An original three-line HAIKU (~5-7-5 syllables, lines separated by \\n) distilling the most important thing the user noticed, learned, or experienced today — evocative, image-rich, and quietly insightful. Never a question.",
   "emotionSummary": "one warm sentence interpreting the top emotions above",
   "imageQuery": "2-4 generic, safe stock-photo search words for a background image matching today's emotional theme (no people, no identifiers)"
 }`,

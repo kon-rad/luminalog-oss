@@ -217,7 +217,9 @@ struct CreateEntryView: View {
                 .font(.promptQuoteCompact)
                 .foregroundStyle(Color.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .fixedSize(horizontal: false, vertical: true)
         .padding(Spacing.m)
         .background(
             RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)

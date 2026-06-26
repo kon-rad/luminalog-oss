@@ -25,7 +25,9 @@ final class HomeViewModel: ObservableObject {
 
     @Published var showMilestone = false
     @Published var showReport = false
-    @Published private(set) var todaysReport: DailyInsightsReport?
+    /// Set to true when the user taps "Generate" in the milestone sheet so
+    /// the report sheet is presented after the milestone sheet fully dismisses.
+    @Published var pendingShowReport = false
 
     private let journals: JournalRepository
     private let profiles: ProfileRepository
@@ -34,9 +36,6 @@ final class HomeViewModel: ObservableObject {
     private let recording = RecordingState.shared
     private var coordinator: MilestoneCoordinator?
     private var recordingCancellable: AnyCancellable?
-
-    /// Exposes the report repository for the view's report sheet.
-    var dailyReportsRepo: DailyReportRepository { dailyReports }
 
     private var entriesTask: Task<Void, Never>?
     private var profileTask: Task<Void, Never>?
@@ -119,12 +118,6 @@ final class HomeViewModel: ObservableObject {
             coordinator = c
         }
         coordinator?.update(goalWords: goalProgressWords, isRecording: recording.isRecording)
-        if todaysReport == nil {
-            Task { [weak self] in
-                guard let self else { return }
-                self.todaysReport = try? await self.dailyReports.report(for: self.todayKey())
-            }
-        }
     }
 
     // MARK: - Greeting
@@ -232,7 +225,7 @@ final class HomeViewModel: ObservableObject {
 
     /// Shown when the AI service fails and there is no cached set for today.
     private static let fallbackPrompts: [DailyPromptItem] = [
-        DailyPromptItem(area: "Reflection", text: "What's on your mind today?"),
+        DailyPromptItem(area: "Reflection", text: "Take a moment to reflect — what thought or feeling has been quietly sitting with you that you haven't had a chance to put into words yet?"),
     ]
 
     /// The profile's cached prompts, only if their date is today in the user's timezone.

@@ -133,6 +133,15 @@ final class MockJournalRepository: JournalRepository {
         broadcast(changedId: entryId)
     }
 
+    func countEntries(on date: Date, excluding draftId: String) async throws -> Int {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: date)
+        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return 0 }
+        return store.filter { entry in
+            entry.id != draftId && entry.createdAt >= start && entry.createdAt < end
+        }.count
+    }
+
     // MARK: - Broadcast
 
     private func broadcast(changedId: String) {
