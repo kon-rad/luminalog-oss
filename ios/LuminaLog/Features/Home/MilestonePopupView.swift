@@ -3,6 +3,9 @@ import SwiftUI
 /// Full-height sheet shown once/day when the 750-word goal is crossed.
 struct MilestonePopupView: View {
     let target: Int
+    /// True when shown on the same day the goal was reached; controls whether the
+    /// copy says "today" (the gate can open on a later day — see MilestoneCoordinator).
+    var earnedToday: Bool = true
     let onGenerate: () -> Void
     let onDismiss: () -> Void
 
@@ -17,7 +20,7 @@ struct MilestonePopupView: View {
                 .scaleEffect(appeared ? 1 : 0.4)
                 .animation(.spring(response: 0.5, dampingFraction: 0.6), value: appeared)
 
-            Text("\(target) words today!")
+            Text(earnedToday ? "\(target) words today!" : "You hit your \(target)-word goal!")
                 .font(.journalTitle).foregroundStyle(Color.textPrimary)
 
             Text("Congratulations — you completed your daily writing challenge.")
@@ -43,7 +46,9 @@ struct MilestonePopupView: View {
         .background(Color.appBackground.ignoresSafeArea())
         .onAppear { appeared = true }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Congratulations, you reached \(target) words today.")
+        .accessibilityLabel(earnedToday
+            ? "Congratulations, you reached \(target) words today."
+            : "Congratulations, you reached your \(target) word goal.")
     }
 }
 

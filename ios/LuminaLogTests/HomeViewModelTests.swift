@@ -75,7 +75,8 @@ final class HomeViewModelTests: XCTestCase {
             journals: MockJournalRepository(),
             profiles: MockProfileRepository(profile: profile),
             ai: ai,
-            dailyReports: MockDailyReportRepository()
+            dailyReports: MockDailyReportRepository(),
+            activity: AppActivityMonitor()
         )
 
         viewModel.start()
@@ -98,7 +99,8 @@ final class HomeViewModelTests: XCTestCase {
             journals: MockJournalRepository(),
             profiles: MockProfileRepository(profile: profile),
             ai: ai,
-            dailyReports: MockDailyReportRepository()
+            dailyReports: MockDailyReportRepository(),
+            activity: AppActivityMonitor()
         )
 
         viewModel.start()
@@ -117,7 +119,8 @@ final class HomeViewModelTests: XCTestCase {
             journals: MockJournalRepository(),
             profiles: MockProfileRepository(profile: profile),
             ai: ai,
-            dailyReports: MockDailyReportRepository()
+            dailyReports: MockDailyReportRepository(),
+            activity: AppActivityMonitor()
         )
 
         viewModel.start()
@@ -139,7 +142,8 @@ final class HomeViewModelTests: XCTestCase {
             journals: MockJournalRepository(),
             profiles: MockProfileRepository(),
             ai: SpyAIService(),
-            dailyReports: MockDailyReportRepository()
+            dailyReports: MockDailyReportRepository(),
+            activity: AppActivityMonitor()
         )
 
         viewModel.start()
@@ -155,5 +159,21 @@ final class HomeViewModelTests: XCTestCase {
             .prefix(HomeViewModel.recentLimit))
             .map(\.id)
         XCTAssertEqual(viewModel.recentEntries?.map(\.id), Array(expected))
+    }
+
+    @MainActor
+    func testProcessingEntryFlagDrivenFromRecentEntries() {
+        let monitor = AppActivityMonitor()
+        let processing = JournalEntry(
+            id: "p1", userId: "u", type: .voice, title: "t",
+            createdAt: Date(), content: "", media: [],
+            transcriptStatus: nil, processingStatus: .transcribing, wordCount: 0)
+        XCTAssertTrue(HomeViewModel.anyProcessing([processing]))
+        let ready = JournalEntry(
+            id: "r1", userId: "u", type: .text, title: "t",
+            createdAt: Date(), content: "hi", media: [],
+            transcriptStatus: .ready, processingStatus: nil, wordCount: 1)
+        XCTAssertFalse(HomeViewModel.anyProcessing([ready]))
+        _ = monitor // silence unused in case the helper isn't needed
     }
 }

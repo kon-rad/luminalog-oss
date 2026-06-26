@@ -42,6 +42,7 @@ struct RootView: View {
                     media: services.media,
                     dailyReports: services.dailyReports,
                     failedReports: services.failedReports,
+                    activity: services.activity,
                     onStartJournaling: { prompt in
                         createRequest = CreateEntryRequest(promptText: prompt)
                     },
@@ -106,8 +107,13 @@ struct RootView: View {
         .environmentObject(chrome)
         .environmentObject(reminders)
         .observingKeyboard(isVisible: $isKeyboardVisible)
+        .onChange(of: selectedTab) { _, tab in
+            services.activity.setOnHomeTab(tab == .home)
+        }
+        .onAppear { services.activity.setOnHomeTab(selectedTab == .home) }
         .fullScreenCover(item: $createRequest) { request in
             CreateEntryView(request: request, services: services)
+                .tracksInterruptionSurface(services.activity)
         }
         .fullScreenCover(item: $journalChatRequest) { request in
             switch request.kind {
@@ -118,6 +124,7 @@ struct RootView: View {
                     ai: services.ai,
                     speech: services.speech
                 )
+                .tracksInterruptionSurface(services.activity)
             case .voice:
                 VoiceCallView(
                     voice: services.voice,
@@ -128,6 +135,7 @@ struct RootView: View {
                     onViewTranscript: { _ in journalChatRequest = nil },
                     onInsufficientCredits: { journalChatRequest = nil }
                 )
+                .tracksInterruptionSurface(services.activity)
             }
         }
         .task {

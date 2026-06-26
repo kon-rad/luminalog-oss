@@ -22,6 +22,7 @@ struct HomeView: View {
     private let failedReports: FailedReportStore
     private let onRetryProcessing: ((String) -> Void)?
     private let onStartJournalChat: ((String, String, ChatKind) -> Void)?
+    private let activity: AppActivityMonitor
 
     init(
         journals: JournalRepository,
@@ -30,14 +31,16 @@ struct HomeView: View {
         media: MediaUploader,
         dailyReports: DailyReportRepository,
         failedReports: FailedReportStore,
+        activity: AppActivityMonitor,
         onStartJournaling: @escaping (String?) -> Void,
         onShowMore: @escaping () -> Void,
         onPrompt: @escaping (CreateEntryRequest) -> Void,
         onRetryProcessing: ((String) -> Void)? = nil,
         onStartJournalChat: ((String, String, ChatKind) -> Void)? = nil
     ) {
+        self.activity = activity
         _viewModel = StateObject(
-            wrappedValue: HomeViewModel(journals: journals, profiles: profiles, ai: ai, dailyReports: dailyReports)
+            wrappedValue: HomeViewModel(journals: journals, profiles: profiles, ai: ai, dailyReports: dailyReports, activity: activity)
         )
         self.journals = journals
         self.profiles = profiles
@@ -76,6 +79,7 @@ struct HomeView: View {
             }) {
                 MilestonePopupView(
                     target: viewModel.goalTarget,
+                    earnedToday: viewModel.milestoneEarnedToday,
                     onGenerate: {
                         viewModel.pendingShowReport = true
                         viewModel.showMilestone = false
@@ -87,6 +91,7 @@ struct HomeView: View {
             }
             .fullScreenCover(isPresented: $viewModel.showReport) {
                 DailyInsightsReportView(ai: ai, reports: dailyReports, date: nil, failedReports: failedReports)
+                    .tracksInterruptionSurface(activity)
             }
             .navigationDestination(for: JournalDetailRoute.self) { route in
                 JournalDetailView(
@@ -99,6 +104,7 @@ struct HomeView: View {
                     onRetryProcessing: onRetryProcessing,
                     onStartJournalChat: onStartJournalChat
                 )
+                .tracksInterruptionSurface(activity)
             }
         }
         .task {
@@ -291,6 +297,7 @@ private struct HomePreview: View {
             media: MockMediaUploader(),
             dailyReports: MockDailyReportRepository(),
             failedReports: FailedReportStore(auth: MockAuthService(signedIn: true), directory: FileManager.default.temporaryDirectory),
+            activity: AppActivityMonitor(),
             onStartJournaling: { _ in },
             onShowMore: {},
             onPrompt: { _ in }

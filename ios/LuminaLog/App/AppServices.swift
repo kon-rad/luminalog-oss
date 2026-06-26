@@ -26,6 +26,8 @@ final class AppServices: ObservableObject {
     /// Runs the post-save upload/transcribe pipeline in the background so the
     /// Create screen can dismiss immediately.
     let entryProcessor: EntryProcessor
+    /// Shared "safe to interrupt the user" state (milestone gating).
+    let activity = AppActivityMonitor()
     /// Live background-upload transport, exposed so the app can forward the
     /// system's background-URLSession completion handler to it (Task 6). Nil for
     /// `mocks()` (the mock transport isn't a `BackgroundUploadTransport`).

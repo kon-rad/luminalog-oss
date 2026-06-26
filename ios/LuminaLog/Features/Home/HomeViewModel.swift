@@ -24,6 +24,9 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var promptState: PromptState = .loading
 
     @Published var showMilestone = false
+    /// The "yyyy-MM-dd" the goal was reached, for popup copy. Set when the
+    /// coordinator fires.
+    @Published private(set) var milestoneEarnedDate: String?
     @Published var showReport = false
     /// Set to true when the user taps "Generate" in the milestone sheet so
     /// the report sheet is presented after the milestone sheet fully dismisses.
@@ -33,9 +36,11 @@ final class HomeViewModel: ObservableObject {
     private let profiles: ProfileRepository
     private let ai: AIService
     private let dailyReports: DailyReportRepository
+    private let activity: AppActivityMonitor
     private let recording = RecordingState.shared
     private var coordinator: MilestoneCoordinator?
     private var recordingCancellable: AnyCancellable?
+    private var activityCancellable: AnyCancellable?
 
     private var entriesTask: Task<Void, Never>?
     private var profileTask: Task<Void, Never>?
@@ -50,7 +55,8 @@ final class HomeViewModel: ObservableObject {
 
     private var hasStarted = false
 
-    init(journals: JournalRepository, profiles: ProfileRepository, ai: AIService, dailyReports: DailyReportRepository) {
+    init(journals: JournalRepository, profiles: ProfileRepository, ai: AIService, dailyReports: DailyReportRepository, activity: AppActivityMonitor) {
+        self.activity = activity
         self.journals = journals
         self.profiles = profiles
         self.ai = ai
@@ -62,6 +68,7 @@ final class HomeViewModel: ObservableObject {
         profileTask?.cancel()
         promptResolutionTask?.cancel()
         recordingCancellable = nil
+        activityCancellable = nil
     }
 
     // MARK: - Lifecycle
@@ -72,11 +79,17 @@ final class HomeViewModel: ObservableObject {
         guard !hasStarted else { return }
         hasStarted = true
 
+        // Bridge the legacy recording flag into the shared monitor.
         recordingCancellable = recording.$isRecording
             .receive(on: RunLoop.main)
-            .sink { [weak self] isRec in
+            .sink { [weak self] isRec in self?.activity.setRecording(isRec) }
+
+        // Re-evaluate the milestone whenever the interruption gate changes.
+        activityCancellable = activity.objectWillChange
+            .receive(on: RunLoop.main)            // value is settled on the next runloop tick
+            .sink { [weak self] in
                 guard let self else { return }
-                self.coordinator?.update(goalWords: self.goalProgressWords, isRecording: isRec)
+                self.coordinator?.update(goalWords: self.goalProgressWords, canPresent: self.activity.canPresentInterruption)
             }
 
         entriesTask = Task { [weak self] in
@@ -84,6 +97,7 @@ final class HomeViewModel: ObservableObject {
             for await entries in stream {
                 guard let self, !Task.isCancelled else { return }
                 self.recentEntries = entries
+                self.activity.setProcessingEntry(Self.anyProcessing(entries))
             }
         }
 
@@ -114,10 +128,31 @@ final class HomeViewModel: ObservableObject {
     private func handleProfileUpdate() {
         if coordinator == nil, let id = profile?.id {
             let c = MilestoneCoordinator(uid: id, target: goalTarget, today: { [weak self] in self?.todayKey() ?? "" })
-            c.onShouldPresent = { [weak self] in self?.showMilestone = true }
+            c.onShouldPresent = { [weak self] earnedDate in
+                guard let self else { return }
+                self.milestoneEarnedDate = earnedDate
+                self.showMilestone = true
+            }
             coordinator = c
         }
-        coordinator?.update(goalWords: goalProgressWords, isRecording: recording.isRecording)
+        coordinator?.update(goalWords: goalProgressWords, canPresent: activity.canPresentInterruption)
+    }
+
+    /// Whether the milestone is being shown on the same day it was earned.
+    var milestoneEarnedToday: Bool {
+        milestoneEarnedDate == nil || milestoneEarnedDate == todayKey()
+    }
+
+    /// True when any entry is still in a non-settled processing state, so the
+    /// milestone popup waits until uploads/transcriptions finish.
+    static func anyProcessing(_ entries: [JournalEntry]) -> Bool {
+        entries.contains { entry in
+            if let p = entry.processingStatus,
+               p == .processing || p == .uploading || p == .saving || p == .transcribing {
+                return true
+            }
+            return entry.transcriptStatus == .processing
+        }
     }
 
     // MARK: - Greeting
