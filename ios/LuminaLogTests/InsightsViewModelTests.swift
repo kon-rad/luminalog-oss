@@ -68,5 +68,6 @@ final class InsightsViewModelTests: XCTestCase {
         func applyEntryEdit(id: String, title: String, content: String, wordCount: Int, contentEditedAt: Date?, edit: EditRecord) async throws {}
         func delete(id: String) async throws {}
         func setExcludeFromShare(entryId: String, value: Bool) async throws {}
+        func countEntries(on date: Date, excluding draftId: String) async throws -> Int { 0 }
     }
 }
