@@ -353,6 +353,8 @@ final class CreateEntryViewModel: ObservableObject {
     /// not-yet-persisted attachment bytes into the draft media dir. Prunes the
     /// draft when there is nothing worth keeping.
     func persistDraftNow() {
+        // Once saved, the entry is durable via the processor; never resurrect a draft.
+        guard !didSave else { return }
         guard hasUnsavedContent else {
             deps.drafts.delete(draftId)
             return

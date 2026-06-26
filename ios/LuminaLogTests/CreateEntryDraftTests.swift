@@ -70,6 +70,17 @@ final class CreateEntryDraftTests: XCTestCase {
         XCTAssertTrue(vm.didSave)
         XCTAssertTrue(store.all().isEmpty)   // draft cleared; entry now durable via processor
     }
+
+    func testPersistAfterSaveDoesNotRecreateDraft() {
+        let store = DraftStore(directory: tempDir())
+        let vm = makeVM(store: store)
+        vm.text = "keeper"
+        vm.persistDraftNow()
+        vm.save()
+        XCTAssertTrue(store.all().isEmpty)
+        vm.persistDraftNow()                 // simulates the onDisappear flush after save
+        XCTAssertTrue(store.all().isEmpty, "a saved entry must not leave a phantom draft")
+    }
 }
 
 /// Minimal EntryProcessor stub for tests (records nothing).
