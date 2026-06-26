@@ -90,8 +90,20 @@ final class BackgroundEntryProcessor: EntryProcessor {
     }
 
     func retry(draftId: String) {
-        guard let job = jobs[draftId] else { return }
-        start(job)
+        // In-session failed job: rerun the full pipeline (cached successes skip).
+        if let job = jobs[draftId] {
+            start(job)
+            return
+        }
+        // Cross-launch: the in-memory job is gone, but a durable voice/video
+        // upload record may survive. Restart its uploads from the journal.
+        if let pending = deps.journal.entry(draftId: draftId) {
+            tasks[draftId] = Task { [weak self] in
+                await self?.deps.uploadManager.startAll(for: pending)
+            }
+        }
+        // Text/image entries have no durable record; cross-launch retry of those
+        // is unsupported (their staged bytes are gone). They remain `.failed`.
     }
 
     /// The running task for a draft (test hook).
