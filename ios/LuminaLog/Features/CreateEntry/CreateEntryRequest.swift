@@ -6,8 +6,11 @@ import Foundation
 struct CreateEntryRequest: Identifiable, Equatable {
     let id = UUID()
     var promptText: String?
+    /// When set, the Create flow reopens this existing draft instead of a new one.
+    var resumeDraftId: String?
 
-    init(promptText: String? = nil) {
+    init(promptText: String? = nil, resumeDraftId: String? = nil) {
         self.promptText = promptText
+        self.resumeDraftId = resumeDraftId
     }
 }

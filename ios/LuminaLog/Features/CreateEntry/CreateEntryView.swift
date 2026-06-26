@@ -11,7 +11,8 @@ struct CreateEntryView: View {
     @StateObject private var recorder = AudioRecorderController()
 
     // Local presentation state.
-    @State private var showDiscardDialog = false
+    @State private var showCloseDialog = false
+    @State private var isDiscarding = false
     @State private var showPhotoSourceDialog = false
     @State private var showVideoSourceDialog = false
     @State private var showPhotoCamera = false
@@ -55,14 +56,16 @@ struct CreateEntryView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomBar
         }
+        .task { viewModel.loadResumedDraftIfNeeded() }
         .onDisappear {
+            if !isDiscarding { viewModel.persistDraftNow() }
             viewModel.stopDictation()
             recorder.cancel()
         }
         .onChange(of: viewModel.didSave) { _, didSave in
             if didSave { dismiss() }
         }
-        .interactiveDismissDisabled(viewModel.hasUnsavedContent)
+        .interactiveDismissDisabled(false)   // swipe-down keeps the autosaved draft
         .modifier(CreateEntryPickersModifier(
             showPhotoCamera: $showPhotoCamera,
             showVideoCamera: $showVideoCamera,
@@ -84,14 +87,19 @@ struct CreateEntryView: View {
             videoPickerItem = nil
             Task { await loadLibraryVideo(item) }
         }
-        .confirmationDialog("Discard this entry?", isPresented: $showDiscardDialog, titleVisibility: .visible) {
+        .confirmationDialog("Close this entry?", isPresented: $showCloseDialog, titleVisibility: .visible) {
+            Button("Keep as Draft") {
+                viewModel.persistDraftNow()
+                dismiss()
+            }
             Button("Discard", role: .destructive) {
-                viewModel.cleanupTempFiles()
+                isDiscarding = true
+                viewModel.discardDraft()
                 dismiss()
             }
             Button("Keep Editing", role: .cancel) {}
         } message: {
-            Text("Your writing and attachments will be lost.")
+            Text("Your draft is saved automatically — keep it on the home screen, or discard it.")
         }
         .confirmationDialog("Add Photos", isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
             if CameraPicker.isCameraAvailable {
@@ -161,9 +169,10 @@ struct CreateEntryView: View {
             HStack {
                 Button {
                     if viewModel.hasUnsavedContent {
-                        showDiscardDialog = true
+                        showCloseDialog = true
                     } else {
-                        viewModel.cleanupTempFiles()
+                        isDiscarding = true
+                        viewModel.discardDraft()   // nothing to keep; prune any empty draft
                         dismiss()
                     }
                 } label: {

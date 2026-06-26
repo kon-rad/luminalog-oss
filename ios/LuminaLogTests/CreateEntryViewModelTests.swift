@@ -31,7 +31,9 @@ final class CreateEntryViewModelTests: XCTestCase {
                 dependencies: CreateEntryDependencies(
                     auth: MockAuthService(signedIn: signedIn),
                     speech: speech,
-                    entryProcessor: processor
+                    entryProcessor: processor,
+                    drafts: DraftStore(directory: FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString, isDirectory: true))
                 )
             )
         }

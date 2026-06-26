@@ -28,6 +28,8 @@ final class AppServices: ObservableObject {
     let entryProcessor: EntryProcessor
     /// Shared "safe to interrupt the user" state (milestone gating).
     let activity = AppActivityMonitor()
+    /// Durable local store of in-progress drafts (recovered on Home).
+    let drafts = DraftStore()
     /// Live background-upload transport, exposed so the app can forward the
     /// system's background-URLSession completion handler to it (Task 6). Nil for
     /// `mocks()` (the mock transport isn't a `BackgroundUploadTransport`).

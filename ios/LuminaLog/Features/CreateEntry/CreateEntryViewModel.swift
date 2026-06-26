@@ -1,5 +1,7 @@
+import Combine
 import Foundation
 import OSLog
+import UIKit
 
 // MARK: - Dependencies
 
@@ -12,22 +14,21 @@ struct CreateEntryDependencies {
     let auth: AuthService
     let speech: SpeechTranscriber
     let entryProcessor: EntryProcessor
+    let drafts: DraftStore
 
-    init(
-        auth: AuthService,
-        speech: SpeechTranscriber,
-        entryProcessor: EntryProcessor
-    ) {
+    init(auth: AuthService, speech: SpeechTranscriber, entryProcessor: EntryProcessor, drafts: DraftStore) {
         self.auth = auth
         self.speech = speech
         self.entryProcessor = entryProcessor
+        self.drafts = drafts
     }
 
     init(services: AppServices) {
         self.init(
             auth: services.auth,
             speech: services.speech,
-            entryProcessor: services.entryProcessor
+            entryProcessor: services.entryProcessor,
+            drafts: services.drafts
         )
     }
 }
@@ -65,11 +66,16 @@ final class CreateEntryViewModel: ObservableObject {
 
     // MARK: Dependencies & identity
 
-    let promptText: String?
+    var promptText: String?
 
     private let deps: CreateEntryDependencies
-    /// Stable id shared by the draft and its saved entry.
-    private let draftId = UUID().uuidString
+    /// Stable id shared by the draft and its saved entry. Reused when resuming.
+    private let draftId: String
+    /// When resuming, the originating draft's createdAt (preserves list order).
+    private var resumedCreatedAt: Date?
+    /// Attachment ids already copied into the durable draft media dir.
+    private var persistedAttachmentIDs: Set<UUID> = []
+    private var autosaveCancellable: AnyCancellable?
 
     /// Exposed for tests to await dictation-stream consumption.
     private(set) var dictationTask: Task<Void, Never>?
@@ -82,6 +88,12 @@ final class CreateEntryViewModel: ObservableObject {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         self.promptText = (trimmedPrompt?.isEmpty ?? true) ? nil : trimmedPrompt
         self.deps = dependencies
+        self.draftId = request.resumeDraftId ?? UUID().uuidString
+
+        // Debounced autosave on text edits. Attachment intents persist eagerly.
+        autosaveCancellable = $text
+            .debounce(for: .seconds(0.7), scheduler: RunLoop.main)
+            .sink { [weak self] _ in self?.persistDraftNow() }
     }
 
     // MARK: Derived state
@@ -221,6 +233,7 @@ final class CreateEntryViewModel: ObservableObject {
         if attachments.audio == nil, let displacedAudioURL {
             deleteTempFile(at: displacedAudioURL)
         }
+        persistDraftNow()
     }
 
     func attachVideo(_ video: VideoAttachment) {
@@ -231,6 +244,7 @@ final class CreateEntryViewModel: ObservableObject {
             deleteTempFile(at: oldAudio)
         }
         attachments.setVideo(video)
+        persistDraftNow()
     }
 
     func attachAudio(_ audio: AudioAttachment) {
@@ -243,10 +257,12 @@ final class CreateEntryViewModel: ObservableObject {
         } else if let previousURL, previousURL != audio.url {
             deleteTempFile(at: previousURL)
         }
+        persistDraftNow()
     }
 
     func removePhoto(id: UUID) {
         attachments.removePhoto(id: id)
+        persistDraftNow()
     }
 
     func removeVideo() {
@@ -254,6 +270,7 @@ final class CreateEntryViewModel: ObservableObject {
             deleteTempFile(at: url)
         }
         attachments.removeVideo()
+        persistDraftNow()
     }
 
     func removeAudio() {
@@ -261,6 +278,7 @@ final class CreateEntryViewModel: ObservableObject {
             deleteTempFile(at: url)
         }
         attachments.removeAudio()
+        persistDraftNow()
     }
 
     /// Deletes the backing file of a picked video that was never attached
@@ -287,6 +305,115 @@ final class CreateEntryViewModel: ObservableObject {
         try? FileManager.default.removeItem(at: url)
     }
 
+    // MARK: - Draft persistence
+
+    /// Hydrates state from a resumed draft: text, prompt, and attachments
+    /// re-materialized from the durable media dir into fresh temp files (so the
+    /// invariant "attachments reference temp files" holds for the save path).
+    func loadResumedDraftIfNeeded() {
+        guard let draft = deps.drafts.load(draftId) else { return }
+        text = draft.text
+        if let p = draft.promptText { promptText = p }
+        resumedCreatedAt = draft.createdAt
+
+        var photos: [PhotoAttachment] = []
+        for desc in draft.attachments.sorted(by: { $0.order < $1.order }) {
+            guard let durable = deps.drafts.mediaURL(draftId: draftId, fileName: desc.fileName) else { continue }
+            switch desc.kind {
+            case .photo:
+                if let data = try? Data(contentsOf: durable) {
+                    photos.append(PhotoAttachment(imageData: data,
+                                                  thumbnail: UIImage(data: data),
+                                                  pixelWidth: desc.pixelWidth,
+                                                  pixelHeight: desc.pixelHeight))
+                }
+            case .audio:
+                if let temp = try? copyToTemp(durable, ext: "m4a") {
+                    _ = attachments.setAudio(AudioAttachment(url: temp, durationSec: desc.durationSec ?? 0))
+                }
+            case .video:
+                if let temp = try? copyToTemp(durable, ext: durable.pathExtension) {
+                    attachments.setVideo(VideoAttachment(url: temp, thumbnail: nil, durationSec: desc.durationSec))
+                }
+            }
+            persistedAttachmentIDs.insert(desc.id)
+        }
+        if !photos.isEmpty { _ = attachments.addPhotos(photos) }
+    }
+
+    private func copyToTemp(_ source: URL, ext: String) throws -> URL {
+        let dest = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).\(ext.isEmpty ? "dat" : ext)")
+        try? FileManager.default.removeItem(at: dest)
+        try FileManager.default.copyItem(at: source, to: dest)
+        return dest
+    }
+
+    /// Persists the current composition to the durable draft store. Copies any
+    /// not-yet-persisted attachment bytes into the draft media dir. Prunes the
+    /// draft when there is nothing worth keeping.
+    func persistDraftNow() {
+        guard hasUnsavedContent else {
+            deps.drafts.delete(draftId)
+            return
+        }
+        var descriptors: [DraftAttachment] = []
+        var order = 0
+
+        for photo in attachments.photos {
+            let fileName = "\(photo.id.uuidString).jpg"
+            if !persistedAttachmentIDs.contains(photo.id) {
+                _ = try? deps.drafts.saveMedia(draftId: draftId, fileName: fileName, data: photo.imageData)
+                persistedAttachmentIDs.insert(photo.id)
+            }
+            descriptors.append(DraftAttachment(id: photo.id, kind: .photo, fileName: fileName,
+                                               durationSec: nil, pixelWidth: photo.pixelWidth,
+                                               pixelHeight: photo.pixelHeight, order: order))
+            order += 1
+        }
+        if let video = attachments.video {
+            let fileName = "\(video.id.uuidString).\(video.url.pathExtension.isEmpty ? "mov" : video.url.pathExtension)"
+            if !persistedAttachmentIDs.contains(video.id) {
+                _ = try? deps.drafts.importMedia(draftId: draftId, fileName: fileName, from: video.url)
+                persistedAttachmentIDs.insert(video.id)
+            }
+            descriptors.append(DraftAttachment(id: video.id, kind: .video, fileName: fileName,
+                                               durationSec: video.durationSec, pixelWidth: nil,
+                                               pixelHeight: nil, order: order))
+            order += 1
+        }
+        if let audio = attachments.audio {
+            let fileName = "\(audio.id.uuidString).m4a"
+            if !persistedAttachmentIDs.contains(audio.id) {
+                _ = try? deps.drafts.importMedia(draftId: draftId, fileName: fileName, from: audio.url)
+                persistedAttachmentIDs.insert(audio.id)
+            }
+            descriptors.append(DraftAttachment(id: audio.id, kind: .audio, fileName: fileName,
+                                               durationSec: audio.durationSec, pixelWidth: nil,
+                                               pixelHeight: nil, order: order))
+            order += 1
+        }
+
+        let now = Date()
+        let draft = DraftEntry(
+            draftId: draftId,
+            text: text,
+            promptText: promptText,
+            createdAtEpoch: (resumedCreatedAt ?? now).timeIntervalSince1970,
+            updatedAtEpoch: now.timeIntervalSince1970,
+            attachments: descriptors
+        )
+        deps.drafts.upsert(draft)
+    }
+
+    /// Explicit user discard: removes the draft + its durable media, and the
+    /// still-attached temp files.
+    func discardDraft() {
+        autosaveCancellable = nil
+        deps.drafts.delete(draftId)
+        cleanupTempFiles()
+    }
+
     // MARK: - Save (hand off to the background processor)
 
     /// Packages the draft and hands it to the `EntryProcessor`, then dismisses
@@ -297,15 +424,17 @@ final class CreateEntryViewModel: ObservableObject {
         guard let userId = deps.auth.currentUserId else { return }
 
         stopDictation()
+        autosaveCancellable = nil
         let job = EntryProcessingJob(
             draftId: draftId,
             userId: userId,
             promptText: promptText,
             attachments: attachments,
             text: text,
-            createdAt: Date()
+            createdAt: resumedCreatedAt ?? Date()
         )
         deps.entryProcessor.enqueue(job)
+        deps.drafts.delete(draftId)   // entry is now durable via Firestore + UploadJournal
         didSave = true
     }
 }
