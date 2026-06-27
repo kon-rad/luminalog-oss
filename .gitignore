@@ -9,8 +9,9 @@
 !**/.env.SAMPLE
 
 # Firebase / Google service credentials
-**/GoogleService-Info.plist
-**/google-services.json
+# Wildcards (not exact names) so variants like old-/copy-/.bak can't slip through.
+**/*GoogleService-Info*.plist
+**/*google-services*.json
 **/service-account-secret.json
 **/*service-account*.json
 **/*serviceAccount*.json

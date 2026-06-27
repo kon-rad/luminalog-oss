@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+#
+# Pre-push secret scan for the PUBLIC luminalog-oss repo.
+# Blocks a push if any commit about to leave this machine adds a credential
+# file or a high-signal secret pattern. Enforces the Soul.md principle:
+# "No secret ever enters the public repo."
+#
+# Enable (once per clone):   git config core.hooksPath .githooks
+# Bypass in a true emergency: git push --no-verify   (avoid this)
+#
+set -euo pipefail
+
+RED=$'\033[31m'; YELLOW=$'\033[33m'; GREEN=$'\033[32m'; RESET=$'\033[0m'
+fail=0
+
+# Forbidden file basenames/paths (real secrets that must never be committed).
+# GoogleService-Info.plist is matched too: low-risk, but kept out by policy.
+forbidden_path_regex='(^|/)(.*GoogleService-Info.*\.plist|.*google-services.*\.json|.*service[-_]?account.*\.json|firebase-adminsdk.*\.json|\.env(\..*)?|AuthKey_.*\.p8|.*\.p12|.*\.mobileprovision|.*\.keystore|.*\.jks)$'
+# Allow the empty templates.
+allow_path_regex='\.env\.(example|sample|SAMPLE)$'
+
+# High-signal secret content patterns (added lines only).
+content_patterns=(
+  'AIza[0-9A-Za-z_-]{35}'                       # Google / Firebase API key
+  'AKIA[0-9A-Z]{16}'                            # AWS access key id
+  '-----BEGIN[A-Z ]*PRIVATE KEY-----'           # PEM private key
+  'sk-[A-Za-z0-9]{20,}'                          # OpenAI-style secret key
+  'sk_live_[0-9A-Za-z]{20,}'                     # Stripe live secret
+  'xox[baprs]-[0-9A-Za-z-]{10,}'                 # Slack token
+  'ghp_[0-9A-Za-z]{36}'                          # GitHub PAT
+)
+
+zero='0000000000000000000000000000000000000000'
+
+scan_range() {
+  # $1 = git rev range. Lists added/modified files + added content lines.
+  local range="$1"
+
+  # 1) Filename check across files touched in the range.
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    if [[ "$f" =~ $allow_path_regex ]]; then continue; fi
+    if [[ "$f" =~ $forbidden_path_regex ]]; then
+      echo "${RED}✗ secret file:${RESET} $f"
+      fail=1
+    fi
+  done < <(git diff --name-only --diff-filter=AM "$range" 2>/dev/null)
+
+  # 2) Content check on added lines.
+  local added
+  added="$(git diff --diff-filter=AM -G. "$range" 2>/dev/null | grep '^+' || true)"
+  local pat
+  for pat in "${content_patterns[@]}"; do
+    # BSD grep needs -e for patterns that start with '-' ('--' is not honored).
+    if printf '%s\n' "$added" | grep -Eq -e "$pat"; then
+      echo "${RED}✗ secret pattern in added lines:${RESET} /$pat/"
+      fail=1
+    fi
+  done
+}
+
+# Read the refs git is about to push from stdin.
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue           # branch deletion
+  if [ "$remote_sha" = "$zero" ]; then
+    # New branch on remote: scan only commits unique to this push.
+    new_commits="$(git rev-list "$local_sha" --not --remotes 2>/dev/null || true)"
+    [ -z "$new_commits" ] && continue
+    oldest="$(echo "$new_commits" | tail -1)"
+    if git rev-parse -q --verify "${oldest}^" >/dev/null 2>&1; then
+      range="${oldest}^..${local_sha}"
+    else
+      range="$(git hash-object -t tree /dev/null)..${local_sha}"   # root commit
+    fi
+  else
+    range="${remote_sha}..${local_sha}"              # existing branch: only new commits
+  fi
+  scan_range "$range"
+done
+
+# Prefer gitleaks for a deeper sweep if it's installed (advisory; patterns above are the gate).
+if command -v gitleaks >/dev/null 2>&1; then
+  echo "${GREEN}gitleaks found — running supplemental scan...${RESET}"
+  gitleaks protect --staged --no-banner >/dev/null 2>&1 || true
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo ""
+  echo "${RED}PUSH BLOCKED — a credential was about to enter the public repo.${RESET}"
+  echo "${YELLOW}Remove the file/secret from the commits, then push again.${RESET}"
+  echo "${YELLOW}If this is a verified false positive: git push --no-verify${RESET}"
+  exit 1
+fi
+
+echo "${GREEN}✓ pre-push secret scan clean${RESET}"
+exit 0
