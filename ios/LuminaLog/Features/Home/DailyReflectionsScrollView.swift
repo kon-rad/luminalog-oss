@@ -1,10 +1,13 @@
 import SwiftUI
+import UIKit
 
 /// Horizontally scrolling list of Daily Insights cards, newest first. Every
 /// saved report — including the several a single day may hold — is one card in
-/// the feed. A lead "generate" card appears when the goal is met but no report
-/// exists for today yet, and error+retry cards surface failed generations.
-/// Reports load 10 at a time and reload whenever a new one is generated.
+/// the feed. A lead generate affordance is always present: today's failed
+/// generation (retry), the met-goal milestone card, or a "Generate new" card
+/// that forces a fresh report. Each saved card's context menu offers
+/// Download/Share and Delete. Reports load 10 at a time and reload whenever a
+/// new one is generated.
 struct DailyReflectionsScrollView: View {
     let repository: DailyReportRepository
     let ai: AIService
@@ -24,6 +27,10 @@ struct DailyReflectionsScrollView: View {
     @State private var selectedReport: DailyInsightsReport?
     @State private var retryTarget: RetryTarget?
     @State private var reportToDelete: DailyInsightsReport?
+    /// Drives the "Generate new" card — opens the generator forcing a fresh report.
+    @State private var showGenerateNew = false
+    /// Rasterized card pending share/download (drives the share sheet).
+    @State private var shareItem: ShareImageItem?
 
     /// Failed dates other than today (today is handled by the lead slot).
     private var pastFailedDates: [String] {
@@ -34,9 +41,9 @@ struct DailyReflectionsScrollView: View {
     private var todayFailed: Bool { failedReports.failedDates.contains(today) }
     /// Lead slot: retry today's failed generation, or kick off the first one.
     private var showGenerateCard: Bool { goalMet && !hasTodayReport && !todayFailed }
-    private var hasSomethingToShow: Bool {
-        showGenerateCard || todayFailed || !reports.isEmpty || !pastFailedDates.isEmpty
-    }
+    /// The carousel is always shown: even with no saved reports it offers the
+    /// lead "Generate new" card, so the user can always generate from Home.
+    private var hasSomethingToShow: Bool { true }
 
     var body: some View {
         Group {
@@ -45,7 +52,11 @@ struct DailyReflectionsScrollView: View {
                     SectionHeader(title: "Daily Reflections")
                     ScrollView(.horizontal, showsIndicators: false) {
                         LazyHStack(spacing: Spacing.s) {
-                            // Lead slot: today's error+retry, or the generate card.
+                            // Lead slot — always a generate affordance up front (no
+                            // scrolling needed to reach it): today's failed
+                            // generation offers retry, a met goal offers the
+                            // milestone generate card, otherwise "Generate new"
+                            // forces a fresh report for today.
                             if todayFailed {
                                 Button { onTapToday() } label: {
                                     ReflectionErrorCard(date: today, badge: "TODAY")
@@ -54,6 +65,11 @@ struct DailyReflectionsScrollView: View {
                             } else if showGenerateCard {
                                 Button { onTapToday() } label: {
                                     GenerateInsightsCard()
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                Button { showGenerateNew = true } label: {
+                                    GenerateInsightsCard(title: "Generate\nnew", systemImage: "plus.circle")
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -76,6 +92,11 @@ struct DailyReflectionsScrollView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .contextMenu {
+                                    Button {
+                                        Task { await share(report) }
+                                    } label: {
+                                        Label("Download / Share", systemImage: "square.and.arrow.up")
+                                    }
                                     Button(role: .destructive) {
                                         reportToDelete = report
                                     } label: {
@@ -118,6 +139,18 @@ struct DailyReflectionsScrollView: View {
         .fullScreenCover(item: $retryTarget) { target in
             DailyInsightsReportView(ai: ai, reports: repository, date: target.date, failedReports: failedReports)
         }
+        // "Generate new" forces a fresh report for today (in addition to any the
+        // day already holds); on success it posts .dailyReportGenerated and the
+        // feed reloads.
+        .fullScreenCover(isPresented: $showGenerateNew) {
+            DailyInsightsReportView(
+                ai: ai, reports: repository, date: today,
+                failedReports: failedReports, initialForce: true
+            )
+        }
+        .sheet(item: $shareItem) { item in
+            ActivityView(items: [item.image])
+        }
         .alert("Delete Reflection", isPresented: .init(
             get: { reportToDelete != nil },
             set: { if !$0 { reportToDelete = nil } }
@@ -135,6 +168,18 @@ struct DailyReflectionsScrollView: View {
 
     /// Identifiable wrapper so a failed date can drive `.fullScreenCover(item:)`.
     private struct RetryTarget: Identifiable { let id: String; var date: String { id } }
+
+    /// Renders a saved report's card to an image and presents the share sheet
+    /// (whose "Save Image" covers "download"). The background photo is loaded
+    /// first so `ImageRenderer` captures it synchronously — same path the full
+    /// report view uses for its Share button.
+    @MainActor
+    private func share(_ report: DailyInsightsReport) async {
+        let background = await CardImageLoader.load(report.imageUrl)
+        let image = InsightsCardView(report: report, backgroundImage: background)
+            .renderAsUIImage()
+        shareItem = ShareImageItem(image: image)
+    }
 
     private func loadMore() async {
         guard hasMore, !isLoading else { return }
@@ -170,6 +215,9 @@ struct DailyReflectionsScrollView: View {
 // MARK: - Generate card
 
 private struct GenerateInsightsCard: View {
+    var title: String = "Generate\nInsights"
+    var systemImage: String = "sparkles"
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -178,10 +226,10 @@ private struct GenerateInsightsCard: View {
                 endPoint: .bottomTrailing
             )
             VStack(spacing: Spacing.xs) {
-                Image(systemName: "sparkles")
+                Image(systemName: systemImage)
                     .font(.title2)
                     .foregroundStyle(Color.accentWarm)
-                Text("Generate\nInsights")
+                Text(title)
                     .font(.captionText.weight(.semibold))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
@@ -191,3 +239,6 @@ private struct GenerateInsightsCard: View {
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous))
     }
 }
+
+/// Identifiable wrapper so a rendered card image can drive `.sheet(item:)`.
+private struct ShareImageItem: Identifiable { let id = UUID(); let image: UIImage }

@@ -15,7 +15,10 @@ protocol DailyReportRepository: AnyObject {
 /// `DailyReportRepository` backed by `dailyReports/{uid}/days/{yyyy-MM-dd}_{millis}`.
 /// Document ids embed the date then generation time, so lexical id order is
 /// chronological — the recent feed and latest-of-day both order by document id
-/// (auto-indexed; no composite index required).
+/// DESCENDING. Firestore auto-indexes document id ASCENDING but NOT descending,
+/// so this requires the `days` `__name__` DESC index declared in
+/// firestore.indexes.json (project luminalog-5822e). Without it Firestore throws
+/// FAILED_PRECONDITION and both generation and this feed break — see ADR-0043.
 @MainActor
 final class FirestoreDailyReportRepository: DailyReportRepository {
 

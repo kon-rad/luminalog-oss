@@ -137,13 +137,13 @@ This card will be shared publicly. It is CRITICAL that it is safe to post:
 
 "insights" must be a short, declarative STATEMENT — NOT a question. Never end it with a question mark. No compound sentences, no "and how would…" tails, no stacked clauses. Favor a single clear, punchy line over anything long.
 
-"gem" must be an original HAIKU: three short lines, roughly 5-7-5 syllables, separated by newline characters (\\n). Make it evocative and image-rich — lean on a concrete natural image (light, water, season, breath) to carry the meaning — yet quietly insightful, distilling the single truth the user touched today. Never a question, no title, no quotation marks, no end punctuation needed.
+"gem" must be a short, shareable INSIGHT, LESSON, or OBSERVATION drawn DIRECTLY from what the user actually wrote in TODAY'S journaling above — a meaningful realization, lesson learned, or quiet truth they touched in their entry (or across several entries today). It must be genuinely sourced from the substance of today's writing — not a generic platitude — yet COMPLETELY ABSTRACTED so it is safe to post publicly: render it as a universal truth anyone could relate to, never tied to the user's specific situation. Absolutely never quote the text, and never reference or even hint at any person, place, employer, health, financial, or otherwise identifying or potentially embarrassing detail — nothing that could damage the user's public image. One or two short, plain sentences. Warm and quietly profound, not a question, no quotation marks.
 
 Return STRICT JSON ONLY (no markdown, no preamble) with exactly these keys:
 {
   "insights": "ONE short, declarative statement (under 18 words) naming the key insight from today's writing and how it relates to past reflections. A statement, not a question.",
   "findings": "1-2 sentences naming an unsurprising-but-unnoticed observation about the user from another perspective",
-  "gem": "An original three-line HAIKU (~5-7-5 syllables, lines separated by \\n) distilling the most important thing the user noticed, learned, or experienced today — evocative, image-rich, and quietly insightful. Never a question.",
+  "gem": "A short, public-safe insight, lesson, or observation (1-2 short sentences) distilling something meaningful the user noticed, learned, or realized in TODAY'S entries — genuinely grounded in what they wrote yet fully abstracted into a universal truth, with no quotes and no identifying or sensitive details. Not a question.",
   "emotionSummary": "one warm sentence interpreting the top emotions above",
   "imageQuery": "2-4 generic, safe stock-photo search words for a background image matching today's emotional theme (no people, no identifiers)"
 }`,

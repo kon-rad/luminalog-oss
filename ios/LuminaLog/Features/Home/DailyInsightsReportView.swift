@@ -14,15 +14,22 @@ struct DailyInsightsReportView: View {
     /// path. Used by the DEBUG-only dev tool to preview an in-memory card that
     /// isn't (uniquely) persisted by date.
     var preloadedReport: DailyInsightsReport? = nil
+    /// When true, the initial load forces a brand-new generation instead of
+    /// returning the day's cached report — used by the "Generate new" card.
+    var initialForce: Bool = false
 
     @Environment(\.dismiss) private var dismiss
     @State private var phase: Phase = .loading
+    @State private var failureKind: FailureKind = .generic
     @State private var shareImage: ShareableImage?
     /// Pre-loaded background photo — required so ImageRenderer captures it synchronously.
     @State private var backgroundImage: UIImage?
     @State private var showDeleteConfirmation = false
 
     enum Phase { case loading, loaded(DailyInsightsReport), failed }
+    /// Distinguishes a genuine generation failure from "there's simply nothing to
+    /// reflect on today" (server returns 409 when the day has no shareable entries).
+    enum FailureKind { case generic, noEntries }
 
     /// A concrete saved report (opened from a feed card) can be deleted; the
     /// generate/retry flow (date only, no preloaded report) cannot.
@@ -86,7 +93,7 @@ struct DailyInsightsReportView: View {
         } message: {
             Text("This daily reflection will be permanently deleted and cannot be recovered.")
         }
-        .task { await load() }
+        .task { await load(force: initialForce) }
     }
 
     private var closeButton: some View {
@@ -100,18 +107,40 @@ struct DailyInsightsReportView: View {
         .accessibilityLabel("Close")
     }
 
+    // Loading/failure fill the whole canvas and center their content, so they
+    // clear the top-trailing close button instead of being pinned in the corner
+    // (the ZStack's `.topTrailing` alignment is only meant for that button).
     private var loading: some View {
         VStack(spacing: Spacing.m) {
             ProgressView().tint(Color.accentWarm)
             Text("Generating today's insights…").font(.uiBody).foregroundStyle(Color.textSecondary)
         }
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, Spacing.xl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    private var failure: some View {
+    @ViewBuilder private var failure: some View {
         VStack(spacing: Spacing.m) {
-            Text("Couldn't generate your report.").font(.uiBody).foregroundStyle(Color.textPrimary)
-            Button("Try again") { Task { await load(force: true) } }
-                .buttonStyle(.borderedProminent).tint(Color.accentWarm)
+            switch failureKind {
+            case .generic:
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.largeTitle).foregroundStyle(Color.accentWarm)
+                Text("Couldn't generate your report.")
+                    .font(.uiBody).foregroundStyle(Color.textPrimary)
+                Button("Try again") { Task { await load(force: true) } }
+                    .buttonStyle(.borderedProminent).tint(Color.accentWarm)
+            case .noEntries:
+                Image(systemName: "square.and.pencil")
+                    .font(.largeTitle).foregroundStyle(Color.accentWarm)
+                Text("Nothing to reflect on yet today.")
+                    .font(.uiBody.weight(.semibold)).foregroundStyle(Color.textPrimary)
+                Text("Write a journal entry first, then generate your insights.")
+                    .font(.captionText).foregroundStyle(Color.textSecondary)
+            }
         }
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, Spacing.xl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func load(force: Bool = false) async {
@@ -131,7 +160,15 @@ struct DailyInsightsReportView: View {
             // A new report was saved — tell Home's feed to reload so it shows.
             NotificationCenter.default.post(name: .dailyReportGenerated, object: nil)
         } catch {
-            failedReports.record(key)
+            // 409 = the day has no shareable entries yet. That isn't a failed
+            // generation, so don't leave an error card on the home feed for it —
+            // just show the friendly "nothing to reflect on" state.
+            if case ProxyAPIError.httpError(409, _) = error {
+                failureKind = .noEntries
+            } else {
+                failedReports.record(key)
+                failureKind = .generic
+            }
             phase = .failed
         }
     }
@@ -161,9 +198,10 @@ struct InsightsCardView: View {
         // and push the leading-aligned text off the card's left edge. The content
         // owns the fixed frame; the background fills exactly that.
         //
-        // Layout: the main content is vertically CENTERED in the card, which —
-        // on this tall canvas — leaves roughly the top third empty so it clears
-        // Instagram's story chrome. The footer branding is overlaid pinned to the
+        // Layout: a standard-iPhone-proportioned canvas (320×692 ≈ 9:19.5) so the
+        // exported image isn't excessively tall. The main content is TOP-aligned
+        // with generous top padding so the title sits well below the top edge with
+        // comfortable breathing room. The footer branding is overlaid pinned to the
         // bottom and keeps its position regardless of where the content lands.
         ZStack(alignment: .leading) {
             VStack(alignment: .leading, spacing: Spacing.m) {
@@ -178,7 +216,8 @@ struct InsightsCardView: View {
                 statsRow
                 emotionBars
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(.top, Spacing.xl)
 
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
@@ -187,7 +226,7 @@ struct InsightsCardView: View {
         }
         .padding(.horizontal, Spacing.l)
         .padding(.vertical, Spacing.l)
-        .frame(width: 320, height: 820, alignment: .topLeading)
+        .frame(width: 320, height: 692, alignment: .topLeading)
         .foregroundStyle(.white)
         .background {
             ZStack {
