@@ -54,6 +54,9 @@ struct DailyInsightsReportView: View {
                             caption: ShareCopy.reportCardCaption,
                             onShareSheet: { shareImage = ShareableImage(image: $0) }
                         )
+                        // Reset the bar (and its cached render) once the background
+                        // photo loads, so a card shared early isn't missing its image.
+                        .id(backgroundImage != nil)
                         .padding(.horizontal, Spacing.m)
                         if canDelete {
                             Button(role: .destructive) {

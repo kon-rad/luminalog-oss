@@ -15,6 +15,7 @@ struct ReportCardShareBar: View {
 
     @State private var cachedImage: UIImage?
     @State private var savedThisSession = false
+    @State private var savePending = false
     @State private var toastMessage: String?
     @State private var showPhotoDeniedAlert = false
 
@@ -85,6 +86,11 @@ struct ReportCardShareBar: View {
     @discardableResult
     private func ensureSaved(_ image: UIImage) async -> Bool {
         if savedThisSession { return true }
+        // Guard against a second tap racing in while the first save is still
+        // awaiting authorization/write — otherwise we'd save (and toast) twice.
+        if savePending { return false }
+        savePending = true
+        defer { savePending = false }
         switch await PhotoSaver.save(image) {
         case .saved:
             savedThisSession = true
