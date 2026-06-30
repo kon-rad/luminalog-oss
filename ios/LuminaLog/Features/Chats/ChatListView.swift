@@ -181,6 +181,7 @@ struct ChatListView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .contentMargins(.bottom, AppTabBar.scrollBottomPadding, for: .scrollContent)
     }
 
     private var skeletonList: some View {
@@ -193,6 +194,7 @@ struct ChatListView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .contentMargins(.bottom, AppTabBar.scrollBottomPadding, for: .scrollContent)
         .accessibilityHidden(true)
     }
 

@@ -15,6 +15,8 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         var goalDayDate: Date?
         /// Words journaled so far on `goalDayDate`.
         var goalDayWords: Int
+        /// Total number of prompt-answered journal entries saved by this user.
+        var promptsAnswered: Int
 
         init(
             streakCount: Int = 0,
@@ -22,7 +24,8 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
             lastEntryDate: Date? = nil,
             totalWords: Int = 0,
             goalDayDate: Date? = nil,
-            goalDayWords: Int = 0
+            goalDayWords: Int = 0,
+            promptsAnswered: Int = 0
         ) {
             self.streakCount = streakCount
             self.maxStreakCount = maxStreakCount
@@ -30,6 +33,7 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
             self.totalWords = totalWords
             self.goalDayDate = goalDayDate
             self.goalDayWords = goalDayWords
+            self.promptsAnswered = promptsAnswered
         }
     }
 

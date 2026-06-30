@@ -45,9 +45,11 @@ chatRouter.post('/', firebaseAuth, async (req: Request, res: Response) => {
     // Extended onboarding profile fields (all optional, field-encrypted).
     const profile = decodeProfileFields(dek, userSnap.data())
 
-    const msgsSnap = await db
-      .collection('chats').doc(chatId).collection('messages')
-      .orderBy('createdAt', 'desc').limit(10).get()
+    const [msgsSnap, chatSnap] = await Promise.all([
+      db.collection('chats').doc(chatId).collection('messages')
+        .orderBy('createdAt', 'desc').limit(10).get(),
+      db.collection('chats').doc(chatId).get(),
+    ])
     const history = msgsSnap.docs.reverse().map(d => ({
       role: d.data().role as string,
       content: openFieldSafe(dek, d.data().text, 'messages.text'),
@@ -60,8 +62,13 @@ chatRouter.post('/', firebaseAuth, async (req: Request, res: Response) => {
       .join(' ')
     const ragQuery = `${message} ${assistantContext}`.slice(-2000)
 
+    // Resolve journalId: prefer the value from the request body (legacy clients
+    // that send it), then fall back to the journalId stored on the chat document
+    // (set at chat creation time when launched from a journal entry detail page).
+    const resolvedJournalId = journalId || (chatSnap.data()?.journalId as string | undefined)
+
     const journalContext = await retrieveContext(uid, ragQuery, dek)
-    const focalEntry = journalId ? await fetchFocalEntry(uid, journalId, dek) : undefined
+    const focalEntry = resolvedJournalId ? await fetchFocalEntry(uid, resolvedJournalId, dek) : undefined
 
     const systemPrompt = PROMPTS.chatSystem(name, bio, profile, journalContext, focalEntry)
     const messages = [

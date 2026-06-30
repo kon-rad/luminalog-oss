@@ -22,13 +22,18 @@ struct EntryFinalizer {
             id: pending.draftId, userId: pending.userId, type: pending.type,
             title: pending.title, createdAt: pending.createdAt, content: pending.content,
             media: pending.mediaItems, transcriptStatus: pending.transcriptStatus,
-            processingStatus: .saving, wordCount: pending.wordCount)
+            processingStatus: .saving, wordCount: pending.wordCount,
+            promptText: pending.promptText)
         do {
             try await journals.save(entry)
             entry.processingStatus = isAV ? .transcribing : .ready
             try await journals.save(entry)
             do { try await profiles.recordEntrySaved(wordCountDelta: entry.wordCount, on: entry.createdAt) }
             catch { Self.logger.error("recordEntrySaved failed: \(error.localizedDescription)") }
+            if pending.promptText != nil {
+                do { try await profiles.recordPromptAnswered() }
+                catch { Self.logger.error("recordPromptAnswered failed: \(error.localizedDescription)") }
+            }
             if isAV { try? await ai.transcribeJournal(journalId: entry.id) }
             else { await ai.requestIndex(journalId: entry.id) }
         } catch {

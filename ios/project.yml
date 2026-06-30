@@ -94,6 +94,7 @@ targets:
           - fb
         ITSAppUsesNonExemptEncryption: false
         LUMINALOG_API_URL: "https://api.luminalog.com"
+        GitCommitHash: "unknown"
         REVENUECAT_API_KEY: $(REVENUECAT_API_KEY)
         # Google Sign-In redirect scheme. Resolves to the GOOGLE_REVERSED_CLIENT_ID
         # build setting above — empty (inert) until configured per the README.
@@ -101,6 +102,15 @@ targets:
           - CFBundleURLName: GoogleSignIn
             CFBundleURLSchemes:
               - $(GOOGLE_REVERSED_CLIENT_ID)
+
+    preBuildScripts:
+      - name: "Embed Git Commit Hash"
+        script: |
+          SHA=$(git -C "${SRCROOT}" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+          /usr/libexec/PlistBuddy -c "Set :GitCommitHash $SHA" "${PRODUCT_SETTINGS_PATH}" 2>/dev/null \
+            || /usr/libexec/PlistBuddy -c "Add :GitCommitHash string $SHA" "${PRODUCT_SETTINGS_PATH}"
+        shell: /bin/bash
+        showEnvVars: false
 
   LuminaLogTests:
     type: bundle.unit-test

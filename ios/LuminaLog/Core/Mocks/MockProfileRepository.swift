@@ -90,6 +90,13 @@ final class MockProfileRepository: ProfileRepository {
         broadcast()
     }
 
+    func recordPromptAnswered() async throws {
+        guard var profile = storedProfile else { throw AuthServiceError.notSignedIn }
+        profile.stats.promptsAnswered += 1
+        storedProfile = profile
+        broadcast()
+    }
+
     // MARK: - Broadcast
 
     private func broadcast() {

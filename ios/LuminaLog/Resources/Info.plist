@@ -31,10 +31,10 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>GitCommitHash</key>
+	<string>b31c3ef</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<key>LUMINALOG_API_URL</key>
-	<string>https://api.luminalog.com</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>instagram</string>
@@ -42,6 +42,8 @@
 		<string>linkedin</string>
 		<string>fb</string>
 	</array>
+	<key>LUMINALOG_API_URL</key>
+	<string>https://api.luminalog.com</string>
 	<key>NSCameraUsageDescription</key>
 	<string>LuminaLog uses the camera so you can capture photos and videos as part of your journal entries.</string>
 	<key>NSMicrophoneUsageDescription</key>

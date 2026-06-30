@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 // Mutable query results the mocked db returns, keyed by orderBy field.
-const results: Record<string, any[]> = { 'stats.maxStreakCount': [], 'stats.totalWords': [] }
+const results: Record<string, any[]> = { 'stats.maxStreakCount': [], 'stats.totalWords': [], 'stats.promptsAnswered': [] }
 let queryCount = 0
 
 vi.mock('../middleware/firebaseAuth', () => ({
@@ -40,6 +40,7 @@ function userDoc(id: string, over: any = {}) {
 beforeEach(() => {
   results['stats.maxStreakCount'] = []
   results['stats.totalWords'] = []
+  results['stats.promptsAnswered'] = []
   queryCount = 0
   __resetLeaderboardCache()
 })
@@ -70,14 +71,16 @@ describe('buildBoard', () => {
 })
 
 describe('leaderboardHandler', () => {
-  it('returns both boards from the ordered queries', async () => {
-    results['stats.maxStreakCount'] = [userDoc('a', { stats: { maxStreakCount: 9, totalWords: 1 } })]
-    results['stats.totalWords'] = [userDoc('b', { stats: { maxStreakCount: 1, totalWords: 900 } })]
+  it('returns all three boards from the ordered queries', async () => {
+    results['stats.maxStreakCount'] = [userDoc('a', { stats: { maxStreakCount: 9, totalWords: 1, promptsAnswered: 0 } })]
+    results['stats.totalWords'] = [userDoc('b', { stats: { maxStreakCount: 1, totalWords: 900, promptsAnswered: 0 } })]
+    results['stats.promptsAnswered'] = [userDoc('c', { stats: { maxStreakCount: 1, totalWords: 50, promptsAnswered: 12 } })]
     const res = mockRes()
     await leaderboardHandler({ uid: 'u' } as any, res)
     expect(res.statusCode).toBe(200)
     expect(res.body.streak[0]).toMatchObject({ userId: 'a', value: 9 })
     expect(res.body.words[0]).toMatchObject({ userId: 'b', value: 900 })
+    expect(res.body.prompts[0]).toMatchObject({ userId: 'c', value: 12 })
   })
 
   it('serves a cached payload within the TTL (no re-query)', async () => {

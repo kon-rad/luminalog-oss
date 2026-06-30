@@ -39,6 +39,10 @@ protocol ProfileRepository: AnyObject {
     /// Atomically add `minutes` to the user's cumulative in-app time.
     /// Failures are best-effort — they must not surface to the user.
     func recordTimeSpent(minutes: Int) async throws
+
+    /// Atomically increment `stats.promptsAnswered` by 1 when the user saves
+    /// an entry that answers a prompt. Best-effort — must not surface to the user.
+    func recordPromptAnswered() async throws
 }
 
 /// Applies onboarding `draft` onto `profile`. Non-empty draft values are applied;

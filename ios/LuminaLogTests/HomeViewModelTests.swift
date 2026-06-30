@@ -180,4 +180,21 @@ final class HomeViewModelTests: XCTestCase {
         XCTAssertFalse(HomeViewModel.anyProcessing([ready]))
         _ = monitor // silence unused in case the helper isn't needed
     }
+
+    /// Regression: after server-side transcription finishes it sets
+    /// `transcriptStatus = .ready` but never clears the local
+    /// `processingStatus = .transcribing` the finalizer wrote. `anyProcessing`
+    /// must reconcile via `activityState` (like the UI does) so the entry is
+    /// treated as settled — otherwise the interruption gate stays closed
+    /// forever and the 750-word milestone popup can never present.
+    @MainActor
+    func testProcessingEntryFlagClearsWhenServerTranscriptIsReady() {
+        let transcribed = JournalEntry(
+            id: "v1", userId: "u", type: .voice, title: "t",
+            createdAt: Date(), content: "a long transcript", media: [],
+            transcriptStatus: .ready, processingStatus: .transcribing, wordCount: 800)
+        XCTAssertFalse(
+            HomeViewModel.anyProcessing([transcribed]),
+            "A voice entry whose server transcript is ready should not count as processing")
+    }
 }

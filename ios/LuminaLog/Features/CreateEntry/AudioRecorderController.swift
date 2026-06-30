@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import os
 
 /// Owns the AVAudioRecorder for voice-entry capture (design §5 media row):
 /// records mono AAC `.m4a` into a temp file and publishes elapsed time.
@@ -22,6 +23,22 @@ final class AudioRecorderController: NSObject, ObservableObject {
 
     private var recorder: AVAudioRecorder?
     private var timer: Timer?
+
+    private static let logger = Logger(subsystem: "LuminaLog", category: "AudioRecorder")
+
+    /// DIAGNOSTIC: logs the input the OS actually selected vs. every input it
+    /// makes available, so we can tell whether a headset mic is being passed
+    /// over (selectable, fixable via setPreferredInput) or simply not offered
+    /// (hardware/adapter issue — no code fix possible).
+    private static func logInputs(_ session: AVAudioSession, _ context: String) {
+        let describe: (AVAudioSessionPortDescription) -> String = {
+            "\($0.portName) [\($0.portType.rawValue)]"
+        }
+        let selected = session.currentRoute.inputs.map(describe)
+        let available = (session.availableInputs ?? []).map(describe)
+        logger.notice("🎤 [\(context, privacy: .public)] selected input(s): \(selected, privacy: .public)")
+        logger.notice("🎤 [\(context, privacy: .public)] available inputs: \(available, privacy: .public)")
+    }
 
     var elapsedLabel: String {
         let seconds = Int(elapsed)
@@ -53,6 +70,7 @@ final class AudioRecorderController: NSObject, ObservableObject {
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playAndRecord, options: [.defaultToSpeaker])
             try session.setActive(true)
+            Self.logInputs(session, "AudioRecorder")
 
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("\(UUID().uuidString).m4a")

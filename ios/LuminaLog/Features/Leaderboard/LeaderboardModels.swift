@@ -13,8 +13,26 @@ struct LeaderboardEntry: Decodable, Equatable, Identifiable {
     var id: String { userId }
 }
 
-/// The full payload: both boards in one response.
+/// The full payload: streak, words, and prompts boards in one response.
 struct Leaderboards: Decodable, Equatable {
     let streak: [LeaderboardEntry]
     let words: [LeaderboardEntry]
+    let prompts: [LeaderboardEntry]
+
+    init(streak: [LeaderboardEntry] = [], words: [LeaderboardEntry] = [], prompts: [LeaderboardEntry] = []) {
+        self.streak = streak
+        self.words = words
+        self.prompts = prompts
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        streak = try c.decode([LeaderboardEntry].self, forKey: .streak)
+        words = try c.decode([LeaderboardEntry].self, forKey: .words)
+        prompts = (try? c.decode([LeaderboardEntry].self, forKey: .prompts)) ?? []
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case streak, words, prompts
+    }
 }

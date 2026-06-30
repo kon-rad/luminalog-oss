@@ -179,13 +179,20 @@ final class HomeViewModel: ObservableObject {
 
     /// True when any entry is still in a non-settled processing state, so the
     /// milestone popup waits until uploads/transcriptions finish.
+    ///
+    /// Uses the reconciled `activityState` rather than the raw `processingStatus`
+    /// field: server-side transcription completes by setting `transcriptStatus
+    /// = .ready` but never clears the `.transcribing` `processingStatus` the
+    /// finalizer wrote. Reading the raw field left the gate stuck closed forever
+    /// after any voice/video entry, so the milestone popup could never present.
     static func anyProcessing(_ entries: [JournalEntry]) -> Bool {
         entries.contains { entry in
-            if let p = entry.processingStatus,
-               p == .processing || p == .uploading || p == .saving || p == .transcribing {
+            switch entry.activityState {
+            case .processing, .uploading, .saving, .transcribing:
                 return true
+            case .idle, .failed:
+                return false
             }
-            return entry.transcriptStatus == .processing
         }
     }
 

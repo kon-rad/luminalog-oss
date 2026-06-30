@@ -41,9 +41,15 @@ struct AppTabBar: View {
     var onCreateTapped: () -> Void
 
     /// Height of the bar's content area (above the home-indicator inset).
-    private static let barHeight: CGFloat = 56
+    static let barHeight: CGFloat = 56
     /// Diameter of the raised create button.
-    private static let createButtonSize: CGFloat = 64
+    static let createButtonSize: CGFloat = 64
+
+    /// Bottom padding scroll views on tab-bar screens should add so content
+    /// fully clears both the bar and the raised "+" button above it.
+    /// Accounts for the full bar height (in case safeAreaInset doesn't
+    /// propagate through NavigationStack) plus the ring's upward overhang.
+    static let scrollBottomPadding: CGFloat = barHeight + (createButtonSize + 8) / 2 + 4
 
     var body: some View {
         HStack(spacing: 0) {

@@ -144,7 +144,8 @@ final class BackgroundEntryProcessor: EntryProcessor {
             media: [],
             transcriptStatus: nil,
             processingStatus: .processing,
-            wordCount: WordCount.of(typed)
+            wordCount: WordCount.of(typed),
+            promptText: job.promptText
         )
 
         // Pure-text entries settle instantly, so they skip the placeholder and
@@ -189,6 +190,10 @@ final class BackgroundEntryProcessor: EntryProcessor {
             } catch {
                 Self.logger.error("recordEntrySaved failed: \(error)")
             }
+            if job.promptText != nil {
+                do { try await deps.profiles.recordPromptAnswered() }
+                catch { Self.logger.error("recordPromptAnswered failed: \(error)") }
+            }
 
             // Text/image just trigger a Chroma index of existing content.
             await deps.ai.requestIndex(journalId: entry.id)
@@ -224,7 +229,8 @@ final class BackgroundEntryProcessor: EntryProcessor {
             media: [],
             transcriptStatus: nil,
             processingStatus: .processing,
-            wordCount: WordCount.of(typed)
+            wordCount: WordCount.of(typed),
+            promptText: job.promptText
         )
 
         do {

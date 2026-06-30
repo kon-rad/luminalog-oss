@@ -50,7 +50,7 @@ struct JournalListView: View {
                     content
                 }
                 .padding(.horizontal, Spacing.m)
-                .padding(.bottom, Spacing.xl)
+                .padding(.bottom, AppTabBar.scrollBottomPadding)
             }
             .background(Color.appBackground.ignoresSafeArea())
             .navigationTitle("Journal")
@@ -223,6 +223,7 @@ private struct FilterChip: View {
         switch filter {
         case .all: return .accentWarm
         case .type(let type): return type.tint
+        case .withPrompt: return .purple
         }
     }
 

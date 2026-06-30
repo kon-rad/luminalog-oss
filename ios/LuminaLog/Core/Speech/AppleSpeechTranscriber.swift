@@ -82,6 +82,16 @@ final class AppleSpeechTranscriber: NSObject, SpeechTranscriber {
                 )
                 try session.setActive(true, options: .notifyOthersOnDeactivation)
 
+                // DIAGNOSTIC: log selected vs. available inputs to see whether a
+                // headset mic is being passed over or simply never offered.
+                let describe: (AVAudioSessionPortDescription) -> String = {
+                    "\($0.portName) [\($0.portType.rawValue)]"
+                }
+                let selectedInputs = session.currentRoute.inputs.map(describe)
+                let availableInputs = (session.availableInputs ?? []).map(describe)
+                Self.logger.notice("🎤 [Transcriber] selected input(s): \(selectedInputs, privacy: .public)")
+                Self.logger.notice("🎤 [Transcriber] available inputs: \(availableInputs, privacy: .public)")
+
                 let inputNode = audioEngine.inputNode
                 let format = inputNode.outputFormat(forBus: 0)
                 // Weak-self tap so buffer routing always uses the CURRENT

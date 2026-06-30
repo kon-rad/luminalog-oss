@@ -121,6 +121,8 @@ private struct LeaderboardRow: View {
             return "\(entry.value)"
         case .words:
             return entry.value.formatted(.number.grouping(.automatic))
+        case .prompts:
+            return entry.value.formatted(.number.grouping(.automatic))
         }
     }
 

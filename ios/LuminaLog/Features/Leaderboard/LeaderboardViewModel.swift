@@ -7,12 +7,14 @@ final class LeaderboardViewModel: ObservableObject {
     enum Board: String, CaseIterable, Identifiable {
         case streak
         case words
+        case prompts
 
         var id: String { rawValue }
         var title: String {
             switch self {
             case .streak: return "Streaks"
             case .words: return "Words"
+            case .prompts: return "Prompts"
             }
         }
     }
@@ -27,6 +29,7 @@ final class LeaderboardViewModel: ObservableObject {
     @Published private(set) var state: LoadState = .loading
     @Published private(set) var streak: [LeaderboardEntry] = []
     @Published private(set) var words: [LeaderboardEntry] = []
+    @Published private(set) var prompts: [LeaderboardEntry] = []
 
     let currentUserId: String?
     private let service: LeaderboardService
@@ -41,6 +44,7 @@ final class LeaderboardViewModel: ObservableObject {
         switch selected {
         case .streak: return streak
         case .words: return words
+        case .prompts: return prompts
         }
     }
 
@@ -55,6 +59,7 @@ final class LeaderboardViewModel: ObservableObject {
             let boards = try await service.fetch()
             streak = boards.streak
             words = boards.words
+            prompts = boards.prompts
             state = .loaded
         } catch {
             state = .failed(error.localizedDescription)

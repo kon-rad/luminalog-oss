@@ -186,48 +186,34 @@ struct DailyInsightsReportView: View {
 /// Wrapper so a UIImage can drive `.sheet(item:)`.
 private struct ShareableImage: Identifiable { let id = UUID(); let image: UIImage }
 
-/// The visual card (matches the approved mockup): darkened themed photo behind
-/// the three sections, stats, emotion bars, attribution.
+/// The visual card: darkened themed photo behind the content, everything
+/// centered vertically and horizontally. Footer sits directly below the stats row.
 struct InsightsCardView: View {
     let report: DailyInsightsReport
     /// Pre-loaded UIImage for the background; required for ImageRenderer to capture it synchronously.
     var backgroundImage: UIImage? = nil
 
     var body: some View {
-        // The photo + gradient are applied as a `.background` (not as ZStack
-        // siblings) so the `scaledToFill` image cannot report an oversized layout
-        // and push the leading-aligned text off the card's left edge. The content
-        // owns the fixed frame; the background fills exactly that.
-        //
-        // Layout: a standard-iPhone-proportioned canvas (320×692 ≈ 9:19.5) so the
-        // exported image isn't excessively tall. The main content is TOP-aligned
-        // with generous top padding so the title sits well below the top edge with
-        // comfortable breathing room. The footer branding is overlaid pinned to the
-        // bottom and keeps its position regardless of where the content lands.
-        ZStack(alignment: .leading) {
-            VStack(alignment: .leading, spacing: Spacing.m) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("DAILY INSIGHTS").font(.captionText.weight(.semibold))
-                        .foregroundStyle(Color.accentWarm).kerning(2)
-                    Text(formattedDate).font(.uiBody.weight(.semibold))
-                        .foregroundStyle(.white)
-                }
-                section("Insights", report.insights)
-                section("A Gem", report.gem)
-                statsRow
-                emotionBars
+        // Content is centered in the fixed 320×692 canvas. The background photo +
+        // gradient are applied via `.background` so scaledToFill cannot push layout.
+        VStack(alignment: .center, spacing: Spacing.m) {
+            VStack(alignment: .center, spacing: 2) {
+                Text("DAILY INSIGHTS").font(.captionText.weight(.semibold))
+                    .foregroundStyle(Color.accentWarm).kerning(2)
+                Text(formattedDate).font(.uiBody.weight(.semibold))
+                    .foregroundStyle(.white)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(.top, Spacing.xl)
-
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                footer
-            }
+            section("Insights", report.insights)
+            section("A Gem", report.gem)
+            emotionBars
+            statsRow
+            footer
         }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .padding(.horizontal, Spacing.l)
         .padding(.vertical, Spacing.l)
-        .frame(width: 320, height: 692, alignment: .topLeading)
+        .frame(width: 320, height: 692)
         .foregroundStyle(.white)
         .background {
             ZStack {
@@ -279,7 +265,7 @@ struct InsightsCardView: View {
     }
 
     private func section(_ title: String, _ body: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .center, spacing: 3) {
             Text(title.uppercased()).font(.captionText.weight(.semibold))
                 .foregroundStyle(Color.accentWarm).kerning(1)
             Text(body).font(.uiBody)
@@ -304,7 +290,7 @@ struct InsightsCardView: View {
 
     @ViewBuilder private var emotionBars: some View {
         if !report.emotions.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .center, spacing: 6) {
                 ForEach(report.emotions, id: \.name) { e in
                     HStack(spacing: 8) {
                         Text(e.name).font(.captionText).frame(width: 90, alignment: .leading)
@@ -318,9 +304,11 @@ struct InsightsCardView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity)
         }
     }
 
+    /// Footer sits directly below the stats row in the content flow.
     private var footer: some View {
         HStack(alignment: .center, spacing: Spacing.s) {
             Image("LogoIcon")
@@ -334,7 +322,6 @@ struct InsightsCardView: View {
                 Text("journaling companion").font(.system(size: 9))
                     .foregroundStyle(.white.opacity(0.85))
             }
-            Spacer()
         }
     }
 }

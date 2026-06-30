@@ -69,7 +69,8 @@ extension JournalEntry {
                 vector: VectorState(data: data["vector"] as? [String: Any]) ?? VectorState(),
                 wordCount: data["wordCount"] as? Int ?? 0,
                 emotion: EmotionScore(firestore: data["emotion"] as? [String: Any]),
-                excludeFromShare: data["excludeFromShare"] as? Bool ?? false
+                excludeFromShare: data["excludeFromShare"] as? Bool ?? false,
+                promptText: data["promptText"] as? String
             )
         } catch {
             return nil
@@ -100,6 +101,7 @@ extension JournalEntry {
         if let prompts { data["prompts"] = try prompts.firestoreData(cipher: cipher) }
         data["excludeFromShare"] = excludeFromShare
         if let emotion { data["emotion"] = emotion.firestoreData() }
+        if let promptText { data["promptText"] = promptText }
         return data
     }
 }
@@ -314,7 +316,8 @@ extension UserProfile.Stats {
             lastEntryDate: timestamp(data["lastEntryDate"]),
             totalWords: data["totalWords"] as? Int ?? 0,
             goalDayDate: timestamp(data["goalDayDate"]),
-            goalDayWords: data["goalDayWords"] as? Int ?? 0
+            goalDayWords: data["goalDayWords"] as? Int ?? 0,
+            promptsAnswered: data["promptsAnswered"] as? Int ?? 0
         )
     }
 
@@ -324,6 +327,7 @@ extension UserProfile.Stats {
             "maxStreakCount": maxStreakCount,
             "totalWords": totalWords,
             "goalDayWords": goalDayWords,
+            "promptsAnswered": promptsAnswered,
         ]
         if let lastEntryDate { data["lastEntryDate"] = Timestamp(date: lastEntryDate) }
         if let goalDayDate { data["goalDayDate"] = Timestamp(date: goalDayDate) }

@@ -72,7 +72,7 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, Spacing.m)
                 .padding(.top, Spacing.m)
-                .padding(.bottom, Spacing.xl)
+                .padding(.bottom, AppTabBar.scrollBottomPadding)
             }
             .background(Color.appBackground.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)

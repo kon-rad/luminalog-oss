@@ -10,17 +10,19 @@ final class JournalListViewModel: ObservableObject {
 
     // MARK: - Filter
 
-    /// Type filter chips: All / Text / Voice / Video / Image.
+    /// Type filter chips: All / Text / Voice / Video / Image / Prompted.
     enum TypeFilter: Hashable {
         case all
         case type(JournalType)
+        case withPrompt
 
-        static let allFilters: [TypeFilter] = [.all] + JournalType.allCases.map { .type($0) }
+        static let allFilters: [TypeFilter] = [.all] + JournalType.allCases.map { .type($0) } + [.withPrompt]
 
         var title: String {
             switch self {
             case .all: return "All"
             case .type(let type): return type.displayName
+            case .withPrompt: return "Prompted"
             }
         }
     }
@@ -183,6 +185,7 @@ final class JournalListViewModel: ObservableObject {
         switch filter {
         case .all: return true
         case .type(let type): return entry.type == type
+        case .withPrompt: return entry.promptText != nil
         }
     }
 

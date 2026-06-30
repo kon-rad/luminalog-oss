@@ -44,6 +44,7 @@ final class EntryProcessorTests: XCTestCase {
         func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws { recordedDeltas.append(wordCountDelta) }
         func recordMediaUploaded(kind: MediaKind, bytes: Int) async throws {}
         func recordTimeSpent(minutes: Int) async throws {}
+        func recordPromptAnswered() async throws {}
     }
 
     @MainActor

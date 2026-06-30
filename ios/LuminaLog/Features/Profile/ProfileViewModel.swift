@@ -228,4 +228,9 @@ final class ProfileViewModel: ObservableObject {
     var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
     }
+
+    /// Short git commit SHA embedded at build time ("a1b2c3d" or "unknown").
+    var gitCommit: String {
+        Bundle.main.object(forInfoDictionaryKey: "GitCommitHash") as? String ?? "unknown"
+    }
 }

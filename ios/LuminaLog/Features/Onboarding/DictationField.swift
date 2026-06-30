@@ -17,26 +17,11 @@ struct DictationField: View {
 
     var body: some View {
         VStack(spacing: Spacing.xs) {
-            TextEditor(text: $text)
-                .frame(height: textAreaHeight)
-                .scrollContentBackground(.hidden)
-                .font(.uiBody)
-                .foregroundStyle(Color.textPrimary)
-                .padding(Spacing.s)
-                .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)
-                        .fill(Color.secondaryBackground.opacity(0.6))
-                )
-                .overlay(alignment: .topLeading) {
-                    if text.isEmpty {
-                        Text(placeholder)
-                            .font(.uiBody)
-                            .foregroundStyle(Color.textSecondary.opacity(0.5))
-                            .padding(.top, Spacing.s + 8)
-                            .padding(.leading, Spacing.s + 5)
-                            .allowsHitTesting(false)
-                    }
-                }
+            if multiline {
+                multilineEditor
+            } else {
+                singleLineField
+            }
 
             // Mic + paste buttons anchored to the left
             HStack(spacing: Spacing.s) {
@@ -49,6 +34,44 @@ struct DictationField: View {
         // (e.g. the onboarding screen advances), so its recognition task can't
         // keep writing into the next screen's binding.
         .onDisappear { stop() }
+    }
+
+    // Spacious editor for long-form answers (biography, goals, hobbies, …).
+    private var multilineEditor: some View {
+        TextEditor(text: $text)
+            .frame(height: textAreaHeight)
+            .scrollContentBackground(.hidden)
+            .font(.uiBody)
+            .foregroundStyle(Color.textPrimary)
+            .padding(Spacing.s)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)
+                    .fill(Color.secondaryBackground.opacity(0.6))
+            )
+            .overlay(alignment: .topLeading) {
+                if text.isEmpty {
+                    Text(placeholder)
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textSecondary.opacity(0.5))
+                        .padding(.top, Spacing.s + 8)
+                        .padding(.leading, Spacing.s + 5)
+                        .allowsHitTesting(false)
+                }
+            }
+    }
+
+    // Single-line input for short answers (name, age, gender, location, …).
+    private var singleLineField: some View {
+        TextField(placeholder, text: $text)
+            .font(.uiBody)
+            .foregroundStyle(Color.textPrimary)
+            .textFieldStyle(.plain)
+            .submitLabel(.done)
+            .padding(Spacing.s)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)
+                    .fill(Color.secondaryBackground.opacity(0.6))
+            )
     }
 
     private var micButton: some View {

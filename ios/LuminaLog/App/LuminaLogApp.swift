@@ -25,11 +25,13 @@ struct LuminaLogApp: App {
         let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "startup")
 
         #if DEBUG
-        // Debug builds default to dev mode on (paywall/credit gates off, dev
-        // tools like the onboarding replay visible). Registration only sets the
-        // value when the user hasn't explicitly overridden the key, so toggling
-        // it off still sticks.
-        UserDefaults.standard.register(defaults: [DevFlags.devModeKey: true])
+        // Dev mode is OFF by default so the paywall and credit gates — and the
+        // SettingsView developer tools (onboarding replay, daily-report
+        // generation) — behave exactly as they do in the App Store build. Flip to
+        // `true` locally to bring the dev tools back while developing. Release
+        // builds never reach this branch, so `devMode` is always false in
+        // production regardless.
+        UserDefaults.standard.register(defaults: [DevFlags.devModeKey: false])
         #endif
 
         // Upgrade the legacy `ll-force-dark` boolean to the three-way theme setting

@@ -110,7 +110,7 @@ struct SettingsView: View {
                 }
                 .padding(.horizontal, Spacing.m)
                 .padding(.top, Spacing.s)
-                .padding(.bottom, Spacing.xl)
+                .padding(.bottom, AppTabBar.scrollBottomPadding)
             }
             .background(Color.appBackground.ignoresSafeArea())
             .navigationTitle("Settings")
@@ -777,11 +777,17 @@ struct SettingsView: View {
     }
 
     private var versionFooter: some View {
-        Text("LuminaLog v\(viewModel.appVersion)")
-            .font(.captionText)
-            .foregroundStyle(Color.textSecondary.opacity(0.8))
-            .frame(maxWidth: .infinity)
-            .padding(.top, Spacing.s)
+        VStack(spacing: 2) {
+            Text("LuminaLog v\(viewModel.appVersion)")
+                .font(.captionText)
+                .foregroundStyle(Color.textSecondary.opacity(0.8))
+            Text(viewModel.gitCommit)
+                .font(.captionText)
+                .foregroundStyle(Color.textSecondary.opacity(0.45))
+                .fontDesign(.monospaced)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, Spacing.s)
     }
 }
 

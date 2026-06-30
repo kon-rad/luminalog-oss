@@ -48,6 +48,7 @@ final class EntryProcessorRetryTests: XCTestCase {
         func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {}
         func recordMediaUploaded(kind: MediaKind, bytes: Int) async throws {}
         func recordTimeSpent(minutes: Int) async throws {}
+        func recordPromptAnswered() async throws {}
     }
 
     private final class SpyJournals: JournalRepository {

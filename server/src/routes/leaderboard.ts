@@ -17,6 +17,7 @@ export interface LeaderboardEntry {
 interface Payload {
   streak: LeaderboardEntry[]
   words: LeaderboardEntry[]
+  prompts: LeaderboardEntry[]
 }
 
 let cache: { expiresAt: number; payload: Payload } | null = null
@@ -27,7 +28,7 @@ export function sanitizePhotoURL(raw: unknown): string | null {
   return /^https?:\/\//i.test(raw) ? raw : null
 }
 
-type StatField = 'maxStreakCount' | 'totalWords'
+type StatField = 'maxStreakCount' | 'totalWords' | 'promptsAnswered'
 
 export function buildBoard(
   docs: Array<{ id: string; data: () => any }>,
@@ -58,13 +59,15 @@ export async function leaderboardHandler(_req: Request, res: Response): Promise<
     return
   }
   try {
-    const [streakSnap, wordsSnap] = await Promise.all([
+    const [streakSnap, wordsSnap, promptsSnap] = await Promise.all([
       db.collection('users').orderBy('stats.maxStreakCount', 'desc').limit(LIMIT).get(),
       db.collection('users').orderBy('stats.totalWords', 'desc').limit(LIMIT).get(),
+      db.collection('users').orderBy('stats.promptsAnswered', 'desc').limit(LIMIT).get(),
     ])
     const payload: Payload = {
       streak: buildBoard(streakSnap.docs, 'maxStreakCount'),
       words: buildBoard(wordsSnap.docs, 'totalWords'),
+      prompts: buildBoard(promptsSnap.docs, 'promptsAnswered'),
     }
     cache = { expiresAt: now + CACHE_TTL_MS, payload }
     res.json(payload)

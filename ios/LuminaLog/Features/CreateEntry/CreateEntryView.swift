@@ -39,7 +39,7 @@ struct CreateEntryView: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottom) {
             Color.appBackground
                 .ignoresSafeArea()
 
@@ -53,7 +53,19 @@ struct CreateEntryView: View {
                 }
                 editor
             }
+
+            // Bottom recording panel — slides up over the lower third when recording.
+            if isRecorderPresented {
+                RecordingOverlayView(
+                    recorder: recorder,
+                    promptText: viewModel.promptText,
+                    onStop: stopAndAttach
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .zIndex(1)
+            }
         }
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isRecorderPresented)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomBar
         }
@@ -315,9 +327,6 @@ struct CreateEntryView: View {
             )
         }
         .background(Color.appBackground.opacity(0.001)) // keep hit-testing sane
-        .fullScreenCover(isPresented: $isRecorderPresented) {
-            RecordingOverlayView(recorder: recorder, onStop: stopAndAttach)
-        }
     }
 
     // MARK: - Capture handlers
