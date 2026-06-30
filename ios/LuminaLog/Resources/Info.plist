@@ -35,6 +35,13 @@
 	<false/>
 	<key>LUMINALOG_API_URL</key>
 	<string>https://api.luminalog.com</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>instagram</string>
+		<string>twitter</string>
+		<string>linkedin</string>
+		<string>fb</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>LuminaLog uses the camera so you can capture photos and videos as part of your journal entries.</string>
 	<key>NSMicrophoneUsageDescription</key>
