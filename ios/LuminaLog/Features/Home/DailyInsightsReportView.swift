@@ -46,16 +46,14 @@ struct DailyInsightsReportView: View {
                     VStack(spacing: Spacing.m) {
                         InsightsCardView(report: report, backgroundImage: backgroundImage)
                             .frame(maxWidth: .infinity, alignment: .center)
-                        Button {
-                            shareImage = ShareableImage(
-                                image: InsightsCardView(report: report, backgroundImage: backgroundImage)
+                        ReportCardShareBar(
+                            makeImage: {
+                                InsightsCardView(report: report, backgroundImage: backgroundImage)
                                     .renderAsUIImage()
-                            )
-                        } label: {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                                .font(.uiBody.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 48)
-                        }
-                        .buttonStyle(.borderedProminent).tint(Color.accentWarm)
+                            },
+                            caption: ShareCopy.reportCardCaption,
+                            onShareSheet: { shareImage = ShareableImage(image: $0) }
+                        )
                         .padding(.horizontal, Spacing.m)
                         if canDelete {
                             Button(role: .destructive) {
@@ -79,7 +77,7 @@ struct DailyInsightsReportView: View {
             closeButton
         }
         .sheet(item: $shareImage) { item in
-            ActivityView(items: [item.image])
+            ActivityView(items: [item.image, ShareCopy.reportCardCaption])
         }
         .alert("Delete Reflection", isPresented: $showDeleteConfirmation) {
             Button("Delete", role: .destructive) {
