@@ -58,7 +58,7 @@ describe('searchPhoto without a key', () => {
   it('returns null and does not call fetch', async () => {
     vi.resetModules()
     vi.doMock('../config', () => ({ config: { UNSPLASH_ACCESS_KEY: undefined } }))
-    const { searchPhoto: sp } = await import('./unsplashService')
+    const { searchPhoto: sp } = await import('./unsplashService.js')
     expect(await sp('x')).toBeNull()
   })
 })

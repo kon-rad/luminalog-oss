@@ -31,6 +31,15 @@ const schema = z.object({
   ),
   HUME_API_KEY: z.string().optional(),
   UNSPLASH_ACCESS_KEY: z.string().optional(),
+  // Soul Constellation NFT (Base) — all optional so the server boots before the
+  // mint path is built/deployed. Make required only once the code actually needs them.
+  CDP_API_KEY_ID: z.string().optional(),
+  CDP_API_KEY_SECRET: z.string().optional(),
+  CDP_WALLET_SECRET: z.string().optional(),
+  BASE_RPC_URL: z.string().optional(),
+  BASE_MINTER_PRIVATE_KEY: z.string().optional(),
+  SOULBOUND_CONTRACT_ADDRESS: z.string().optional(),
+  NFT_METADATA_BASE_URL: z.string().optional(),
 })
 
 const parsed = schema.safeParse(process.env)

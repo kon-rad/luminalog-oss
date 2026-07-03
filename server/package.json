@@ -11,12 +11,14 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.500.0",
     "@aws-sdk/s3-request-presigner": "^3.500.0",
+    "@coinbase/cdp-sdk": "^1.51.2",
     "chromadb": "^1.9.2",
     "dotenv": "^17.4.2",
     "express": "^4.18.2",
     "ffmpeg-static": "^5.2.0",
     "firebase-admin": "^12.0.0",
     "jsonwebtoken": "^9.0.2",
+    "viem": "^2.54.2",
     "zod": "^3.22.4"
   },
   "devDependencies": {
