@@ -10,6 +10,7 @@ import { revenueCatRouter } from './routes/revenuecat'
 import { mediaRouter } from './routes/media'
 import { keysRouter } from './routes/keys'
 import { leaderboardRouter } from './routes/leaderboard'
+import { soulRouter } from './routes/soul'
 
 const app = express()
 
@@ -24,6 +25,7 @@ app.use('/v1/revenuecat', revenueCatRouter)
 app.use('/v1/media', mediaRouter)
 app.use('/v1/keys', keysRouter)
 app.use('/v1/leaderboards', leaderboardRouter)
+app.use('/v1/soul', soulRouter)
 
 // Backstop error middleware — catches anything routes forward via next(err).
 // (Express 4 does not auto-forward async-handler rejections; that's handled
