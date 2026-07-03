@@ -22,8 +22,6 @@ final class JournalDetailViewModel: ObservableObject {
     @Published private(set) var entry: JournalEntry?
 
     @Published private(set) var summaryState: AIActionState = .idle
-    @Published private(set) var insightsState: AIActionState = .idle
-    @Published private(set) var promptsState: AIActionState = .idle
     /// State of the failed-transcript "Retry" action (voice/video entries
     /// whose on-device STT failed at create time).
     @Published private(set) var transcriptRetryState: AIActionState = .idle
@@ -125,35 +123,10 @@ final class JournalDetailViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Insights
-
-    func generateInsights() async {
-        guard insightsState != .loading, entry != nil else { return }
-        insightsState = .loading
-        do {
-            let generation = try await ai.generateInsights(journalId: entryId)
-            try await persist(insights: generation)
-            insightsState = .idle
-        } catch {
-            Self.logger.error("generateInsights failed: \(error.localizedDescription, privacy: .public)")
-            insightsState = .failed
-        }
-    }
-
-    // MARK: - Prompts
-
-    func generatePrompts() async {
-        guard promptsState != .loading, entry != nil else { return }
-        promptsState = .loading
-        do {
-            let items = try await ai.generatePrompts(journalId: entryId)
-            try await persist(prompts: AIPrompts(items: items))
-            promptsState = .idle
-        } catch {
-            Self.logger.error("generatePrompts failed: \(error.localizedDescription, privacy: .public)")
-            promptsState = .failed
-        }
-    }
+    // Insights and follow-up prompts are generated server-side together with the
+    // summary at index time and stored on the entry; the client only displays
+    // them (see `JournalDetailView.insightsTab` / `promptsTab`). There is no
+    // client-side generation path for them.
 
     // MARK: - Transcript retry
 
@@ -213,25 +186,23 @@ final class JournalDetailViewModel: ObservableObject {
 
     // MARK: - Persistence
 
-    /// Writes the newly generated field(s) through to the repository
-    /// (field-scoped, so a deleted entry is never recreated), then mirrors
-    /// them onto the local snapshot for instant UI (see class docs).
+    /// Writes the newly generated summary through to the repository
+    /// (field-scoped, so a deleted entry is never recreated), then mirrors it
+    /// onto the local snapshot for instant UI (see class docs).
     ///
-    /// A not-found failure means the entry was deleted mid-generation: the
-    /// result is dropped silently — the live stream has already (or will)
-    /// set `entry` to nil, so the view shows "Entry not found".
-    private func persist(
-        summary: AIGeneration? = nil,
-        insights: AIGeneration? = nil,
-        prompts: AIPrompts? = nil
-    ) async throws {
+    /// Only the summary is written client-side; insights and prompts are owned
+    /// by the server (generated + stored at index time). A not-found failure
+    /// means the entry was deleted mid-generation: the result is dropped
+    /// silently — the live stream has already (or will) set `entry` to nil, so
+    /// the view shows "Entry not found".
+    private func persist(summary: AIGeneration) async throws {
         guard var updated = entry else { return }
         do {
             try await journals.updateAIFields(
                 id: entryId,
                 summary: summary,
-                insights: insights,
-                prompts: prompts
+                insights: nil,
+                prompts: nil
             )
         } catch JournalRepositoryError.entryNotFound {
             Self.logger.notice("""
@@ -240,9 +211,7 @@ final class JournalDetailViewModel: ObservableObject {
             """)
             return
         }
-        if let summary { updated.summary = summary }
-        if let insights { updated.insights = insights }
-        if let prompts { updated.prompts = prompts }
+        updated.summary = summary
         entry = updated
     }
 }

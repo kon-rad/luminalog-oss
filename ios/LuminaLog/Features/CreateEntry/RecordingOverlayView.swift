@@ -29,9 +29,9 @@ struct RecordingOverlayView: View {
                         .fill(Color.accentWarm)
                         .frame(width: 3)
                     Text(promptText)
-                        .font(.captionText)
-                        .foregroundStyle(Color.textSecondary)
-                        .lineLimit(3)
+                        .font(.promptQuoteCompact)
+                        .foregroundStyle(Color.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(.horizontal, Spacing.m)

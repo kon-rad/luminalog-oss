@@ -98,14 +98,20 @@ chatRouter.post('/', firebaseAuth, async (req: Request, res: Response) => {
     res.flushHeaders()
 
     let fullReply = ''
+    // SSE lines can be split across read() chunks, so we buffer incomplete lines
+    // and only process them once a full newline-terminated line arrives.
     const decoder = new TextDecoder()
     const reader = (aiRes.body as any).getReader()
+    let lineBuffer = ''
 
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
-      const text = decoder.decode(value as Uint8Array)
-      for (const line of text.split('\n')) {
+      lineBuffer += decoder.decode(value as Uint8Array, { stream: true })
+      const lines = lineBuffer.split('\n')
+      // Keep the last element: it may be an incomplete line awaiting more data.
+      lineBuffer = lines.pop() ?? ''
+      for (const line of lines) {
         if (!line.startsWith('data: ')) continue
         const raw = line.slice(6).trim()
         if (raw === '[DONE]') continue

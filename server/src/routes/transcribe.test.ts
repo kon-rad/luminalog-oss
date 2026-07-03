@@ -41,8 +41,9 @@ vi.mock('../services/audioExtractor', () => ({ extractAudio: vi.fn(async () => B
 vi.mock('../services/journalIndexer', () => ({ indexJournalEntry: vi.fn(async () => ({ chunks: 2 })) }))
 vi.mock('../services/dailyGoalStreak', () => ({
   nextStats: vi.fn(() => ({ streakCount: 1, totalWords: 1, goalDayWords: 1, lastEntryDate: null, goalDayDate: null })),
+  dayIndex: vi.fn(() => 0),
 }))
-vi.mock('../services/summaryService', () => ({ ensureEntrySummaryIndexed: vi.fn(async () => true) }))
+vi.mock('../services/summaryService', () => ({ ensureEntryAIIndexed: vi.fn(async () => true) }))
 vi.mock('../services/graphBuilder', () => ({ invalidateGraph: vi.fn() }))
 vi.mock('../services/entryEmotion', () => ({ scoreEntryEmotion: vi.fn() }))
 vi.mock('../config', () => ({
@@ -50,7 +51,7 @@ vi.mock('../config', () => ({
 }))
 
 import { transcribeHandler } from './ai'
-import { ensureEntrySummaryIndexed } from '../services/summaryService'
+import { ensureEntryAIIndexed } from '../services/summaryService'
 import { invalidateGraph } from '../services/graphBuilder'
 
 function mockRes() {
@@ -70,16 +71,16 @@ describe('transcribeHandler', () => {
 
     expect(res.body).toEqual({ transcribed: true, chunks: 2 })
     // The core fix: the voice/video path must index a summary vector.
-    expect(ensureEntrySummaryIndexed).toHaveBeenCalledWith(
+    expect(ensureEntryAIIndexed).toHaveBeenCalledWith(
       expect.objectContaining({ uid: 'u', journalId: 'e1', force: true }),
     )
-    // And it must include the freshly transcribed text in the summary content.
-    expect((ensureEntrySummaryIndexed as any).mock.calls[0][0].content).toContain('hello world transcript')
+    // And it must include the freshly transcribed text in the AI content.
+    expect((ensureEntryAIIndexed as any).mock.calls[0][0].content).toContain('hello world transcript')
     expect(invalidateGraph).toHaveBeenCalledWith('u')
   })
 
   it('keeps the transcript (200) even when summary indexing fails', async () => {
-    ;(ensureEntrySummaryIndexed as any).mockRejectedValueOnce(new Error('together 503'))
+    ;(ensureEntryAIIndexed as any).mockRejectedValueOnce(new Error('together 503'))
     const req: any = { uid: 'u', body: { journalId: 'e1' } }
     const res = mockRes()
     await transcribeHandler(req, res)

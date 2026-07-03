@@ -21,16 +21,6 @@ final class MockAIService: AIService {
         return AIGeneration(text: MockData.cannedSummary, model: MockData.model)
     }
 
-    func generateInsights(journalId: String) async throws -> AIGeneration {
-        try await Task.sleep(nanoseconds: generationDelay)
-        return AIGeneration(text: MockData.cannedInsights, model: MockData.model)
-    }
-
-    func generatePrompts(journalId: String) async throws -> [String] {
-        try await Task.sleep(nanoseconds: generationDelay)
-        return MockData.cannedPrompts
-    }
-
     func dailyPrompt() async throws -> [DailyPromptItem] {
         try await Task.sleep(nanoseconds: generationDelay)
         return MockData.cannedDailyPrompts

@@ -6,13 +6,12 @@ import Foundation
 protocol AIService: AnyObject {
 
     /// Generate (and server-side persist) a summary for an entry.
+    ///
+    /// Insights and follow-up prompts are NOT generated on demand: the server
+    /// produces them together with the summary in one call at index time and
+    /// stores them on the entry (see `ensureEntryAIIndexed`). The Insights and
+    /// Prompts tabs are read-only displays of those stored fields.
     func generateSummary(journalId: String) async throws -> AIGeneration
-
-    /// Generate (and server-side persist) insights for an entry.
-    func generateInsights(journalId: String) async throws -> AIGeneration
-
-    /// Generate 5 follow-up journaling prompts for an entry.
-    func generatePrompts(journalId: String) async throws -> [String]
 
     /// Today's five personalized prompts — one per life area — generated in a
     /// single server-side LLM call. The client caches them for the day.

@@ -468,39 +468,56 @@ struct JournalDetailView: View {
 
     // MARK: - Insights tab
 
+    /// True while the entry has content to analyze but the server-generated AI
+    /// fields (summary + insights + prompts) have not yet landed — the tabs show
+    /// a quiet "analyzing" state until indexing completes. Once `vector.status`
+    /// is terminal (`.indexed`/`.failed`) an absent field means "none".
+    private func aiIsPending(_ entry: JournalEntry) -> Bool {
+        !entry.content.isEmpty && entry.vector.status == .pending
+    }
+
+    /// Read-only Insights tab: displays the server-generated insights stored on
+    /// the entry (produced with the summary + prompts in one call at index time).
+    /// No generate/regenerate affordance.
     @ViewBuilder
     private func insightsTab(_ entry: JournalEntry) -> some View {
-        if let insights = entry.insights {
+        if let insights = entry.insights, !insights.text.isEmpty {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 ForEach(Array(Self.insightBlocks(of: insights.text).enumerated()), id: \.offset) { _, block in
                     insightBlockView(block)
                 }
-
-                AIActionButton(
-                    title: "Regenerate",
-                    loadingTitle: "Analyzing your entry…",
-                    state: viewModel.insightsState,
-                    action: { Task { await viewModel.generateInsights() } }
-                )
-                .padding(.top, Spacing.s)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        } else if aiIsPending(entry) {
+            aiPendingRow("Analyzing your entry…")
         } else {
-            VStack(spacing: Spacing.m) {
-                EmptyStateView(
-                    systemImage: "sparkles",
-                    title: "No insights yet",
-                    message: "Let your AI companion reflect on this entry — themes, emotions, and patterns worth noticing."
-                )
-
-                AIActionButton(
-                    title: "Generate Insights",
-                    loadingTitle: "Analyzing your entry…",
-                    state: viewModel.insightsState,
-                    action: { Task { await viewModel.generateInsights() } }
-                )
-            }
+            EmptyStateView(
+                systemImage: "sparkles",
+                title: "No insights yet",
+                message: "Insights appear automatically once your AI companion has reflected on this entry."
+            )
         }
+    }
+
+    /// Quiet in-flight row shown on the Insights/Prompts tabs while the entry's
+    /// AI fields are still being generated server-side.
+    private func aiPendingRow(_ label: String) -> some View {
+        HStack(spacing: Spacing.s) {
+            ProgressView()
+                .controlSize(.small)
+                .tint(Color.accentWarm)
+            Text(label)
+                .font(.captionText)
+                .foregroundStyle(Color.textSecondary)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .padding(.horizontal, Spacing.m)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                .fill(Color.secondaryBackground)
+        )
+        .accessibilityLabel(label)
     }
 
     /// A parsed block of the Markdown-formatted insights text.
@@ -586,6 +603,9 @@ struct JournalDetailView: View {
 
     // MARK: - Prompts tab
 
+    /// Read-only Prompts tab: displays the five server-generated follow-up
+    /// prompts stored on the entry. Tapping one still seeds a new entry; there is
+    /// no generate/regenerate affordance.
     @ViewBuilder
     private func promptsTab(_ entry: JournalEntry) -> some View {
         if let prompts = entry.prompts, !prompts.items.isEmpty {
@@ -595,30 +615,15 @@ struct JournalDetailView: View {
                         onPrompt(CreateEntryRequest(promptText: prompt))
                     }
                 }
-
-                AIActionButton(
-                    title: "Regenerate",
-                    loadingTitle: "Writing new prompts…",
-                    state: viewModel.promptsState,
-                    action: { Task { await viewModel.generatePrompts() } }
-                )
-                .padding(.top, Spacing.m)
             }
+        } else if aiIsPending(entry) {
+            aiPendingRow("Writing prompts…")
         } else {
-            VStack(spacing: Spacing.m) {
-                EmptyStateView(
-                    systemImage: "lightbulb",
-                    title: "No prompts yet",
-                    message: "Generate five journaling prompts inspired by this entry's themes."
-                )
-
-                AIActionButton(
-                    title: "Generate Prompts",
-                    loadingTitle: "Writing prompts…",
-                    state: viewModel.promptsState,
-                    action: { Task { await viewModel.generatePrompts() } }
-                )
-            }
+            EmptyStateView(
+                systemImage: "lightbulb",
+                title: "No prompts yet",
+                message: "Follow-up prompts appear automatically once your AI companion has reflected on this entry."
+            )
         }
     }
 }

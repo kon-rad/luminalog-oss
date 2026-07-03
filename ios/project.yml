@@ -81,7 +81,7 @@ targets:
         UIBackgroundModes:
           - audio
         NSMicrophoneUsageDescription: "LuminaLog uses the microphone so you can record voice journal entries and dictate your thoughts."
-        NSSpeechRecognitionUsageDescription: "LuminaLog transcribes your voice recordings on-device so your spoken reflections become searchable journal text."
+        NSSpeechRecognitionUsageDescription: "LuminaLog transcribes your voice recordings — on-device when your device supports it — so your spoken reflections become searchable journal text."
         NSCameraUsageDescription: "LuminaLog uses the camera so you can capture photos and videos as part of your journal entries."
         NSPhotoLibraryUsageDescription: "LuminaLog accesses your photo library so you can attach photos and videos to your journal entries."
         NSPhotoLibraryAddUsageDescription: "LuminaLog can save photos and videos from your journal entries back to your photo library."

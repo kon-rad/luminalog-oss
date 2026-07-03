@@ -32,6 +32,8 @@ struct SettingsView: View {
 
     @AppStorage(ThemeMode.storageKey) private var themeMode: String = ThemeMode.system.rawValue
 
+    @Environment(\.openURL) private var openURL
+
     private let reminders: ReminderCoordinator
     @AppStorage(ReminderPrefs.enabledKey) private var reminderEnabled: Bool = false
     @AppStorage(ReminderPrefs.hourKey) private var reminderHour: Int = ReminderPrefs.defaultHour
@@ -101,6 +103,7 @@ struct SettingsView: View {
                     appearanceCard
                     reminderCard
                     settingsCard
+                    legalCard
                     #if DEBUG
                     if DevFlags.devMode {
                         developerCard
@@ -500,6 +503,52 @@ struct SettingsView: View {
                     .fill(Color.cardBackground)
             )
         }
+    }
+
+    // MARK: - Legal
+
+    private var legalCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Legal")
+                .font(.sectionHeader)
+                .foregroundStyle(Color.textPrimary)
+                .padding(.bottom, Spacing.s)
+
+            VStack(spacing: 0) {
+                legalLinkRow(icon: "lock.shield", label: "Privacy Policy",
+                             url: URL(string: "https://luminalog.com/privacy")!)
+                rowDivider
+                legalLinkRow(icon: "doc.text", label: "Terms of Use",
+                             url: URL(string: "https://luminalog.com/terms")!)
+                rowDivider
+                legalLinkRow(icon: "envelope", label: "Support",
+                             url: URL(string: "https://luminalog.com/support")!)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                    .fill(Color.cardBackground)
+            )
+        }
+    }
+
+    private func legalLinkRow(icon: String, label: String, url: URL) -> some View {
+        Button { openURL(url) } label: {
+            HStack(spacing: Spacing.m) {
+                settingsIcon(icon, tint: .textSecondary)
+                Text(label)
+                    .font(.uiBody)
+                    .foregroundStyle(Color.textPrimary)
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+            }
+            .padding(Spacing.m)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityHint("Opens in Safari")
     }
 
     #if DEBUG

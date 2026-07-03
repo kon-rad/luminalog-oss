@@ -5,7 +5,7 @@ import { dayIndex } from '../services/dailyGoalStreak'
 import { config } from '../config'
 import { indexJournalEntry, deleteJournalEntry } from '../services/journalIndexer'
 import { deleteSummary, findRelated } from '../services/summaryIndexer'
-import { ensureEntrySummaryIndexed } from '../services/summaryService'
+import { ensureEntryAIIndexed } from '../services/summaryService'
 import { getOrCreateDEK } from '../crypto/keyService'
 import { openField, decryptField } from '../crypto/fieldCipher'
 import { deleteMediaObjects } from '../services/s3'
@@ -62,12 +62,13 @@ ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
     return
   }
 
-  // 2) Summary: regenerate when missing, stale, or forced. Shared with the
-  //    transcribe path via ensureEntrySummaryIndexed so every content path
-  //    keeps the summary vector in sync (see services/summaryService.ts).
+  // 2) Entry AI (summary + insights + prompts): regenerate when missing, stale,
+  //    or forced. Shared with the transcribe path via ensureEntryAIIndexed so
+  //    every content path keeps all three fields + the summary vector in sync
+  //    (see services/summaryService.ts).
   let summaryIndexed = false
   try {
-    summaryIndexed = await ensureEntrySummaryIndexed({
+    summaryIndexed = await ensureEntryAIIndexed({
       uid, journalId, data, content, title, type, date: updatedAt.slice(0, 10), dek, force,
     })
   } catch (err) {

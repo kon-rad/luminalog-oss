@@ -10,7 +10,7 @@ import Navbar from '@/components/Navbar'
  * no-training pledge, App Store subscriptions, and consumable Voice Credits.
  * ────────────────────────────────────────────────────────────────────────── */
 
-export const LEGAL_UPDATED = 'June 23, 2026'
+export const LEGAL_UPDATED = 'July 1, 2026'
 
 export function LegalLayout({
   title,
@@ -194,7 +194,9 @@ export function PrivacyContent() {
       <UL items={[
         'Cloud hosting and database / authentication providers (for example, Google Firebase / Firestore) to store accounts and encrypted data.',
         'AI model providers to generate insights, summaries, prompts, and conversation.',
+        'Live voice-conversation providers (for example, Vapi) to power real-time spoken conversations with your AI companion; audio is processed to run the call.',
         'Emotion-analysis providers used to estimate the emotional tone of an entry.',
+        'Subscription-management providers (for example, RevenueCat) to process purchases and manage your subscription and entitlement status.',
         'An image provider (for example, Unsplash) used to match a themed photograph to your daily insight card; photographer attribution is shown on the card.',
         'Apple, for sign-in, subscriptions, and in-app purchases.',
       ]} />

@@ -8,7 +8,7 @@ import { indexJournalEntry } from '../services/journalIndexer'
 import { extractAudio } from '../services/audioExtractor'
 import { PROMPTS } from '../services/prompts'
 import { generateSummaryText } from '../services/summaryGenerator'
-import { ensureEntrySummaryIndexed } from '../services/summaryService'
+import { ensureEntryAIIndexed } from '../services/summaryService'
 import { invalidateGraph } from '../services/graphBuilder'
 import { config } from '../config'
 import { getOrCreateDEK } from '../crypto/keyService'
@@ -94,41 +94,11 @@ aiRouter.post('/summary', firebaseAuth, async (req: Request, res: Response) => {
   }
 })
 
-aiRouter.post('/insights', firebaseAuth, async (req: Request, res: Response) => {
-  const uid = (req as any).uid as string
-  const { journalId } = req.body as { journalId?: string }
-  if (!journalId) { res.status(400).json({ error: 'Missing journalId' }); return }
-
-  try {
-    const data = await fetchJournal(journalId, uid)
-    const text = await generate(PROMPTS.insights(), data.content ?? '')
-    const now = new Date().toISOString()
-    res.json({ text, model: MODEL, generatedAt: now })
-  } catch (err: any) {
-    console.error('[ai/insights]', err)
-    res.status(err.status ?? 500).json({ error: err.message })
-  }
-})
-
-aiRouter.post('/prompts', firebaseAuth, async (req: Request, res: Response) => {
-  const uid = (req as any).uid as string
-  const { journalId } = req.body as { journalId?: string }
-  if (!journalId) { res.status(400).json({ error: 'Missing journalId' }); return }
-
-  try {
-    const data = await fetchJournal(journalId, uid)
-    const text = await generate(PROMPTS.prompts(), data.content ?? '')
-    const items = text
-      .split('\n')
-      .map(l => l.replace(/^\d+\.\s*/, '').trim())
-      .filter(l => l.endsWith('?'))
-      .slice(0, 5)
-    res.json({ items, model: MODEL })
-  } catch (err: any) {
-    console.error('[ai/prompts]', err)
-    res.status(err.status ?? 500).json({ error: err.message })
-  }
-})
+// Per-entry insights and follow-up prompts are no longer generated on demand:
+// they are produced together with the summary in ONE LLM call at index time
+// (services/summaryService.ts → ensureEntryAIIndexed) and stored on the entry.
+// The Insights/Prompts tabs are read-only displays of those stored fields, so
+// the former POST /v1/ai/insights and POST /v1/ai/prompts routes were removed.
 
 // Generates five personalized prompts (one per life area in DAILY_PROMPT_AREAS)
 // in a SINGLE LLM call. Called on-demand when the app opens; the client caches
@@ -308,7 +278,7 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
     // force: true because the freshly added transcript materially changes content.
     let summaryIndexed = false
     try {
-      summaryIndexed = await ensureEntrySummaryIndexed({
+      summaryIndexed = await ensureEntryAIIndexed({
         uid,
         journalId,
         data,

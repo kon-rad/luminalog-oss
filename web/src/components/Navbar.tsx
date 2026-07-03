@@ -49,10 +49,11 @@ export default function Navbar() {
 
           {/* Right */}
           <div className="flex items-center gap-6">
-            <Link href="#reflect" className="nav-link hidden md:block">Reflect</Link>
-            <Link href="#practice" className="nav-link hidden md:block">Practice</Link>
-            <Link href="#privacy" className="nav-link hidden md:block">Privacy</Link>
-            <Link href="#pricing" className="nav-link hidden md:block">Pricing</Link>
+            <Link href="/#reflect" className="nav-link hidden md:block">Reflect</Link>
+            <Link href="/#practice" className="nav-link hidden md:block">Practice</Link>
+            <Link href="/#privacy" className="nav-link hidden md:block">Privacy</Link>
+            <Link href="/#pricing" className="nav-link hidden md:block">Pricing</Link>
+            <Link href="/blog" className="nav-link hidden md:block">Blog</Link>
 
             {!loading && (
               user ? (

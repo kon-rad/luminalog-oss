@@ -29,11 +29,6 @@ final class ProxyAIService: AIService {
         let generatedAt: Date?
     }
 
-    private struct PromptsResponse: Decodable {
-        let items: [String]
-        let model: String?
-    }
-
     private struct DailyPromptResponse: Decodable {
         /// The five area-anchored prompts (new server). Optional so an older
         /// server that returns only `text` still decodes.
@@ -75,22 +70,6 @@ final class ProxyAIService: AIService {
             generatedAt: response.generatedAt ?? Date(),
             model: response.model ?? ""
         )
-    }
-
-    func generateInsights(journalId: String) async throws -> AIGeneration {
-        let response: GenerationResponse =
-            try await api.post(path: "/v1/ai/insights", body: JournalIdBody(journalId: journalId))
-        return AIGeneration(
-            text: response.text,
-            generatedAt: response.generatedAt ?? Date(),
-            model: response.model ?? ""
-        )
-    }
-
-    func generatePrompts(journalId: String) async throws -> [String] {
-        let response: PromptsResponse =
-            try await api.post(path: "/v1/ai/prompts", body: JournalIdBody(journalId: journalId))
-        return response.items
     }
 
     func dailyPrompt() async throws -> [DailyPromptItem] {

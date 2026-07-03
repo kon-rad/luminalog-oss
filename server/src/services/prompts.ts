@@ -67,12 +67,35 @@ Keep responses conversational and concise for voice — 1-3 sentences at most. A
     return `${system}\nLimit the summary to approximately ${opts.wordLength} words.`
   },
 
-  insights: (): string => `You are analyzing a journal entry to surface meaningful insights.
-Identify 3-5 key themes, emotions, patterns, or observations from this entry. Be thoughtful and specific to what the user actually wrote. Use second person.
-Format your response using Markdown: use a short \`##\` heading for each theme or section, bold (\`**text**\`) for emphasis, and \`-\` bullet lists where it helps readability. Keep the prose flowing within each section.`,
+  /**
+   * SYSTEM prompt for the combined per-entry AI call (`ensureEntryAIIndexed`).
+   * Produces the entry's SUMMARY, INSIGHTS, and five follow-up PROMPTS in ONE
+   * LLM call, returned as STRICT JSON so all three stay in sync and cost a
+   * single round trip. The entry's content is sent as the user turn. Parsed by
+   * `parseEntryAI` (services/summaryGenerator.ts). The summary portion honors
+   * the user's `summaryConfig` via `opts` (word length + system prompt),
+   * exactly like the standalone `summary` prompt above.
+   */
+  entryAI: (
+    type: string,
+    opts: { wordLength: number; systemPrompt: string },
+  ): string => {
+    const summaryInstruction = opts.systemPrompt.replaceAll('{type}', type)
+    return `You are analyzing a ${type} journal entry and producing THREE things in a single response: a summary, insights, and follow-up prompts.
 
-  prompts: (): string => `You are generating follow-up journaling prompts based on a journal entry.
-Generate exactly 5 open-ended questions that invite deeper reflection on the themes in this entry. Each prompt must be a single sentence ending with a question mark. Number them 1-5.`,
+Return STRICT JSON ONLY (no markdown fences, no preamble) with exactly these keys:
+{
+  "summary": "…",
+  "insights": "…",
+  "prompts": ["…", "…", "…", "…", "…"]
+}
+
+SUMMARY — ${summaryInstruction} Limit the summary to approximately ${opts.wordLength} words. Plain text, no markdown.
+
+INSIGHTS — Identify 3-5 key themes, emotions, patterns, or observations from this entry. Be thoughtful and specific to what the user actually wrote. Use second person. Format this value as Markdown: a short "## " heading for each theme or section, bold ("**text**") for emphasis, and "- " bullet lists where they help readability; keep the prose flowing within each section. This whole value is a single JSON string, so its newlines must be escaped as \\n.
+
+PROMPTS — Exactly 5 open-ended questions that invite deeper reflection on the themes in this entry. Each is a single sentence ending with a question mark. Return them as an array of exactly 5 strings, with no numbering inside the strings.`
+  },
 
   dailyPrompt: (): string => `You are generating a personalized daily journaling prompt.
 Based on the user's recent journal entries below, ask one specific, meaningful question that invites reflection today. The question should feel deeply personal, not generic. Write a clear, complete sentence — ideally 15-30 words. Ask ONE thing: no compound questions, no "and how will you…" tails, no run-ons. Return only the question itself — a single sentence ending with a question mark.`,

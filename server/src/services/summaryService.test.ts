@@ -14,8 +14,12 @@ vi.mock('../middleware/firebaseAuth', () => ({
   },
 }))
 vi.mock('../services/summaryGenerator', () => ({
-  generateSummaryText: vi.fn(async () => ({
-    text: 'a summary', model: 'm', generatedAt: '2026-06-20T00:00:00.000Z',
+  generateEntryAI: vi.fn(async () => ({
+    summary: 'a summary',
+    insights: '## Theme\n- point',
+    prompts: ['q1?', 'q2?', 'q3?', 'q4?', 'q5?'],
+    model: 'm',
+    generatedAt: '2026-06-20T00:00:00.000Z',
   })),
 }))
 vi.mock('../services/summaryIndexer', () => ({ indexSummary: vi.fn(async () => {}) }))
@@ -23,35 +27,41 @@ vi.mock('../crypto/fieldCipher', () => ({
   encryptField: vi.fn((_dek: Buffer, text: string) => ({ ct: text })),
 }))
 
-import { ensureEntrySummaryIndexed, shouldRegenerateSummary } from './summaryService'
-import { generateSummaryText } from './summaryGenerator'
+import { ensureEntryAIIndexed, shouldRegenerateSummary } from './summaryService'
+import { generateEntryAI } from './summaryGenerator'
 import { indexSummary } from './summaryIndexer'
 
 const DEK = Buffer.alloc(32)
 
-describe('ensureEntrySummaryIndexed', () => {
+describe('ensureEntryAIIndexed', () => {
   beforeEach(() => { vi.clearAllMocks() })
 
-  it('generates and indexes a summary vector when none exists', async () => {
-    const indexed = await ensureEntrySummaryIndexed({
+  it('generates + persists summary, insights, prompts and indexes the vector when none exists', async () => {
+    const indexed = await ensureEntryAIIndexed({
       uid: 'u', journalId: 'e1', data: {}, content: 'hello world',
       title: 'T', type: 'voice', date: '2026-06-20', dek: DEK,
     })
-    expect(generateSummaryText).toHaveBeenCalledTimes(1)
+    expect(generateEntryAI).toHaveBeenCalledTimes(1)
+    // Only the summary text is embedded into the vector store.
     expect(indexSummary).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'u', entryId: 'e1', summaryText: 'a summary', type: 'voice' }),
     )
-    expect(updateMock).toHaveBeenCalled() // persists summary text to Firestore
+    // The single Firestore update writes all three AI fields together.
+    expect(updateMock).toHaveBeenCalledTimes(1)
+    const written: any = (updateMock as any).mock.calls[0][0]
+    expect(written).toHaveProperty('summary.text')
+    expect(written).toHaveProperty('insights.text')
+    expect(written.prompts.items).toHaveLength(5)
     expect(indexed).toBe(true)
   })
 
   it('forces regeneration even when a fresh summary already exists', async () => {
     const fresh = { summary: { generatedAt: { toMillis: () => 1_000_000 } } }
-    const indexed = await ensureEntrySummaryIndexed({
+    const indexed = await ensureEntryAIIndexed({
       uid: 'u', journalId: 'e1', data: fresh, content: 'new transcript',
       title: 'T', type: 'voice', date: '2026-06-20', dek: DEK, force: true,
     })
-    expect(generateSummaryText).toHaveBeenCalledTimes(1)
+    expect(generateEntryAI).toHaveBeenCalledTimes(1)
     expect(indexSummary).toHaveBeenCalledTimes(1)
     expect(indexed).toBe(true)
   })
@@ -61,11 +71,11 @@ describe('ensureEntrySummaryIndexed', () => {
       summary: { generatedAt: { toMillis: () => 2_000_000 } },
       vector: { summaryIndexed: true },
     }
-    const indexed = await ensureEntrySummaryIndexed({
+    const indexed = await ensureEntryAIIndexed({
       uid: 'u', journalId: 'e1', data, content: 'x',
       title: 'T', type: 'voice', date: '2026-06-20', dek: DEK,
     })
-    expect(generateSummaryText).not.toHaveBeenCalled()
+    expect(generateEntryAI).not.toHaveBeenCalled()
     expect(indexSummary).not.toHaveBeenCalled()
     expect(indexed).toBe(true) // reflects existing vector.summaryIndexed
   })

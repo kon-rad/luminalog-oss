@@ -13,8 +13,6 @@ final class JournalDetailViewModelTests: XCTestCase {
         struct SpyError: Error {}
 
         var summaryCalls = 0
-        var insightsCalls = 0
-        var promptsCalls = 0
         var transcribeCalls = 0
 
         var delayNanos: UInt64 = 0
@@ -25,18 +23,6 @@ final class JournalDetailViewModelTests: XCTestCase {
             summaryCalls += 1
             try await waitAndMaybeFail()
             return AIGeneration(text: "spy summary", model: "spy")
-        }
-
-        func generateInsights(journalId: String) async throws -> AIGeneration {
-            insightsCalls += 1
-            try await waitAndMaybeFail()
-            return AIGeneration(text: "spy insights", model: "spy")
-        }
-
-        func generatePrompts(journalId: String) async throws -> [String] {
-            promptsCalls += 1
-            try await waitAndMaybeFail()
-            return (1...5).map { "Spy prompt \($0)" }
         }
 
         func dailyPrompt() async throws -> [DailyPromptItem] { [DailyPromptItem(area: "Inner World", text: "spy daily prompt")] }
@@ -207,106 +193,12 @@ final class JournalDetailViewModelTests: XCTestCase {
         XCTAssertTrue(vm3.isSummaryStale)
     }
 
-    // MARK: - Insights
-
-    @MainActor
-    func testInsightsGeneratePersistsAndSurvivesReopen() async throws {
-        let entry = makeEntry(summary: AIGeneration(text: "s", model: "m"))
-        let repo = MockJournalRepository(entries: [entry])
-        let ai = SpyAIService()
-
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
-        await viewModel.start()
-        XCTAssertNil(viewModel.entry?.insights)
-
-        await viewModel.generateInsights()
-        XCTAssertEqual(ai.insightsCalls, 1)
-        XCTAssertEqual(viewModel.entry?.insights?.text, "spy insights")
-        XCTAssertEqual(viewModel.insightsState, .idle)
-
-        let saved = try await storedEntry(id: "entry-1", in: repo)
-        XCTAssertEqual(saved?.insights?.text, "spy insights")
-
-        // Re-open: a fresh view model sees the saved insights directly.
-        let reopened = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
-        await reopened.start()
-        XCTAssertEqual(reopened.entry?.insights?.text, "spy insights")
-        XCTAssertEqual(ai.insightsCalls, 1, "Insights are never auto-generated")
-    }
-
-    @MainActor
-    func testInsightsFailureSetsFailedState() async {
-        let entry = makeEntry(summary: AIGeneration(text: "s", model: "m"))
-        let repo = MockJournalRepository(entries: [entry])
-        let ai = SpyAIService()
-        ai.shouldFail = true
-
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
-        await viewModel.start()
-        await viewModel.generateInsights()
-
-        XCTAssertEqual(viewModel.insightsState, .failed)
-        XCTAssertNil(viewModel.entry?.insights)
-    }
-
-    // MARK: - Prompts
-
-    @MainActor
-    func testPromptsGeneratePersistsFive() async throws {
-        let entry = makeEntry(summary: AIGeneration(text: "s", model: "m"))
-        let repo = MockJournalRepository(entries: [entry])
-        let ai = SpyAIService()
-
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
-        await viewModel.start()
-
-        await viewModel.generatePrompts()
-        XCTAssertEqual(ai.promptsCalls, 1)
-        XCTAssertEqual(viewModel.entry?.prompts?.items.count, 5)
-        XCTAssertEqual(viewModel.promptsState, .idle)
-
-        let saved = try await storedEntry(id: "entry-1", in: repo)
-        XCTAssertEqual(saved?.prompts?.items.count, 5)
-        XCTAssertEqual(saved?.prompts?.items.first, "Spy prompt 1")
-    }
+    // Insights and prompts are generated server-side (with the summary) at index
+    // time and only displayed by the client, so there is no client-side
+    // generation to unit-test here — see the server suite (summaryService /
+    // summaryGenerator) for their generation + persistence coverage.
 
     // MARK: - In-flight guards
-
-    @MainActor
-    func testDoubleTapGeneratesInsightsOnce() async {
-        let entry = makeEntry(summary: AIGeneration(text: "s", model: "m"))
-        let repo = MockJournalRepository(entries: [entry])
-        let ai = SpyAIService()
-        ai.delayNanos = 100_000_000
-
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
-        await viewModel.start()
-
-        async let first: Void = viewModel.generateInsights()
-        async let second: Void = viewModel.generateInsights()
-        _ = await (first, second)
-
-        XCTAssertEqual(ai.insightsCalls, 1, "The loading guard allows exactly one in-flight generation")
-        XCTAssertEqual(viewModel.entry?.insights?.text, "spy insights")
-    }
-
-    @MainActor
-    func testDoubleTapGeneratesPromptsOnce() async {
-        let entry = makeEntry(summary: AIGeneration(text: "s", model: "m"))
-        let repo = MockJournalRepository(entries: [entry])
-        let ai = SpyAIService()
-        ai.delayNanos = 100_000_000
-
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
-        await viewModel.start()
-
-        async let first: Void = viewModel.generatePrompts()
-        async let second: Void = viewModel.generatePrompts()
-        _ = await (first, second)
-
-        XCTAssertEqual(ai.promptsCalls, 1)
-        XCTAssertEqual(viewModel.entry?.prompts?.items.count, 5)
-    }
 
     @MainActor
     func testDoubleTapRegeneratesSummaryOnce() async {
@@ -339,15 +231,15 @@ final class JournalDetailViewModelTests: XCTestCase {
         let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
         await viewModel.start()
 
-        // Delete the entry while the generation is still in flight.
-        async let generation: Void = viewModel.generateInsights()
+        // Delete the entry while a summary (re)generation is still in flight.
+        async let generation: Void = viewModel.generateSummary()
         try await Task.sleep(nanoseconds: 30_000_000)
         try await repo.delete(id: "entry-1")
         await generation
 
         let stored = try await storedEntry(id: "entry-1", in: repo)
         XCTAssertNil(stored, "Persisting an AI field must never recreate a deleted entry")
-        XCTAssertEqual(viewModel.insightsState, .idle, "Not-found persistence is a silent no-op")
+        XCTAssertEqual(viewModel.summaryState, .idle, "Not-found persistence is a silent no-op")
     }
 
     @MainActor

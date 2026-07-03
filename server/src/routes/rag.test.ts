@@ -12,7 +12,7 @@ vi.mock('../services/summaryIndexer', () => ({
   indexSummary: vi.fn(), deleteSummary: vi.fn(),
 }))
 vi.mock('../services/journalIndexer', () => ({ indexJournalEntry: vi.fn(), deleteJournalEntry: vi.fn() }))
-vi.mock('../services/summaryGenerator', () => ({ generateSummaryText: vi.fn() }))
+vi.mock('../services/summaryGenerator', () => ({ generateSummaryText: vi.fn(), generateEntryAI: vi.fn() }))
 vi.mock('../crypto/fieldCipher', () => ({ openField: vi.fn(), encryptField: vi.fn() }))
 vi.mock('../config', () => ({ config: { RELATED_TOP_K: 20, GRAPH_TOP_K: 4, GRAPH_MIN_SIMILARITY: 0.75, GRAPH_MAX_DEGREE: 12, AWS_REGION: 'us-east-1', AWS_ACCESS_KEY_ID: 'x', AWS_SECRET_ACCESS_KEY: 'x', AWS_S3_BUCKET: 'b' } }))
 vi.mock('../services/entryEmotion', () => ({ scoreEntryEmotion: vi.fn() }))
