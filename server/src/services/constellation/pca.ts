@@ -57,7 +57,17 @@ export function pcaTo3D(vectors: number[][]): Point3D[] {
   // Uniform scale into the unit cube.
   let maxAbs = 0
   for (const row of coords) for (const x of row) if (Math.abs(x) > maxAbs) maxAbs = Math.abs(x)
-  const s = maxAbs > 0 ? 1 / maxAbs : 0
+  if (maxAbs === 0) {
+    // Zero variance (all input vectors identical → PCA yields no spread). Scaling
+    // by 0 would stack every star at the origin; instead lay them out on a
+    // deterministic unit circle so they stay distinct and inside the unit cube.
+    return coords.map((_, i) => ({
+      x: Math.cos((2 * Math.PI * i) / n),
+      y: Math.sin((2 * Math.PI * i) / n),
+      z: 0,
+    }))
+  }
+  const s = 1 / maxAbs
   return coords.map(([x, y, z]) => ({ x: x * s, y: y * s, z: z * s }))
 }
 

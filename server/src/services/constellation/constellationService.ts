@@ -32,42 +32,69 @@ function dateForDayIndex(dayIndex: number): string {
  * day-centroids and persists the point-set.
  */
 export async function updateConstellationForDay(userId: string, dayIndex: number): Promise<void> {
+  // Read the day OUTSIDE the transaction (Chroma, not Firestore).
   const day = await computeDayCentroid(userId, dayIndex)
-  if (!day) return
-  if (day.wordTotal < WORD_TARGET) return // day hasn't reached the goal — no star
+  const qualifies = day !== null && day.wordTotal >= WORD_TARGET
 
   const userRef = db.collection('users').doc(userId)
-  const streakAtEarn = ((await userRef.get()).data()?.stats as Record<string, unknown> | undefined)
-    ?.streakCount as number ?? 0
+  const centroidsRef = userRef.collection('constellationCentroids')
 
-  await userRef
-    .collection('constellationCentroids')
-    .doc(String(dayIndex))
-    .set(
-      { dayIndex, vector: day.centroid, date: dateForDayIndex(dayIndex), wordCount: day.wordTotal, streakAtEarn },
-      { merge: true },
-    )
+  await db.runTransaction(async (tx) => {
+    // Reads first (Firestore transaction rule): all gets before any writes.
+    const userSnap = await tx.get(userRef)
+    const centroidsSnap = await tx.get(centroidsRef.orderBy('dayIndex'))
 
-  // Load every cached day-centroid in a stable order and recompute the layout.
-  const snap = await userRef.collection('constellationCentroids').orderBy('dayIndex').get()
-  const rows = snap.docs.map(d => d.data() as {
-    dayIndex: number; vector: number[]; date: string; wordCount: number; streakAtEarn: number
+    const prevVersion =
+      ((userSnap.data()?.constellation as Constellation | undefined)?.version) ?? 0
+    const streakAtEarn =
+      ((userSnap.data()?.stats as Record<string, unknown> | undefined)?.streakCount as number) ?? 0
+
+    type CentroidRow = {
+      dayIndex: number; vector: number[]; date: string; wordCount: number; streakAtEarn: number
+    }
+    const existing = centroidsSnap.docs.map(d => d.data() as CentroidRow)
+    const hadCentroid = existing.some(d => d.dayIndex === dayIndex)
+
+    // Early no-op: a sub-target day that never had a star needs no write — avoids
+    // version churn on every index below the goal.
+    if (!qualifies && !hadCentroid) return
+
+    // All rows except this day; add this day back only if it qualifies.
+    const rows = existing.filter(r => r.dayIndex !== dayIndex)
+    if (qualifies && day) {
+      rows.push({
+        dayIndex,
+        vector: day.centroid,
+        date: dateForDayIndex(dayIndex),
+        wordCount: day.wordTotal,
+        streakAtEarn,
+      })
+    }
+    rows.sort((a, b) => a.dayIndex - b.dayIndex)
+
+    const projected = pcaTo3D(rows.map(r => r.vector))
+    const points: ConstellationPoint[] = rows.map((r, i) => ({
+      dayIndex: r.dayIndex,
+      date: r.date,
+      x: projected[i].x,
+      y: projected[i].y,
+      z: projected[i].z,
+      wordCount: r.wordCount,
+      streakAtEarn: r.streakAtEarn ?? 0,
+    }))
+
+    // Writes.
+    if (qualifies && day) {
+      tx.set(
+        centroidsRef.doc(String(dayIndex)),
+        { dayIndex, vector: day.centroid, date: dateForDayIndex(dayIndex), wordCount: day.wordTotal, streakAtEarn },
+        { merge: true },
+      )
+    } else {
+      tx.delete(centroidsRef.doc(String(dayIndex)))
+    }
+    tx.set(userRef, { constellation: { version: prevVersion + 1, points } }, { merge: true })
   })
-  const projected = pcaTo3D(rows.map(r => r.vector))
-
-  const points: ConstellationPoint[] = rows.map((r, i) => ({
-    dayIndex: r.dayIndex,
-    date: r.date,
-    x: projected[i].x,
-    y: projected[i].y,
-    z: projected[i].z,
-    wordCount: r.wordCount,
-    streakAtEarn: r.streakAtEarn ?? 0,
-  }))
-
-  const prev = (await userRef.get()).data()?.constellation as Constellation | undefined
-  const version = (prev?.version ?? 0) + 1
-  await userRef.set({ constellation: { version, points } }, { merge: true })
 }
 
 /** Read the user's current point-set. Safe to return to the owner. */

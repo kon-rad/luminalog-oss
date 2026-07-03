@@ -114,6 +114,10 @@ export async function deleteHandler(req: Request, res: Response): Promise<void> 
     return
   }
 
+  // The deleted entry's creation day — captured from the ownership-check read so
+  // we can recompute its constellation star after the chunks are purged.
+  let createdAt: Date | undefined
+
   // Best-effort S3 media purge. Read the doc for the media keys and verify
   // ownership; a missing doc just means there are no keys to collect.
   try {
@@ -124,6 +128,7 @@ export async function deleteHandler(req: Request, res: Response): Promise<void> 
         res.status(403).json({ error: 'Forbidden' })
         return
       }
+      createdAt = (data.createdAt as admin.firestore.Timestamp | undefined)?.toDate()
       const prefix = `users/${uid}/`
       const keys: string[] = []
       for (const m of (data.media ?? []) as Array<Record<string, unknown>>) {
@@ -143,6 +148,18 @@ export async function deleteHandler(req: Request, res: Response): Promise<void> 
     await deleteJournalEntry(uid, journalId)
     await deleteSummary(uid, journalId)
     invalidateGraph(uid)
+
+    // Recompute the deleted entry's day now that its chunks are purged. The day's
+    // REMAINING word total drives updateConstellationForDay, so a day that fell
+    // below the 750-word goal loses its star (Fix A removes it). Fire-and-forget.
+    if (createdAt) {
+      const uDoc = await db.collection('users').doc(uid).get()
+      const timeZone = (uDoc.data()?.timezone as string) || 'UTC'
+      const dIdx = dayIndex(createdAt, timeZone)
+      updateConstellationForDay(uid, dIdx)
+        .catch(err => console.error('[constellation] delete recompute failed', err))
+    }
+
     res.json({ deleted: true })
   } catch (err) {
     console.error('[rag/delete]', err)

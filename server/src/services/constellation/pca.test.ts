@@ -42,6 +42,17 @@ describe('pcaTo3D', () => {
     }
   })
 
+  it('spreads identical vectors onto distinct points inside the unit cube', () => {
+    const pts = pcaTo3D([[1, 1, 1], [1, 1, 1]])
+    expect(pts).toHaveLength(2)
+    expect(dist(pts[0], pts[1])).toBeGreaterThan(1e-6) // not both at the origin
+    for (const p of pts) {
+      expect(Math.abs(p.x)).toBeLessThanOrEqual(1 + 1e-9)
+      expect(Math.abs(p.y)).toBeLessThanOrEqual(1 + 1e-9)
+      expect(Math.abs(p.z)).toBeLessThanOrEqual(1 + 1e-9)
+    }
+  })
+
   it('keeps within-cluster days closer than across-cluster days', () => {
     // Two tight clusters separated along dimension 0.
     const A1 = [0.0, 1, 0], A2 = [0.1, 1.1, 0.1]
