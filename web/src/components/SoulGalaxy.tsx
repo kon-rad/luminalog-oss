@@ -232,6 +232,21 @@ export default function SoulGalaxy({ points }: SoulGalaxyProps) {
     }
   }, [texture])
 
+  // r3f v8's <Canvas> only boots its root once react-use-measure reports a
+  // non-zero container size, and that very first measurement is delivered by a
+  // ResizeObserver. If the initial ResizeObserver callback is delayed or
+  // suppressed (the tab is backgrounded at mount, certain test harnesses,
+  // layout-timing races), the boot gate never fires: the root never mounts and
+  // the <canvas> is stuck at its intrinsic 300x150. react-use-measure ALSO
+  // re-measures synchronously on a window 'resize' event, so nudging one right
+  // after the Canvas mounts forces a deterministic boot without waiting on the
+  // observer's first async delivery. Harmless when the observer fires normally.
+  useEffect(() => {
+    if (!mounted || !texture) return
+    const id = window.setTimeout(() => window.dispatchEvent(new Event('resize')), 0)
+    return () => window.clearTimeout(id)
+  }, [mounted, texture])
+
   const isEmpty = points.length === 0
 
   return (
