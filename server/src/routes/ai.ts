@@ -16,7 +16,7 @@ import { openField, encryptField } from '../crypto/fieldCipher'
 import { decryptMedia } from '../crypto/mediaCipher'
 import { nextStats, dayIndex, type GoalStats } from '../services/dailyGoalStreak'
 import { updateConstellationForDay } from '../services/constellation/constellationService'
-import { ensureSoulMinted } from '../services/chain/soulService'
+import { ensureSoulMinted, refreshSoulImage } from '../services/chain/soulService'
 import { decodeProfileFields } from '../services/profileContext'
 import { DAILY_PROMPT_AREAS, parseDailyPrompts, fallbackDailyPrompts } from '../services/dailyPrompts'
 import { dailyReportHandler } from './dailyReport'
@@ -276,11 +276,13 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
 
     // Every 750-word day earns a star; the service self-gates on the day's word
     // total, so we can trigger unconditionally after the entry is indexed.
+    // Badge pipeline (fire-and-forget, never blocks the response): recompute the
+    // point-set, ensure the user has a wallet + minted token, then re-render the
+    // hero image from the fresh point-set. Sequential so each step sees the prior.
     updateConstellationForDay(uid, dayIndex(createdAt, timeZone))
-      .catch(err => console.error('[constellation] update failed', err))
-
-    // Ensure the journaler has a wallet + minted soulbound token (fire-and-forget).
-    ensureSoulMinted(uid).catch(err => console.error('[soul] ensureSoulMinted failed', err))
+      .then(() => ensureSoulMinted(uid))
+      .then(() => refreshSoulImage(uid))
+      .catch(err => console.error('[soul] badge pipeline failed', err))
 
     // The transcript is the entry's first real content, so generate + index its
     // summary vector here too. Without this, voice/video entries (which only ever

@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { ensureUserWallet, ensureMinted } = vi.hoisted(() => ({
+const { ensureUserWallet, ensureMinted, renderAndStoreSoulImage } = vi.hoisted(() => ({
   ensureUserWallet: vi.fn(),
   ensureMinted: vi.fn(),
+  renderAndStoreSoulImage: vi.fn(),
 }))
 vi.mock('./walletService', () => ({ ensureUserWallet }))
 vi.mock('./mintService', () => ({ ensureMinted }))
+vi.mock('./soulImage', () => ({ renderAndStoreSoulImage }))
 
 let store: Record<string, any> = {}
 vi.mock('../../middleware/firebaseAuth', () => ({
@@ -13,18 +15,27 @@ vi.mock('../../middleware/firebaseAuth', () => ({
     collection: (c: string) => ({
       doc: (id: string) => ({
         get: async () => ({ data: () => store[`${c}/${id}`] }),
+        set: async (data: any, opts: any) => {
+          const key = `${c}/${id}`
+          const merge = (a: any, b: any): any =>
+            b && typeof b === 'object' && !Array.isArray(b)
+              ? { ...a, ...Object.fromEntries(Object.entries(b).map(([k, v]) => [k, merge(a?.[k], v)])) }
+              : b
+          store[key] = opts?.merge ? merge(store[key] || {}, data) : data
+        },
       }),
     }),
   },
 }))
 
-import { ensureSoulMinted } from './soulService'
+import { ensureSoulMinted, refreshSoulImage } from './soulService'
 
 beforeEach(() => {
   store = {}
   vi.clearAllMocks()
   ensureUserWallet.mockResolvedValue('0xWALLET')
   ensureMinted.mockResolvedValue({ tokenId: '5' })
+  renderAndStoreSoulImage.mockResolvedValue('https://s3/soul/5/hero.png')
 })
 
 describe('ensureSoulMinted', () => {
@@ -51,5 +62,35 @@ describe('ensureSoulMinted', () => {
     await ensureSoulMinted('uid1')
     expect(ensureUserWallet).toHaveBeenCalledWith('uid1')
     expect(ensureMinted).toHaveBeenCalledWith('uid1')
+  })
+})
+
+describe('refreshSoulImage', () => {
+  it('no-ops when the user has no minted token yet', async () => {
+    store['users/uid1'] = { constellation: { points: [{ x: 0, y: 0, z: 0 }] } }
+    await refreshSoulImage('uid1')
+    expect(renderAndStoreSoulImage).not.toHaveBeenCalled()
+  })
+
+  it('renders the current point-set and persists imageUrl without clobbering points/version', async () => {
+    store['users/uid1'] = {
+      nft: { tokenId: '5' },
+      constellation: { version: 3, points: [{ x: 0.1, y: 0.2, z: 0.3 }, { x: -0.4, y: 0.5, z: 0.6 }] },
+    }
+    await refreshSoulImage('uid1')
+    expect(renderAndStoreSoulImage).toHaveBeenCalledWith('5', [
+      { x: 0.1, y: 0.2, z: 0.3 },
+      { x: -0.4, y: 0.5, z: 0.6 },
+    ])
+    expect(store['users/uid1'].constellation.imageUrl).toBe('https://s3/soul/5/hero.png')
+    // merge must preserve the existing constellation fields
+    expect(store['users/uid1'].constellation.version).toBe(3)
+    expect(store['users/uid1'].constellation.points).toHaveLength(2)
+  })
+
+  it('renders an empty point-set (nascent soul) when minted but no stars yet', async () => {
+    store['users/uid1'] = { nft: { tokenId: '5' } }
+    await refreshSoulImage('uid1')
+    expect(renderAndStoreSoulImage).toHaveBeenCalledWith('5', [])
   })
 })

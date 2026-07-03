@@ -13,7 +13,7 @@ import { getJournalsCollection, getSummariesCollection } from '../db/chroma'
 import { embedQuery } from '../services/aiClient'
 import { getGraph, invalidateGraph } from '../services/graphBuilder'
 import { updateConstellationForDay } from '../services/constellation/constellationService'
-import { ensureSoulMinted } from '../services/chain/soulService'
+import { ensureSoulMinted, refreshSoulImage } from '../services/chain/soulService'
 
 export const ragRouter = Router()
 
@@ -68,11 +68,12 @@ ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
 
     // Text + OCR'd-image entries reach the server here; trigger the constellation
     // (self-gates on the 750-word day total). Fire-and-forget — never block indexing.
+    // Badge pipeline (fire-and-forget): recompute the point-set, ensure wallet +
+    // mint, then re-render the hero image from the fresh point-set.
     updateConstellationForDay(uid, dIdx)
-      .catch(err => console.error('[constellation] update failed', err))
-
-    // Ensure the journaler has a wallet + minted soulbound token (fire-and-forget).
-    ensureSoulMinted(uid).catch(err => console.error('[soul] ensureSoulMinted failed', err))
+      .then(() => ensureSoulMinted(uid))
+      .then(() => refreshSoulImage(uid))
+      .catch(err => console.error('[soul] badge pipeline failed', err))
   } catch (err) {
     console.error('[rag/index] content index failed', err)
     await db.collection('journals').doc(journalId).update({ 'vector.status': 'failed' }).catch(() => {})
@@ -160,7 +161,10 @@ export async function deleteHandler(req: Request, res: Response): Promise<void> 
       const uDoc = await db.collection('users').doc(uid).get()
       const timeZone = (uDoc.data()?.timezone as string) || 'UTC'
       const dIdx = dayIndex(createdAt, timeZone)
+      // A delete can drop a star, so re-render the hero image too (already minted;
+      // no ensureSoulMinted needed here).
       updateConstellationForDay(uid, dIdx)
+        .then(() => refreshSoulImage(uid))
         .catch(err => console.error('[constellation] delete recompute failed', err))
     }
 
