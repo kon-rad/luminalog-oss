@@ -42,6 +42,7 @@ vi.mock('../services/journalIndexer', () => ({ indexJournalEntry: vi.fn(async ()
 vi.mock('../services/dailyGoalStreak', () => ({
   nextStats: vi.fn(() => ({ streakCount: 1, totalWords: 1, goalDayWords: 1, lastEntryDate: null, goalDayDate: null })),
   dayIndex: vi.fn(() => 0),
+  WORD_TARGET: 750,
 }))
 vi.mock('../services/summaryService', () => ({ ensureEntryAIIndexed: vi.fn(async () => true) }))
 vi.mock('../services/graphBuilder', () => ({ invalidateGraph: vi.fn() }))
