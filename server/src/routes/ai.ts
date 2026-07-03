@@ -14,7 +14,7 @@ import { config } from '../config'
 import { getOrCreateDEK } from '../crypto/keyService'
 import { openField, encryptField } from '../crypto/fieldCipher'
 import { decryptMedia } from '../crypto/mediaCipher'
-import { nextStats, dayIndex, WORD_TARGET, type GoalStats } from '../services/dailyGoalStreak'
+import { nextStats, dayIndex, type GoalStats } from '../services/dailyGoalStreak'
 import { updateConstellationForDay } from '../services/constellation/constellationService'
 import { decodeProfileFields } from '../services/profileContext'
 import { DAILY_PROMPT_AREAS, parseDailyPrompts, fallbackDailyPrompts } from '../services/dailyPrompts'
@@ -207,16 +207,8 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
 
     let createdAt = new Date()
     let timeZone = 'UTC'
-    let badgeEarned = false
-    let badgeWordCount = 0
-    let badgeStreak = 0
 
     await db.runTransaction(async (tx) => {
-      // Reset per-attempt: Firestore may re-run this callback on contention, so
-      // these must not carry stale values from a losing attempt into the commit.
-      badgeEarned = false
-      badgeWordCount = 0
-      badgeStreak = 0
       // Reads first (Firestore transaction rule).
       const [journalDoc, userDoc] = await Promise.all([
         tx.get(journalRef),
@@ -244,12 +236,6 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
         goalDayWords: (s.goalDayWords as number) ?? 0,
       }
       const next = nextStats(current, delta, createdAt, timeZone)
-
-      if (current.goalDayWords < WORD_TARGET && next.goalDayWords >= WORD_TARGET) {
-        badgeEarned = true
-        badgeWordCount = next.goalDayWords
-        badgeStreak = next.streakCount
-      }
 
       tx.update(journalRef, {
         content: encryptField(dek, newContent, 'journals.content'),
@@ -287,19 +273,10 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
       dek,
     })
 
-    if (badgeEarned) {
-      // Fire-and-forget: a constellation failure must never fail the journal save.
-      updateConstellationForDay(uid, dayIndex(createdAt, timeZone), {
-        date: new Intl.DateTimeFormat('en-CA', {
-          timeZone,
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-        }).format(createdAt),
-        wordCount: badgeWordCount,
-        streakAtEarn: badgeStreak,
-      }).catch(err => console.error('[constellation] update failed', err))
-    }
+    // Every 750-word day earns a star; the service self-gates on the day's word
+    // total, so we can trigger unconditionally after the entry is indexed.
+    updateConstellationForDay(uid, dayIndex(createdAt, timeZone))
+      .catch(err => console.error('[constellation] update failed', err))
 
     // The transcript is the entry's first real content, so generate + index its
     // summary vector here too. Without this, voice/video entries (which only ever

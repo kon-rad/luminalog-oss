@@ -12,6 +12,7 @@ import { deleteMediaObjects } from '../services/s3'
 import { getJournalsCollection, getSummariesCollection } from '../db/chroma'
 import { embedQuery } from '../services/aiClient'
 import { getGraph, invalidateGraph } from '../services/graphBuilder'
+import { updateConstellationForDay } from '../services/constellation/constellationService'
 
 export const ragRouter = Router()
 
@@ -56,6 +57,11 @@ ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
     const wordCount = (data.wordCount as number) ?? content.trim().split(/\s+/).filter(Boolean).length
     const result = await indexJournalEntry({ userId: uid, entryId: journalId, content, title, type, updatedAt, dayIndex: dIdx, wordCount, dek })
     chunkCount = result.chunks
+
+    // Text + OCR'd-image entries reach the server here; trigger the constellation
+    // (self-gates on the 750-word day total). Fire-and-forget — never block indexing.
+    updateConstellationForDay(uid, dIdx)
+      .catch(err => console.error('[constellation] update failed', err))
   } catch (err) {
     console.error('[rag/index] content index failed', err)
     await db.collection('journals').doc(journalId).update({ 'vector.status': 'failed' }).catch(() => {})

@@ -45,6 +45,7 @@ vi.mock('../services/dailyGoalStreak', () => ({
   WORD_TARGET: 750,
 }))
 vi.mock('../services/summaryService', () => ({ ensureEntryAIIndexed: vi.fn(async () => true) }))
+vi.mock('../services/constellation/constellationService', () => ({ updateConstellationForDay: vi.fn(async () => {}) }))
 vi.mock('../services/graphBuilder', () => ({ invalidateGraph: vi.fn() }))
 vi.mock('../services/entryEmotion', () => ({ scoreEntryEmotion: vi.fn() }))
 vi.mock('../config', () => ({
