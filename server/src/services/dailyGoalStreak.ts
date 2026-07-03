@@ -23,7 +23,7 @@ export interface GoalStats {
 }
 
 /** Integer calendar-day index for `date` in `timeZone` (DST-safe). */
-function dayIndex(date: Date, timeZone: string): number {
+export function dayIndex(date: Date, timeZone: string): number {
   // en-CA formats as YYYY-MM-DD.
   const [y, m, d] = new Intl.DateTimeFormat('en-CA', {
     timeZone,

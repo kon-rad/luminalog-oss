@@ -14,7 +14,7 @@ import { config } from '../config'
 import { getOrCreateDEK } from '../crypto/keyService'
 import { openField, encryptField } from '../crypto/fieldCipher'
 import { decryptMedia } from '../crypto/mediaCipher'
-import { nextStats, type GoalStats } from '../services/dailyGoalStreak'
+import { nextStats, dayIndex, type GoalStats } from '../services/dailyGoalStreak'
 import { decodeProfileFields } from '../services/profileContext'
 import { DAILY_PROMPT_AREAS, parseDailyPrompts, fallbackDailyPrompts } from '../services/dailyPrompts'
 import { dailyReportHandler } from './dailyReport'
@@ -234,6 +234,9 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
     const userRef = db.collection('users').doc(uid)
     const newWordCount = countWords(newContent)
 
+    let createdAt = new Date()
+    let timeZone = 'UTC'
+
     await db.runTransaction(async (tx) => {
       // Reads first (Firestore transaction rule).
       const [journalDoc, userDoc] = await Promise.all([
@@ -246,9 +249,9 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
       const oldWordCount = (jData.wordCount as number) ?? 0
       const delta = newWordCount - oldWordCount
 
-      const createdAt =
+      createdAt =
         (jData.createdAt as admin.firestore.Timestamp | undefined)?.toDate() ?? new Date()
-      const timeZone = (uData.timezone as string) || 'UTC'
+      timeZone = (uData.timezone as string) || 'UTC'
 
       const s = (uData.stats as Record<string, unknown>) ?? {}
       const current: GoalStats = {
@@ -294,6 +297,7 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
       title: openField(dek, data.title, 'journals.title'),
       type: data.type ?? 'voice',
       updatedAt: new Date().toISOString(),
+      dayIndex: dayIndex(createdAt, timeZone),
       dek,
     })
 

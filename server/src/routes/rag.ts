@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import admin from 'firebase-admin'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
+import { dayIndex } from '../services/dailyGoalStreak'
 import { config } from '../config'
 import { indexJournalEntry, deleteJournalEntry } from '../services/journalIndexer'
 import { deleteSummary, findRelated } from '../services/summaryIndexer'
@@ -49,7 +50,10 @@ ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
   // 1) Content chunks (chat RAG) — must not be lost on summary failure.
   let chunkCount = 0
   try {
-    const result = await indexJournalEntry({ userId: uid, entryId: journalId, content, title, type, updatedAt, dek })
+    const uDoc = await db.collection('users').doc(uid).get()
+    const timeZone = (uDoc.data()?.timezone as string) || 'UTC'
+    const dIdx = dayIndex(new Date(updatedAt), timeZone)
+    const result = await indexJournalEntry({ userId: uid, entryId: journalId, content, title, type, updatedAt, dayIndex: dIdx, dek })
     chunkCount = result.chunks
   } catch (err) {
     console.error('[rag/index] content index failed', err)

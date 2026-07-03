@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nextStats, type GoalStats } from './dailyGoalStreak'
+import { nextStats, dayIndex, type GoalStats } from './dailyGoalStreak'
 
 const TZ = 'America/Los_Angeles'
 // 2026-06-19 10:00 PT (17:00Z) and the day before.
@@ -117,5 +117,21 @@ describe('nextStats', () => {
     const next = nextStats(prev, 800, day20, TZ)
     expect(next.streakCount).toBe(1)
     expect(next.maxStreakCount).toBe(5)
+  })
+})
+
+describe('dayIndex', () => {
+  it('gives the same integer for two instants on the same LA calendar day', () => {
+    const morning = new Date('2026-06-19T16:00:00Z') // 09:00 PT
+    const evening = new Date('2026-06-19T23:00:00Z') // 16:00 PT
+    expect(dayIndex(morning, 'America/Los_Angeles')).toBe(
+      dayIndex(evening, 'America/Los_Angeles'),
+    )
+  })
+
+  it('gives adjacent integers for consecutive days', () => {
+    const d1 = new Date('2026-06-19T18:00:00Z')
+    const d2 = new Date('2026-06-20T18:00:00Z')
+    expect(dayIndex(d2, 'UTC') - dayIndex(d1, 'UTC')).toBe(1)
   })
 })

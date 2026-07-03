@@ -36,9 +36,10 @@ export async function indexJournalEntry(params: {
   title: string
   type: string
   updatedAt: string
+  dayIndex: number
   dek: Buffer
 }): Promise<{ chunks: number }> {
-  const { userId, entryId, content, title, type, updatedAt, dek } = params
+  const { userId, entryId, content, title, type, updatedAt, dayIndex, dek } = params
   if (!userId) throw new Error('userId required')
 
   try {
@@ -63,6 +64,7 @@ export async function indexJournalEntry(params: {
         chunkIndex: i,
         totalChunks: chunks.length,
         indexedAt: updatedAt,
+        dayIndex,
       })),
     })
 
