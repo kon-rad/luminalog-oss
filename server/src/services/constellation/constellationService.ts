@@ -1,6 +1,7 @@
 import { db } from '../../middleware/firebaseAuth'
 import { computeDayCentroid } from './dayCentroid'
 import { pcaTo3D } from './pca'
+import { WORD_TARGET } from '../dailyGoalStreak'
 
 export interface ConstellationPoint {
   dayIndex: number
@@ -17,28 +18,33 @@ export interface Constellation {
   points: ConstellationPoint[]
 }
 
+/** UTC date string (YYYY-MM-DD) for a day index (days since epoch). */
+function dateForDayIndex(dayIndex: number): string {
+  return new Date(dayIndex * 86_400_000).toISOString().slice(0, 10)
+}
+
 /**
- * Called when a 750-word badge is earned for `dayIndex`. Computes and caches
- * that day's centroid (server-only), re-runs PCA over ALL cached day-centroids,
- * and persists the fresh point-set on the user doc. Idempotent: re-running for a
- * day already present just recomputes.
+ * Ensure the constellation reflects `dayIndex`. Self-gating and idempotent:
+ * computes the day's centroid + total words from indexed chunks; only days at or
+ * above the 750-word goal get a star. Works for every entry type (typed text,
+ * voice/video transcript, on-device-OCR'd image) because all of them index their
+ * text through the same `journals` collection. Recomputes PCA over all cached
+ * day-centroids and persists the point-set.
  */
-export async function updateConstellationForDay(
-  userId: string,
-  dayIndex: number,
-  meta: { date: string; wordCount: number; streakAtEarn: number },
-): Promise<void> {
-  const centroid = await computeDayCentroid(userId, dayIndex)
-  if (!centroid) return // entry not indexed yet — nothing to place
+export async function updateConstellationForDay(userId: string, dayIndex: number): Promise<void> {
+  const day = await computeDayCentroid(userId, dayIndex)
+  if (!day) return
+  if (day.wordTotal < WORD_TARGET) return // day hasn't reached the goal — no star
 
   const userRef = db.collection('users').doc(userId)
+  const streakAtEarn = ((await userRef.get()).data()?.stats as Record<string, unknown> | undefined)
+    ?.streakCount as number ?? 0
 
-  // Cache/refresh this day's centroid (server-only, never published).
   await userRef
     .collection('constellationCentroids')
     .doc(String(dayIndex))
     .set(
-      { dayIndex, vector: centroid, date: meta.date, wordCount: meta.wordCount, streakAtEarn: meta.streakAtEarn },
+      { dayIndex, vector: day.centroid, date: dateForDayIndex(dayIndex), wordCount: day.wordTotal, streakAtEarn },
       { merge: true },
     )
 
