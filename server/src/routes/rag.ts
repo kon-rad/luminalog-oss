@@ -53,7 +53,8 @@ ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
     const uDoc = await db.collection('users').doc(uid).get()
     const timeZone = (uDoc.data()?.timezone as string) || 'UTC'
     const dIdx = dayIndex(new Date(updatedAt), timeZone)
-    const result = await indexJournalEntry({ userId: uid, entryId: journalId, content, title, type, updatedAt, dayIndex: dIdx, dek })
+    const wordCount = (data.wordCount as number) ?? content.trim().split(/\s+/).filter(Boolean).length
+    const result = await indexJournalEntry({ userId: uid, entryId: journalId, content, title, type, updatedAt, dayIndex: dIdx, wordCount, dek })
     chunkCount = result.chunks
   } catch (err) {
     console.error('[rag/index] content index failed', err)

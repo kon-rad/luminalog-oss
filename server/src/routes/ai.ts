@@ -283,6 +283,7 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
       type: data.type ?? 'voice',
       updatedAt: new Date().toISOString(),
       dayIndex: dayIndex(createdAt, timeZone),
+      wordCount: newWordCount,
       dek,
     })
 
