@@ -43,8 +43,68 @@ contract LuminaSoulTest is Test {
         soul.transferFrom(userA, userB, id);
     }
 
-    function test_lockedAlwaysTrue() public view {
-        assertTrue(soul.locked(0));
+    function test_lockedAlwaysTrue() public {
+        vm.prank(owner);
+        uint256 id = soul.mint(userA);
+        assertTrue(soul.locked(id));
+    }
+
+    function test_lockedRevertsForNonexistent() public {
+        vm.expectRevert();
+        soul.locked(999);
+    }
+
+    function test_safeTransferFromReverts() public {
+        vm.prank(owner);
+        uint256 id = soul.mint(userA);
+        vm.prank(userA);
+        vm.expectRevert(bytes("SOUL: non-transferable"));
+        soul.safeTransferFrom(userA, userB, id);
+    }
+
+    function test_operatorTransferReverts() public {
+        vm.prank(owner);
+        uint256 id = soul.mint(userA);
+        vm.prank(userA);
+        soul.setApprovalForAll(address(0xDEAD), true);
+        vm.prank(address(0xDEAD));
+        vm.expectRevert(bytes("SOUL: non-transferable"));
+        soul.transferFrom(userA, userB, id);
+    }
+
+    function test_approveSucceedsButTransferReverts() public {
+        vm.prank(owner);
+        uint256 id = soul.mint(userA);
+        vm.prank(userA);
+        soul.approve(userB, id);
+        vm.prank(userB);
+        vm.expectRevert(bytes("SOUL: non-transferable"));
+        soul.transferFrom(userA, userB, id);
+    }
+
+    function test_mintToZeroReverts() public {
+        vm.prank(owner);
+        vm.expectRevert();
+        soul.mint(address(0));
+    }
+
+    function test_secondUserGetsTokenIdTwo() public {
+        vm.startPrank(owner);
+        soul.mint(userA);
+        uint256 id2 = soul.mint(userB);
+        vm.stopPrank();
+        assertEq(id2, 2);
+    }
+
+    function test_tokenURIRevertsForNonexistent() public {
+        vm.expectRevert();
+        soul.tokenURI(999);
+    }
+
+    function test_renounceOwnershipReverts() public {
+        vm.prank(owner);
+        vm.expectRevert(bytes("SOUL: ownership required"));
+        soul.renounceOwnership();
     }
 
     function test_tokenURIFormat() public {
