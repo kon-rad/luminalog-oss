@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nextStats, dayIndex, type GoalStats } from './dailyGoalStreak'
+import { nextStats, dayIndex, safeTimeZone, type GoalStats } from './dailyGoalStreak'
 
 const TZ = 'America/Los_Angeles'
 // 2026-06-19 10:00 PT (17:00Z) and the day before.
@@ -120,7 +120,24 @@ describe('nextStats', () => {
   })
 })
 
+describe('safeTimeZone', () => {
+  it('passes through a valid IANA zone', () => {
+    expect(safeTimeZone('America/Los_Angeles')).toBe('America/Los_Angeles')
+  })
+  it('falls back to UTC for empty/invalid zones', () => {
+    expect(safeTimeZone(undefined)).toBe('UTC')
+    expect(safeTimeZone('')).toBe('UTC')
+    expect(safeTimeZone('Not/AZone')).toBe('UTC')
+  })
+})
+
 describe('dayIndex', () => {
+  it('does not throw on an invalid stored timezone (falls back to UTC)', () => {
+    const d = new Date('2026-06-19T18:00:00Z')
+    expect(() => dayIndex(d, 'Not/AZone')).not.toThrow()
+    expect(dayIndex(d, 'Not/AZone')).toBe(dayIndex(d, 'UTC'))
+  })
+
   it('gives the same integer for two instants on the same LA calendar day', () => {
     const morning = new Date('2026-06-19T16:00:00Z') // 09:00 PT
     const evening = new Date('2026-06-19T23:00:00Z') // 16:00 PT

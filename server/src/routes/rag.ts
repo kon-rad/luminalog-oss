@@ -53,8 +53,15 @@ ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
   try {
     const uDoc = await db.collection('users').doc(uid).get()
     const timeZone = (uDoc.data()?.timezone as string) || 'UTC'
-    const dIdx = dayIndex(new Date(updatedAt), timeZone)
-    const wordCount = (data.wordCount as number) ?? content.trim().split(/\s+/).filter(Boolean).length
+    // Bucket by the entry's CREATION day (stable across edits) — matching the
+    // transcribe path and the streak accounting, which both key off createdAt.
+    // Using updatedAt would relocate an edited entry's whole word count (and its
+    // star) to the edit day.
+    const createdAt = (data.createdAt as admin.firestore.Timestamp | undefined)?.toDate() ?? new Date(updatedAt)
+    const dIdx = dayIndex(createdAt, timeZone)
+    // Recompute server-side (matches ai.ts countWords) rather than trusting the
+    // client-supplied wordCount, so both index paths agree on a day's total.
+    const wordCount = content.split(/\s+/).filter(Boolean).length
     const result = await indexJournalEntry({ userId: uid, entryId: journalId, content, title, type, updatedAt, dayIndex: dIdx, wordCount, dek })
     chunkCount = result.chunks
 

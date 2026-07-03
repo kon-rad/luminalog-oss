@@ -22,11 +22,27 @@ export interface GoalStats {
   goalDayWords: number
 }
 
+/**
+ * Return `tz` if it is a valid IANA timezone, else 'UTC'. Guards against a
+ * malformed `timezone` stored on the user doc (an invalid but non-empty string
+ * survives a `|| 'UTC'` fallback and would make `Intl.DateTimeFormat` throw a
+ * RangeError deep inside `dayIndex`/`nextStats`).
+ */
+export function safeTimeZone(tz: string | undefined | null): string {
+  if (!tz) return 'UTC'
+  try {
+    new Intl.DateTimeFormat('en-CA', { timeZone: tz })
+    return tz
+  } catch {
+    return 'UTC'
+  }
+}
+
 /** Integer calendar-day index for `date` in `timeZone` (DST-safe). */
 export function dayIndex(date: Date, timeZone: string): number {
-  // en-CA formats as YYYY-MM-DD.
+  // en-CA formats as YYYY-MM-DD. Sanitize the tz so a bad stored value can't throw.
   const [y, m, d] = new Intl.DateTimeFormat('en-CA', {
-    timeZone,
+    timeZone: safeTimeZone(timeZone),
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
