@@ -4,11 +4,18 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { useAuth } from '@/lib/auth-context'
+import { useSoul } from '@/lib/useSoul'
+
+const SoulGalaxy = dynamic(() => import('@/components/SoulGalaxy'), { ssr: false })
+
+const fmt = (n: number | undefined) => (n ?? 0).toLocaleString('en-US')
 
 export default function Dashboard() {
   const { user, loading, signOut } = useAuth()
   const router = useRouter()
+  const { data: soul, loading: soulLoading, error: soulError } = useSoul()
 
   useEffect(() => {
     if (!loading && !user) {
@@ -32,10 +39,10 @@ export default function Dashboard() {
     : user.email?.[0]?.toUpperCase() || '?'
 
   const stats = [
-    { icon: '✍️', label: 'Words written', value: '—', sub: 'Sync the app to see' },
-    { icon: '📓', label: 'Journal entries', value: '—', sub: 'Sync the app to see' },
-    { icon: '💾', label: 'Data stored', value: '—', sub: 'Sync the app to see' },
-    { icon: '🔥', label: 'Current streak', value: '—', sub: 'Sync the app to see' },
+    { icon: '✦', label: 'Stars', value: fmt(soul?.constellation.points.length ?? 0) },
+    { icon: '✍️', label: 'Total words', value: fmt(soul?.stats.totalWords) },
+    { icon: '🔥', label: 'Day streak', value: fmt(soul?.stats.streakCount) },
+    { icon: '📓', label: 'Today', value: fmt(soul?.stats.goalDayWords), sub: 'toward 750' },
   ]
 
   return (
@@ -67,9 +74,59 @@ export default function Dashboard() {
       </header>
 
       <main className="wrap" style={{ paddingTop: 64, paddingBottom: 80 }}>
-        {/* Profile card */}
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 28, padding: '40px 44px', boxShadow: 'var(--shadow)' }}>
+          {/* Soul galaxy hero panel */}
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: 'clamp(340px, 46vw, 420px)',
+              borderRadius: 28,
+              overflow: 'hidden',
+              background: 'radial-gradient(120% 110% at 26% 18%, #2E2A5E 0%, #1B1740 32%, #100D28 58%, #07060F 82%, #030308 100%)',
+              boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px rgba(8,6,20,0.45)',
+            }}
+          >
+            {soulLoading ? (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <style>{`
+                  @keyframes soul-panel-shimmer { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.8; } }
+                `}</style>
+                <div
+                  aria-hidden
+                  style={{
+                    width: 10, height: 10, borderRadius: '50%',
+                    background: '#F7E3C4',
+                    boxShadow: '0 0 16px 6px rgba(232,164,76,0.6)',
+                    animation: 'soul-panel-shimmer 1.6s ease-in-out infinite',
+                  }}
+                />
+              </div>
+            ) : soulError ? (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 48px', textAlign: 'center' }}>
+                <p className="serif" style={{ fontSize: 17, lineHeight: 1.5, fontStyle: 'italic', color: 'rgba(243,238,228,0.75)' }}>
+                  Couldn&apos;t load your soul right now.
+                </p>
+              </div>
+            ) : (
+              <SoulGalaxy points={soul?.constellation.points ?? []} />
+            )}
+          </div>
+
+          {/* Stat row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14, marginTop: 20 }}>
+            {stats.map(({ icon, label, value, sub }) => (
+              <div key={label} style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 18, padding: '20px 22px', boxShadow: 'var(--shadow)' }}>
+                <div style={{ fontSize: 22, marginBottom: 8 }}>{icon}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text3)', marginBottom: 4 }}>{label}</div>
+                <div className="serif" style={{ fontSize: 32, fontWeight: 600, color: 'var(--text)', lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</div>
+                {sub && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>{sub}</div>}
+              </div>
+            ))}
+          </div>
+
+          {/* Profile card */}
+          <div style={{ marginTop: 24, background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 28, padding: '40px 44px', boxShadow: 'var(--shadow)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 32 }}>
               {user.photoURL ? (
                 <Image
@@ -101,18 +158,6 @@ export default function Dashboard() {
               <p className="serif" style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--text2)', fontStyle: 'italic' }}>
                 Bio is set in the iOS app and will appear here once available.
               </p>
-            </div>
-
-            {/* Stats grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
-              {stats.map(({ icon, label, value, sub }) => (
-                <div key={label} style={{ background: 'var(--bg)', border: '1px solid var(--hairline)', borderRadius: 18, padding: '20px 22px' }}>
-                  <div style={{ fontSize: 22, marginBottom: 8 }}>{icon}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text3)', marginBottom: 4 }}>{label}</div>
-                  <div className="serif" style={{ fontSize: 32, fontWeight: 600, color: 'var(--text)', lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>{sub}</div>
-                </div>
-              ))}
             </div>
           </div>
 
