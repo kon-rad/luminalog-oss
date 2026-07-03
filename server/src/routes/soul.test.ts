@@ -9,6 +9,9 @@ const getConstellation = vi.fn()
 vi.mock('../services/constellation/constellationService', () => ({
   getConstellation: (...a: any[]) => getConstellation(...a),
 }))
+// soul.ts fires ensureSoulMinted on GET; mock it so the test doesn't pull in the
+// real chain stack (walletService → config, which process.exits without env).
+vi.mock('../services/chain/soulService', () => ({ ensureSoulMinted: vi.fn() }))
 
 import { buildSoulPayload } from './soul'
 

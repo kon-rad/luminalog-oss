@@ -13,6 +13,7 @@ import { getJournalsCollection, getSummariesCollection } from '../db/chroma'
 import { embedQuery } from '../services/aiClient'
 import { getGraph, invalidateGraph } from '../services/graphBuilder'
 import { updateConstellationForDay } from '../services/constellation/constellationService'
+import { ensureSoulMinted } from '../services/chain/soulService'
 
 export const ragRouter = Router()
 
@@ -69,6 +70,9 @@ ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
     // (self-gates on the 750-word day total). Fire-and-forget — never block indexing.
     updateConstellationForDay(uid, dIdx)
       .catch(err => console.error('[constellation] update failed', err))
+
+    // Ensure the journaler has a wallet + minted soulbound token (fire-and-forget).
+    ensureSoulMinted(uid).catch(err => console.error('[soul] ensureSoulMinted failed', err))
   } catch (err) {
     console.error('[rag/index] content index failed', err)
     await db.collection('journals').doc(journalId).update({ 'vector.status': 'failed' }).catch(() => {})
