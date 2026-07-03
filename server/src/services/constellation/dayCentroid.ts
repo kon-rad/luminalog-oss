@@ -11,7 +11,7 @@ export async function computeDayCentroid(
   const col = await getJournalsCollection()
   const res = await col.get({
     where: { $and: [{ userId: { $eq: userId } }, { dayIndex: { $eq: dayIndex } }] },
-    include: ['embeddings'],
+    include: ['embeddings'] as any,
   })
   const embs = (res.embeddings ?? []) as number[][]
   if (embs.length === 0) return null
