@@ -11,6 +11,7 @@ import { mediaRouter } from './routes/media'
 import { keysRouter } from './routes/keys'
 import { leaderboardRouter } from './routes/leaderboard'
 import { soulRouter } from './routes/soul'
+import { nftRouter } from './routes/nft'
 
 const app = express()
 
@@ -26,6 +27,7 @@ app.use('/v1/media', mediaRouter)
 app.use('/v1/keys', keysRouter)
 app.use('/v1/leaderboards', leaderboardRouter)
 app.use('/v1/soul', soulRouter)
+app.use('/v1/nft', nftRouter) // public (no auth) — ERC-721 metadata for tokenURI
 
 // Backstop error middleware — catches anything routes forward via next(err).
 // (Express 4 does not auto-forward async-handler rejections; that's handled
