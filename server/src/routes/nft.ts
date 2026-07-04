@@ -52,7 +52,55 @@ export async function getNftMetadata(tokenId: string): Promise<NftMetadata | nul
   })
 }
 
+/** A published-safe star: geometry + size only. NO date/dayIndex/streak/text —
+ *  the temporal fields are stripped so the public viewer can't reconstruct WHEN
+ *  the user journaled (privacy rule R1). The 3 coordinates are a lossy,
+ *  non-invertible projection and are safe to publish (see spec privacy analysis). */
+export interface PublicPoint {
+  x: number
+  y: number
+  z: number
+  wordCount: number
+}
+
+export interface PublicSoul {
+  tokenId: string
+  stars: number
+  points: PublicPoint[]
+}
+
+/** Public point-set for a token — powers the interactive `/soul/:tokenId` galaxy.
+ *  Returns null if no user holds the token. */
+export async function getPublicPoints(tokenId: string): Promise<PublicSoul | null> {
+  const snap = await db.collection('users').where('nft.tokenId', '==', tokenId).limit(1).get()
+  if (snap.empty) return null
+
+  const constellation = (snap.docs[0].data() as any).constellation ?? {}
+  const raw = Array.isArray(constellation.points) ? constellation.points : []
+  const points: PublicPoint[] = raw.map((p: any) => ({
+    x: p.x,
+    y: p.y,
+    z: p.z,
+    wordCount: typeof p.wordCount === 'number' ? p.wordCount : 0,
+  }))
+  return { tokenId, stars: points.length, points }
+}
+
 export const nftRouter = Router()
+
+// GET /v1/nft/:tokenId/points — public coordinates-only point-set for the galaxy.
+nftRouter.get('/:tokenId/points', async (req: Request, res: Response) => {
+  if (!/^\d+$/.test(req.params.tokenId)) return res.status(404).json({ error: 'not found' })
+  try {
+    const soul = await getPublicPoints(req.params.tokenId)
+    if (!soul) return res.status(404).json({ error: 'not found' })
+    res.setHeader('Cache-Control', 'public, max-age=300')
+    res.json(soul)
+  } catch (err) {
+    console.error('[nft] points failed', err)
+    res.status(500).json({ error: 'internal' })
+  }
+})
 
 // GET /v1/nft/:tokenId.json — matches the on-chain tokenURI (baseURI + id + ".json").
 // Public: no firebaseAuth. Parse the ".json" suffix ourselves for robustness.

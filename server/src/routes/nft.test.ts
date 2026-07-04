@@ -9,7 +9,7 @@ vi.mock('../middleware/firebaseAuth', () => ({
   },
 }))
 
-import { buildNftMetadata, getNftMetadata } from './nft'
+import { buildNftMetadata, getNftMetadata, getPublicPoints } from './nft'
 
 beforeEach(() => {
   queryResult = { empty: true, docs: [] }
@@ -91,5 +91,49 @@ describe('getNftMetadata', () => {
       { trait_type: 'Day streak', value: 0 },
       { trait_type: 'Total words', value: 0 },
     ])
+  })
+})
+
+describe('getPublicPoints', () => {
+  it('returns null when no user holds the token', async () => {
+    queryResult = { empty: true, docs: [] }
+    expect(await getPublicPoints('99')).toBeNull()
+  })
+
+  it('returns coordinates + size only, stripping all temporal/identifying fields', async () => {
+    queryResult = {
+      empty: false,
+      docs: [{
+        data: () => ({
+          nft: { tokenId: '2' },
+          constellation: {
+            version: 4,
+            points: [
+              { dayIndex: 20272, date: '2026-07-03', x: 0.4, y: -0.1, z: 0.8, wordCount: 812, streakAtEarn: 5 },
+              { dayIndex: 20273, date: '2026-07-04', x: -0.2, y: 0.3, z: 0.1, wordCount: 900, streakAtEarn: 6 },
+            ],
+          },
+        }),
+      }],
+    }
+    const soul = await getPublicPoints('2')
+    expect(soul).toEqual({
+      tokenId: '2',
+      stars: 2,
+      points: [
+        { x: 0.4, y: -0.1, z: 0.8, wordCount: 812 },
+        { x: -0.2, y: 0.3, z: 0.1, wordCount: 900 },
+      ],
+    })
+    // hard privacy assertion: no date / dayIndex / streak leak
+    const json = JSON.stringify(soul)
+    for (const banned of ['date', 'dayIndex', 'streakAtEarn', 'vector', 'embedding']) {
+      expect(json).not.toContain(`"${banned}"`)
+    }
+  })
+
+  it('handles a minted-but-empty constellation (nascent soul)', async () => {
+    queryResult = { empty: false, docs: [{ data: () => ({ nft: { tokenId: '3' } }) }] }
+    expect(await getPublicPoints('3')).toEqual({ tokenId: '3', stars: 0, points: [] })
   })
 })
