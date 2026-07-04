@@ -13,7 +13,7 @@ export interface SoulNft {
 
 export interface SoulPayload {
   constellation: Constellation
-  stats: { streakCount: number; totalWords: number; goalDayWords: number }
+  stats: { streakCount: number; maxStreakCount: number; totalWords: number; goalDayWords: number }
   nft: SoulNft | null
 }
 
@@ -43,6 +43,7 @@ export async function buildSoulPayload(uid: string): Promise<SoulPayload> {
     constellation,
     stats: {
       streakCount: (s.streakCount as number) ?? 0,
+      maxStreakCount: (s.maxStreakCount as number) ?? 0,
       totalWords: (s.totalWords as number) ?? 0,
       goalDayWords: (s.goalDayWords as number) ?? 0,
     },

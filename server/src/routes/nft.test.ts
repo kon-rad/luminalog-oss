@@ -17,7 +17,7 @@ beforeEach(() => {
 
 describe('buildNftMetadata', () => {
   it('builds standard ERC-721 metadata with count attributes', () => {
-    const m = buildNftMetadata('12', { stars: 41, streak: 5, totalWords: 61234, imageUrl: 'https://s3/hero.png' })
+    const m = buildNftMetadata('12', { stars: 41, streak: 5, maxStreak: 12, totalWords: 61234, imageUrl: 'https://s3/hero.png' })
     expect(m).toEqual({
       name: 'LuminaLog Soul #12',
       description: 'A constellation grown from 41 days of journaling.',
@@ -26,24 +26,25 @@ describe('buildNftMetadata', () => {
       attributes: [
         { trait_type: 'Stars', value: 41 },
         { trait_type: 'Day streak', value: 5 },
+        { trait_type: 'Max streak', value: 12 },
         { trait_type: 'Total words', value: 61234 },
       ],
     })
   })
 
   it('prefixes the description with the owner name when provided', () => {
-    const m = buildNftMetadata('5', { stars: 15, streak: 15, totalWords: 49643, username: 'Konrad' })
+    const m = buildNftMetadata('5', { stars: 15, streak: 15, maxStreak: 20, totalWords: 49643, username: 'Konrad' })
     expect(m.description).toBe("Konrad's constellation grown from 15 days of journaling.")
   })
 
   it('uses singular "day" for one star and a default image when none rendered', () => {
-    const m = buildNftMetadata('1', { stars: 1, streak: 1, totalWords: 800 })
+    const m = buildNftMetadata('1', { stars: 1, streak: 1, maxStreak: 1, totalWords: 800 })
     expect(m.description).toBe('A constellation grown from 1 day of journaling.')
     expect(m.image).toBe('https://luminalog.com/soul/1/hero.png')
   })
 
   it('exposes ONLY non-sensitive fields — no coordinates, vectors, or text', () => {
-    const m = buildNftMetadata('7', { stars: 3, streak: 2, totalWords: 2400, imageUrl: 'https://s3/x.png' })
+    const m = buildNftMetadata('7', { stars: 3, streak: 2, maxStreak: 5, totalWords: 2400, imageUrl: 'https://s3/x.png' })
     const json = JSON.stringify(m)
     expect(Object.keys(m).sort()).toEqual(['animation_url', 'attributes', 'description', 'image', 'name'])
     for (const banned of ['points', 'x', 'y', 'z', 'vector', 'embedding', 'centroid', 'dayIndex', 'text', 'content']) {
@@ -71,7 +72,7 @@ describe('getNftMetadata', () => {
             imageUrl: 'https://s3/2/hero.png',
             points: [{ x: 1, y: 2, z: 3 }, { x: 4, y: 5, z: 6 }, { x: 7, y: 8, z: 9 }],
           },
-          stats: { streakCount: 6, totalWords: 5100, goalDayWords: 800 },
+          stats: { streakCount: 6, maxStreakCount: 10, totalWords: 5100, goalDayWords: 800 },
         }),
       }],
     }
@@ -82,6 +83,7 @@ describe('getNftMetadata', () => {
     expect(m!.attributes).toEqual([
       { trait_type: 'Stars', value: 3 },
       { trait_type: 'Day streak', value: 6 },
+      { trait_type: 'Max streak', value: 10 },
       { trait_type: 'Total words', value: 5100 },
     ])
     // the point coordinates must NOT leak into published metadata
@@ -110,6 +112,7 @@ describe('getNftMetadata', () => {
     expect(m!.attributes).toEqual([
       { trait_type: 'Stars', value: 0 },
       { trait_type: 'Day streak', value: 0 },
+      { trait_type: 'Max streak', value: 0 },
       { trait_type: 'Total words', value: 0 },
     ])
   })

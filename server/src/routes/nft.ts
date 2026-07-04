@@ -17,7 +17,7 @@ export interface NftMetadata {
 
 export function buildNftMetadata(
   tokenId: string,
-  opts: { stars: number; streak: number; totalWords: number; imageUrl?: string; username?: string },
+  opts: { stars: number; streak: number; maxStreak: number; totalWords: number; imageUrl?: string; username?: string },
 ): NftMetadata {
   const owner = opts.username?.trim() ? `${opts.username.trim()}'s` : 'A'
   return {
@@ -28,6 +28,7 @@ export function buildNftMetadata(
     attributes: [
       { trait_type: 'Stars', value: opts.stars },
       { trait_type: 'Day streak', value: opts.streak },
+      { trait_type: 'Max streak', value: opts.maxStreak },
       { trait_type: 'Total words', value: opts.totalWords },
     ],
   }
@@ -50,6 +51,7 @@ export async function getNftMetadata(tokenId: string): Promise<NftMetadata | nul
   return buildNftMetadata(tokenId, {
     stars: Array.isArray(constellation.points) ? constellation.points.length : 0,
     streak: (stats.streakCount as number) ?? 0,
+    maxStreak: (stats.maxStreakCount as number) ?? 0,
     totalWords: (stats.totalWords as number) ?? 0,
     imageUrl: constellation.imageUrl as string | undefined,
     username,
