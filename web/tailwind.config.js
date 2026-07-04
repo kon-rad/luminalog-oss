@@ -5,6 +5,7 @@ module.exports = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -18,7 +19,10 @@ module.exports = {
         accent: '#CE7F44',
         accentDeep: '#B96B33',
         accentSoft: '#F5E7D5',
+        accentDk: '#E5A063',
+        danger: '#E5544B',
         darkBg: '#16130E',
+        darkBgElev: '#1D1913',
         darkText: '#F3EEE4',
         darkText2: '#A89E8F',
         darkSurface: '#221E18',
@@ -26,6 +30,19 @@ module.exports = {
         dimSpirit: '#9B72CF',
         dimEmotion: '#E8748A',
         dimArt: '#7DBF72',
+        unity: '#F5C842',
+        typeText: '#CE7F44',
+        typeTextDk: '#E5A063',
+        typeVoice: '#C16C6C',
+        typeVoiceDk: '#D98C8C',
+        typeVideo: '#897BA8',
+        typeVideoDk: '#A89BC4',
+        typeImage: '#6E8C77',
+        typeImageDk: '#90AE97',
+        cosmic1: '#120F1A',
+        cosmic2: '#1B1526',
+        starGold: '#F5C842',
+        creamGlow: '#FFF6E9',
       },
       fontFamily: {
         serif: ['Newsreader', 'New York', 'ui-serif', 'Georgia', 'serif'],

@@ -34,6 +34,26 @@
   --dim-spirit:    #9B72CF;
   --dim-emotion:   #E8748A;
   --dim-art:       #7DBF72;
+  color-scheme: light;
+}
+
+html.dark {
+  --bg:          #16130E;
+  --bgElev:      #1D1913;
+  --surface:     #221E18;
+  --surfaceAlt:  #221E18;
+  --text:        #F3EEE4;
+  --text2:       #A89E8F;
+  --text3:       #8B8173;
+  --accent:      #E5A063;
+  --accentDeep:  #CE7F44;
+  --accentSoft:  #3A2F22;
+  --accentTint:  rgba(229,160,99,0.14);
+  --hairline:    rgba(255,240,220,0.08);
+  --hairline2:   rgba(255,240,220,0.13);
+  --shadow:      0 1px 2px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.30);
+  --shadowHover: 0 2px 4px rgba(0,0,0,0.30), 0 18px 46px rgba(0,0,0,0.40);
+  color-scheme: dark;
 }
 
 *,*::before,*::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -47,6 +67,7 @@ body {
   text-rendering: optimizeLegibility;
   font-size: 17px;
   line-height: 1.6;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 h1,h2,h3,h4,h5,h6 { margin: 0; }
 p { margin: 0; }
