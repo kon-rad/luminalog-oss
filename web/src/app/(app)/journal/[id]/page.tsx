@@ -17,11 +17,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { doc, onSnapshot } from 'firebase/firestore'
-import { ArrowRight, ChevronDown, Ellipsis, Loader2, RefreshCw } from 'lucide-react'
+import { ArrowRight, AudioLines, ChevronDown, Ellipsis, Loader2, MessageCircle, RefreshCw } from 'lucide-react'
 import { auth, db } from '@/lib/firebase'
 import { bootstrapDEK, getCachedDEK } from '@/lib/crypto/dek'
 import { decodeEntry } from '@/lib/firestore/codec'
+import { createChat } from '@/lib/firestore/chats'
 import { setExcludeFromShare } from '@/lib/firestore/journals'
 import { fetchRelated, fetchSummary, type RelatedEntry } from '@/lib/api/ai'
 import TypePill from '@/components/app/TypePill'
@@ -166,9 +168,28 @@ function DetailLoaded({
   tab: DetailTab
   onTabChange: (tab: DetailTab) => void
 }) {
+  const router = useRouter()
   const [optionsOpen, setOptionsOpen] = useState(false)
+  const [chatPickerOpen, setChatPickerOpen] = useState(false)
+  const [creatingChat, setCreatingChat] = useState(false)
   const [excludeOverride, setExcludeOverride] = useState<boolean | null>(null)
   const exclude = excludeOverride ?? entry.excludeFromShare
+
+  // Chat picker (design B.9e): "Start Text Chat" creates a journal-linked
+  // chat and pushes straight into the conversation; "Start Voice Call" is
+  // M6 and stays disabled here.
+  const handleStartTextChat = useCallback(async () => {
+    if (creatingChat) return
+    setChatPickerOpen(false)
+    setCreatingChat(true)
+    try {
+      const id = await createChat({ kind: 'text', journalId: entry.id, journalTitle: entry.title })
+      router.push(`/chats/${id}`)
+    } catch (err) {
+      console.error('[journal-detail] createChat failed:', err)
+      setCreatingChat(false)
+    }
+  }, [creatingChat, entry.id, entry.title, router])
 
   // Reset the optimistic override whenever we land on a fresh decode of a
   // (possibly different) entry so a stale override can't shadow real data.
@@ -279,15 +300,61 @@ function DetailLoaded({
           <h1 className="serif text-[26px] font-semibold leading-tight" style={{ color: 'var(--text)' }}>
             {entry.title || 'Untitled'}
           </h1>
-          <button
-            type="button"
-            disabled
-            title="Chat — coming soon"
-            className="flex shrink-0 cursor-not-allowed items-center gap-0.5 rounded-full px-3 py-1.5 font-sans text-sm font-medium opacity-40"
-            style={{ color: 'var(--text2)', border: '1px solid var(--hairline)' }}
-          >
-            Chat <ArrowRight size={14} strokeWidth={2} />
-          </button>
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setChatPickerOpen((o) => !o)}
+              disabled={creatingChat}
+              aria-haspopup="menu"
+              aria-expanded={chatPickerOpen}
+              className="flex items-center gap-0.5 rounded-full px-3 py-1.5 font-sans text-sm font-medium transition-opacity hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ color: 'var(--accentDeep)', border: '1px solid var(--hairline)' }}
+            >
+              {creatingChat ? (
+                <Loader2 size={14} strokeWidth={2.25} className="animate-spin" />
+              ) : (
+                <>
+                  Chat <ArrowRight size={14} strokeWidth={2} />
+                </>
+              )}
+            </button>
+            {chatPickerOpen && (
+              <div
+                role="menu"
+                aria-label="Start a chat"
+                className="absolute right-0 top-9 z-10 w-56 rounded-2xl p-2"
+                style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', boxShadow: 'var(--shadowHover)' }}
+              >
+                <p
+                  className="px-3 pb-1.5 pt-1 font-sans text-xs font-semibold"
+                  style={{ color: 'var(--text3)' }}
+                >
+                  Context: {entry.title || 'Untitled'}
+                </p>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => void handleStartTextChat()}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left font-sans text-sm font-medium transition-colors hover:opacity-80"
+                  style={{ color: 'var(--text)' }}
+                >
+                  <MessageCircle size={16} strokeWidth={1.75} style={{ color: 'var(--accent)' }} />
+                  Start Text Chat
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled
+                  title="Voice chat — coming soon"
+                  className="flex w-full cursor-not-allowed items-center gap-2.5 rounded-xl px-3 py-2.5 text-left font-sans text-sm font-medium opacity-40"
+                  style={{ color: 'var(--text2)' }}
+                >
+                  <AudioLines size={16} strokeWidth={1.75} />
+                  Start Voice Call
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <p className="font-sans text-sm" style={{ color: 'var(--text2)' }}>
           created {createdLabel} · {entry.wordCount} {entry.wordCount === 1 ? 'word' : 'words'}

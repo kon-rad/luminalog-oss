@@ -136,3 +136,46 @@ export interface UserProfile {
   wallet?: unknown
   nft?: unknown
 }
+
+// --- chat (M5) ---
+
+/** Kind of a `chats/{id}` conversation. Voice is modeled but out of scope until M6. */
+export type ChatKind = 'text' | 'voice'
+
+/** Who authored a `chats/{id}/messages/{id}` entry. */
+export type MessageRole = 'user' | 'assistant'
+
+/** One RAG citation attached to an assistant message (design §1). */
+export interface MessageSource {
+  journalId: string
+  /** Already-decrypted plaintext. */
+  snippet: string
+  /** Already-decrypted plaintext. */
+  title: string
+  type: string
+  date: string
+  score: number
+}
+
+/** A `chats/{id}/messages/{id}` document, decoded (server-written only). */
+export interface ChatMessage {
+  id: string
+  role: MessageRole
+  /** Already-decrypted plaintext. */
+  text: string
+  createdAt: Date
+  sources?: MessageSource[]
+}
+
+/** A `chats/{id}` conversation, decoded. Voice-only fields deferred to M6. */
+export interface Chat {
+  id: string
+  userId: string
+  kind: ChatKind
+  /** Already-decrypted plaintext ('' fallback if undecryptable). */
+  title: string
+  createdAt: Date
+  lastMessageAt: Date
+  journalId?: string
+  journalTitle?: string
+}

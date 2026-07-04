@@ -11,10 +11,15 @@ import { encryptField, openField, openFieldSafe } from '@/lib/crypto/envelope'
 import type {
   AIGeneration,
   AIPrompts,
+  Chat,
+  ChatKind,
+  ChatMessage,
   EditRecord,
   JournalEntry,
   JournalType,
   MediaItem,
+  MessageRole,
+  MessageSource,
   ProcessingStatus,
   Stats,
   StorageStats,
@@ -331,4 +336,158 @@ export const decodeProfile = async (
   if (data.wallet !== undefined) profile.wallet = data.wallet
   if (data.nft !== undefined) profile.nft = data.nft
   return profile
+}
+
+// --- chat (M5) ---
+
+const CHAT_KINDS: ChatKind[] = ['text', 'voice']
+const MESSAGE_ROLES: MessageRole[] = ['user', 'assistant']
+
+export interface ChatCreateInput {
+  userId: string
+  kind: ChatKind
+  title: string
+  journalId?: string
+  journalTitle?: string
+}
+
+/**
+ * The EXACT create map for a `chats/{id}` doc (design §1): `title` is
+ * encrypted, `createdAt`/`lastMessageAt` both stamp "now" as client
+ * `Timestamp`s, and `journalId`/`journalTitle` are written (plaintext) only
+ * when provided.
+ */
+export const encodeChatCreate = async (
+  input: ChatCreateInput,
+  key: CryptoKey,
+): Promise<Record<string, unknown>> => {
+  const now = dateToTs(new Date())
+  const data: Record<string, unknown> = {
+    userId: input.userId,
+    kind: input.kind,
+    title: await encryptField(key, input.title, AAD.chatsTitle),
+    createdAt: now,
+    lastMessageAt: now,
+  }
+  if (input.journalId !== undefined) data.journalId = input.journalId
+  if (input.journalTitle !== undefined) data.journalTitle = input.journalTitle
+  return data
+}
+
+/** `{ title: <enc envelope> }` patch for renaming a chat via `updateDoc`. */
+export const encodeChatTitle = async (
+  title: string,
+  key: CryptoKey,
+): Promise<Record<string, unknown>> => ({
+  title: await encryptField(key, title, AAD.chatsTitle),
+})
+
+/**
+ * Decode a `chats/{id}` document. Fail-soft: `title` uses `openFieldSafe`
+ * (→ '' fallback), so a chat whose title fails to decrypt still lists (shows
+ * "New chat" in the UI) rather than being dropped.
+ */
+export const decodeChat = async (
+  id: string,
+  data: unknown,
+  key: CryptoKey,
+): Promise<Chat> => {
+  const r = asRecord(data) ?? {}
+  const kindRaw = asString(r.kind)
+  const kind = kindRaw && CHAT_KINDS.includes(kindRaw as ChatKind) ? (kindRaw as ChatKind) : 'text'
+  const title = await openFieldSafe(key, r.title, AAD.chatsTitle)
+
+  const chat: Chat = {
+    id,
+    userId: asString(r.userId) ?? '',
+    kind,
+    title,
+    createdAt: tsToDate(r.createdAt) ?? new Date(),
+    lastMessageAt: tsToDate(r.lastMessageAt) ?? new Date(),
+  }
+  const journalId = asString(r.journalId)
+  if (journalId !== undefined) chat.journalId = journalId
+  const journalTitle = asString(r.journalTitle)
+  if (journalTitle !== undefined) chat.journalTitle = journalTitle
+  return chat
+}
+
+// Warn only once when a required message field fails to decrypt (fail-closed):
+// the caller drops the message; we never surface ciphertext, and we don't spam
+// logs.
+let warnedMessageDecodeFailure = false
+const warnMessageDecodeFailureOnce = (id: string, err: unknown): void => {
+  if (warnedMessageDecodeFailure) return
+  warnedMessageDecodeFailure = true
+  console.warn(`[codec] dropping message ${id}: required field failed to decrypt:`, String(err))
+}
+
+const decodeMessageSources = async (
+  v: unknown,
+  key: CryptoKey,
+): Promise<MessageSource[]> => {
+  const raw = asArray(v)
+  const decoded = await Promise.all(
+    raw.map(async (item, i): Promise<MessageSource | null> => {
+      const r = asRecord(item)
+      const journalId = r && asString(r.journalId)
+      if (!r || !journalId) return null
+      let snippet: string
+      try {
+        snippet = await openField(key, r.snippet, AAD.messagesSourceSnippet(i))
+      } catch {
+        // Drop just this source; the message + its other sources still stand.
+        return null
+      }
+      const title = await openFieldSafe(key, r.title, AAD.messagesSourceTitle(i))
+      return {
+        journalId,
+        snippet,
+        title,
+        type: asString(r.type) ?? '',
+        date: asString(r.date) ?? '',
+        score: asNumber(r.score) ?? 0,
+      }
+    }),
+  )
+  return decoded.filter((s): s is MessageSource => s !== null)
+}
+
+/**
+ * Decode a `chats/{id}/messages/{id}` document. `text` is REQUIRED
+ * (`openField`) — if it fails to decrypt, the whole message is DROPPED
+ * (returns `null`, logs once) so ciphertext is never surfaced. `sources` are
+ * decoded by their array INDEX (the AAD embeds it, so order is load-bearing);
+ * an individual source that fails to decrypt is dropped, the message is kept.
+ */
+export const decodeMessage = async (
+  id: string,
+  data: unknown,
+  key: CryptoKey,
+): Promise<ChatMessage | null> => {
+  const r = asRecord(data) ?? {}
+  const roleRaw = asString(r.role)
+  const role = roleRaw && MESSAGE_ROLES.includes(roleRaw as MessageRole) ? (roleRaw as MessageRole) : 'assistant'
+
+  let text: string
+  try {
+    text = await openField(key, r.text, AAD.messagesText)
+  } catch (err) {
+    warnMessageDecodeFailureOnce(id, err)
+    return null
+  }
+
+  const message: ChatMessage = {
+    id,
+    role,
+    text,
+    createdAt: tsToDate(r.createdAt) ?? new Date(),
+  }
+
+  if (r.sources !== undefined) {
+    const sources = await decodeMessageSources(r.sources, key)
+    if (sources.length > 0) message.sources = sources
+  }
+
+  return message
 }

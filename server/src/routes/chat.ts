@@ -23,7 +23,7 @@ async function fetchFocalEntry(uid: string, journalId: string, dek: Buffer): Pro
 
 chatRouter.post('/', firebaseAuth, async (req: Request, res: Response) => {
   const uid = (req as any).uid as string
-  const { chatId, message, journalId } = req.body as { chatId?: string; message?: string; journalId?: string }
+  const { chatId, message, journalId, messageId } = req.body as { chatId?: string; message?: string; journalId?: string; messageId?: string }
 
   if (!chatId || !message) {
     res.status(400).json({ error: 'Missing chatId or message' })
@@ -78,7 +78,12 @@ chatRouter.post('/', firebaseAuth, async (req: Request, res: Response) => {
     ]
 
     const chatRef = db.collection('chats').doc(chatId)
-    const userMsgRef = chatRef.collection('messages').doc()
+    // A client-supplied `messageId` makes the user-message write idempotent: a
+    // retry after a mid-stream failure re-`set`s the SAME doc instead of
+    // creating a duplicate. Legacy clients (iOS) omit it → auto-id, unchanged.
+    const userMsgRef = messageId
+      ? chatRef.collection('messages').doc(messageId)
+      : chatRef.collection('messages').doc()
     await userMsgRef.set({
       role: 'user',
       text: encryptField(dek, message, 'messages.text'),
