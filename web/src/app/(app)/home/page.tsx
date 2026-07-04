@@ -1,19 +1,21 @@
 'use client'
 
 // Home tab root (design B.7) — the daily landing screen: a time-aware
-// greeting, a placeholder prompt hero (real personalized prompts are a later
-// milestone), the stats row, a placeholder "Daily Reflections" scroller, and
-// the latest entries/drafts interleaved. Single vertical scroll inside the
-// centered app column the T8 `AppShell` provides.
+// greeting, the live Daily Prompt hero carousel (design M3-T3), the stats
+// row, a placeholder "Daily Reflections" scroller, and the latest
+// entries/drafts interleaved. Single vertical scroll inside the centered app
+// column the T8 `AppShell` provides.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Flame, BookText, Sparkles } from 'lucide-react'
+import { Flame, BookText, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useSession } from '@/lib/session/session-context'
 import { streamEntries } from '@/lib/firestore/journals'
 import { listDrafts, type DraftEntry } from '@/lib/drafts/draftStore'
 import { localDayKey } from '@/lib/stats/dailyGoalStreak'
+import { fetchDailyPrompt, type DailyPrompt, type DailyPromptResponse } from '@/lib/api/ai'
 import EntryRow from '@/components/app/EntryRow'
 import DraftRow from '@/components/app/DraftRow'
 import GoalProgressCard from '@/components/app/GoalProgressCard'
@@ -24,6 +26,67 @@ import type { JournalEntry } from '@/lib/firestore/models'
 
 /** Recent entries + drafts feed is capped at 10 items (design B.7 §5). */
 const RECENT_LIMIT = 10
+
+/** Per-local-day cache key for the Daily Prompt carousel (design M3-T3). */
+const DAILY_PROMPT_CACHE_KEY = 'll-daily-prompt'
+/** Carousel shows at most 5 prompts (design B.7 §2 / M3-T3). */
+const MAX_DAILY_PROMPTS = 5
+/** Grace window to wait for `profile.timezone` before falling back to the
+ * browser's timezone, so a slow (or failed) profile load never blocks the
+ * Home prompt hero. */
+const PROFILE_GRACE_MS = 1500
+
+type DailyPromptCacheEntry = { dayKey: string; payload: DailyPromptResponse }
+
+type PromptHeroStatus = 'loading' | 'ready' | 'fallback'
+
+/** The hero card shell (design A.7 "Prompt card") — 24px radius, diagonal
+ * amber gradient overlay, warm hairline + shadow. Shared by the loading,
+ * ready-carousel, and fallback states so all three read as one component. */
+function PromptHeroShell({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="overflow-hidden rounded-card"
+      style={{
+        background: 'linear-gradient(135deg, rgba(206,127,68,0.20), rgba(206,127,68,0.04))',
+        border: '1px solid var(--hairline)',
+        boxShadow: 'var(--shadow)',
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+/** A life-area chip (design A.7 "Type pill" family) — a small accent-tinted
+ * pill labeling which area of life a prompt draws from. */
+function AreaChip({ area }: { area: string }) {
+  return (
+    <span
+      className="inline-flex w-fit items-center rounded-full px-2.5 py-1 font-sans text-[10px] font-semibold uppercase tracking-wide"
+      style={{ background: 'var(--accentTint)', color: 'var(--accentDeep)' }}
+    >
+      {area}
+    </span>
+  )
+}
+
+/** One page of the carousel: life-area chip + serif-italic curly-quoted
+ * question + full-width "Start Journaling." CTA seeded with THIS card's
+ * prompt text (design M3-T3 §2). */
+function PromptCard({ prompt }: { prompt: DailyPrompt }) {
+  return (
+    <div className="flex w-full shrink-0 snap-center flex-col p-6">
+      <AreaChip area={prompt.area} />
+      <p className="serif mt-4 flex-1 text-xl italic leading-snug" style={{ color: 'var(--text)' }}>
+        &ldquo;{prompt.text}&rdquo;
+      </p>
+      <Link href={`/create?prompt=${encodeURIComponent(prompt.text)}`} className="btn-amber-full mt-5">
+        Start Journaling.
+      </Link>
+    </div>
+  )
+}
 
 function timeOfDayGreeting(): string {
   const hour = new Date().getHours()
@@ -66,6 +129,113 @@ export default function HomePage() {
     }
   }, [])
 
+  // Daily Prompt hero carousel (design M3-T3): resolve up to 5 personalized
+  // prompts, cached per local calendar day in `localStorage`. States:
+  // 'loading' (calm placeholder) -> 'ready' (carousel) or 'fallback' (a
+  // single static prompt so Home is NEVER blocked by the AI call failing).
+  const [promptStatus, setPromptStatus] = useState<PromptHeroStatus>('loading')
+  const [prompts, setPrompts] = useState<DailyPrompt[]>([])
+  const [activePromptIndex, setActivePromptIndex] = useState(0)
+  const promptTrackRef = useRef<HTMLDivElement>(null)
+  // Guards the resolution (cache-read / fetch) to run at most once per
+  // signed-in uid, even though the effect below re-runs as `profile` streams
+  // in updates — otherwise every profile change would re-check the cache.
+  const promptResolvedRef = useRef(false)
+
+  // Reset the carousel state whenever the signed-in user changes.
+  useEffect(() => {
+    promptResolvedRef.current = false
+    setPromptStatus('loading')
+    setPrompts([])
+    setActivePromptIndex(0)
+  }, [uid])
+
+  useEffect(() => {
+    if (!uid || promptResolvedRef.current) return
+
+    const resolve = async (timezone: string) => {
+      if (promptResolvedRef.current) return
+      promptResolvedRef.current = true
+
+      // Scope the cache to this uid so a shared browser never serves one
+      // user's personalized prompts to the next (the prompts are derived from
+      // the signed-in user's own private entries).
+      const cacheKey = `${DAILY_PROMPT_CACHE_KEY}:${uid}`
+
+      let dayKey: string
+      try {
+        dayKey = localDayKey(new Date(), timezone)
+      } catch (err) {
+        console.error('[home] invalid timezone for daily prompt:', err)
+        setPromptStatus('fallback')
+        return
+      }
+
+      try {
+        const cachedRaw = window.localStorage.getItem(cacheKey)
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw) as Partial<DailyPromptCacheEntry>
+          if (cached.dayKey === dayKey && cached.payload?.prompts?.length) {
+            setPrompts(cached.payload.prompts.slice(0, MAX_DAILY_PROMPTS))
+            setPromptStatus('ready')
+            return
+          }
+        }
+      } catch (err) {
+        console.error('[home] reading cached daily prompt failed:', err)
+        // Fall through to a fresh fetch — a corrupt cache entry shouldn't block Home.
+      }
+
+      try {
+        const result = await fetchDailyPrompt()
+        if (!result.prompts?.length) {
+          setPromptStatus('fallback')
+          return
+        }
+        try {
+          const entry: DailyPromptCacheEntry = { dayKey, payload: result }
+          window.localStorage.setItem(cacheKey, JSON.stringify(entry))
+        } catch (err) {
+          console.error('[home] caching daily prompt failed:', err)
+          // Non-fatal — the carousel still renders from `result` this session.
+        }
+        setPrompts(result.prompts.slice(0, MAX_DAILY_PROMPTS))
+        setPromptStatus('ready')
+      } catch (err) {
+        console.error('[home] fetchDailyPrompt failed:', err)
+        setPromptStatus('fallback')
+      }
+    }
+
+    // Prefer the profile's timezone once it's loaded (session bootstrap
+    // resolves it quickly); otherwise give it a brief grace window before
+    // falling back to the browser's timezone, so a slow/failed profile load
+    // never blocks the Home prompt hero.
+    if (profile) {
+      void resolve(profile.timezone)
+      return
+    }
+    const timer = setTimeout(() => {
+      void resolve(Intl.DateTimeFormat().resolvedOptions().timeZone)
+    }, PROFILE_GRACE_MS)
+    return () => clearTimeout(timer)
+  }, [uid, profile])
+
+  const scrollToPrompt = (index: number) => {
+    const track = promptTrackRef.current
+    if (!track || prompts.length === 0) return
+    const clamped = Math.max(0, Math.min(index, prompts.length - 1))
+    track.scrollTo({ left: clamped * track.clientWidth, behavior: 'smooth' })
+    setActivePromptIndex(clamped)
+  }
+
+  const handlePromptTrackScroll = () => {
+    const track = promptTrackRef.current
+    if (!track || track.clientWidth === 0) return
+    const index = Math.round(track.scrollLeft / track.clientWidth)
+    setActivePromptIndex((prev) => (prev === index ? prev : index))
+  }
+
   // Merge saved entries + local drafts newest-first by their own timestamps
   // (drafts store `updatedAtEpoch` in SECONDS; entries carry a `createdAt`
   // `Date` — normalize both to epoch millis before sorting).
@@ -106,23 +276,65 @@ export default function HomePage() {
         </h1>
       </header>
 
-      {/* Daily Prompt hero (design A.7 "Prompt card") — a static placeholder;
-          real personalized prompts land in a later milestone. */}
-      <div
-        className="rounded-card p-6"
-        style={{
-          background: 'linear-gradient(135deg, rgba(206,127,68,0.20), rgba(206,127,68,0.04))',
-          border: '1px solid var(--hairline)',
-          boxShadow: 'var(--shadow)',
-        }}
-      >
-        <p className="serif text-xl italic leading-snug" style={{ color: 'var(--text)' }}>
-          &ldquo;What&apos;s on your mind today?&rdquo;
-        </p>
-        <Link href="/create" className="btn-amber-full mt-5">
-          Start Journaling.
-        </Link>
-      </div>
+      {/* Daily Prompt hero carousel (design M3-T3 / A.7 "Prompt card") —
+          the emotional focal point. loading -> ready (carousel) | fallback. */}
+      {promptStatus === 'ready' && prompts.length > 0 ? (
+        <PromptHeroShell>
+          <div
+            ref={promptTrackRef}
+            onScroll={handlePromptTrackScroll}
+            className="flex snap-x snap-mandatory overflow-x-auto"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            {prompts.map((prompt, i) => (
+              <PromptCard key={i} prompt={prompt} />
+            ))}
+          </div>
+          {prompts.length > 1 && (
+            <div className="flex items-center justify-center gap-2 pb-4">
+              {prompts.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  aria-label={`Show prompt ${i + 1} of ${prompts.length}`}
+                  aria-current={i === activePromptIndex}
+                  onClick={() => scrollToPrompt(i)}
+                  className="h-2 rounded-full transition-all duration-200"
+                  style={{
+                    width: i === activePromptIndex ? '18px' : '8px',
+                    background: i === activePromptIndex ? 'var(--accent)' : 'var(--hairline2)',
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </PromptHeroShell>
+      ) : promptStatus === 'loading' ? (
+        <PromptHeroShell>
+          <div className="flex flex-col p-6">
+            <span
+              className="h-4 w-24 rounded-full"
+              style={{ background: 'var(--hairline2)' }}
+              aria-hidden
+            />
+            <p className="serif mt-4 text-xl italic leading-snug" style={{ color: 'var(--text3)' }}>
+              Finding a prompt for you&hellip;
+            </p>
+          </div>
+        </PromptHeroShell>
+      ) : (
+        /* fallback — a single static prompt so Home is never blocked. */
+        <PromptHeroShell>
+          <div className="flex flex-col p-6">
+            <p className="serif text-xl italic leading-snug" style={{ color: 'var(--text)' }}>
+              &ldquo;What&apos;s on your mind today?&rdquo;
+            </p>
+            <Link href="/create" className="btn-amber-full mt-5">
+              Start Journaling.
+            </Link>
+          </div>
+        </PromptHeroShell>
+      )}
 
       {/* Stats row (design B.7 §3): skeleton-redacted until `profile` loads. */}
       <section className="grid grid-cols-2 gap-3">

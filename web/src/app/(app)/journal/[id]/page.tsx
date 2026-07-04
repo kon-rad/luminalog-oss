@@ -15,16 +15,19 @@
 // the actual decode, so we never get stuck waiting on a snapshot event that
 // won't re-fire just because our local key cache changed.
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { doc, onSnapshot } from 'firebase/firestore'
-import { ArrowRight, ChevronDown, Ellipsis, Loader2 } from 'lucide-react'
+import { ArrowRight, ChevronDown, Ellipsis, Loader2, RefreshCw } from 'lucide-react'
 import { auth, db } from '@/lib/firebase'
 import { bootstrapDEK, getCachedDEK } from '@/lib/crypto/dek'
 import { decodeEntry } from '@/lib/firestore/codec'
 import { setExcludeFromShare } from '@/lib/firestore/journals'
+import { fetchRelated, fetchSummary, type RelatedEntry } from '@/lib/api/ai'
 import TypePill from '@/components/app/TypePill'
-import { Skeleton } from '@/components/app/Skeleton'
+import { Skeleton, SkeletonRow } from '@/components/app/Skeleton'
 import EmptyState from '@/components/app/EmptyState'
+import { formatEntryDateTime, truncatePreview } from '@/components/app/entryFormat'
 import type { JournalEntry } from '@/lib/firestore/models'
 
 type DetailStatus = 'loading' | 'ready' | 'notFound' | 'decryptFailed'
@@ -36,6 +39,25 @@ const TABS: { key: DetailTab; label: string }[] = [
   { key: 'prompts', label: 'Prompts' },
   { key: 'related', label: 'Related' },
 ]
+
+/** On-demand/regenerate summary fetch state, keyed by entry id so switching
+ * tabs (which unmounts/remounts `MainTab`) doesn't lose progress or re-fetch. */
+type SummaryFetchState = { status: 'loading' } | { status: 'loaded'; text: string } | { status: 'error' }
+
+/** Live-Related fetch state, keyed by entry id (design §3 M3-T2: "cache the
+ * result in component state keyed by entry id so switching tabs doesn't
+ * refetch"). */
+type RelatedFetchState = { status: 'loading' } | { status: 'loaded'; items: RelatedEntry[] } | { status: 'error' }
+
+/** Stale iff the entry was content-edited after its stored summary (or a
+ * content edit exists but no summary has ever been generated) — mirrors iOS
+ * "Regenerate only when stale" (design §3 M3-T2). */
+function isSummaryStale(entry: Pick<JournalEntry, 'contentEditedAt' | 'summary'>): boolean {
+  if (!entry.contentEditedAt) return false
+  const generatedAt = entry.summary?.generatedAt
+  if (!generatedAt) return true
+  return entry.contentEditedAt.getTime() > generatedAt.getTime()
+}
 
 export default function JournalDetailPage({ params }: { params: { id: string } }) {
   const { id } = params
@@ -177,6 +199,66 @@ function DetailLoaded({
     }
   }
 
+  // On-demand summary (lazy fetch + Regenerate) and live-Related state are
+  // both lifted up here — `MainTab`/`RelatedTab` unmount whenever `tab`
+  // switches away from them (see the `{tab === 'x' && <XTab/>}` render below),
+  // so any local `useState` inside those components would be lost on every
+  // tab switch. Keying by entry id (rather than resetting wholesale) means
+  // the fetch-once guard and the Related cache both naturally survive a
+  // switch back to an entry visited earlier in the same page lifetime too.
+  const [summaryFetches, setSummaryFetches] = useState<Record<string, SummaryFetchState>>({})
+  const fetchedSummaryOnceRef = useRef<Set<string>>(new Set())
+  const [relatedFetches, setRelatedFetches] = useState<Record<string, RelatedFetchState>>({})
+  const fetchedRelatedOnceRef = useRef<Set<string>>(new Set())
+
+  // Fires an on-demand `fetchSummary` and records the guard, whether it's the
+  // very first lazy fetch, a Retry-after-error, or an explicit Regenerate —
+  // all three are the same operation: get a fresh plaintext summary and show
+  // it (never persisted; the server owns `entry.summary`).
+  const runSummaryFetch = useCallback((id: string) => {
+    fetchedSummaryOnceRef.current.add(id)
+    setSummaryFetches((prev) => ({ ...prev, [id]: { status: 'loading' } }))
+    fetchSummary(id)
+      .then((res) => setSummaryFetches((prev) => ({ ...prev, [id]: { status: 'loaded', text: res.text } })))
+      .catch((err) => {
+        console.error('[journal-detail] fetchSummary failed:', err)
+        setSummaryFetches((prev) => ({ ...prev, [id]: { status: 'error' } }))
+      })
+  }, [])
+
+  const storedSummaryText = entry.summary?.text
+  const vectorIndexed = entry.vector.status === 'indexed'
+  useEffect(() => {
+    // Only auto-fetch while the Main tab is actually visible, there's no
+    // stored summary yet (the server hasn't written one for this decode), the
+    // entry has finished RAG indexing (`vector.status === 'indexed'` — while
+    // still pending, the stored summary will arrive later via the live
+    // subscription, so we keep showing "Analyzing…" instead of racing the
+    // indexer), and we haven't already fetched once for this entry id.
+    if (tab !== 'main') return
+    if (storedSummaryText) return
+    if (!vectorIndexed) return
+    if (fetchedSummaryOnceRef.current.has(entryId)) return
+    runSummaryFetch(entryId)
+  }, [tab, entryId, storedSummaryText, vectorIndexed, runSummaryFetch])
+
+  const runRelatedFetch = useCallback((id: string) => {
+    fetchedRelatedOnceRef.current.add(id)
+    setRelatedFetches((prev) => ({ ...prev, [id]: { status: 'loading' } }))
+    fetchRelated(id)
+      .then((res) => setRelatedFetches((prev) => ({ ...prev, [id]: { status: 'loaded', items: res.related } })))
+      .catch((err) => {
+        console.error('[journal-detail] fetchRelated failed:', err)
+        setRelatedFetches((prev) => ({ ...prev, [id]: { status: 'error' } }))
+      })
+  }, [])
+
+  useEffect(() => {
+    if (tab !== 'related') return
+    if (fetchedRelatedOnceRef.current.has(entryId)) return
+    runRelatedFetch(entryId)
+  }, [tab, entryId, runRelatedFetch])
+
   const analyzing = entry.vector.status !== 'indexed'
   const createdLabel = useMemo(
     () =>
@@ -289,10 +371,21 @@ function DetailLoaded({
         })}
       </nav>
 
-      {tab === 'main' && <MainTab entry={entry} analyzing={analyzing} exclude={exclude} onToggleExclude={handleToggleExclude} />}
+      {tab === 'main' && (
+        <MainTab
+          entry={entry}
+          analyzing={analyzing}
+          exclude={exclude}
+          onToggleExclude={handleToggleExclude}
+          fetchState={summaryFetches[entryId]}
+          onRegenerate={() => runSummaryFetch(entryId)}
+        />
+      )}
       {tab === 'insights' && <InsightsTab entry={entry} analyzing={analyzing} />}
       {tab === 'prompts' && <PromptsTab entry={entry} analyzing={analyzing} />}
-      {tab === 'related' && <RelatedTab />}
+      {tab === 'related' && (
+        <RelatedTab fetchState={relatedFetches[entryId]} onRetry={() => runRelatedFetch(entryId)} />
+      )}
     </div>
   )
 }
@@ -302,38 +395,88 @@ function MainTab({
   analyzing,
   exclude,
   onToggleExclude,
+  fetchState,
+  onRegenerate,
 }: {
   entry: JournalEntry
   analyzing: boolean
   exclude: boolean
   onToggleExclude: () => void
+  fetchState: SummaryFetchState | undefined
+  onRegenerate: () => void
 }) {
   const [summaryOpen, setSummaryOpen] = useState(true)
-  const summaryText = entry.summary?.text
-  const showSummaryCard = Boolean(summaryText) || analyzing
+  const storedSummaryText = entry.summary?.text
+  // The on-demand/regenerated result (once loaded) always wins over the
+  // stored value — it's strictly fresher (Regenerate only ever runs against
+  // a stale stored summary; the initial lazy fetch only ever runs when there
+  // was no stored summary at all).
+  const displayText = fetchState?.status === 'loaded' ? fetchState.text : storedSummaryText
+  // A `loading` fetch alongside an existing stored summary can only be a
+  // Regenerate in flight (the lazy auto-fetch never fires once a stored
+  // summary exists) — dim the old text and spin rather than blanking it.
+  const regenerating = fetchState?.status === 'loading' && Boolean(storedSummaryText)
+  const showSummaryCard = Boolean(displayText) || analyzing || fetchState?.status === 'loading' || fetchState?.status === 'error'
+  const showRegenerate = isSummaryStale(entry)
 
   return (
     <div className="flex flex-col gap-6">
       {showSummaryCard && (
         <div className="card p-4">
-          <button
-            type="button"
-            onClick={() => setSummaryOpen((o) => !o)}
-            className="flex w-full items-center justify-between"
-          >
-            <span className="font-sans text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--accent)' }}>
-              AI Summary
-            </span>
-            <ChevronDown
-              size={16}
-              strokeWidth={2}
-              style={{ color: 'var(--text2)', transform: summaryOpen ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s' }}
-            />
-          </button>
+          <div className="flex w-full items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setSummaryOpen((o) => !o)}
+              className="flex min-w-0 flex-1 items-center gap-2"
+            >
+              <span className="font-sans text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--accent)' }}>
+                AI Summary
+              </span>
+              <ChevronDown
+                size={16}
+                strokeWidth={2}
+                style={{ color: 'var(--text2)', transform: summaryOpen ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s' }}
+              />
+            </button>
+            {showRegenerate && (
+              <button
+                type="button"
+                onClick={onRegenerate}
+                disabled={regenerating}
+                className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 font-sans text-[11px] font-semibold transition-opacity disabled:opacity-50"
+                style={{ color: 'var(--accent)', border: '1px solid var(--hairline)' }}
+              >
+                <RefreshCw size={11} strokeWidth={2.25} className={regenerating ? 'animate-spin' : ''} />
+                Regenerate
+              </button>
+            )}
+          </div>
           {summaryOpen && (
-            <p className="serif mt-3 whitespace-pre-wrap text-[15px] leading-relaxed" style={{ color: 'var(--text)' }}>
-              {summaryText ?? 'Analyzing your entry…'}
-            </p>
+            <div className="mt-3" style={regenerating ? { opacity: 0.5 } : undefined}>
+              {displayText ? (
+                <p className="serif whitespace-pre-wrap text-[15px] leading-relaxed" style={{ color: 'var(--text)' }}>
+                  {displayText}
+                </p>
+              ) : fetchState?.status === 'error' ? (
+                <div className="flex items-center gap-2">
+                  <p className="font-sans text-sm" style={{ color: 'var(--text2)' }}>
+                    Couldn&rsquo;t generate summary
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onRegenerate}
+                    className="font-sans text-sm font-semibold underline"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <p className="font-sans text-sm" style={{ color: 'var(--text2)' }}>
+                  Analyzing your entry…
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -413,12 +556,71 @@ function PromptsTab({ entry, analyzing }: { entry: JournalEntry; analyzing: bool
   return <EmptyState title="No prompts yet" message="Follow-up prompts appear here once your entry has been analyzed." />
 }
 
-function RelatedTab() {
+function RelatedTab({
+  fetchState,
+  onRetry,
+}: {
+  fetchState: RelatedFetchState | undefined
+  onRetry: () => void
+}) {
+  if (!fetchState || fetchState.status === 'loading') {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="flex items-center gap-2 font-sans text-sm" style={{ color: 'var(--text2)' }}>
+          <Loader2 size={14} className="animate-spin" strokeWidth={2.25} />
+          Finding connections…
+        </p>
+        <SkeletonRow />
+        <SkeletonRow />
+      </div>
+    )
+  }
+
+  if (fetchState.status === 'error') {
+    return (
+      <EmptyState
+        title="Couldn't load related entries"
+        message="Please try again."
+        actionLabel="Retry"
+        onAction={onRetry}
+      />
+    )
+  }
+
+  if (fetchState.items.length === 0) {
+    return (
+      <EmptyState
+        title="No related entries yet"
+        message="Write a few more entries to discover connections."
+      />
+    )
+  }
+
   return (
-    <EmptyState
-      title="No related entries yet"
-      message="Write a few more entries to discover connections."
-    />
+    <div className="flex flex-col gap-3">
+      {fetchState.items.slice(0, 20).map((related) => (
+        <Link
+          key={related.journalId}
+          href={`/journal/${related.journalId}`}
+          className="card flex flex-col gap-1.5 p-4"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <p className="serif min-w-0 flex-1 truncate text-[15px] font-semibold" style={{ color: 'var(--text)' }}>
+              {related.title || 'Untitled'}
+            </p>
+            <TypePill type={related.type} className="shrink-0" />
+          </div>
+          <p className="font-sans text-xs font-medium" style={{ color: 'var(--text2)' }}>
+            {formatEntryDateTime(new Date(related.date))}
+          </p>
+          {related.snippet && (
+            <p className="line-clamp-2 font-sans text-sm" style={{ color: 'var(--text2)' }}>
+              {truncatePreview(related.snippet)}
+            </p>
+          )}
+        </Link>
+      ))}
+    </div>
   )
 }
 

@@ -13,6 +13,7 @@ import { streamEntries } from '@/lib/firestore/journals'
 import EntryRow from '@/components/app/EntryRow'
 import EmptyState from '@/components/app/EmptyState'
 import { SkeletonRow } from '@/components/app/Skeleton'
+import SearchModal from '@/components/app/SearchModal'
 import { localDayKey } from '@/lib/stats/dailyGoalStreak'
 import type { JournalEntry, JournalType } from '@/lib/firestore/models'
 
@@ -69,6 +70,7 @@ export default function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [retryKey, setRetryKey] = useState(0)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
     if (!uid) return
@@ -109,11 +111,13 @@ export default function JournalPage() {
           Journal
         </h1>
         <div className="flex items-center gap-1">
-          <ToolbarButton icon={Search} label="Search" />
+          <ToolbarButton icon={Search} label="Search" onClick={() => setSearchOpen(true)} />
           <ToolbarButton icon={Hexagon} label="Constellation" />
           <ToolbarButton icon={BarChart3} label="Insights" />
         </div>
       </div>
+
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {FILTERS.map(({ key, label }) => {
@@ -189,14 +193,37 @@ export default function JournalPage() {
   )
 }
 
-function ToolbarButton({ icon: Icon, label }: { icon: typeof Search; label: string }) {
+function ToolbarButton({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: typeof Search
+  label: string
+  /** Omit to render the disabled "coming soon" placeholder (Constellation/Insights). */
+  onClick?: () => void
+}) {
+  if (!onClick) {
+    return (
+      <button
+        type="button"
+        disabled
+        title={`${label} — coming soon`}
+        aria-label={label}
+        className="flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-full opacity-40"
+        style={{ color: 'var(--text2)' }}
+      >
+        <Icon size={18} strokeWidth={1.75} />
+      </button>
+    )
+  }
+
   return (
     <button
       type="button"
-      disabled
-      title={`${label} — coming soon`}
+      onClick={onClick}
       aria-label={label}
-      className="flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-full opacity-40"
+      className="flex h-9 w-9 items-center justify-center rounded-full transition-colors"
       style={{ color: 'var(--text2)' }}
     >
       <Icon size={18} strokeWidth={1.75} />
