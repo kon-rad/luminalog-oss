@@ -37,6 +37,9 @@ const schema = z.object({
   CDP_API_KEY_SECRET: z.string().optional(),
   CDP_WALLET_SECRET: z.string().optional(),
   BASE_RPC_URL: z.string().optional(),
+  // Which Base network to mint on. Defaults to testnet so existing deploys are
+  // unaffected; set BASE_CHAIN=base for mainnet (with mainnet contract/RPC/minter).
+  BASE_CHAIN: z.enum(['base', 'base-sepolia']).default('base-sepolia'),
   BASE_MINTER_PRIVATE_KEY: z
     .string()
     .optional()

@@ -7,9 +7,12 @@ import {
   parseEventLogs,
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { baseSepolia } from 'viem/chains'
+import { base, baseSepolia } from 'viem/chains'
 import { config, chainEnabled } from '../../config'
 import { db } from '../../middleware/firebaseAuth'
+
+/** The viem chain selected by BASE_CHAIN ('base' mainnet | 'base-sepolia' testnet). */
+const activeChain = config.BASE_CHAIN === 'base' ? base : baseSepolia
 
 /** The soulbound token minted to a user, stored on `users/{uid}.nft`. */
 export interface UserNft {
@@ -25,9 +28,8 @@ export interface UserNft {
   mintStartedAt?: number
 }
 
-// v1 targets Base Sepolia. Bump to 'base' + mainnet chain when we promote.
-const CHAIN = 'base-sepolia'
-const DEFAULT_RPC = 'https://sepolia.base.org'
+// Written to nft.chain — 'base' or 'base-sepolia', from config (BASE_CHAIN).
+const CHAIN = config.BASE_CHAIN
 
 // A 'minting' claim older than this is treated as stale/crashed and reclaimable,
 // so a lost/failed worker can never wedge a user out of ever minting.
@@ -63,8 +65,8 @@ function contractAddress(): `0x${string}` {
 // types (which include 'deposit' tx types) match the cached singletons.
 function makePublicClient() {
   return createPublicClient({
-    chain: baseSepolia,
-    transport: http(config.BASE_RPC_URL || DEFAULT_RPC),
+    chain: activeChain,
+    transport: http(config.BASE_RPC_URL || undefined),
   })
 }
 let _public: ReturnType<typeof makePublicClient> | undefined
@@ -77,8 +79,8 @@ function makeWalletClient() {
   const account = privateKeyToAccount(config.BASE_MINTER_PRIVATE_KEY as `0x${string}`)
   return createWalletClient({
     account,
-    chain: baseSepolia,
-    transport: http(config.BASE_RPC_URL || DEFAULT_RPC),
+    chain: activeChain,
+    transport: http(config.BASE_RPC_URL || undefined),
   })
 }
 let _wallet: ReturnType<typeof makeWalletClient> | undefined

@@ -6,6 +6,7 @@ vi.mock('../../config', () => ({
     SOULBOUND_CONTRACT_ADDRESS: '0xC0nTRAcT000000000000000000000000000000001',
     BASE_MINTER_PRIVATE_KEY: '0x' + '1'.repeat(64),
     BASE_RPC_URL: 'https://sepolia.base.org',
+    BASE_CHAIN: 'base-sepolia',
   },
   chainEnabled,
 }))
