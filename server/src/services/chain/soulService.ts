@@ -1,7 +1,15 @@
 import { db } from '../../middleware/firebaseAuth'
+import { chainEnabled } from '../../config'
 import { ensureUserWallet } from './walletService'
 import { ensureMinted } from './mintService'
 import { renderAndStoreSoulImage, type Point3D } from './soulImage'
+
+let _loggedDisabled = false
+function logDisabledOnce(): void {
+  if (_loggedDisabled) return
+  _loggedDisabled = true
+  console.debug('[chain] disabled (missing chain env) — ensureSoulMinted is a no-op')
+}
 
 /**
  * Ensure the user has a CDP wallet AND a minted soulbound token.
@@ -12,6 +20,12 @@ import { renderAndStoreSoulImage, type Point3D } from './soulImage'
  * work once both the wallet and the token exist, so it's safe to call often.
  */
 export async function ensureSoulMinted(uid: string): Promise<void> {
+  // Chain-disabled degradation: no-op when chain env is absent (shared server).
+  if (!chainEnabled()) {
+    logDisabledOnce()
+    return
+  }
+
   const snap = await db.collection('users').doc(uid).get()
   const d = snap.data()
   if (d?.wallet?.address && d?.nft?.tokenId) return

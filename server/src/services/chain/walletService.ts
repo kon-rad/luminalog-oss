@@ -1,6 +1,13 @@
 import { CdpClient } from '@coinbase/cdp-sdk'
-import { config } from '../../config'
+import { config, chainEnabled } from '../../config'
 import { db } from '../../middleware/firebaseAuth'
+
+let _loggedDisabled = false
+function logDisabledOnce(): void {
+  if (_loggedDisabled) return
+  _loggedDisabled = true
+  console.debug('[chain] disabled (missing chain env) — ensureUserWallet is a no-op')
+}
 
 /**
  * A user's backend-custodied CDP Server Wallet, stored on `users/{uid}.wallet`.
@@ -50,7 +57,13 @@ export function accountNameForUid(uid: string): string {
  *    failed persist still resolves to the same address), then store
  *    `{ provider, address, accountName }` on `users/{uid}.wallet`.
  */
-export async function ensureUserWallet(uid: string): Promise<string> {
+export async function ensureUserWallet(uid: string): Promise<string | undefined> {
+  // Chain-disabled degradation: no-op when chain env is absent (shared server).
+  if (!chainEnabled()) {
+    logDisabledOnce()
+    return undefined
+  }
+
   const userRef = db.collection('users').doc(uid)
   const snap = await userRef.get()
   const existing = snap.data()?.wallet as UserWallet | undefined

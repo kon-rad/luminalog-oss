@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { ensureUserWallet, ensureMinted, renderAndStoreSoulImage } = vi.hoisted(() => ({
-  ensureUserWallet: vi.fn(),
-  ensureMinted: vi.fn(),
-  renderAndStoreSoulImage: vi.fn(),
-}))
+const { ensureUserWallet, ensureMinted, renderAndStoreSoulImage, chainEnabled } = vi.hoisted(
+  () => ({
+    ensureUserWallet: vi.fn(),
+    ensureMinted: vi.fn(),
+    renderAndStoreSoulImage: vi.fn(),
+    chainEnabled: vi.fn(() => true),
+  }),
+)
+vi.mock('../../config', () => ({ config: {}, chainEnabled }))
 vi.mock('./walletService', () => ({ ensureUserWallet }))
 vi.mock('./mintService', () => ({ ensureMinted }))
 vi.mock('./soulImage', () => ({ renderAndStoreSoulImage }))
@@ -33,6 +37,7 @@ import { ensureSoulMinted, refreshSoulImage } from './soulService'
 beforeEach(() => {
   store = {}
   vi.clearAllMocks()
+  chainEnabled.mockReturnValue(true)
   ensureUserWallet.mockResolvedValue('0xWALLET')
   ensureMinted.mockResolvedValue({ tokenId: '5' })
   renderAndStoreSoulImage.mockResolvedValue('https://s3/soul/5/hero.png')
@@ -62,6 +67,14 @@ describe('ensureSoulMinted', () => {
     await ensureSoulMinted('uid1')
     expect(ensureUserWallet).toHaveBeenCalledWith('uid1')
     expect(ensureMinted).toHaveBeenCalledWith('uid1')
+  })
+
+  it('guard: no-ops (no wallet/mint work) when chain is disabled', async () => {
+    chainEnabled.mockReturnValue(false)
+    store['users/uid1'] = {}
+    await ensureSoulMinted('uid1')
+    expect(ensureUserWallet).not.toHaveBeenCalled()
+    expect(ensureMinted).not.toHaveBeenCalled()
   })
 })
 

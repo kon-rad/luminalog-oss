@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+const { chainEnabled } = vi.hoisted(() => ({ chainEnabled: vi.fn(() => true) }))
 vi.mock('../../config', () => ({
   config: {
     CDP_API_KEY_ID: 'test-id',
     CDP_API_KEY_SECRET: 'test-secret',
     CDP_WALLET_SECRET: 'test-wallet-secret',
   },
+  chainEnabled,
 }))
 
 // Mock the CDP SDK: capture getOrCreateAccount and the CdpClient constructor.
@@ -40,6 +42,7 @@ const ADDR = '0xABc0000000000000000000000000000000000001'
 beforeEach(() => {
   store = {}
   vi.clearAllMocks()
+  chainEnabled.mockReturnValue(true)
   getOrCreateAccount.mockResolvedValue({ address: ADDR })
 })
 
@@ -90,5 +93,13 @@ describe('ensureUserWallet', () => {
     expect(addr).toBe(ADDR)
     expect(getOrCreateAccount).toHaveBeenCalledWith({ name: 'user-uid1' })
     expect(store['users/uid1'].wallet.address).toBe(ADDR)
+  })
+
+  it('guard: returns early without any CDP work when chain is disabled', async () => {
+    chainEnabled.mockReturnValue(false)
+    const addr = await ensureUserWallet('uid1')
+    expect(addr).toBeUndefined()
+    expect(getOrCreateAccount).not.toHaveBeenCalled()
+    expect(store['users/uid1']).toBeUndefined()
   })
 })

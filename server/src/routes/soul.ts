@@ -30,7 +30,9 @@ soulRouter.get('/', async (req: Request, res: Response) => {
   const uid = (req as any).uid as string
   // First touch: provision a wallet + mint the soulbound token if needed.
   // Fire-and-forget — must never block or fail the soul view.
-  ensureSoulMinted(uid).catch(err => console.error('[soul] ensureSoulMinted failed', err))
+  ensureSoulMinted(uid).catch(err =>
+    console.error('[soul] ensureSoulMinted failed', err?.message ?? String(err)),
+  )
   try {
     res.json(await buildSoulPayload(uid))
   } catch (err) {

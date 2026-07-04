@@ -73,7 +73,7 @@ ragRouter.post('/index', firebaseAuth, async (req: Request, res: Response) => {
     updateConstellationForDay(uid, dIdx)
       .then(() => ensureSoulMinted(uid))
       .then(() => refreshSoulImage(uid))
-      .catch(err => console.error('[soul] badge pipeline failed', err))
+      .catch(err => console.error('[soul] badge pipeline failed', err?.message ?? String(err)))
   } catch (err) {
     console.error('[rag/index] content index failed', err)
     await db.collection('journals').doc(journalId).update({ 'vector.status': 'failed' }).catch(() => {})
@@ -165,7 +165,9 @@ export async function deleteHandler(req: Request, res: Response): Promise<void> 
       // no ensureSoulMinted needed here).
       updateConstellationForDay(uid, dIdx)
         .then(() => refreshSoulImage(uid))
-        .catch(err => console.error('[constellation] delete recompute failed', err))
+        .catch(err =>
+          console.error('[constellation] delete recompute failed', err?.message ?? String(err)),
+        )
     }
 
     res.json({ deleted: true })

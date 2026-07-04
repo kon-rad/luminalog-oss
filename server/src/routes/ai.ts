@@ -282,7 +282,7 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
     updateConstellationForDay(uid, dayIndex(createdAt, timeZone))
       .then(() => ensureSoulMinted(uid))
       .then(() => refreshSoulImage(uid))
-      .catch(err => console.error('[soul] badge pipeline failed', err))
+      .catch(err => console.error('[soul] badge pipeline failed', err?.message ?? String(err)))
 
     // The transcript is the entry's first real content, so generate + index its
     // summary vector here too. Without this, voice/video entries (which only ever

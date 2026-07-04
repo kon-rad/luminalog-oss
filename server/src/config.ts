@@ -37,8 +37,20 @@ const schema = z.object({
   CDP_API_KEY_SECRET: z.string().optional(),
   CDP_WALLET_SECRET: z.string().optional(),
   BASE_RPC_URL: z.string().optional(),
-  BASE_MINTER_PRIVATE_KEY: z.string().optional(),
-  SOULBOUND_CONTRACT_ADDRESS: z.string().optional(),
+  BASE_MINTER_PRIVATE_KEY: z
+    .string()
+    .optional()
+    .refine(
+      v => v === undefined || /^0x[0-9a-fA-F]{64}$/.test(v),
+      'BASE_MINTER_PRIVATE_KEY must be 0x + 64 hex',
+    ),
+  SOULBOUND_CONTRACT_ADDRESS: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{40}$/, 'SOULBOUND_CONTRACT_ADDRESS must be 0x + 40 hex')
+    .optional(),
+  // Block the soulbound contract was deployed at — bounds orphan-recovery getLogs
+  // so we never scan from block 0 (public Base Sepolia RPC caps the range).
+  SOULBOUND_DEPLOY_BLOCK: z.coerce.number().int().nonnegative().optional(),
   NFT_METADATA_BASE_URL: z.string().optional(),
 })
 
@@ -50,3 +62,19 @@ if (!parsed.success) {
 }
 
 export const config = parsed.data
+
+/**
+ * True only when every env var the on-chain mint path needs is present. When
+ * false, the chain services (wallet/mint/soul) degrade to a no-op instead of
+ * throwing, keeping the shared server clean where chain isn't configured.
+ */
+export function chainEnabled(): boolean {
+  return Boolean(
+    config.CDP_API_KEY_ID &&
+      config.CDP_API_KEY_SECRET &&
+      config.CDP_WALLET_SECRET &&
+      config.BASE_RPC_URL &&
+      config.BASE_MINTER_PRIVATE_KEY &&
+      config.SOULBOUND_CONTRACT_ADDRESS,
+  )
+}
