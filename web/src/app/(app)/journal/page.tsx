@@ -2,8 +2,8 @@
 
 // Journal tab root (design B.8) — browse all entries: a type-filter chip row,
 // a date-sectioned ("Today" / "This Week" / "Month Year") live stream of
-// `EntryRow`s, and a toolbar with disabled Search/Constellation/Insights
-// placeholders (later milestones).
+// `EntryRow`s, and a toolbar wiring Search, Constellation (M8-T2), and
+// Insights (M8-T1) to their respective modals.
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -14,6 +14,8 @@ import EntryRow from '@/components/app/EntryRow'
 import EmptyState from '@/components/app/EmptyState'
 import { SkeletonRow } from '@/components/app/Skeleton'
 import SearchModal from '@/components/app/SearchModal'
+import InsightsModal from '@/components/app/InsightsModal'
+import ConstellationModal from '@/components/app/ConstellationModal'
 import { localDayKey } from '@/lib/stats/dailyGoalStreak'
 import type { JournalEntry, JournalType } from '@/lib/firestore/models'
 
@@ -71,6 +73,8 @@ export default function JournalPage() {
   const [error, setError] = useState<string | null>(null)
   const [retryKey, setRetryKey] = useState(0)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [insightsOpen, setInsightsOpen] = useState(false)
+  const [constellationOpen, setConstellationOpen] = useState(false)
 
   useEffect(() => {
     if (!uid) return
@@ -112,12 +116,14 @@ export default function JournalPage() {
         </h1>
         <div className="flex items-center gap-1">
           <ToolbarButton icon={Search} label="Search" onClick={() => setSearchOpen(true)} />
-          <ToolbarButton icon={Hexagon} label="Constellation" />
-          <ToolbarButton icon={BarChart3} label="Insights" />
+          <ToolbarButton icon={Hexagon} label="Constellation" onClick={() => setConstellationOpen(true)} />
+          <ToolbarButton icon={BarChart3} label="Insights" onClick={() => setInsightsOpen(true)} />
         </div>
       </div>
 
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <InsightsModal open={insightsOpen} onClose={() => setInsightsOpen(false)} entries={entries} />
+      <ConstellationModal open={constellationOpen} onClose={() => setConstellationOpen(false)} />
 
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {FILTERS.map(({ key, label }) => {

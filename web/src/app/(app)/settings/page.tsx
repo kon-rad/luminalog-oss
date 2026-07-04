@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { ChevronRight, Sparkles } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 import { ThemeToggle } from '@/lib/theme'
 
@@ -37,6 +39,28 @@ export default function SettingsPage() {
         </h2>
         <ThemeToggle />
       </section>
+
+      <Link
+        href="/dashboard"
+        className="card flex items-center gap-3 p-4 no-underline"
+        style={{ color: 'var(--text)' }}
+      >
+        <span
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+          style={{ background: 'var(--surfaceAlt)', color: 'var(--accent)' }}
+        >
+          <Sparkles size={18} strokeWidth={2} />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="serif text-base font-semibold" style={{ color: 'var(--text)' }}>
+            Your Soul
+          </span>
+          <span className="text-sm" style={{ color: 'var(--text2)' }}>
+            Your constellation — one star per 750-word day.
+          </span>
+        </span>
+        <ChevronRight size={18} strokeWidth={2} className="shrink-0" style={{ color: 'var(--text2)' }} />
+      </Link>
 
       {/* Later milestones: Profile, Leaderboard, User Information, Daily
           Reminder, Subscription, AI Summary Config, Voice Credits, Delete
