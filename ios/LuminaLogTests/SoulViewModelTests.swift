@@ -6,7 +6,7 @@ final class SoulModelsTests: XCTestCase {
         let json = """
         {"constellation":{"version":7,"points":[
           {"dayIndex":20272,"date":"2026-07-03","x":0.42,"y":-0.11,"z":0.88,"wordCount":812,"streakAtEarn":5}
-        ]},"stats":{"streakCount":5,"totalWords":61234,"goalDayWords":300}}
+        ]},"stats":{"streakCount":5,"maxStreakCount":9,"totalWords":61234,"goalDayWords":300}}
         """.data(using: .utf8)!
         let payload = try JSONDecoder().decode(SoulPayload.self, from: json)
         XCTAssertEqual(payload.constellation.version, 7)
@@ -18,7 +18,7 @@ final class SoulModelsTests: XCTestCase {
     func test_decodesPayloadWithNft() throws {
         let json = """
         {"constellation":{"version":1,"points":[]},
-         "stats":{"streakCount":0,"totalWords":0,"goalDayWords":0},
+         "stats":{"streakCount":0,"maxStreakCount":0,"totalWords":0,"goalDayWords":0},
          "nft":{"tokenId":"2","contract":"0xd488","chain":"base-sepolia",
                 "walletAddress":"0x31Ca2F5af812b33EfC9C366a7D233FaD1E7df2fc"}}
         """.data(using: .utf8)!
@@ -33,7 +33,7 @@ final class SoulModelsTests: XCTestCase {
         // nft missing the required tokenId → nft becomes nil, payload still decodes.
         let json = """
         {"constellation":{"version":2,"points":[]},
-         "stats":{"streakCount":1,"totalWords":50,"goalDayWords":50},
+         "stats":{"streakCount":1,"maxStreakCount":1,"totalWords":50,"goalDayWords":50},
          "nft":{"contract":"0xd488"}}
         """.data(using: .utf8)!
         let payload = try JSONDecoder().decode(SoulPayload.self, from: json)

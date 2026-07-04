@@ -35,7 +35,7 @@ extension SoulPayload {
         }
         return SoulPayload(
             constellation: Constellation(version: 3, points: pts),
-            stats: SoulStats(streakCount: 5, totalWords: 12480, goalDayWords: 420),
+            stats: SoulStats(streakCount: 5, maxStreakCount: 15, totalWords: 12480, goalDayWords: 420),
             nft: SoulNft(tokenId: "2", contract: "0xd4889dd3a9fc8dcf962a09146a01befc910404fd",
                          chain: "base-sepolia",
                          walletAddress: "0x31Ca2F5af812b33EfC9C366a7D233FaD1E7df2fc", txHash: nil))
@@ -44,7 +44,7 @@ extension SoulPayload {
     /// A nascent (empty) soul.
     static var empty: SoulPayload {
         SoulPayload(constellation: Constellation(version: 0, points: []),
-                    stats: SoulStats(streakCount: 0, totalWords: 0, goalDayWords: 0),
+                    stats: SoulStats(streakCount: 0, maxStreakCount: 0, totalWords: 0, goalDayWords: 0),
                     nft: nil)
     }
 }

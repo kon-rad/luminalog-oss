@@ -65,6 +65,7 @@ struct ConstellationPoint: Codable, Equatable {
 
 struct SoulStats: Codable, Equatable {
     let streakCount: Int
+    let maxStreakCount: Int
     let totalWords: Int
     let goalDayWords: Int
 }

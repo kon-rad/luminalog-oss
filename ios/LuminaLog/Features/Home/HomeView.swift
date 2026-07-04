@@ -159,12 +159,17 @@ struct HomeView: View {
                         .onEnded { _ in galaxyTouched = false }
                 )
             soulControlsRow
-            HStack(spacing: Spacing.m) {
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: Spacing.m), GridItem(.flexible())],
+                spacing: Spacing.m
+            ) {
                 StatCard(value: "\(soulViewModel.stars)", label: "stars", systemImage: "sparkles")
-                StatCard(value: (soulViewModel.payload?.stats.streakCount ?? 0).formatted(),
-                         label: "day streak", systemImage: "flame")
                 StatCard(value: (soulViewModel.payload?.stats.totalWords ?? 0).formatted(),
                          label: "total words")
+                StatCard(value: (soulViewModel.payload?.stats.streakCount ?? 0).formatted(),
+                         label: "day streak", systemImage: "flame")
+                StatCard(value: (soulViewModel.payload?.stats.maxStreakCount ?? 0).formatted(),
+                         label: "best streak", systemImage: "trophy")
             }
         }
         .fullScreenCover(isPresented: $showSoulFullScreen) {
