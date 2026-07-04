@@ -5,7 +5,6 @@ import SwiftUI
 /// state. Fails soft — never blocks Home.
 struct SoulGalaxyPanel: View {
     @ObservedObject var viewModel: SoulViewModel
-    let onExpand: () -> Void
 
     private let panelBackground = LinearGradient(
         colors: [Color(red: 0.18, green: 0.16, blue: 0.37), Color(red: 0.02, green: 0.02, blue: 0.03)],
@@ -19,8 +18,6 @@ struct SoulGalaxyPanel: View {
         .frame(height: 340)
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).strokeBorder(.white.opacity(0.06)))
-        .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .onTapGesture { if hasStars { onExpand() } }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Soul constellation")
     }

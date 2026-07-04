@@ -7,6 +7,9 @@ struct HomeView: View {
     @StateObject private var viewModel: HomeViewModel
     @StateObject private var soulViewModel: SoulViewModel
     @State private var showSoulFullScreen = false
+    /// True while a finger is on the galaxy panel — disables the outer ScrollView
+    /// so dragging orbits the galaxy instead of scrolling the page.
+    @State private var galaxyTouched = false
 
     /// Opens the Create flow, optionally seeded with a prompt.
     let onStartJournaling: (String?) -> Void
@@ -81,6 +84,7 @@ struct HomeView: View {
                 .padding(.top, Spacing.m)
                 .padding(.bottom, AppTabBar.scrollBottomPadding)
             }
+            .scrollDisabled(galaxyTouched)
             .background(Color.appBackground.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $viewModel.showMilestone, onDismiss: {
@@ -146,7 +150,15 @@ struct HomeView: View {
 
     private var soulSection: some View {
         VStack(spacing: Spacing.m) {
-            SoulGalaxyPanel(viewModel: soulViewModel) { showSoulFullScreen = true }
+            SoulGalaxyPanel(viewModel: soulViewModel)
+                // Touch-down on the galaxy disables the outer scroll so the drag
+                // orbits the 3D view; releasing re-enables page scrolling.
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { _ in if !galaxyTouched { galaxyTouched = true } }
+                        .onEnded { _ in galaxyTouched = false }
+                )
+            soulControlsRow
             HStack(spacing: Spacing.m) {
                 StatCard(value: "\(soulViewModel.stars)", label: "stars", systemImage: "sparkles")
                 StatCard(value: (soulViewModel.payload?.stats.streakCount ?? 0).formatted(),
@@ -161,6 +173,43 @@ struct HomeView: View {
             }
         }
         .task { await soulViewModel.load() }
+    }
+
+    /// Below the galaxy: wallet address + BaseScan NFT link (left), full-screen
+    /// button (right). Shown only once the soul is minted.
+    private var soulControlsRow: some View {
+        HStack(alignment: .center, spacing: Spacing.m) {
+            if let nft = soulViewModel.payload?.nft {
+                VStack(alignment: .leading, spacing: 3) {
+                    if let wallet = nft.shortWallet {
+                        Text(wallet)
+                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                    if let url = nft.explorerURL {
+                        Link(destination: url) {
+                            HStack(spacing: 3) {
+                                Text("View NFT on BaseScan")
+                                Image(systemName: "arrow.up.right")
+                            }
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color.accentWarm)
+                        }
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+            Button {
+                showSoulFullScreen = true
+            } label: {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.textPrimary)
+                    .padding(10)
+                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.cardBackground))
+            }
+            .accessibilityLabel("Open full-screen galaxy")
+        }
     }
 
     // MARK: - Daily prompt hero

@@ -15,16 +15,30 @@ final class SoulModelsTests: XCTestCase {
         XCTAssertEqual(payload.stats.totalWords, 61234)
     }
 
-    func test_decodesIgnoringUnknownFields() throws {
-        // /v1/soul also returns an `nft` field; the model must ignore it.
+    func test_decodesPayloadWithNft() throws {
         let json = """
         {"constellation":{"version":1,"points":[]},
          "stats":{"streakCount":0,"totalWords":0,"goalDayWords":0},
-         "nft":{"tokenId":"2","contract":"0xd488"}}
+         "nft":{"tokenId":"2","contract":"0xd488","chain":"base-sepolia",
+                "walletAddress":"0x31Ca2F5af812b33EfC9C366a7D233FaD1E7df2fc"}}
         """.data(using: .utf8)!
         let payload = try JSONDecoder().decode(SoulPayload.self, from: json)
-        XCTAssertEqual(payload.constellation.version, 1)
-        XCTAssertTrue(payload.constellation.points.isEmpty)
+        XCTAssertEqual(payload.nft?.tokenId, "2")
+        XCTAssertEqual(payload.nft?.shortWallet, "0x31Ca…f2fc")
+        XCTAssertEqual(payload.nft?.explorerURL?.absoluteString,
+                       "https://sepolia.basescan.org/nft/0xd488/2")
+    }
+
+    func test_malformedNftDoesNotBreakPayload() throws {
+        // nft missing the required tokenId → nft becomes nil, payload still decodes.
+        let json = """
+        {"constellation":{"version":2,"points":[]},
+         "stats":{"streakCount":1,"totalWords":50,"goalDayWords":50},
+         "nft":{"contract":"0xd488"}}
+        """.data(using: .utf8)!
+        let payload = try JSONDecoder().decode(SoulPayload.self, from: json)
+        XCTAssertNil(payload.nft)
+        XCTAssertEqual(payload.constellation.version, 2)
     }
 }
 
