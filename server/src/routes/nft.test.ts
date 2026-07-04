@@ -31,6 +31,11 @@ describe('buildNftMetadata', () => {
     })
   })
 
+  it('prefixes the description with the owner name when provided', () => {
+    const m = buildNftMetadata('5', { stars: 15, streak: 15, totalWords: 49643, username: 'Konrad' })
+    expect(m.description).toBe("Konrad's constellation grown from 15 days of journaling.")
+  })
+
   it('uses singular "day" for one star and a default image when none rendered', () => {
     const m = buildNftMetadata('1', { stars: 1, streak: 1, totalWords: 800 })
     expect(m.description).toBe('A constellation grown from 1 day of journaling.')
@@ -81,6 +86,22 @@ describe('getNftMetadata', () => {
     ])
     // the point coordinates must NOT leak into published metadata
     expect(JSON.stringify(m)).not.toContain('"points"')
+  })
+
+  it('uses the holder’s first name (from displayName) in the description', async () => {
+    queryResult = {
+      empty: false,
+      docs: [{
+        data: () => ({
+          nft: { tokenId: '2' },
+          displayName: 'Konrad Gnat',
+          constellation: { points: [{ x: 0 }, { x: 1 }] },
+          stats: { streakCount: 3, totalWords: 100, goalDayWords: 100 },
+        }),
+      }],
+    }
+    const m = await getNftMetadata('2')
+    expect(m!.description).toBe("Konrad's constellation grown from 2 days of journaling.")
   })
 
   it('defaults missing constellation/stats to zeros', async () => {

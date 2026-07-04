@@ -17,11 +17,12 @@ export interface NftMetadata {
 
 export function buildNftMetadata(
   tokenId: string,
-  opts: { stars: number; streak: number; totalWords: number; imageUrl?: string },
+  opts: { stars: number; streak: number; totalWords: number; imageUrl?: string; username?: string },
 ): NftMetadata {
+  const owner = opts.username?.trim() ? `${opts.username.trim()}'s` : 'A'
   return {
     name: `LuminaLog Soul #${tokenId}`,
-    description: `A constellation grown from ${opts.stars} ${opts.stars === 1 ? 'day' : 'days'} of journaling.`,
+    description: `${owner} constellation grown from ${opts.stars} ${opts.stars === 1 ? 'day' : 'days'} of journaling.`,
     image: opts.imageUrl || `${WEB_BASE}/soul/${tokenId}/hero.png`,
     animation_url: `${WEB_BASE}/soul/${tokenId}`,
     attributes: [
@@ -44,11 +45,14 @@ export async function getNftMetadata(tokenId: string): Promise<NftMetadata | nul
   const data = snap.docs[0].data() as any
   const constellation = data.constellation ?? {}
   const stats = data.stats ?? {}
+  // displayName is stored plaintext (used for greetings); first name only.
+  const username = ((data.displayName as string) ?? '').trim().split(/\s+/)[0] || undefined
   return buildNftMetadata(tokenId, {
     stars: Array.isArray(constellation.points) ? constellation.points.length : 0,
     streak: (stats.streakCount as number) ?? 0,
     totalWords: (stats.totalWords as number) ?? 0,
     imageUrl: constellation.imageUrl as string | undefined,
+    username,
   })
 }
 
