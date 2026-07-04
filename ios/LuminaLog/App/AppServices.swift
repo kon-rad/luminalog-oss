@@ -20,6 +20,7 @@ final class AppServices: ObservableObject {
     let ocr: OCRService
     let voice: VoiceCallService
     let leaderboard: LeaderboardService
+    let soul: SoulService
     /// Proxy client, exposed so views (e.g. the voice-call detail screen) can
     /// reach authed endpoints directly. Optional — mock wiring omits it.
     let api: ProxyAPIClient?
@@ -51,6 +52,7 @@ final class AppServices: ObservableObject {
         ocr: OCRService,
         voice: VoiceCallService,
         leaderboard: LeaderboardService,
+        soul: SoulService,
         entryProcessor: EntryProcessor,
         api: ProxyAPIClient? = nil,
         uploadTransport: BackgroundUploadTransport? = nil
@@ -70,6 +72,7 @@ final class AppServices: ObservableObject {
         self.ocr = ocr
         self.voice = voice
         self.leaderboard = leaderboard
+        self.soul = soul
         self.entryProcessor = entryProcessor
         self.api = api
         self.uploadTransport = uploadTransport
@@ -147,6 +150,7 @@ final class AppServices: ObservableObject {
             ocr: ocr,
             voice: VapiVoiceCallService(api: api),
             leaderboard: ProxyLeaderboardService(api: api),
+            soul: ProxySoulService(api: api),
             entryProcessor: BackgroundEntryProcessor(
                 dependencies: BackgroundEntryProcessor.Dependencies(
                     journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr,
@@ -204,6 +208,7 @@ final class AppServices: ObservableObject {
             ocr: ocr,
             voice: MockVoiceCallService(chats: chats),
             leaderboard: MockLeaderboardService(),
+            soul: MockSoulService(),
             entryProcessor: BackgroundEntryProcessor(
                 dependencies: BackgroundEntryProcessor.Dependencies(
                     journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr,

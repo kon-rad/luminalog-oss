@@ -5,6 +5,8 @@ import SwiftUI
 struct HomeView: View {
 
     @StateObject private var viewModel: HomeViewModel
+    @StateObject private var soulViewModel: SoulViewModel
+    @State private var showSoulFullScreen = false
 
     /// Opens the Create flow, optionally seeded with a prompt.
     let onStartJournaling: (String?) -> Void
@@ -17,6 +19,7 @@ struct HomeView: View {
     private let journals: JournalRepository
     private let profiles: ProfileRepository
     private let ai: AIService
+    private let soul: SoulService
     private let media: MediaUploader
     private let dailyReports: DailyReportRepository
     private let failedReports: FailedReportStore
@@ -30,6 +33,7 @@ struct HomeView: View {
         journals: JournalRepository,
         profiles: ProfileRepository,
         ai: AIService,
+        soul: SoulService,
         media: MediaUploader,
         dailyReports: DailyReportRepository,
         failedReports: FailedReportStore,
@@ -46,9 +50,11 @@ struct HomeView: View {
         _viewModel = StateObject(
             wrappedValue: HomeViewModel(journals: journals, profiles: profiles, ai: ai, dailyReports: dailyReports, activity: activity, drafts: drafts)
         )
+        _soulViewModel = StateObject(wrappedValue: SoulViewModel(service: soul))
         self.journals = journals
         self.profiles = profiles
         self.ai = ai
+        self.soul = soul
         self.media = media
         self.dailyReports = dailyReports
         self.failedReports = failedReports
@@ -65,6 +71,7 @@ struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.l) {
                     header
+                    soulSection
                     promptCard
                     statsRow
                     reflectionsScroll
@@ -133,6 +140,27 @@ struct HomeView: View {
         }
         .padding(.top, Spacing.s)
         .accessibilityElement(children: .combine)
+    }
+
+    // MARK: - Soul constellation (hero)
+
+    private var soulSection: some View {
+        VStack(spacing: Spacing.m) {
+            SoulGalaxyPanel(viewModel: soulViewModel) { showSoulFullScreen = true }
+            HStack(spacing: Spacing.m) {
+                StatCard(value: "\(soulViewModel.stars)", label: "stars", systemImage: "sparkles")
+                StatCard(value: (soulViewModel.payload?.stats.streakCount ?? 0).formatted(),
+                         label: "day streak", systemImage: "flame")
+                StatCard(value: (soulViewModel.payload?.stats.totalWords ?? 0).formatted(),
+                         label: "total words")
+            }
+        }
+        .fullScreenCover(isPresented: $showSoulFullScreen) {
+            SoulFullScreenView(points: soulViewModel.payload?.constellation.points ?? []) {
+                showSoulFullScreen = false
+            }
+        }
+        .task { await soulViewModel.load() }
     }
 
     // MARK: - Daily prompt hero
@@ -323,6 +351,7 @@ private struct HomePreview: View {
             journals: MockJournalRepository(),
             profiles: MockProfileRepository(),
             ai: MockAIService(),
+            soul: MockSoulService(),
             media: MockMediaUploader(),
             dailyReports: MockDailyReportRepository(),
             failedReports: FailedReportStore(auth: MockAuthService(signedIn: true), directory: FileManager.default.temporaryDirectory),

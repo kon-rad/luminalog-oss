@@ -39,6 +39,7 @@ struct RootView: View {
                     journals: services.journals,
                     profiles: services.profiles,
                     ai: services.ai,
+                    soul: services.soul,
                     media: services.media,
                     dailyReports: services.dailyReports,
                     failedReports: services.failedReports,
