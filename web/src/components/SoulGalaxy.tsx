@@ -4,7 +4,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
-import type { ConstellationPoint } from '@/lib/useSoul'
+/** Minimal shape the galaxy renders. The authed `ConstellationPoint` is a
+ *  superset (extra date/dayIndex/streak), and the PUBLIC point-set is exactly
+ *  this (coords + size only) — so one component serves both surfaces. */
+export interface GalaxyPoint {
+  x: number
+  y: number
+  z: number
+  wordCount: number
+}
 
 const AMBER = '#E8A44C'
 const AMBER_WARM = 'rgba(232,164,76,'
@@ -36,7 +44,7 @@ function starScale(wordCount: number): number {
   return min + norm * (max - min)
 }
 
-function Star({ point, texture }: { point: ConstellationPoint; texture: THREE.Texture }) {
+function Star({ point, texture }: { point: GalaxyPoint; texture: THREE.Texture }) {
   const ref = useRef<THREE.Sprite>(null)
   const phase = useMemo(() => Math.random() * Math.PI * 2, [])
   const speed = useMemo(() => 0.5 + Math.random() * 0.7, [])
@@ -92,7 +100,7 @@ function Backdrop({ count = 260 }: { count?: number }) {
 }
 
 /** Connect each star to its single nearest neighbor so the sky reads as a constellation. */
-function useNearestNeighborLines(points: ConstellationPoint[], maxLines = 220): Float32Array | null {
+function useNearestNeighborLines(points: GalaxyPoint[], maxLines = 220): Float32Array | null {
   return useMemo(() => {
     const n = points.length
     if (n < 2) return null
@@ -123,7 +131,7 @@ function useNearestNeighborLines(points: ConstellationPoint[], maxLines = 220): 
   }, [points, maxLines])
 }
 
-function ConstellationLines({ points }: { points: ConstellationPoint[] }) {
+function ConstellationLines({ points }: { points: GalaxyPoint[] }) {
   const positions = useNearestNeighborLines(points)
   if (!positions) return null
   return (
@@ -136,13 +144,13 @@ function ConstellationLines({ points }: { points: ConstellationPoint[] }) {
   )
 }
 
-function Scene({ points, texture }: { points: ConstellationPoint[]; texture: THREE.Texture }) {
+function Scene({ points, texture }: { points: GalaxyPoint[]; texture: THREE.Texture }) {
   return (
     <>
       <Backdrop />
       <ConstellationLines points={points} />
       {points.map((p, i) => (
-        <Star key={`${p.dayIndex}-${i}`} point={p} texture={texture} />
+        <Star key={`star-${i}`} point={p} texture={texture} />
       ))}
       <OrbitControls
         makeDefault
@@ -218,7 +226,7 @@ function EmptyState() {
 }
 
 export interface SoulGalaxyProps {
-  points: ConstellationPoint[]
+  points: GalaxyPoint[]
 }
 
 export default function SoulGalaxy({ points }: SoulGalaxyProps) {
