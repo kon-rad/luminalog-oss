@@ -13,9 +13,24 @@ export interface ConstellationPoint {
   streakAtEarn: number
 }
 
+export interface SoulNft {
+  tokenId: string
+  contract: string
+  chain: string
+  walletAddress: string
+  txHash: string | null
+}
+
 export interface SoulPayload {
   constellation: { version: number; points: ConstellationPoint[] }
   stats: { streakCount: number; totalWords: number; goalDayWords: number }
+  nft: SoulNft | null
+}
+
+/** Base Sepolia explorer URL for a soulbound token. */
+export function basescanNftUrl(nft: SoulNft): string {
+  const base = nft.chain === 'base' ? 'https://basescan.org' : 'https://sepolia.basescan.org'
+  return `${base}/nft/${nft.contract}/${nft.tokenId}`
 }
 
 export function useSoul(): { data: SoulPayload | null; loading: boolean; error: string | null } {

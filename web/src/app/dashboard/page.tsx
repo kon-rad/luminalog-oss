@@ -6,7 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useAuth } from '@/lib/auth-context'
-import { useSoul } from '@/lib/useSoul'
+import { useSoul, basescanNftUrl } from '@/lib/useSoul'
 
 const SoulGalaxy = dynamic(() => import('@/components/SoulGalaxy'), { ssr: false })
 
@@ -124,6 +124,47 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+
+          {/* Soulbound NFT card */}
+          {soul?.nft && (
+            <div style={{ marginTop: 24, background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 24, padding: '28px 32px', boxShadow: 'var(--shadow)' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text3)', marginBottom: 6 }}>
+                    ✦ Soulbound NFT
+                  </div>
+                  <div className="serif" style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+                    LuminaLog Soul #{soul.nft.tokenId}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+                    Base Sepolia · non-transferable
+                  </div>
+                </div>
+                <a
+                  href={basescanNftUrl(soul.nft)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--accentSoft)', color: 'var(--accentDeep)', padding: '10px 18px', borderRadius: 12, fontWeight: 700, fontSize: 13, textDecoration: 'none', border: '1px solid var(--hairline2)' }}
+                >
+                  View on Basescan ↗
+                </a>
+              </div>
+              <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--hairline)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text3)', marginBottom: 8 }}>
+                  Wallet address
+                </div>
+                <div
+                  style={{
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                    fontSize: 13, color: 'var(--text)', wordBreak: 'break-all',
+                    background: 'var(--bg)', border: '1px solid var(--hairline)', borderRadius: 12, padding: '12px 14px', lineHeight: 1.5,
+                  }}
+                >
+                  {soul.nft.walletAddress}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Profile card */}
           <div style={{ marginTop: 24, background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 28, padding: '40px 44px', boxShadow: 'var(--shadow)' }}>

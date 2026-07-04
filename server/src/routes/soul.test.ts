@@ -27,6 +27,24 @@ describe('buildSoulPayload', () => {
     expect(await buildSoulPayload('u1')).toEqual({
       constellation: { version: 0, points: [] },
       stats: { streakCount: 0, totalWords: 0, goalDayWords: 0 },
+      nft: null,
+    })
+  })
+
+  it('includes the wallet + NFT once minted', async () => {
+    getConstellation.mockResolvedValue({ version: 1, points: [] })
+    userData['u1'] = {
+      stats: { streakCount: 2, totalWords: 900, goalDayWords: 900 },
+      wallet: { address: '0xAE9bDEEc485C598343eF8D9D03Cd5CccC130Da2d' },
+      nft: { tokenId: '2', contract: '0xd488', chain: 'base-sepolia', txHash: '0x48ab' },
+    }
+    const payload = await buildSoulPayload('u1')
+    expect(payload.nft).toEqual({
+      tokenId: '2',
+      contract: '0xd488',
+      chain: 'base-sepolia',
+      walletAddress: '0xAE9bDEEc485C598343eF8D9D03Cd5CccC130Da2d',
+      txHash: '0x48ab',
     })
   })
 
