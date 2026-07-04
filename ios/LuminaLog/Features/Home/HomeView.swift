@@ -178,37 +178,40 @@ struct HomeView: View {
     /// Below the galaxy: wallet address + BaseScan NFT link (left), full-screen
     /// button (right). Shown only once the soul is minted.
     private var soulControlsRow: some View {
-        HStack(alignment: .center, spacing: Spacing.m) {
-            if let nft = soulViewModel.payload?.nft {
-                VStack(alignment: .leading, spacing: 3) {
-                    if let wallet = nft.shortWallet {
-                        Text(wallet)
-                            .font(.system(size: 11, weight: .medium, design: .monospaced))
-                            .foregroundStyle(Color.textSecondary)
-                    }
-                    if let url = nft.explorerURL {
-                        Link(destination: url) {
-                            HStack(spacing: 3) {
-                                Text("View NFT on BaseScan")
-                                Image(systemName: "arrow.up.right")
-                            }
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color.accentWarm)
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            // Full wallet address on its own line — fully visible (scales down on
+            // narrow devices rather than truncating), long-press to copy.
+            if let wallet = soulViewModel.payload?.nft?.walletAddress {
+                Text(wallet)
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Color.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .textSelection(.enabled)
+            }
+            HStack(alignment: .center, spacing: Spacing.m) {
+                if let url = soulViewModel.payload?.nft?.explorerURL {
+                    Link(destination: url) {
+                        HStack(spacing: 3) {
+                            Text("View NFT on BaseScan")
+                            Image(systemName: "arrow.up.right")
                         }
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.accentWarm)
                     }
                 }
+                Spacer(minLength: 0)
+                Button {
+                    showSoulFullScreen = true
+                } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.textPrimary)
+                        .padding(10)
+                        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.cardBackground))
+                }
+                .accessibilityLabel("Open full-screen galaxy")
             }
-            Spacer(minLength: 0)
-            Button {
-                showSoulFullScreen = true
-            } label: {
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.textPrimary)
-                    .padding(10)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.cardBackground))
-            }
-            .accessibilityLabel("Open full-screen galaxy")
         }
     }
 
