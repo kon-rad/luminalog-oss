@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden;
+      background: radial-gradient(120% 110% at 26% 18%, #2E2A5E 0%, #1B1740 32%, #100D28 58%, #07060F 82%, #030308 100%); }
+    #soul { width: 100vw; height: 100vh; }
+    #empty { position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+      text-align: center; padding: 0 40px; color: rgba(243,238,228,0.88);
+      font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: 18px; line-height: 1.5; }
+  </style>
+  <!-- Reuses the bundled three r179 + 3d-force-graph (window.ForceGraph3D,
+       window.SpriteText). Bare filename because Xcode flattens bundled resources
+       to the .app root. THREE is NOT a global, so we derive the few constructors
+       we need from SpriteText (a THREE.Sprite subclass) to build glow sprites. -->
+  <script src="./constellation.min.js"></script>
+</head>
+<body>
+  <div id="soul"></div>
+  <div id="empty">Your constellation begins with your first 750-word day.</div>
+  <script>
+    var AMBER = 0xE8A44C;
+    var SCALE = 60; // unit-cube coords → world units
+
+    // Derive THREE.{Sprite,SpriteMaterial,CanvasTexture} from a SpriteText
+    // instance. AdditiveBlending is the stable numeric constant 2.
+    function deriveThree() {
+      try {
+        var st = new SpriteText('');
+        var Sprite = Object.getPrototypeOf(Object.getPrototypeOf(st)).constructor;
+        var SpriteMaterial = st.material.constructor;
+        var CanvasTexture = st.material.map.constructor;
+        if (Sprite && SpriteMaterial && CanvasTexture) {
+          return { Sprite: Sprite, SpriteMaterial: SpriteMaterial, CanvasTexture: CanvasTexture, ADDITIVE: 2 };
+        }
+      } catch (e) {}
+      return null;
+    }
+    var T = deriveThree();
+
+    function glowTexture() {
+      var size = 128, c = document.createElement('canvas');
+      c.width = c.height = size;
+      var ctx = c.getContext('2d');
+      var g = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+      g.addColorStop(0, 'rgba(255,247,232,1)');
+      g.addColorStop(0.16, 'rgba(232,164,76,0.95)');
+      g.addColorStop(0.42, 'rgba(232,164,76,0.32)');
+      g.addColorStop(1, 'rgba(232,164,76,0)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+      var t = new T.CanvasTexture(c); t.needsUpdate = true; return t;
+    }
+    var GLOW = T ? glowTexture() : null;
+
+    // Gentle, clamped size so no single entry dominates.
+    function starScale(wc) {
+      var n = Math.sqrt(Math.min(Math.max(wc || 0, 0), 3000) / 3000);
+      return 7 + n * 11;
+    }
+    function makeStar(node) {
+      var mat = new T.SpriteMaterial({ map: GLOW, color: AMBER, transparent: true, depthWrite: false, blending: T.ADDITIVE });
+      var s = new T.Sprite(mat);
+      var k = starScale(node.wordCount);
+      s.scale.set(k, k, k);
+      return s;
+    }
+
+    var Graph = ForceGraph3D()(document.getElementById('soul'))
+      .backgroundColor('rgba(0,0,0,0)')
+      .showNavInfo(false)
+      .enableNodeDrag(false)
+      .linkColor(function () { return 'rgba(232,164,76,0.22)'; })
+      .linkWidth(0.6)
+      .cooldownTicks(0);
+
+    if (T && GLOW) {
+      Graph.nodeThreeObject(makeStar).nodeThreeObjectExtend(false);
+    } else {
+      // Fallback: warm amber spheres sized by wordCount.
+      Graph.nodeColor(function () { return '#E8A44C'; })
+           .nodeOpacity(0.92).nodeResolution(16)
+           .nodeVal(function (n) { return 1 + Math.min(n.wordCount || 0, 3000) / 3000 * 2.4; });
+    }
+
+    var controls = Graph.controls();
+    if (controls) { controls.autoRotate = true; controls.autoRotateSpeed = 0.5; }
+
+    // Fixed-position nodes + nearest-neighbor links (reads as a constellation).
+    function buildGraph(points) {
+      var nodes = points.map(function (p, i) {
+        return { id: i, fx: p.x * SCALE, fy: p.y * SCALE, fz: p.z * SCALE, wordCount: p.wordCount };
+      });
+      var links = [];
+      if (nodes.length >= 2) {
+        var seen = {};
+        for (var i = 0; i < nodes.length; i++) {
+          var best = -1, bestD = Infinity;
+          for (var j = 0; j < nodes.length; j++) {
+            if (i === j) continue;
+            var dx = nodes[i].fx - nodes[j].fx, dy = nodes[i].fy - nodes[j].fy, dz = nodes[i].fz - nodes[j].fz;
+            var d = dx*dx + dy*dy + dz*dz;
+            if (d < bestD) { bestD = d; best = j; }
+          }
+          if (best < 0) continue;
+          var key = i < best ? i + '-' + best : best + '-' + i;
+          if (seen[key]) continue;
+          seen[key] = 1;
+          links.push({ source: i, target: best });
+        }
+      }
+      return { nodes: nodes, links: links };
+    }
+
+    // Called by native (SoulGalaxyWebView) with the SoulPayload's points.
+    window.renderSoul = function (payload) {
+      var points = (payload && payload.points) || [];
+      document.getElementById('empty').style.display = points.length ? 'none' : 'flex';
+      Graph.graphData(buildGraph(points));
+      if (points.length) { Graph.zoomToFit(500, 40); }
+    };
+  </script>
+</body>
+</html>
