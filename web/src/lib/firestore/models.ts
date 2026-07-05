@@ -59,6 +59,18 @@ export interface AIPrompts {
   model?: string
 }
 
+/** Per-entry emotion scores (design §3). Plaintext (not field-encrypted);
+ * populated via the daily-report path, so it is dormant/sparse on most entries. */
+export interface EmotionScore {
+  source?: string
+  /** Emotion name → score. */
+  scores?: Record<string, number>
+  /** The strongest emotions, highest first. */
+  top?: { name: string; score: number }[]
+  model?: string
+  scoredAt?: Date
+}
+
 /** A journal entry — `journals/{journalId}`, decoded. */
 export interface JournalEntry {
   id: string
@@ -83,6 +95,8 @@ export interface JournalEntry {
   excludeFromShare: boolean
   /** The prompt text answered to create this entry (absent for un-prompted). */
   promptText?: string
+  /** Per-entry emotion scores (plaintext, dormant/sparse). */
+  emotion?: EmotionScore
 }
 
 /** Journaling stats maintained transactionally on every save (design §8). */

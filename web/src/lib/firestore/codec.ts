@@ -15,6 +15,7 @@ import type {
   ChatKind,
   ChatMessage,
   EditRecord,
+  EmotionScore,
   JournalEntry,
   JournalType,
   MediaItem,
@@ -251,7 +252,50 @@ export const decodeEntry = async (
   const promptText = asString(data.promptText)
   if (promptText !== undefined) entry.promptText = promptText
 
+  const emotion = decodeEmotion(data.emotion)
+  if (emotion) entry.emotion = emotion
+
   return entry
+}
+
+/** Decode the plaintext `emotion` object (design §3). Returns undefined when
+ * absent/unusable so the field is simply omitted from the decoded entry. */
+function decodeEmotion(value: unknown): EmotionScore | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const raw = value as Record<string, unknown>
+  const emotion: EmotionScore = {}
+
+  const source = asString(raw.source)
+  if (source !== undefined) emotion.source = source
+
+  if (raw.scores && typeof raw.scores === 'object') {
+    const scores: Record<string, number> = {}
+    for (const [name, s] of Object.entries(raw.scores as Record<string, unknown>)) {
+      const n = asNumber(s)
+      if (n !== undefined) scores[name] = n
+    }
+    if (Object.keys(scores).length > 0) emotion.scores = scores
+  }
+
+  if (Array.isArray(raw.top)) {
+    const top: { name: string; score: number }[] = []
+    for (const item of raw.top) {
+      if (!item || typeof item !== 'object') continue
+      const name = asString((item as Record<string, unknown>).name)
+      const score = asNumber((item as Record<string, unknown>).score)
+      if (name !== undefined && score !== undefined) top.push({ name, score })
+    }
+    if (top.length > 0) emotion.top = top
+  }
+
+  const model = asString(raw.model)
+  if (model !== undefined) emotion.model = model
+  const scoredAt = tsToDate(raw.scoredAt)
+  if (scoredAt) emotion.scoredAt = scoredAt
+
+  // Only surface an emotion object if it carries usable score data.
+  if (!emotion.scores && !emotion.top) return undefined
+  return emotion
 }
 
 // --- stats wire format ---

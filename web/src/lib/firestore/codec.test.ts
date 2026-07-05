@@ -104,6 +104,44 @@ describe('decodeEntry fail-closed', () => {
   })
 })
 
+describe('decodeEntry emotion (plaintext)', () => {
+  const base = {
+    userId: 'u',
+    title: 'ok',
+    content: 'ok',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    wordCount: 1,
+  }
+
+  it('maps a well-formed emotion object (scores + top)', async () => {
+    const map = await encodeTextEntryCreate(base, key)
+    map.emotion = {
+      source: 'prosody',
+      scores: { joy: 0.8, calm: 0.4 },
+      top: [{ name: 'joy', score: 0.8 }],
+      model: 'hume',
+    }
+    const entry = await decodeEntry('emo-1', map, key)
+    expect(entry!.emotion).toEqual({
+      source: 'prosody',
+      scores: { joy: 0.8, calm: 0.4 },
+      top: [{ name: 'joy', score: 0.8 }],
+      model: 'hume',
+    })
+  })
+
+  it('omits emotion when absent or carrying no usable score data', async () => {
+    const noField = await decodeEntry('emo-2', await encodeTextEntryCreate(base, key), key)
+    expect(noField!.emotion).toBeUndefined()
+
+    const emptyMap = await encodeTextEntryCreate(base, key)
+    emptyMap.emotion = { source: 'prosody', model: 'hume' } // no scores/top
+    const empty = await decodeEntry('emo-3', emptyMap, key)
+    expect(empty!.emotion).toBeUndefined()
+  })
+})
+
 describe('encodeStats wire format', () => {
   const base: Stats = {
     streakCount: 4,

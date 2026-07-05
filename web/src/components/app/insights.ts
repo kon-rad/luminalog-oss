@@ -5,7 +5,7 @@
 // (design §3): nothing here talks to the network.
 
 import { localDayKey } from '@/lib/stats/dailyGoalStreak'
-import type { JournalEntry, JournalType } from '@/lib/firestore/models'
+import type { EmotionScore, JournalEntry, JournalType } from '@/lib/firestore/models'
 
 // --- word cloud ---
 
@@ -147,29 +147,16 @@ export function typeCounts(entries: JournalEntry[]): TypeCountEntry[] {
 
 // --- emotional trends ---
 
-/**
- * The wire shape of `entry.emotion` (design §3 / server schema) — populated
- * only via the daily-report path, so it's dormant/sparse and NOT part of the
- * shared `JournalEntry` model yet. Read defensively off the raw entry rather
- * than widening the shared model for a field most entries will never carry.
- */
-export interface EmotionScore {
-  source?: string
-  scores?: Record<string, number>
-  top?: { name: string; score: number }[]
-  model?: string
-  scoredAt?: unknown
-}
-
 /** Below this many entries-with-emotion, the trends card self-hides (design
- * §3) rather than rendering a near-empty chart. */
+ * §3) rather than rendering a near-empty chart. `entry.emotion` is decoded by
+ * the codec (plaintext) but dormant/sparse — populated only via the daily-report
+ * path — so most entries carry no emotion data. */
 export const EMOTION_MIN_ENTRIES = 3
 
 /** The number of top-by-total emotions plotted as lines (design B.13). */
 const TOP_EMOTION_COUNT = 4
 
-const getEmotion = (entry: JournalEntry): EmotionScore | undefined =>
-  (entry as JournalEntry & { emotion?: EmotionScore }).emotion
+const getEmotion = (entry: JournalEntry): EmotionScore | undefined => entry.emotion
 
 /** Per-emotion score map for one entry — prefers `scores{}`; falls back to
  * `top[]` when `scores` is absent/empty. `{}` when neither is usable. */
