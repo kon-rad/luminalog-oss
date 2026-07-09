@@ -19,13 +19,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { doc, onSnapshot } from 'firebase/firestore'
-import { ArrowRight, AudioLines, ChevronDown, Ellipsis, Loader2, MessageCircle, RefreshCw } from 'lucide-react'
+import { ArrowRight, AudioLines, ChevronDown, Ellipsis, Loader2, MessageCircle, Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { auth, db } from '@/lib/firebase'
 import { bootstrapDEK, getCachedDEK } from '@/lib/crypto/dek'
 import { decodeEntry } from '@/lib/firestore/codec'
 import { createChat } from '@/lib/firestore/chats'
-import { setExcludeFromShare } from '@/lib/firestore/journals'
+import { deleteEntry, setExcludeFromShare } from '@/lib/firestore/journals'
 import { fetchRelated, fetchSummary, type RelatedEntry } from '@/lib/api/ai'
+import EntryEditModal from '@/components/app/EntryEditModal'
 import TypePill from '@/components/app/TypePill'
 import { Skeleton, SkeletonRow } from '@/components/app/Skeleton'
 import EmptyState from '@/components/app/EmptyState'
@@ -170,6 +171,10 @@ function DetailLoaded({
 }) {
   const router = useRouter()
   const [optionsOpen, setOptionsOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [chatPickerOpen, setChatPickerOpen] = useState(false)
   const [creatingChat, setCreatingChat] = useState(false)
   const [excludeOverride, setExcludeOverride] = useState<boolean | null>(null)
@@ -217,6 +222,24 @@ function DetailLoaded({
     } catch (err) {
       console.error('[journal-detail] setExcludeFromShare failed:', err)
       setExcludeOverride(!next)
+    }
+  }
+
+  // Delete the entry, then leave the (now-gone) detail page. RAG/S3 cleanup is
+  // a later milestone — `deleteEntry` only removes the Firestore doc (design
+  // §6, matches iOS web-scope). We navigate away on success; the list's live
+  // stream drops the row on its own.
+  const handleDelete = async () => {
+    if (deleting) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteEntry(entry.id)
+      router.replace('/journal')
+    } catch (err) {
+      console.error('[journal-detail] deleteEntry failed:', err)
+      setDeleteError('We couldn’t delete this entry. Please try again.')
+      setDeleting(false)
     }
   }
 
@@ -365,7 +388,16 @@ function DetailLoaded({
           <div className="relative">
             <button
               type="button"
-              onClick={() => setOptionsOpen((o) => !o)}
+              onClick={() =>
+                setOptionsOpen((o) => {
+                  if (o) {
+                    // Closing — reset any in-progress delete confirmation.
+                    setConfirmingDelete(false)
+                    setDeleteError(null)
+                  }
+                  return !o
+                })
+              }
               aria-label="Entry options"
               className="flex h-8 w-8 items-center justify-center rounded-full transition-opacity hover:opacity-70"
               style={{ color: 'var(--text2)' }}
@@ -396,9 +428,69 @@ function DetailLoaded({
                     </div>
                   )}
                 </dl>
-                <p className="mt-3 font-sans text-[11px]" style={{ color: 'var(--text3)' }}>
-                  Editing &amp; delete are coming soon.
-                </p>
+
+                <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--hairline)' }}>
+                  {!confirmingDelete ? (
+                    <div className="flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOptionsOpen(false)
+                          setEditing(true)
+                        }}
+                        className="flex items-center gap-2.5 rounded-lg px-1.5 py-2 font-sans text-sm transition-opacity hover:opacity-70"
+                        style={{ color: 'var(--text)' }}
+                      >
+                        <Pencil size={16} strokeWidth={1.75} />
+                        Edit entry
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingDelete(true)}
+                        className="flex items-center gap-2.5 rounded-lg px-1.5 py-2 font-sans text-sm transition-opacity hover:opacity-70"
+                        style={{ color: 'var(--danger)' }}
+                      >
+                        <Trash2 size={16} strokeWidth={1.75} />
+                        Delete entry
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <p className="font-sans text-[13px]" style={{ color: 'var(--text)' }}>
+                        Delete this entry? This can’t be undone.
+                      </p>
+                      {deleteError && (
+                        <p className="font-sans text-xs" style={{ color: 'var(--danger)' }}>
+                          {deleteError}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleDelete}
+                          disabled={deleting}
+                          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 font-sans text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                          style={{ background: 'var(--danger)' }}
+                        >
+                          {deleting && <Loader2 size={13} className="animate-spin" strokeWidth={2.5} />}
+                          {deleting ? 'Deleting…' : 'Delete'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setConfirmingDelete(false)
+                            setDeleteError(null)
+                          }}
+                          disabled={deleting}
+                          className="rounded-lg px-3 py-1.5 font-sans text-sm font-semibold transition-opacity hover:opacity-70 disabled:opacity-40"
+                          style={{ color: 'var(--text2)' }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -453,6 +545,8 @@ function DetailLoaded({
       {tab === 'related' && (
         <RelatedTab fetchState={relatedFetches[entryId]} onRetry={() => runRelatedFetch(entryId)} />
       )}
+
+      {editing && <EntryEditModal entry={entry} onClose={() => setEditing(false)} />}
     </div>
   )
 }

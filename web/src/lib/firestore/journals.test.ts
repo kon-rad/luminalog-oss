@@ -48,7 +48,8 @@ vi.mock('firebase/firestore', async (importOriginal) => {
   }
 })
 
-import { createTextEntry, deleteEntry, requestIndex } from '@/lib/firestore/journals'
+import { applyEntryEdit, createTextEntry, deleteEntry, requestIndex } from '@/lib/firestore/journals'
+import { Timestamp } from 'firebase/firestore'
 
 let key: CryptoKey
 
@@ -129,6 +130,36 @@ describe('requestIndex', () => {
 
     await expect(requestIndex('journal-1')).resolves.toBeUndefined()
     expect(mocks.apiPost).toHaveBeenCalledWith('/api/rag/index', { journalId: 'journal-1' })
+  })
+})
+
+describe('applyEntryEdit', () => {
+  it('updateDoc-s encrypted title+content, wordCount, an arrayUnion editHistory record, and sets contentEditedAt when content changed', async () => {
+    const editedAt = new Date('2026-07-10T12:00:00.000Z')
+
+    await applyEntryEdit('journal-1', 'New Title', 'a longer new body here', ['title', 'content'], editedAt)
+
+    expect(mocks.updateDoc).toHaveBeenCalledTimes(1)
+    const [ref, patch] = mocks.updateDoc.mock.calls[0]
+    expect((ref as { __ref: string }).__ref).toBe('journals/journal-1')
+    expect(isEncryptedField(patch.title)).toBe(true)
+    expect(isEncryptedField(patch.content)).toBe(true)
+    expect(patch.wordCount).toBe(5)
+    expect(patch.updatedAt).toEqual({ __serverTimestamp: true })
+    // editHistory is appended, not overwritten.
+    expect(patch.editHistory).toMatchObject({ __arrayUnion: { fields: ['title', 'content'] } })
+    // Content changed → contentEditedAt is stamped so the summary is flagged stale.
+    expect(patch.contentEditedAt).toBeInstanceOf(Timestamp)
+    expect((patch.contentEditedAt as Timestamp).toMillis()).toBe(editedAt.getTime())
+  })
+
+  it('omits contentEditedAt for a title-only edit (undefined contentEditedAt) so the summary is NOT flagged stale', async () => {
+    await applyEntryEdit('journal-1', 'Just A New Title', 'unchanged body', ['title'], undefined)
+
+    const [, patch] = mocks.updateDoc.mock.calls[0]
+    expect(isEncryptedField(patch.title)).toBe(true)
+    expect(patch.editHistory).toMatchObject({ __arrayUnion: { fields: ['title'] } })
+    expect('contentEditedAt' in patch).toBe(false)
   })
 })
 

@@ -183,21 +183,28 @@ export const updateContent = async (
 /**
  * Apply a full title+content edit, appending an `editHistory` record (which
  * fields changed) via `arrayUnion`. `updatedAt` is a server timestamp.
+ *
+ * `contentEditedAt` is set ONLY when the content changed (pass `undefined` for
+ * a title-only edit, so the summary is NOT flagged stale) — parity with the
+ * iOS `JournalRepository.applyEntryEdit` contract.
  */
 export const applyEntryEdit = async (
   id: string,
   title: string,
   content: string,
   editFields: string[],
+  contentEditedAt?: Date,
 ): Promise<void> => {
   const dek = await requireDEK()
-  await updateDoc(doc(db, COLLECTION, id), {
+  const patch: Record<string, unknown> = {
     title: await encryptField(dek, title, AAD.journalsTitle),
     content: await encryptField(dek, content, AAD.journalsContent),
     wordCount: wordCount(content),
     updatedAt: serverTimestamp(),
     editHistory: arrayUnion({ editedAt: Timestamp.now(), fields: editFields }),
-  })
+  }
+  if (contentEditedAt) patch.contentEditedAt = Timestamp.fromDate(contentEditedAt)
+  await updateDoc(doc(db, COLLECTION, id), patch)
 }
 
 /** Toggle whether an entry is excluded from share/report generation. */
