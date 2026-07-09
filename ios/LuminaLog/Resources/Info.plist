@@ -31,8 +31,20 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>EMBEDDING_MODEL_SHA256</key>
+	<string></string>
+	<key>EMBEDDING_MODEL_URL</key>
+	<string></string>
+	<key>EMBEDDING_TOKENIZER_CONFIG_SHA256</key>
+	<string></string>
+	<key>EMBEDDING_TOKENIZER_CONFIG_URL</key>
+	<string></string>
+	<key>EMBEDDING_TOKENIZER_SHA256</key>
+	<string></string>
+	<key>EMBEDDING_TOKENIZER_URL</key>
+	<string></string>
 	<key>GitCommitHash</key>
-	<string>a0e8b58</string>
+	<string>11e3d54</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationQueriesSchemes</key>

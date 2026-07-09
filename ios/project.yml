@@ -27,6 +27,14 @@ packages:
   Vapi:
     url: https://github.com/VapiAI/ios
     branch: main
+  # On-device embedding stack (increment 1c-D): ONNX Runtime runs the
+  # EmbeddingGemma model; swift-transformers provides the SentencePiece tokenizer.
+  onnxruntime:
+    url: https://github.com/microsoft/onnxruntime-swift-package-manager
+    from: 1.16.0
+  swift-transformers:
+    url: https://github.com/huggingface/swift-transformers
+    from: 0.1.0
 
 targets:
   LuminaLog:
@@ -53,6 +61,10 @@ targets:
         product: GoogleSignIn
       - package: Vapi
         product: Vapi
+      - package: onnxruntime
+        product: onnxruntime
+      - package: swift-transformers
+        product: Transformers
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.konradgnat.luminalog
@@ -96,6 +108,19 @@ targets:
         LUMINALOG_API_URL: "https://api.luminalog.com"
         GitCommitHash: "unknown"
         REVENUECAT_API_KEY: $(REVENUECAT_API_KEY)
+        # On-device EmbeddingGemma model download (increment 1c-D). Blank
+        # placeholders — the ~100–200 MB model is NOT hosted yet, so AppConfig
+        # resolves these to nil and no download path is live. Fill in the
+        # self-hosted CDN URL + SHA-256 when the artifact is uploaded. The tokenizer
+        # ships as two plain files (tokenizer.json + tokenizer_config.json), NOT a
+        # zip, so the app fetches them straight into the tokenizer folder that
+        # swift-transformers reads. Six keys total (3 URL/SHA-256 pairs).
+        EMBEDDING_MODEL_URL: ""
+        EMBEDDING_MODEL_SHA256: ""
+        EMBEDDING_TOKENIZER_URL: ""
+        EMBEDDING_TOKENIZER_SHA256: ""
+        EMBEDDING_TOKENIZER_CONFIG_URL: ""
+        EMBEDDING_TOKENIZER_CONFIG_SHA256: ""
         # Google Sign-In redirect scheme. Resolves to the GOOGLE_REVERSED_CLIENT_ID
         # build setting above — empty (inert) until configured per the README.
         CFBundleURLTypes:

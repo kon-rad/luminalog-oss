@@ -100,11 +100,62 @@ final class AppServices: ObservableObject {
             credits = MockCreditService()
         }
 
-        let journals = FirestoreJournalRepository(auth: auth, keys: keys)
+        let baseJournals = FirestoreJournalRepository(auth: auth, keys: keys)
         let profiles = FirestoreProfileRepository(auth: auth, keys: keys)
         let dailyReports = FirestoreDailyReportRepository(auth: auth, keys: keys)
         let failedReports = FailedReportStore(auth: auth)
-        let ai = ProxyAIService(api: api)
+        let chats = FirestoreChatRepository(auth: auth, keys: keys)
+
+        // Client-side semantic-search index (increment 1c-D / 19b). Always
+        // constructed, but only USED when `DevFlags.aiModel1` is ON — with the flag
+        // OFF, `ProxyAIService` never queries it and `IndexingJournalRepository`
+        // never fires an indexing hook, so behavior is byte-identical to today.
+        //
+        // Self-activating embedder selection: the moment the EmbeddingGemma artifact
+        // is hosted and the Info.plist keys are filled, `AppConfig` resolves the
+        // model + both tokenizer assets to non-nil and we build the real
+        // `LazyONNXTextEmbedder` (downloads + verifies on first use, then runs ONNX);
+        // otherwise we stay on the deterministic `StubTextEmbedder`. The `model:`
+        // identifier is stored beside each vector blob, so switching embedders marks
+        // stub-era vectors as stale (they get re-embedded), and the 768-dim is
+        // identical across both so no blob is invalidated by dimension.
+        // NOTE: this only changes WHICH embedder is constructed — usage stays gated by
+        // `DevFlags.aiModel1` (OFF in production), so hosting the model alone changes
+        // no behavior.
+        let embedder: TextEmbedder
+        let embedderModel: String
+        if let modelAsset = AppConfig.embeddingModelAsset,
+           let tokenizerAsset = AppConfig.embeddingTokenizerAsset,
+           let tokenizerConfigAsset = AppConfig.embeddingTokenizerConfigAsset {
+            embedder = LazyONNXTextEmbedder(
+                modelAsset: modelAsset,
+                tokenizerAsset: tokenizerAsset,
+                tokenizerConfigAsset: tokenizerConfigAsset
+            )
+            embedderModel = "embeddinggemma-300m-v1"
+        } else {
+            embedder = StubTextEmbedder()
+            embedderModel = "stub-embedder-v1"
+        }
+        let coordinator = SemanticIndexCoordinator(
+            embedder: embedder,
+            service: ProxyVectorService(api: api),
+            model: embedderModel,
+            dek: { [weak keys] in keys?.currentDataKey }
+        )
+        // Lifecycle hooks: create/edit → index, delete → remove (flag-gated,
+        // fire-and-forget). Pure pass-through with the flag OFF.
+        let journals = IndexingJournalRepository(base: baseJournals, coordinator: coordinator)
+
+        // Model-1 (zero-knowledge) collaborators are injected so, when
+        // `DevFlags.aiModel1` is ON, the AI service can gather PLAINTEXT context
+        // (decrypted entries, bio/profile, chat history) on device and rank it with
+        // the on-device semantic index. With the flag OFF (production) these are
+        // unused and behavior is unchanged.
+        let ai = ProxyAIService(
+            api: api, journals: journals, profiles: profiles, chats: chats,
+            coordinator: coordinator
+        )
         let media = ProxyMediaUploader(api: api, keys: keys)
         let ocr = VisionOCRService()
 
@@ -141,7 +192,7 @@ final class AppServices: ObservableObject {
             profiles: profiles,
             dailyReports: dailyReports,
             failedReports: failedReports,
-            chats: FirestoreChatRepository(auth: auth, keys: keys),
+            chats: chats,
             ai: ai,
             media: media,
             subscriptions: subscriptions,

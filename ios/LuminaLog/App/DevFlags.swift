@@ -12,6 +12,22 @@ enum DevFlags {
 
     static let devModeKey = "ll-dev-mode"
     static let forceOnboardingKey = "ll-force-onboarding"
+    static let aiModel1Key = "ll-ai-model1"
+
+    /// Client mirror of the server `AI_MODEL1` flag. When ON the client decrypts
+    /// context locally and sends it as PLAINTEXT to the AI endpoints (server
+    /// "Model 1" / zero-knowledge path), and — because the server no longer
+    /// persists chat messages on that path — persists + re-encrypts chat messages
+    /// CLIENT-SIDE via the existing encrypting repository.
+    ///
+    /// Default OFF: with this off, behavior is byte-identical to today (client
+    /// sends IDs, server decrypts + persists). This flag is only flipped ON at the
+    /// 1d cutover, after every 1c increment has landed and been verified — see the
+    /// step-1 phase-1c plan. Additive and reversible.
+    static var aiModel1: Bool {
+        get { UserDefaults.standard.bool(forKey: aiModel1Key) }
+        set { UserDefaults.standard.set(newValue, forKey: aiModel1Key) }
+    }
 
     /// When true the paywall, credit balance check, and credit deduction are
     /// all skipped. Intended for local dev; has no effect in release if never
