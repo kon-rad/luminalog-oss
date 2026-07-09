@@ -164,3 +164,39 @@ export function Note({ children }: { children: React.ReactNode }) {
     </div>
   )
 }
+
+/* Full-width figure with optional caption. `priority` for the lead/hero image. */
+export function Figure({
+  src,
+  alt,
+  width,
+  height,
+  caption,
+  priority = false,
+}: {
+  src: string
+  alt: string
+  width: number
+  height: number
+  caption?: React.ReactNode
+  priority?: boolean
+}) {
+  return (
+    <figure style={{ margin: '34px 0' }}>
+      <Image
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        priority={priority}
+        sizes="(max-width: 800px) 100vw, 760px"
+        style={{ width: '100%', height: 'auto', borderRadius: 'var(--r-card)', border: '1px solid var(--hairline)', boxShadow: 'var(--shadow)', display: 'block' }}
+      />
+      {caption && (
+        <figcaption style={{ marginTop: 12, fontSize: 13.5, lineHeight: 1.55, color: 'var(--text3)', textAlign: 'center', fontStyle: 'italic' }}>
+          {caption}
+        </figcaption>
+      )}
+    </figure>
+  )
+}
