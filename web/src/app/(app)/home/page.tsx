@@ -20,6 +20,7 @@ import EntryRow from '@/components/app/EntryRow'
 import DraftRow from '@/components/app/DraftRow'
 import GoalProgressCard from '@/components/app/GoalProgressCard'
 import StatCard from '@/components/app/StatCard'
+import SoulCard from '@/components/app/SoulCard'
 import EmptyState from '@/components/app/EmptyState'
 import { SkeletonRow } from '@/components/app/Skeleton'
 import type { JournalEntry } from '@/lib/firestore/models'
@@ -275,6 +276,11 @@ export default function HomePage() {
           {timeOfDayGreeting()}, {firstName}
         </h1>
       </header>
+
+      {/* Your Soul (design: soulbound-NFT constellation) — the top block on
+          Home, mirroring the iOS Home screen: the live constellation, an
+          expand affordance, and the wallet address + BaseScan link. */}
+      <SoulCard />
 
       {/* Daily Prompt hero carousel (design M3-T3 / A.7 "Prompt card") —
           the emotional focal point. loading -> ready (carousel) | fallback. */}

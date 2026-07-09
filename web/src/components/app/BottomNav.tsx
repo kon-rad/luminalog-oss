@@ -37,7 +37,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[560px] items-stretch justify-between px-2"
+      className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[560px] items-stretch justify-between px-2 lg:hidden"
       style={{
         height: 56,
         background: 'color-mix(in srgb, var(--surface) 88%, transparent)',

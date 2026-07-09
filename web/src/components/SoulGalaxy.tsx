@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 /** Minimal shape the galaxy renders. The authed `ConstellationPoint` is a
@@ -144,6 +144,61 @@ function ConstellationLines({ points }: { points: GalaxyPoint[] }) {
   )
 }
 
+/** OrbitControls' subset we drive imperatively to frame the constellation. */
+interface FramableControls {
+  target: THREE.Vector3
+  minDistance: number
+  maxDistance: number
+  update: () => void
+}
+
+/** Frames the whole constellation: positions the camera so the point cloud's
+ *  bounding sphere fits the viewport with a margin — zooms OUT for a large, wide
+ *  soul and IN for a small one — and points OrbitControls' target at its center.
+ *  Re-runs whenever the points or the canvas size change, so the structure stays
+ *  captured on resize. autoRotate then orbits around that fitted center. */
+function FitCamera({ points }: { points: GalaxyPoint[] }) {
+  const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
+  const controls = useThree((s) => s.controls) as unknown as FramableControls | null
+  const width = useThree((s) => s.size.width)
+  const height = useThree((s) => s.size.height)
+
+  useEffect(() => {
+    if (!points.length || !controls) return
+
+    const box = new THREE.Box3()
+    const v = new THREE.Vector3()
+    for (const p of points) box.expandByPoint(v.set(p.x, p.y, p.z))
+    const sphere = box.getBoundingSphere(new THREE.Sphere())
+    const center = sphere.center.clone()
+    // Pad by the largest possible star half-size (0.15) so edge glow sprites
+    // aren't clipped, and floor it so a single-star soul still frames sensibly.
+    const radius = Math.max(sphere.radius + 0.15, 0.35)
+
+    // Fit against whichever axis is tighter (portrait → vertical FOV, landscape
+    // → horizontal FOV) so no part of the structure spills off-screen.
+    const vFov = (camera.fov * Math.PI) / 180
+    const aspect = width / Math.max(height, 1)
+    const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect)
+    const fitFov = Math.min(vFov, hFov)
+    const margin = 1.25
+    const distance = (radius * margin) / Math.sin(fitFov / 2)
+
+    controls.target.copy(center)
+    camera.position.set(center.x, center.y, center.z + distance)
+    camera.near = Math.max(distance * 0.02, 0.01)
+    camera.far = Math.max(distance * 8, 40)
+    camera.updateProjectionMatrix()
+
+    // Let the user pinch/scroll a little past the auto-fit either way.
+    controls.minDistance = distance * 0.4
+    controls.maxDistance = distance * 3
+    controls.update()
+  }, [points, camera, controls, width, height])
+
+  return null
+}
+
 function Scene({ points, texture }: { points: GalaxyPoint[]; texture: THREE.Texture }) {
   return (
     <>
@@ -158,10 +213,9 @@ function Scene({ points, texture }: { points: GalaxyPoint[]; texture: THREE.Text
         enableZoom
         autoRotate
         autoRotateSpeed={0.5}
-        minDistance={1.8}
-        maxDistance={6}
         rotateSpeed={0.5}
       />
+      <FitCamera points={points} />
     </>
   )
 }
