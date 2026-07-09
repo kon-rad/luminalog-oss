@@ -36,27 +36,40 @@ final class EmbeddingParityTests: XCTestCase {
     private let threshold: Float = 0.999
 
     func testOnDeviceEmbeddingsMatchWebReference() async throws {
-        guard let modelAsset = AppConfig.embeddingModelAsset,
-              let tokenizerAsset = AppConfig.embeddingTokenizerAsset,
-              let tokenizerConfigAsset = AppConfig.embeddingTokenizerConfigAsset else {
-            throw XCTSkip("Embedding model not hosted (Info.plist keys blank) — parity gate skipped.")
-        }
-        guard let refPath = ProcessInfo.processInfo.environment["EMBEDDING_PARITY_REFERENCE"],
-              !refPath.isEmpty else {
+        let env = ProcessInfo.processInfo.environment
+        guard let refPath = env["EMBEDDING_PARITY_REFERENCE"], !refPath.isEmpty else {
             throw XCTSkip("Set EMBEDDING_PARITY_REFERENCE=<reference_vectors.json> to run the parity gate.")
+        }
+
+        // Two embedder sources:
+        //  * EMBEDDING_LOCAL_MODEL_DIR (a folder with the .onnx + tokenizer.json +
+        //    tokenizer_config.json) → validate a model on disk BEFORE hosting.
+        //  * otherwise the real hosted path (LazyONNXTextEmbedder via AppConfig).
+        let embedder: TextEmbedder
+        if let localDir = env["EMBEDDING_LOCAL_MODEL_DIR"], !localDir.isEmpty {
+            let dir = URL(fileURLWithPath: localDir, isDirectory: true)
+            let onnx = try FileManager.default.contentsOfDirectory(atPath: localDir)
+                .first { $0.hasSuffix(".onnx") }
+            let modelURL = dir.appendingPathComponent(try XCTUnwrap(onnx, "no .onnx in \(localDir)"))
+            embedder = ONNXTextEmbedder(modelURL: modelURL, tokenizerDirectory: dir)
+        } else {
+            guard let modelAsset = AppConfig.embeddingModelAsset,
+                  let tokenizerAsset = AppConfig.embeddingTokenizerAsset,
+                  let tokenizerConfigAsset = AppConfig.embeddingTokenizerConfigAsset else {
+                throw XCTSkip("Embedding model not hosted (Info.plist keys blank) — parity gate skipped.")
+            }
+            embedder = LazyONNXTextEmbedder(
+                modelAsset: modelAsset,
+                tokenizerAsset: tokenizerAsset,
+                tokenizerConfigAsset: tokenizerConfigAsset
+            )
         }
 
         let refData = try Data(contentsOf: URL(fileURLWithPath: refPath))
         let reference = try JSONDecoder().decode(Reference.self, from: refData)
         XCTAssertEqual(reference.dimension, EmbeddingVector.dimension,
-                       "reference dimension must match the app's locked 384-dim")
+                       "reference dimension must match the app's locked 512-dim")
         XCTAssertEqual(reference.texts.count, reference.vectors.count)
-
-        let embedder = LazyONNXTextEmbedder(
-            modelAsset: modelAsset,
-            tokenizerAsset: tokenizerAsset,
-            tokenizerConfigAsset: tokenizerConfigAsset
-        )
 
         var worst: Float = 1
         for (index, text) in reference.texts.enumerated() {
@@ -72,6 +85,6 @@ final class EmbeddingParityTests: XCTestCase {
                 "text #\(index) parity cosine \(cosine) ≤ \(threshold): on-device pipeline diverges from the web reference — \(text)"
             )
         }
-        print("Embedding parity: worst cosine = \(worst) across \(reference.texts.count) texts")
+        NSLog("PARITY worst cosine = \(worst) across \(reference.texts.count) texts")
     }
 }

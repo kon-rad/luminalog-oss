@@ -25,15 +25,17 @@ enum AppConfig {
     // MARK: - On-device embedding model (increment 1c-D)
 
     /// The downloadable ONNX embedding model asset
-    /// (paraphrase-multilingual-MiniLM-L12-v2, 384-dim). The URL + SHA-256 are read
-    /// from Info.plist keys (`EMBEDDING_MODEL_URL` / `EMBEDDING_MODEL_SHA256`) so the
-    /// self-hosted bucket can change without a code change. Returns `nil` until the
-    /// model is hosted and the keys are populated (placeholders are blank), so no live
-    /// code path can accidentally try to download a non-existent artifact.
+    /// (distiluse-base-multilingual-cased-v2, 512-dim; the full sentence-transformers
+    /// pipeline — transformer → mean-pool → Dense — baked into one ONNX graph). The URL
+    /// + SHA-256 are read from Info.plist keys (`EMBEDDING_MODEL_URL` /
+    /// `EMBEDDING_MODEL_SHA256`) so the self-hosted bucket can change without a code
+    /// change. Returns `nil` until the model is hosted and the keys are populated
+    /// (placeholders are blank), so no live code path can accidentally try to download a
+    /// non-existent artifact.
     static let embeddingModelAsset: EmbeddingModelAsset? = {
         makeAsset(urlKey: "EMBEDDING_MODEL_URL",
                   hashKey: "EMBEDDING_MODEL_SHA256",
-                  filename: "minilm-multilingual-l12-v2.onnx")
+                  filename: "distiluse-multilingual.onnx")
     }()
 
     /// The tokenizer vocabulary/merges file (`tokenizer.json`). Hosted as a plain file

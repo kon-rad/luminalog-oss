@@ -32,19 +32,19 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>EMBEDDING_MODEL_SHA256</key>
-	<string></string>
+	<string>ef4f58f1eb478e3097c3b4f197c97390ae4decaedc363defbb937a4c8eb41e6f</string>
 	<key>EMBEDDING_MODEL_URL</key>
-	<string></string>
+	<string>https://luminalog-models.s3.us-east-1.amazonaws.com/distiluse-multilingual/v1/distiluse-multilingual.onnx</string>
 	<key>EMBEDDING_TOKENIZER_CONFIG_SHA256</key>
-	<string></string>
+	<string>84e36de990575ab69acf45c7537a1bb7f1bd6ecba95ab4d5ba8bf64ccc24b2c8</string>
 	<key>EMBEDDING_TOKENIZER_CONFIG_URL</key>
-	<string></string>
+	<string>https://luminalog-models.s3.us-east-1.amazonaws.com/distiluse-multilingual/v1/tokenizer_config.json</string>
 	<key>EMBEDDING_TOKENIZER_SHA256</key>
-	<string></string>
+	<string>3564bb27a5b787b8ce0e415d4961a19c682d6fc70c3dc92341d9c699e11d37f6</string>
 	<key>EMBEDDING_TOKENIZER_URL</key>
-	<string></string>
+	<string>https://luminalog-models.s3.us-east-1.amazonaws.com/distiluse-multilingual/v1/tokenizer.json</string>
 	<key>GitCommitHash</key>
-	<string>11e3d54</string>
+	<string>2376203</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationQueriesSchemes</key>

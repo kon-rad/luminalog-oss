@@ -1,16 +1,17 @@
 import Foundation
 import OnnxRuntimeBindings
 import Tokenizers
+import Hub
 
-/// The real on-device embedder: MiniLM run through ONNX Runtime, with a
-/// SentencePiece tokenizer (huggingface/swift-transformers). Pipeline:
+/// The real on-device embedder: distiluse run through ONNX Runtime, with a
+/// WordPiece tokenizer (huggingface/swift-transformers). Pipeline:
 ///
 ///   text → tokenize → ORT session run (Core ML EP if available) →
-///   `EmbeddingPooling.meanPool(...)` → L2-normalized `EmbeddingVector` (384-dim).
+///   `EmbeddingPooling.meanPool(...)` → L2-normalized `EmbeddingVector` (512-dim).
 ///
 /// ## Status (increment 1c-D)
 /// Fully wired: `AppServices` builds this (via `LazyONNXTextEmbedder`) once the
-/// ~224 MB fp16 MiniLM ONNX model + tokenizer are hosted and the Info.plist keys are
+/// ~258 MB fp16 distiluse ONNX model + tokenizer are hosted and the Info.plist keys are
 /// filled; until then the deterministic `StubTextEmbedder` is used. Usage stays gated
 /// by `DevFlags.aiModel1`. It fails **closed** at every step:
 ///
@@ -22,7 +23,7 @@ import Tokenizers
 /// It never fabricates a vector. Until the model ships, callers/tests use
 /// `StubTextEmbedder` (deterministic) instead.
 ///
-/// - Note: The input/output tensor names default to the MiniLM export
+/// - Note: The input/output tensor names default to the distiluse export
 ///   (`input_ids`, `attention_mask`, `token_type_ids` in; `last_hidden_state` out) and
 ///   are overridable. `token_type_ids` is fed all-zeros only when the graph declares
 ///   it (BERT-family). Cross-platform parity (cosine > 0.999 vs the web/Android
@@ -39,14 +40,20 @@ struct ONNXTextEmbedder: TextEmbedder {
     let inputIdsName: String
     /// Graph input tensor name for the attention mask.
     let attentionMaskName: String
-    /// Graph input tensor name for the token-type ids. BERT-family graphs (e.g.
-    /// MiniLM) declare this input; it is fed all-zeros for a single sequence. Only
-    /// supplied when the loaded graph actually declares it (RoBERTa/Gemma graphs do
+    /// Graph input tensor name for the token-type ids. Some BERT graphs declare this
+    /// input; it is fed all-zeros for a single sequence. Only supplied when the loaded
+    /// graph actually declares it (DistilBERT/distiluse and RoBERTa/Gemma graphs do
     /// not), so the same code drives both.
     let tokenTypeIdsName: String
     /// Preferred graph output tensor name holding per-token hidden states. If absent
     /// at run time the first output is used.
     let tokenEmbeddingsOutputName: String
+    /// Optional value forced into the tokenizer's `tokenizer_class` so swift-transformers
+    /// routes to the correct tokenizer model. `nil` (default) uses the value in
+    /// `tokenizer_config.json` — correct when it already names a supported class (e.g.
+    /// `BertTokenizer` for WordPiece models). Set it only when the hosted file uses a
+    /// generic class (`PreTrainedTokenizerFast`) that would misroute.
+    let tokenizerClassOverride: String?
 
     private let fileManager: FileManager
 
@@ -57,6 +64,7 @@ struct ONNXTextEmbedder: TextEmbedder {
         attentionMaskName: String = "attention_mask",
         tokenTypeIdsName: String = "token_type_ids",
         tokenEmbeddingsOutputName: String = "last_hidden_state",
+        tokenizerClassOverride: String? = nil,
         fileManager: FileManager = .default
     ) {
         self.modelURL = modelURL
@@ -65,6 +73,7 @@ struct ONNXTextEmbedder: TextEmbedder {
         self.attentionMaskName = attentionMaskName
         self.tokenTypeIdsName = tokenTypeIdsName
         self.tokenEmbeddingsOutputName = tokenEmbeddingsOutputName
+        self.tokenizerClassOverride = tokenizerClassOverride
         self.fileManager = fileManager
     }
 
@@ -74,11 +83,36 @@ struct ONNXTextEmbedder: TextEmbedder {
             throw TextEmbedderError.modelUnavailable
         }
 
-        // 1. Tokenize (SentencePiece via swift-transformers). Single sequence, so
-        //    every produced token is attended (mask all-ones).
+        // 1. Tokenize via swift-transformers. We build the tokenizer from the two JSON
+        //    files directly instead of `AutoTokenizer.from(modelFolder:)`, because that
+        //    API *requires* a `config.json` (the model config) in the folder and we host
+        //    only tokenizer.json + tokenizer_config.json. distiluse's
+        //    `DistilBertTokenizerFast` routes correctly to swift-transformers'
+        //    (WordPiece) `BertTokenizer` on its own, so `tokenizerClassOverride` is nil.
+        //    NOTE: swift-transformers' `PrecompiledNormalizer` is a stub, so SentencePiece
+        //    tokenizers (XLM-RoBERTa / Unigram) tokenize INCORRECTLY on-device — hence a
+        //    WordPiece model (distiluse), whose `BertNormalizer` is fully implemented.
+        //    For a model whose `tokenizer_class` is a generic `PreTrainedTokenizerFast`,
+        //    set `tokenizerClassOverride` to the right class (e.g. "BertTokenizer").
         let tokenizer: Tokenizer
         do {
-            tokenizer = try await AutoTokenizer.from(modelFolder: tokenizerDirectory)
+            let dataURL = tokenizerDirectory.appendingPathComponent("tokenizer.json")
+            let configURL = tokenizerDirectory.appendingPathComponent("tokenizer_config.json")
+            guard let tokenizerData = try JSONSerialization.jsonObject(
+                with: Data(contentsOf: dataURL)) as? [NSString: Any] else {
+                throw TextEmbedderError.tokenizationFailed
+            }
+            var configDict = ((try? JSONSerialization.jsonObject(
+                with: Data(contentsOf: configURL))) as? [NSString: Any]) ?? [:]
+            if let tokenizerClassOverride {
+                configDict["tokenizer_class"] = tokenizerClassOverride
+            }
+            tokenizer = try AutoTokenizer.from(
+                tokenizerConfig: Config(configDict),
+                tokenizerData: Config(tokenizerData)
+            )
+        } catch let error as TextEmbedderError {
+            throw error
         } catch {
             throw TextEmbedderError.tokenizationFailed
         }
@@ -111,8 +145,8 @@ struct ONNXTextEmbedder: TextEmbedder {
             )
 
             var inputs = [inputIdsName: idsTensor, attentionMaskName: maskTensor]
-            // BERT-family graphs (MiniLM) require token_type_ids; feed all-zeros for a
-            // single sequence. Only added when the graph declares it, so RoBERTa/Gemma
+            // Some BERT graphs require token_type_ids; feed all-zeros for a
+            // single sequence. Only added when the graph declares it, so DistilBERT/RoBERTa/Gemma
             // graphs (which don't) are unaffected.
             if (try? session.inputNames())?.contains(tokenTypeIdsName) == true {
                 inputs[tokenTypeIdsName] = try ORTValue(
@@ -152,7 +186,7 @@ struct ONNXTextEmbedder: TextEmbedder {
     // MARK: - Output pooling
 
     /// Turn a raw ORT output tensor into a normalized vector. Handles the two shapes
-    /// MiniLM exports can produce:
+    /// distiluse exports can produce:
     ///   * rank-3 `[1, seq, hidden]` → mean-pool over the sequence with the mask.
     ///   * rank-2 `[1, hidden]`      → already a sentence embedding → just normalize.
     static func pool(floats: [Float], shape: [Int], attentionMask: [Int]) throws -> EmbeddingVector {

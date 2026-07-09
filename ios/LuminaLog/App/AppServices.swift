@@ -111,13 +111,13 @@ final class AppServices: ObservableObject {
         // OFF, `ProxyAIService` never queries it and `IndexingJournalRepository`
         // never fires an indexing hook, so behavior is byte-identical to today.
         //
-        // Self-activating embedder selection: the moment the MiniLM artifact
+        // Self-activating embedder selection: the moment the distiluse artifact
         // is hosted and the Info.plist keys are filled, `AppConfig` resolves the
         // model + both tokenizer assets to non-nil and we build the real
         // `LazyONNXTextEmbedder` (downloads + verifies on first use, then runs ONNX);
         // otherwise we stay on the deterministic `StubTextEmbedder`. The `model:`
         // identifier is stored beside each vector blob, so switching embedders marks
-        // stub-era vectors as stale (they get re-embedded), and the 384-dim is
+        // stub-era vectors as stale (they get re-embedded), and the 512-dim is
         // identical across both so no blob is invalidated by dimension.
         // NOTE: this only changes WHICH embedder is constructed — usage stays gated by
         // `DevFlags.aiModel1` (OFF in production), so hosting the model alone changes
@@ -132,7 +132,7 @@ final class AppServices: ObservableObject {
                 tokenizerAsset: tokenizerAsset,
                 tokenizerConfigAsset: tokenizerConfigAsset
             )
-            embedderModel = "minilm-multilingual-l12-v2"
+            embedderModel = "distiluse-multilingual-v1"
         } else {
             embedder = StubTextEmbedder()
             embedderModel = "stub-embedder-v1"

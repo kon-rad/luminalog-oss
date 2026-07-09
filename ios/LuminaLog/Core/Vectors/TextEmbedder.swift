@@ -32,16 +32,16 @@ enum TextEmbedderError: LocalizedError, Equatable {
 }
 
 /// Abstraction over "turn text into a fixed-dimension `EmbeddingVector`". The real
-/// implementation runs MiniLM via ONNX Runtime (`ONNXTextEmbedder`); the
+/// implementation runs distiluse via ONNX Runtime (`ONNXTextEmbedder`); the
 /// deterministic `StubTextEmbedder` lets the whole client-side semantic-search
 /// pipeline (increment 1c-D) be built and unit-tested *before* the ~100–200 MB model
 /// is hosted.
 ///
 /// The returned vector is expected to be L2-normalized and of
-/// `EmbeddingVector.dimension` (384), so callers can feed it straight into
+/// `EmbeddingVector.dimension` (512), so callers can feed it straight into
 /// `VectorIndex` / `EncryptedVectorStore`.
 protocol TextEmbedder {
-    /// Embed a single string into a normalized 384-dim vector.
+    /// Embed a single string into a normalized 512-dim vector.
     func embed(_ text: String) async throws -> EmbeddingVector
 
     /// Embed several strings, preserving order. The default implementation maps

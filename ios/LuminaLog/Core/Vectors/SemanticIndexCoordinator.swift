@@ -62,8 +62,8 @@ final class SemanticIndexCoordinator {
     ///   - embedder: how text becomes a vector. Defaults to `StubTextEmbedder`
     ///     (deterministic, ML-free) so the pipeline is testable before the real
     ///     model is hosted. **Injection point for 19b:** pass an
-    ///     `ONNXTextEmbedder` here once MiniLM is downloaded/wired.
-    ///   - store: seals/opens vectors under the DEK. Default 384-dim.
+    ///     `ONNXTextEmbedder` here once distiluse is downloaded/wired.
+    ///   - store: seals/opens vectors under the DEK. Default 512-dim.
     ///   - service: the server sync surface (inject a fake in tests).
     ///   - index: starting index (default empty).
     ///   - model: identifier stored beside each blob so a future re-embed can spot

@@ -108,19 +108,20 @@ targets:
         LUMINALOG_API_URL: "https://api.luminalog.com"
         GitCommitHash: "unknown"
         REVENUECAT_API_KEY: $(REVENUECAT_API_KEY)
-        # On-device EmbeddingGemma model download (increment 1c-D). Blank
-        # placeholders — the ~100–200 MB model is NOT hosted yet, so AppConfig
-        # resolves these to nil and no download path is live. Fill in the
-        # self-hosted CDN URL + SHA-256 when the artifact is uploaded. The tokenizer
-        # ships as two plain files (tokenizer.json + tokenizer_config.json), NOT a
-        # zip, so the app fetches them straight into the tokenizer folder that
-        # swift-transformers reads. Six keys total (3 URL/SHA-256 pairs).
-        EMBEDDING_MODEL_URL: ""
-        EMBEDDING_MODEL_SHA256: ""
-        EMBEDDING_TOKENIZER_URL: ""
-        EMBEDDING_TOKENIZER_SHA256: ""
-        EMBEDDING_TOKENIZER_CONFIG_URL: ""
-        EMBEDDING_TOKENIZER_CONFIG_SHA256: ""
+        # On-device embedding model download (increment 1c-D):
+        # distiluse-base-multilingual-cased-v2, 512-dim, fp16 (~258 MB) — the full
+        # sentence-transformers pipeline (transformer → mean-pool → Dense) baked into
+        # one ONNX. WordPiece tokenizer (works with swift-transformers, unlike the
+        # SentencePiece MiniLM we tried first). Tokenizer ships as two plain files
+        # (tokenizer.json + tokenizer_config.json), NOT a zip. Six keys total (3
+        # URL/SHA-256 pairs). SHA-256 is verified on download; a model swap = new
+        # versioned path + new hashes + bumped `model:` id in AppServices.
+        EMBEDDING_MODEL_URL: "https://luminalog-models.s3.us-east-1.amazonaws.com/distiluse-multilingual/v1/distiluse-multilingual.onnx"
+        EMBEDDING_MODEL_SHA256: "ef4f58f1eb478e3097c3b4f197c97390ae4decaedc363defbb937a4c8eb41e6f"
+        EMBEDDING_TOKENIZER_URL: "https://luminalog-models.s3.us-east-1.amazonaws.com/distiluse-multilingual/v1/tokenizer.json"
+        EMBEDDING_TOKENIZER_SHA256: "3564bb27a5b787b8ce0e415d4961a19c682d6fc70c3dc92341d9c699e11d37f6"
+        EMBEDDING_TOKENIZER_CONFIG_URL: "https://luminalog-models.s3.us-east-1.amazonaws.com/distiluse-multilingual/v1/tokenizer_config.json"
+        EMBEDDING_TOKENIZER_CONFIG_SHA256: "84e36de990575ab69acf45c7537a1bb7f1bd6ecba95ab4d5ba8bf64ccc24b2c8"
         # Google Sign-In redirect scheme. Resolves to the GOOGLE_REVERSED_CLIENT_ID
         # build setting above — empty (inert) until configured per the README.
         CFBundleURLTypes:

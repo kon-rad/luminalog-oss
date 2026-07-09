@@ -1,20 +1,20 @@
 # Embedding cross-platform parity gate
 
-Proves the on-device MiniLM pipeline (`ONNXTextEmbedder`: tokenizer → ONNX →
+Proves the on-device distiluse pipeline (`ONNXTextEmbedder`: tokenizer → ONNX →
 mean-pool → L2-normalize) produces the **same** vectors as the web reference
 (Transformers.js), so vectors are comparable across iOS / web / Android.
 
 **Run this — and pass — BEFORE flipping `DevFlags.aiModel1` on or writing any real
-vector.** The 384-dim and the embedding semantics lock the moment production vectors
+vector.** The 512-dim and the embedding semantics lock the moment production vectors
 exist; a divergent pipeline would silently poison search and break Step-2
 comparability.
 
 ## Parity contract (both sides MUST match)
 
-- Same model weights: `paraphrase-multilingual-MiniLM-L12-v2` (the ONNX export you host).
+- Same model weights: `distiluse-base-multilingual-cased-v2` (the ONNX export you host).
 - **Raw** text in — no task/query prompt prefix on either side.
 - Mean-pool over the attention mask, then L2-normalize.
-- 384 dimensions.
+- 512 dimensions.
 
 `reference.mjs` uses `pooling: 'mean', normalize: true`, which reproduces
 `EmbeddingPooling.meanPool(...).l2normalized` on the iOS side.
@@ -29,7 +29,7 @@ comparability.
    cd ios/scripts/embedding-parity
    npm install @huggingface/transformers
    # Point at the SAME artifact you host (env optional; defaults to the community export):
-   # EMBEDDING_MODEL_ID=Xenova/paraphrase-multilingual-MiniLM-L12-v2
+   # EMBEDDING_MODEL_ID=Xenova/distiluse-base-multilingual-cased-v2
    node reference.mjs        # → reference_vectors.json
    ```
 
@@ -52,10 +52,10 @@ comparability.
 
 - **cosine well below 0.999 across the board** → likely double-pooling: you exported a
   sentence-transformers pipeline that already pools. Re-export the *base* transformer
-  (token-level `last_hidden_state`, rank-3 `[batch, seq, 384]`).
+  (token-level `last_hidden_state`, rank-3 `[batch, seq, 512]`).
 - **a few texts diverge** → tokenizer mismatch. Confirm the hosted `tokenizer.json` +
   `tokenizer_config.json` are the exact pair from the same model revision.
-- **dimension assert fails** → the export isn't producing 384-dim token embeddings.
+- **dimension assert fails** → the export isn't producing 512-dim token embeddings.
 
 ## Files
 

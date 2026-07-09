@@ -15,10 +15,11 @@ import Foundation
 struct EmbeddingVector: Equatable {
 
     /// The canonical embedding dimension for the shipping model
-    /// (paraphrase-multilingual-MiniLM-L12-v2, 384-dim). Tests and the store may use
-    /// other dimensions; this is only the default the `EncryptedVectorStore` validates
-    /// against. Locks once any real vector is written — do not change after launch.
-    static let dimension = 384
+    /// (distiluse-base-multilingual-cased-v2, 512-dim — mean-pool + Dense projection
+    /// baked into the ONNX). Tests and the store may use other dimensions; this is only
+    /// the default the `EncryptedVectorStore` validates against. Locks once any real
+    /// vector is written — do not change after launch.
+    static let dimension = 512
 
     /// The raw component values. Length is the vector's dimension.
     let values: [Float]
