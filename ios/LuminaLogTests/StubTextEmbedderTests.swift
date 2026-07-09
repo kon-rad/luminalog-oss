@@ -17,10 +17,10 @@ final class StubTextEmbedderTests: XCTestCase {
         XCTAssertNotEqual(a, b)
     }
 
-    func testOutputDimensionIs768() async throws {
+    func testOutputDimensionMatchesModel() async throws {
         let v = try await StubTextEmbedder().embed("hello")
         XCTAssertEqual(v.dimension, EmbeddingVector.dimension)
-        XCTAssertEqual(v.dimension, 768)
+        XCTAssertEqual(v.dimension, 384)
     }
 
     func testOutputIsL2Normalized() async throws {
@@ -31,7 +31,7 @@ final class StubTextEmbedderTests: XCTestCase {
     func testEmptyStringStillProducesNormalizedVector() async throws {
         // Even an empty input hashes to a stable, non-zero, normalized vector.
         let v = try await StubTextEmbedder().embed("")
-        XCTAssertEqual(v.dimension, 768)
+        XCTAssertEqual(v.dimension, 384)
         XCTAssertEqual(v.magnitude, 1.0, accuracy: 1e-5)
     }
 
@@ -56,6 +56,6 @@ final class StubTextEmbedderTests: XCTestCase {
         // Used through the protocol so the pipeline can depend on the abstraction.
         let embedder: TextEmbedder = StubTextEmbedder()
         let v = try await embedder.embed("via protocol")
-        XCTAssertEqual(v.dimension, 768)
+        XCTAssertEqual(v.dimension, 384)
     }
 }

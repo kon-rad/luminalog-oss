@@ -56,7 +56,7 @@ struct URLSessionFileDownloader: EmbeddingFileDownloader {
     }
 }
 
-/// Downloads the EmbeddingGemma ONNX model + tokenizer from a **configurable** URL,
+/// Downloads the MiniLM ONNX model + tokenizer from a **configurable** URL,
 /// verifies a SHA-256 integrity hash, and caches the verified bytes to disk
 /// (Application Support), returning the local file URL. A subsequent request for an
 /// asset whose cached bytes still match the expected hash is served from disk with no

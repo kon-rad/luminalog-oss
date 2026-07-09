@@ -14,10 +14,11 @@ import Foundation
 /// score, and malformed byte buffers refuse to decode.
 struct EmbeddingVector: Equatable {
 
-    /// The canonical embedding dimension for the shipping model (EmbeddingGemma-300m).
-    /// Tests and the store may use other dimensions; this is only the default the
-    /// `EncryptedVectorStore` validates against.
-    static let dimension = 768
+    /// The canonical embedding dimension for the shipping model
+    /// (paraphrase-multilingual-MiniLM-L12-v2, 384-dim). Tests and the store may use
+    /// other dimensions; this is only the default the `EncryptedVectorStore` validates
+    /// against. Locks once any real vector is written — do not change after launch.
+    static let dimension = 384
 
     /// The raw component values. Length is the vector's dimension.
     let values: [Float]

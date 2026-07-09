@@ -2,18 +2,17 @@ import Foundation
 import OnnxRuntimeBindings
 import Tokenizers
 
-/// The real on-device embedder: EmbeddingGemma run through ONNX Runtime, with a
+/// The real on-device embedder: MiniLM run through ONNX Runtime, with a
 /// SentencePiece tokenizer (huggingface/swift-transformers). Pipeline:
 ///
 ///   text → tokenize → ORT session run (Core ML EP if available) →
-///   `EmbeddingPooling.meanPool(...)` → L2-normalized `EmbeddingVector` (768-dim).
+///   `EmbeddingPooling.meanPool(...)` → L2-normalized `EmbeddingVector` (384-dim).
 ///
-/// ## Status (increment 1c-D, Phase 1)
-/// The ONNX Runtime + swift-transformers dependencies ARE wired into the build, so
-/// this compiles and links. It cannot actually run until the ~100–200 MB
-/// EmbeddingGemma ONNX model + tokenizer are hosted and fetched by
-/// `EmbeddingModelProvider` — so this type is **not** wired into any live path yet
-/// (that is a later increment). It fails **closed** at every step:
+/// ## Status (increment 1c-D)
+/// Fully wired: `AppServices` builds this (via `LazyONNXTextEmbedder`) once the
+/// ~224 MB fp16 MiniLM ONNX model + tokenizer are hosted and the Info.plist keys are
+/// filled; until then the deterministic `StubTextEmbedder` is used. Usage stays gated
+/// by `DevFlags.aiModel1`. It fails **closed** at every step:
 ///
 ///   * model file absent on disk → `TextEmbedderError.modelUnavailable`
 ///   * tokenizer files missing/unloadable → `TextEmbedderError.tokenizationFailed`
@@ -23,11 +22,11 @@ import Tokenizers
 /// It never fabricates a vector. Until the model ships, callers/tests use
 /// `StubTextEmbedder` (deterministic) instead.
 ///
-/// - Note: The input/output tensor names default to EmbeddingGemma's exported graph
-///   (`input_ids`, `attention_mask`, `token_embeddings`) and are overridable, since
-///   the exact names depend on how the ONNX artifact is converted. Cross-platform
-///   parity (cosine > 0.999 vs the web/Android reference) is validated separately
-///   (plan Phase 0) once the model is hosted.
+/// - Note: The input/output tensor names default to the MiniLM export
+///   (`input_ids`, `attention_mask`, `token_type_ids` in; `last_hidden_state` out) and
+///   are overridable. `token_type_ids` is fed all-zeros only when the graph declares
+///   it (BERT-family). Cross-platform parity (cosine > 0.999 vs the web/Android
+///   reference) is validated separately once the model is hosted.
 struct ONNXTextEmbedder: TextEmbedder {
 
     /// Local path to the ONNX model file (populated by `EmbeddingModelProvider`).
@@ -40,6 +39,11 @@ struct ONNXTextEmbedder: TextEmbedder {
     let inputIdsName: String
     /// Graph input tensor name for the attention mask.
     let attentionMaskName: String
+    /// Graph input tensor name for the token-type ids. BERT-family graphs (e.g.
+    /// MiniLM) declare this input; it is fed all-zeros for a single sequence. Only
+    /// supplied when the loaded graph actually declares it (RoBERTa/Gemma graphs do
+    /// not), so the same code drives both.
+    let tokenTypeIdsName: String
     /// Preferred graph output tensor name holding per-token hidden states. If absent
     /// at run time the first output is used.
     let tokenEmbeddingsOutputName: String
@@ -51,13 +55,15 @@ struct ONNXTextEmbedder: TextEmbedder {
         tokenizerDirectory: URL,
         inputIdsName: String = "input_ids",
         attentionMaskName: String = "attention_mask",
-        tokenEmbeddingsOutputName: String = "token_embeddings",
+        tokenTypeIdsName: String = "token_type_ids",
+        tokenEmbeddingsOutputName: String = "last_hidden_state",
         fileManager: FileManager = .default
     ) {
         self.modelURL = modelURL
         self.tokenizerDirectory = tokenizerDirectory
         self.inputIdsName = inputIdsName
         self.attentionMaskName = attentionMaskName
+        self.tokenTypeIdsName = tokenTypeIdsName
         self.tokenEmbeddingsOutputName = tokenEmbeddingsOutputName
         self.fileManager = fileManager
     }
@@ -104,13 +110,25 @@ struct ONNXTextEmbedder: TextEmbedder {
                 shape: shape
             )
 
+            var inputs = [inputIdsName: idsTensor, attentionMaskName: maskTensor]
+            // BERT-family graphs (MiniLM) require token_type_ids; feed all-zeros for a
+            // single sequence. Only added when the graph declares it, so RoBERTa/Gemma
+            // graphs (which don't) are unaffected.
+            if (try? session.inputNames())?.contains(tokenTypeIdsName) == true {
+                inputs[tokenTypeIdsName] = try ORTValue(
+                    tensorData: NSMutableData(data: Self.int64Data([Int](repeating: 0, count: seqLen))),
+                    elementType: .int64,
+                    shape: shape
+                )
+            }
+
             let outputNames = try session.outputNames()
             let wanted = outputNames.contains(tokenEmbeddingsOutputName)
                 ? tokenEmbeddingsOutputName
                 : (outputNames.first ?? tokenEmbeddingsOutputName)
 
             let outputs = try session.run(
-                withInputs: [inputIdsName: idsTensor, attentionMaskName: maskTensor],
+                withInputs: inputs,
                 outputNames: Set([wanted]),
                 runOptions: nil
             )
@@ -134,7 +152,7 @@ struct ONNXTextEmbedder: TextEmbedder {
     // MARK: - Output pooling
 
     /// Turn a raw ORT output tensor into a normalized vector. Handles the two shapes
-    /// EmbeddingGemma exports can produce:
+    /// MiniLM exports can produce:
     ///   * rank-3 `[1, seq, hidden]` → mean-pool over the sequence with the mask.
     ///   * rank-2 `[1, hidden]`      → already a sentence embedding → just normalize.
     static func pool(floats: [Float], shape: [Int], attentionMask: [Int]) throws -> EmbeddingVector {

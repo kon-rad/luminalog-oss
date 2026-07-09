@@ -49,7 +49,7 @@ final class EmbeddingParityTests: XCTestCase {
         let refData = try Data(contentsOf: URL(fileURLWithPath: refPath))
         let reference = try JSONDecoder().decode(Reference.self, from: refData)
         XCTAssertEqual(reference.dimension, EmbeddingVector.dimension,
-                       "reference dimension must match the app's locked 768-dim")
+                       "reference dimension must match the app's locked 384-dim")
         XCTAssertEqual(reference.texts.count, reference.vectors.count)
 
         let embedder = LazyONNXTextEmbedder(

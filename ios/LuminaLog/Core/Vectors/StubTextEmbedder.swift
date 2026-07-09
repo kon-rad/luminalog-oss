@@ -4,15 +4,15 @@ import CryptoKit
 /// A deterministic, ML-free `TextEmbedder` that derives a stable pseudo-embedding
 /// from a SHA-256 of the input. It is **not** semantic — cosine distances are
 /// meaningless — but it is fully reproducible (same text → same vector, different
-/// text → different vector), correctly shaped (768-dim, L2-normalized), and needs no
+/// text → different vector), correctly shaped (384-dim, L2-normalized), and needs no
 /// model download. That lets the entire client-side RAG pipeline (`VectorIndex`,
 /// `EncryptedVectorStore`, retrieval wiring) be built and tested before the real
-/// EmbeddingGemma ONNX model is hosted (increment 1c-D).
+/// MiniLM ONNX model is hosted (increment 1c-D).
 ///
 /// Pure and side-effect-free: no I/O, no global state, no `Date()`.
 struct StubTextEmbedder: TextEmbedder {
 
-    /// Output dimension. Defaults to the shipping model's 768 so the stub is a
+    /// Output dimension. Defaults to the shipping model's 384 so the stub is a
     /// drop-in for the real embedder.
     let dimension: Int
 

@@ -99,7 +99,7 @@ final class EmbeddingVectorTests: XCTestCase {
     func testFullDimensionRoundTrips() {
         let values = (0..<EmbeddingVector.dimension).map { Float($0) * 0.001 - 0.3 }
         let v = EmbeddingVector(values)
-        XCTAssertEqual(v.dimension, 768)
+        XCTAssertEqual(v.dimension, 384)
         XCTAssertEqual(EmbeddingVector(data: v.data), v)
     }
 }

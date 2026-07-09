@@ -1,7 +1,7 @@
 import Foundation
 
 /// The runtime bridge that makes on-device semantic search **self-activate** once the
-/// EmbeddingGemma artifact is hosted. It is a `TextEmbedder` that, on its first
+/// MiniLM artifact is hosted. It is a `TextEmbedder` that, on its first
 /// `embed(_:)`, resolves the model + tokenizer:
 ///
 ///   1. downloads & SHA-256-verifies the ONNX model (via `EmbeddingModelProvider`),
@@ -35,7 +35,7 @@ actor LazyONNXTextEmbedder: TextEmbedder {
     private var resolveTask: Task<TextEmbedder, Error>?
 
     /// - Parameters:
-    ///   - modelAsset: the ONNX model (`embeddinggemma-300m.onnx`).
+    ///   - modelAsset: the ONNX model (`minilm-multilingual-l12-v2.onnx`).
     ///   - tokenizerAsset: `tokenizer.json`.
     ///   - tokenizerConfigAsset: `tokenizer_config.json`.
     ///   - provider: downloads + verifies + caches assets (inject a fake in tests).
