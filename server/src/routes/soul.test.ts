@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// soul.ts imports the real `../config`, whose module-level Zod validation
+// process.exit(1)s when required env vars are absent. Vitest loads `.env` into
+// process.env with worker-timing that depends on how test files are sharded, so
+// relying on it made this suite flaky (it broke once more test files were added).
+// Mock config here — soul.ts only reads `config.BASE_CHAIN` — so the suite is
+// deterministic regardless of sharding.
+vi.mock('../config', () => ({ config: { BASE_CHAIN: 'base-sepolia' } }))
+
 const userData: Record<string, any> = {}
 vi.mock('../middleware/firebaseAuth', () => ({
   firebaseAuth: (_req: any, _res: any, next: any) => next(),
@@ -27,6 +35,7 @@ describe('buildSoulPayload', () => {
     expect(await buildSoulPayload('u1')).toEqual({
       constellation: { version: 0, points: [] },
       stats: { streakCount: 0, maxStreakCount: 0, totalWords: 0, goalDayWords: 0 },
+      wallet: null,
       nft: null,
     })
   })

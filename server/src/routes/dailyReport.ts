@@ -3,6 +3,7 @@ import admin from 'firebase-admin'
 import { db } from '../middleware/firebaseAuth'
 import { getOrCreateDEK } from '../crypto/keyService'
 import { openField, openFieldSafe, encryptField } from '../crypto/fieldCipher'
+import { aiModel1Enabled } from '../config'
 import { retrieveContext } from '../services/journalRetriever'
 import { searchPhoto } from '../services/unsplashService'
 import { scoreText } from '../services/humeService'
@@ -60,22 +61,51 @@ async function llm(systemPrompt: string): Promise<string> {
 
 export async function dailyReportHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
-  const { date: dateArg, force } = (req.body ?? {}) as { date?: string; force?: boolean }
+  const { date: dateArg, force, todayText: bodyTodayText, relatedContext: bodyRelatedContext,
+    sourceEntryIds: bodySourceEntryIds, name: bodyName } = (req.body ?? {}) as {
+      date?: string; force?: boolean; todayText?: string; relatedContext?: string
+      sourceEntryIds?: string[]; name?: string
+    }
 
   try {
     const userSnap = await db.collection('users').doc(uid).get()
     const user = userSnap.data() ?? {}
     const timeZone = (user.timezone as string) || 'UTC'
-    const dek = await getOrCreateDEK(uid)
 
     const now = dateArg ? new Date(`${dateArg}T12:00:00`) : new Date()
     const dateKey = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
+    const daysCol = db.collection('dailyReports').doc(uid).collection('days')
+
+    // ── Model 1 (zero-knowledge) branch ───────────────────────────────────────
+    // The client sends the full day's writing as PLAINTEXT (`todayText`) plus the
+    // client-side RAG `relatedContext`. We NEVER call getOrCreateDEK/openField.
+    // Nuances vs legacy (acceptable while gated OFF in production):
+    //   - No cache read (cached reports are encrypted; the client dedupes), so
+    //     this path always generates a fresh card.
+    //   - No server-side persistence (no DEK to encrypt with): the client stores
+    //     the returned report, re-encrypting in 1c-C. We still return a synthetic
+    //     `id` so the response shape is unchanged.
+    // Gated by AI_MODEL1 - off in production. Fallback removed at the 1d cutover.
+    const model1 = aiModel1Enabled() && typeof bodyTodayText === 'string'
+
+    let dek: Buffer | undefined
+    let todayText: string
+    let relatedContext: string
+    let sourceEntryIds: string[]
+
+    if (model1) {
+      todayText = bodyTodayText as string
+      if (!todayText.trim()) { res.status(409).json({ error: 'No entries to share today' }); return }
+      relatedContext = bodyRelatedContext ?? ''
+      sourceEntryIds = bodySourceEntryIds ?? []
+    } else {
+      // ── Legacy path (UNCHANGED - server decrypts). Removed at the 1d cutover.
+      dek = await getOrCreateDEK(uid)
 
     // Reports are stored one document per generation, keyed `{dateKey}_{millis}`,
     // so a single day can hold several. On a non-forced request, return the most
     // recent report already saved for the day instead of regenerating; `force`
     // (the dev tool, and retry) always generates and appends a fresh document.
-    const daysCol = db.collection('dailyReports').doc(uid).collection('days')
     if (!force) {
       const latest = await daysCol
         .orderBy(admin.firestore.FieldPath.documentId(), 'desc')
@@ -97,37 +127,40 @@ export async function dailyReportHandler(req: Request, res: Response): Promise<v
       .where('createdAt', '<', admin.firestore.Timestamp.fromDate(end))
       .get()
 
-    const entries = snap.docs
-      .map((d: any) => ({ id: d.id, ...d.data() }))
-      .filter((e: any) => e.excludeFromShare !== true)
-    if (entries.length === 0) { res.status(409).json({ error: 'No entries to share today' }); return }
+      const entries = snap.docs
+        .map((d: any) => ({ id: d.id, ...d.data() }))
+        .filter((e: any) => e.excludeFromShare !== true)
+      if (entries.length === 0) { res.status(409).json({ error: 'No entries to share today' }); return }
 
-    // Full day's writing — the entire day's entries, never truncated — is what
-    // the report reflects on and what we score for emotion.
-    const todayText = entries
-      .map((e: any) => openField(dek, e.content, 'journals.content'))
-      .filter(Boolean).join('\n\n')
+      // Full day's writing — the entire day's entries, never truncated — is what
+      // the report reflects on and what we score for emotion.
+      todayText = entries
+        .map((e: any) => openField(dek!, e.content, 'journals.content'))
+        .filter(Boolean).join('\n\n')
+
+      // RAG retrieval is driven by the SUMMARY of the day's entries (the per-entry
+      // summaries we already persist), so related past reflections are matched on
+      // the day's distilled themes rather than its raw opening words. Falls back to
+      // the full day's text when no entry has a summary yet.
+      const daySummary = entries
+        .map((e: any) => openFieldSafe(dek!, e.summary?.text, 'journals.summary.text'))
+        .filter(Boolean).join('\n\n')
+      relatedContext = await retrieveContext(uid, daySummary || todayText, dek).catch(() => '')
+      sourceEntryIds = entries.map((e: any) => e.id)
+    }
 
     // Words the user entered today across ALL entry types — typed text plus
     // transcribed voice/video all land in `content`, so counting `todayText`
     // covers every modality. Shown on the card under "WORDS TODAY".
     const wordsToday = todayText.trim() ? todayText.trim().split(/\s+/).length : 0
 
-    // RAG retrieval is driven by the SUMMARY of the day's entries (the per-entry
-    // summaries we already persist), so related past reflections are matched on
-    // the day's distilled themes rather than its raw opening words. Falls back to
-    // the full day's text when no entry has a summary yet.
-    const daySummary = entries
-      .map((e: any) => openFieldSafe(dek, e.summary?.text, 'journals.summary.text'))
-      .filter(Boolean).join('\n\n')
-    const relatedContext = await retrieveContext(uid, daySummary || todayText, dek).catch(() => '')
     const hume = await scoreText(todayText).catch(() => null)
     const topEmotions: Array<{ name: string; score: number }> = hume ? hume.top.slice(0, 3) : []
 
     // System prompt carries the instructions, the full day's writing, and the
     // RAG-retrieved related reflections (see PROMPTS.dailyReport).
     const systemPrompt = PROMPTS.dailyReport({
-      name: (user.displayName as string)?.split(' ')[0] ?? '',
+      name: (bodyName ?? (user.displayName as string) ?? '').split(' ')[0] ?? '',
       todayText, relatedContext, topEmotions,
     })
     const raw1 = await llm(systemPrompt)
@@ -159,7 +192,7 @@ export async function dailyReportHandler(req: Request, res: Response): Promise<v
       imageQuery: parsed.imageQuery,
       photographerName: photo?.photographerName ?? null,
       photographerUrl: photo?.photographerUrl ?? null,
-      sourceEntryIds: entries.map((e: any) => e.id),
+      sourceEntryIds,
       model: DEFAULT_CHAT_MODEL,
       generatedAt: new Date().toISOString(),
     }
@@ -167,7 +200,12 @@ export async function dailyReportHandler(req: Request, res: Response): Promise<v
     // One document per generation: `{dateKey}_{millis}` keeps the day's reports
     // ordered chronologically by id and lets a day hold multiple cards.
     const reportId = `${dateKey}_${Date.now()}`
-    await daysCol.doc(reportId).set(encryptReport(dek, report))
+    // Persist only on the legacy path — the Model-1 path has no DEK to encrypt
+    // with, so the client stores the returned report (re-encrypting in 1c-C).
+    // Removed/simplified at the 1d cutover.
+    if (!model1 && dek) {
+      await daysCol.doc(reportId).set(encryptReport(dek, report))
+    }
     res.json({ id: reportId, ...report })
   } catch (err: any) {
     console.error('[ai/daily-report]', err)

@@ -55,6 +55,18 @@ const schema = z.object({
   // so we never scan from block 0 (public Base Sepolia RPC caps the range).
   SOULBOUND_DEPLOY_BLOCK: z.coerce.number().int().nonnegative().optional(),
   NFT_METADATA_BASE_URL: z.string().optional(),
+  // Zero-knowledge "Model 1" AI re-routing (encryption Step 1 / 1c-B). When
+  // enabled, AI endpoints accept client-supplied PLAINTEXT in the request body
+  // and skip the server-side decrypt (getOrCreateDEK). OPTIONAL + default OFF so
+  // existing deploys are byte-identical until the gated cutover — never make this
+  // required (a newly-required env var crash-loops the server).
+  AI_MODEL1: z.string().optional(),
+  // Zero-knowledge consent enforcement (encryption Step 1 / 1b). When enabled,
+  // the `requireAiConsent` guard returns 403 for users who have not recorded
+  // AI-data-sharing consent. OPTIONAL + default OFF so existing users are NOT
+  // broken — it only flips ON after the consent UI (1e) ships. Never make this
+  // required (a newly-required env var crash-loops the server at boot).
+  ENFORCE_AI_CONSENT: z.string().optional(),
 })
 
 const parsed = schema.safeParse(process.env)
@@ -71,6 +83,28 @@ export const config = parsed.data
  * false, the chain services (wallet/mint/soul) degrade to a no-op instead of
  * throwing, keeping the shared server clean where chain isn't configured.
  */
+/**
+ * True when the zero-knowledge "Model 1" AI path is enabled (AI_MODEL1 set to a
+ * truthy string: `1`/`true`/`yes`/`on`). When false — the production default —
+ * AI endpoints behave exactly as today (server-side decrypt via getOrCreateDEK).
+ * Removed together with the server-decrypt fallback at the 1d cutover.
+ */
+export function aiModel1Enabled(): boolean {
+  const v = (config.AI_MODEL1 ?? '').trim().toLowerCase()
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on'
+}
+
+/**
+ * True when zero-knowledge AI-consent enforcement is enabled (ENFORCE_AI_CONSENT
+ * set to a truthy string: `1`/`true`/`yes`/`on`). When false — the production
+ * default — `requireAiConsent` is a no-op pass-through, so existing users are
+ * never blocked. Flips ON only after the consent UI (1e) ships.
+ */
+export function enforceAiConsentEnabled(): boolean {
+  const v = (config.ENFORCE_AI_CONSENT ?? '').trim().toLowerCase()
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on'
+}
+
 export function chainEnabled(): boolean {
   return Boolean(
     config.CDP_API_KEY_ID &&

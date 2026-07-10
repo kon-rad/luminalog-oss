@@ -51,6 +51,7 @@ vi.mock('../services/entryEmotion', () => ({ scoreEntryEmotion: vi.fn() }))
 vi.mock('../config', () => ({
   config: { AWS_REGION: 'r', AWS_ACCESS_KEY_ID: 'a', AWS_SECRET_ACCESS_KEY: 's', AWS_S3_BUCKET: 'b' },
   chainEnabled: () => false,
+  aiModel1Enabled: () => false,
 }))
 
 import { transcribeHandler } from './ai'

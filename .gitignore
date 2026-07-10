@@ -83,3 +83,9 @@ chroma-backups/
 
 # Claude Code local worktrees/state
 .claude/
+
+# Generated parity reference (regenerate via reference.mjs) + local npm artifacts
+ios/scripts/embedding-parity/reference_vectors.json
+ios/scripts/embedding-parity/node_modules/
+/package.json
+/package-lock.json

@@ -10,7 +10,8 @@ import { PROMPTS } from '../services/prompts'
 import { generateSummaryText } from '../services/summaryGenerator'
 import { ensureEntryAIIndexed } from '../services/summaryService'
 import { invalidateGraph } from '../services/graphBuilder'
-import { config } from '../config'
+import { config, aiModel1Enabled } from '../config'
+import type { ProfileFields } from '../services/profileContext'
 import { getOrCreateDEK } from '../crypto/keyService'
 import { openField, encryptField } from '../crypto/fieldCipher'
 import { decryptMedia } from '../crypto/mediaCipher'
@@ -76,25 +77,41 @@ async function fetchUserSummaryConfig(uid: string) {
   return data?.summaryConfig as { wordLength?: number; systemPrompt?: string } | undefined
 }
 
-aiRouter.post('/summary', firebaseAuth, async (req: Request, res: Response) => {
+export async function summaryHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
-  const { journalId } = req.body as { journalId?: string }
-  if (!journalId) { res.status(400).json({ error: 'Missing journalId' }); return }
+  const { journalId, content: bodyContent, type: bodyType } = req.body as {
+    journalId?: string; content?: string; type?: string
+  }
 
   try {
-    const data = await fetchJournal(journalId, uid)
+    let content: string
+    let type: string
+
+    // ── Model 1 (zero-knowledge) branch ──────────────────────────────────────
+    // The client already holds the DEK and sends the entry's PLAINTEXT `content`
+    // directly. We use it verbatim and DO NOT call getOrCreateDEK/openField.
+    // Gated by AI_MODEL1 → off in production, so nothing changes until cutover.
+    if (aiModel1Enabled() && typeof bodyContent === 'string') {
+      content = bodyContent
+      type = bodyType ?? 'text'
+    } else {
+      // ── Legacy path (UNCHANGED — server decrypts). Removed at the 1d cutover.
+      if (!journalId) { res.status(400).json({ error: 'Missing journalId' }); return }
+      const data = await fetchJournal(journalId, uid)
+      content = data.content ?? ''
+      type = data.type ?? 'text'
+    }
+
     const userConfig = await fetchUserSummaryConfig(uid)
-    const out = await generateSummaryText({
-      type: data.type ?? 'text',
-      content: data.content ?? '',
-      userConfig,
-    })
+    const out = await generateSummaryText({ type, content, userConfig })
     res.json({ text: out.text, model: out.model, generatedAt: out.generatedAt })
   } catch (err: any) {
     console.error('[ai/summary]', err)
     res.status(err.status ?? 500).json({ error: err.message })
   }
-})
+}
+
+aiRouter.post('/summary', firebaseAuth, summaryHandler)
 
 // Per-entry insights and follow-up prompts are no longer generated on demand:
 // they are produced together with the summary in ONE LLM call at index time
@@ -107,34 +124,65 @@ aiRouter.post('/summary', firebaseAuth, async (req: Request, res: Response) => {
 // the result for the day (keyed to the user's local midnight). `text` mirrors
 // the first prompt for backward-compatibility with older clients that expect a
 // single string.
-aiRouter.post('/daily-prompt', firebaseAuth, async (req: Request, res: Response) => {
+export async function dailyPromptHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
 
   try {
-    const dek = await getOrCreateDEK(uid)
+    let sourceEntryIds: string[]
+    let context: string
+    let name: string
+    let profile: ProfileFields
 
-    const [snap, userSnap] = await Promise.all([
-      db.collection('journals')
-        .where('userId', '==', uid)
-        .orderBy('createdAt', 'desc')
-        .limit(5)
-        .get(),
-      db.collection('users').doc(uid).get(),
-    ])
+    const body = req.body as {
+      entries?: Array<{ id?: string; type?: string; title?: string; content?: string }>
+      profile?: ProfileFields
+      name?: string
+    }
 
-    const sourceEntryIds = snap.docs.map(d => d.id)
-    const context = snap.docs
-      .map(d => {
-        const data = d.data()
-        const title = openField(dek, data.title, 'journals.title') || 'Untitled'
-        const content = openField(dek, data.content, 'journals.content')
-        return `[${data.type ?? 'text'} · ${title}]\n${content.slice(0, 500)}`
-      })
-      .join('\n\n---\n\n')
+    // ── Model 1 (zero-knowledge) branch ──────────────────────────────────────
+    // The client sends its recent entries as PLAINTEXT (already decrypted on
+    // device) plus the decrypted profile/name. We build the exact same context
+    // string as the legacy path but WITHOUT getOrCreateDEK/openField.
+    // Gated by AI_MODEL1 — off in production. Fallback removed at the 1d cutover.
+    if (aiModel1Enabled() && Array.isArray(body.entries)) {
+      const entries = body.entries
+      sourceEntryIds = entries.map(e => e.id).filter((id): id is string => Boolean(id))
+      context = entries
+        .map(e => {
+          const title = (e.title ?? '') || 'Untitled'
+          const content = e.content ?? ''
+          return `[${e.type ?? 'text'} · ${title}]\n${content.slice(0, 500)}`
+        })
+        .join('\n\n---\n\n')
+      name = ((body.name as string) ?? '').split(' ')[0] ?? ''
+      profile = body.profile ?? {}
+    } else {
+      // ── Legacy path (UNCHANGED — server decrypts). Removed at the 1d cutover.
+      const dek = await getOrCreateDEK(uid)
 
-    const userData = userSnap.data() ?? {}
-    const name = ((userData.displayName as string) ?? '').split(' ')[0] ?? ''
-    const profile = decodeProfileFields(dek, userData)
+      const [snap, userSnap] = await Promise.all([
+        db.collection('journals')
+          .where('userId', '==', uid)
+          .orderBy('createdAt', 'desc')
+          .limit(5)
+          .get(),
+        db.collection('users').doc(uid).get(),
+      ])
+
+      sourceEntryIds = snap.docs.map(d => d.id)
+      context = snap.docs
+        .map(d => {
+          const data = d.data()
+          const title = openField(dek, data.title, 'journals.title') || 'Untitled'
+          const content = openField(dek, data.content, 'journals.content')
+          return `[${data.type ?? 'text'} · ${title}]\n${content.slice(0, 500)}`
+        })
+        .join('\n\n---\n\n')
+
+      const userData = userSnap.data() ?? {}
+      name = ((userData.displayName as string) ?? '').split(' ')[0] ?? ''
+      profile = decodeProfileFields(dek, userData)
+    }
 
     const systemPrompt = PROMPTS.dailyPrompts({
       name, profile, journalContext: context, areas: DAILY_PROMPT_AREAS,
@@ -148,7 +196,9 @@ aiRouter.post('/daily-prompt', firebaseAuth, async (req: Request, res: Response)
     console.error('[ai/daily-prompt]', err)
     res.status(500).json({ error: err.message })
   }
-})
+}
+
+aiRouter.post('/daily-prompt', firebaseAuth, dailyPromptHandler)
 
 // ── server-side audio/video transcription via Together AI Whisper ─────────────
 // Called after save when on-device Apple Speech fails (transcriptStatus=failed).
@@ -157,8 +207,20 @@ aiRouter.post('/daily-prompt', firebaseAuth, async (req: Request, res: Response)
 
 export async function transcribeHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
-  const { journalId } = req.body as { journalId?: string }
+  const { journalId, content: bodyContent, title: bodyTitle } = req.body as {
+    journalId?: string; content?: string; title?: string
+  }
   if (!journalId) { res.status(400).json({ error: 'Missing journalId' }); return }
+
+  // ── Model 1 (zero-knowledge) branch for the MERGE step only ────────────────
+  // Unlike the other endpoints, transcribe still needs the DEK: the audio blob
+  // is server-encrypted in S3 (decryptMedia) and the merged transcript is
+  // re-encrypted back into Firestore (encryptField). So getOrCreateDEK stays.
+  // What Model 1 changes: the previously-typed content + title that we MERGE the
+  // transcript into can be supplied as client PLAINTEXT instead of decrypted
+  // from Firestore. Gated by AI_MODEL1 — off in production. Simplified at 1d.
+  const model1Merge =
+    aiModel1Enabled() && (typeof bodyContent === 'string' || typeof bodyTitle === 'string')
 
   const docSnap = await db.collection('journals').doc(journalId).get()
   if (!docSnap.exists) { res.status(404).json({ error: 'Journal not found' }); return }
@@ -193,8 +255,19 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
     }
     const transcript = await transcribeAudio(audioBuffer, filename)
 
-    // Prepend any previously typed text that was saved with the entry.
-    const existingContent = openField(dek, data.content, 'journals.content').trim()
+    // Prepend any previously typed text that was saved with the entry. On the
+    // Model-1 path the client supplies this plaintext directly; otherwise we
+    // decrypt it from Firestore. The entry's title is resolved the same way and
+    // reused by the indexer calls below.
+    const existingContent = (
+      model1Merge && typeof bodyContent === 'string'
+        ? bodyContent
+        : openField(dek, data.content, 'journals.content')
+    ).trim()
+    const entryTitle =
+      model1Merge && typeof bodyTitle === 'string'
+        ? bodyTitle
+        : openField(dek, data.title, 'journals.title')
     const newContent = [existingContent, transcript]
       .filter(Boolean)
       .join('\n\n')
@@ -266,7 +339,7 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
       userId: uid,
       entryId: journalId,
       content: newContent,
-      title: openField(dek, data.title, 'journals.title'),
+      title: entryTitle,
       type: data.type ?? 'voice',
       updatedAt: new Date().toISOString(),
       dayIndex: dayIndex(createdAt, timeZone),
@@ -296,7 +369,7 @@ export async function transcribeHandler(req: Request, res: Response): Promise<vo
         journalId,
         data,
         content: newContent,
-        title: openField(dek, data.title, 'journals.title'),
+        title: entryTitle,
         type: data.type ?? 'voice',
         date: new Date().toISOString().slice(0, 10),
         dek,

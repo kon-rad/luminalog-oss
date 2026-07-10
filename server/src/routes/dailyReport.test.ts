@@ -1,5 +1,10 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
+// Hoisted so the vi.mock factory (hoisted above imports) can read it, while
+// tests flip it to exercise the Model-1 (zero-knowledge) branch.
+const model1 = vi.hoisted(() => ({ on: false }))
+vi.mock('../config', () => ({ aiModel1Enabled: () => model1.on }))
+
 const today: any[] = []
 vi.mock('../middleware/firebaseAuth', () => {
   const reportDoc = { get: async () => ({ exists: false, data: () => undefined }), set: async () => {} }
@@ -46,6 +51,8 @@ vi.mock('../services/aiClient', () => ({
 vi.mock('../services/prompts', () => ({ PROMPTS: { dailyReport: () => 'PROMPT' } }))
 
 import { dailyReportHandler, dayBounds } from './dailyReport'
+import { getOrCreateDEK } from '../crypto/keyService'
+import { retrieveContext } from '../services/journalRetriever'
 
 function mockRes() {
   const res: any = { statusCode: 200 }
@@ -57,7 +64,7 @@ function entry(over: any = {}) {
   return { id: 'e1', data: () => ({ userId: 'u', type: 'text', createdAt: { toDate: () => new Date() }, content: 'Rested today.', title: 'T', excludeFromShare: false, emotion: { scores: { Calmness: 0.8, Joy: 0.4 } }, ...over }) }
 }
 
-beforeEach(() => { today.length = 0 })
+beforeEach(() => { today.length = 0; model1.on = false; vi.clearAllMocks() })
 
 describe('dailyReportHandler', () => {
   it('409s when there are no eligible entries today', async () => {
@@ -79,6 +86,51 @@ describe('dailyReportHandler', () => {
     expect(res.body.imageUrl).toBe('R')
     expect(res.body.photographerName).toBe('Jane')
     expect(res.body.sourceEntryIds).toEqual(['e1'])
+  })
+
+  it('legacy path (flag off) decrypts via getOrCreateDEK', async () => {
+    today.push(entry())
+    const res = mockRes()
+    await dailyReportHandler({ uid: 'u', body: {} } as any, res)
+    expect(res.statusCode).toBe(200)
+    // Byte-identical legacy behavior: the server still decrypts server-side.
+    expect(getOrCreateDEK).toHaveBeenCalledWith('u')
+  })
+
+  // ── Model 1 (zero-knowledge) ────────────────────────────────────────────────
+  it('Model 1: uses client plaintext and does NOT call getOrCreateDEK', async () => {
+    model1.on = true
+    const res = mockRes()
+    await dailyReportHandler(
+      {
+        uid: 'u',
+        body: {
+          todayText: 'Rested today and felt calm.',
+          relatedContext: 'Past: worked too hard.',
+          sourceEntryIds: ['e1', 'e2'],
+        },
+      } as any,
+      res,
+    )
+    expect(res.statusCode).toBe(200)
+    // The core invariant: no server-side decrypt on the Model-1 path.
+    expect(getOrCreateDEK).not.toHaveBeenCalled()
+    // Client-supplied RAG context is used verbatim (no server retrieveContext).
+    expect(retrieveContext).not.toHaveBeenCalled()
+    // Response shape unchanged, and client plaintext flows through.
+    expect(res.body.insights).toBe('i')
+    expect(res.body.question).toBe('q?')
+    expect(res.body.wordsToday).toBe(5)
+    expect(res.body.sourceEntryIds).toEqual(['e1', 'e2'])
+    expect(res.body.id).toMatch(/_\d+$/)
+  })
+
+  it('Model 1: 409s when todayText is empty', async () => {
+    model1.on = true
+    const res = mockRes()
+    await dailyReportHandler({ uid: 'u', body: { todayText: '   ' } } as any, res)
+    expect(res.statusCode).toBe(409)
+    expect(getOrCreateDEK).not.toHaveBeenCalled()
   })
 })
 
