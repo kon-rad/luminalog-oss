@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-const store = vi.hoisted(() => ({ data: new Map<string, any>() }))
+const store = vi.hoisted(() => ({ data: new Map<string, any>(), failGetOnce: false, failSetOnce: false }))
 function deepMerge(a: any, b: any): any {
   const out = { ...a }
   for (const k of Object.keys(b)) {
@@ -12,8 +12,12 @@ function deepMerge(a: any, b: any): any {
 const db = vi.hoisted(() => ({
   collection: (_c: string) => ({
     doc: (id: string) => ({
-      get: async () => ({ exists: store.data.has(id), data: () => store.data.get(id) }),
+      get: async () => {
+        if (store.failGetOnce) { store.failGetOnce = false; throw new Error('firestore get failed') }
+        return { exists: store.data.has(id), data: () => store.data.get(id) }
+      },
       set: async (d: any, opts?: any) => {
+        if (store.failSetOnce) { store.failSetOnce = false; throw new Error('firestore set failed') }
         store.data.set(id, opts?.merge ? deepMerge(store.data.get(id) ?? {}, d) : d)
       },
     }),
@@ -38,7 +42,33 @@ function mockRes() {
 const pt = (o: Partial<any> = {}) => ({ dayIndex: 20000, date: '2024-10-04', x: 0.1, y: -0.2, z: 0.3, wordCount: 800, streakAtEarn: 1, ...o })
 
 describe('putConstellationHandler', () => {
-  beforeEach(() => { store.data.clear(); refreshSoulImage.mockClear() })
+  beforeEach(() => {
+    store.data.clear()
+    store.failGetOnce = false
+    store.failSetOnce = false
+    refreshSoulImage.mockClear()
+  })
+
+  it('returns 500 and skips image refresh when Firestore rejects', async () => {
+    store.failSetOnce = true
+    const req: any = { uid: 'u', body: { points: [pt()] } }
+    const res = mockRes()
+    await putConstellationHandler(req, res)
+    expect(res.statusCode).toBe(500)
+    expect(refreshSoulImage).not.toHaveBeenCalled()
+  })
+
+  it('strips unknown keys before persisting a point', async () => {
+    const req: any = { uid: 'u', body: { points: [{ ...pt(), evil: 'x' }] } }
+    const res = mockRes()
+    await putConstellationHandler(req, res)
+    expect(res.statusCode).toBe(200)
+    const stored = store.data.get('u').constellation.points[0]
+    expect(Object.keys(stored).sort()).toEqual(
+      ['dayIndex', 'date', 'x', 'y', 'z', 'wordCount', 'streakAtEarn'].sort(),
+    )
+    expect(stored).not.toHaveProperty('evil')
+  })
 
   it('stores points, bumps version, fires image refresh', async () => {
     store.data.set('u', { constellation: { version: 4, points: [] } })

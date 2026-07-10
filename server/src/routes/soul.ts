@@ -118,13 +118,32 @@ export async function putConstellationHandler(req: Request, res: Response): Prom
     res.status(400).json({ error: 'One or more points are malformed' })
     return
   }
+  const sanitized: ConstellationPoint[] = points.map((p) => {
+    const pt = p as ConstellationPoint
+    return {
+      dayIndex: pt.dayIndex,
+      date: pt.date,
+      x: pt.x,
+      y: pt.y,
+      z: pt.z,
+      wordCount: pt.wordCount,
+      streakAtEarn: pt.streakAtEarn,
+    }
+  })
   const userRef = db.collection('users').doc(uid)
-  const snap = await userRef.get()
-  const prevVersion = ((snap.data()?.constellation as Constellation | undefined)?.version) ?? 0
-  const version = prevVersion + 1
-  await userRef.set({ constellation: { version, points } }, { merge: true })
+  let version: number
+  try {
+    const snap = await userRef.get()
+    const prevVersion = ((snap.data()?.constellation as Constellation | undefined)?.version) ?? 0
+    version = prevVersion + 1
+    await userRef.set({ constellation: { version, points: sanitized } }, { merge: true })
+  } catch (err) {
+    console.error('[soul] failed to persist constellation', err)
+    res.status(500).json({ error: 'internal' })
+    return
+  }
   refreshSoulImage(uid).catch((err) => console.error('[soul] refreshSoulImage failed', err))
-  res.status(200).json({ version, count: points.length })
+  res.status(200).json({ version, count: sanitized.length })
 }
 
 soulRouter.put('/constellation', putConstellationHandler)
