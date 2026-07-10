@@ -195,11 +195,20 @@ final class ProxyAIService: AIService {
     }
 
     func requestIndex(journalId: String) async {
+        // Model 1 (zero-knowledge): entries are indexed ON DEVICE by
+        // `IndexingJournalRepository` → `SemanticIndexCoordinator`, so the server index
+        // call is redundant and would 500 (no server DEK). Skip it.
+        if DevFlags.aiModel1 { return }
         // Fire-and-forget: indexing failures are reconciled server-side.
         try? await api.post(path: "/v1/rag/index", body: JournalIdBody(journalId: journalId))
     }
 
     func transcribeJournal(journalId: String) async throws {
+        // Model 1 (zero-knowledge): the server can't decrypt the audio, so there is no
+        // server-side re-transcription. Voice/video entries already carry their
+        // on-device live-dictation transcript as their content, so this is a no-op
+        // (avoids a 500). A future on-device Whisper/Speech re-pass can replace this.
+        if DevFlags.aiModel1 { return }
         try await api.post(path: "/v1/ai/transcribe", body: JournalIdBody(journalId: journalId))
     }
 
@@ -213,6 +222,28 @@ final class ProxyAIService: AIService {
     }
 
     func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] {
+        // ── Model 1 (zero-knowledge) branch ──────────────────────────────────
+        // On-device: semantic-search the focal entry's OWN text against the local
+        // index, drop the entry itself, map the neighbours. Server can't decrypt.
+        if DevFlags.aiModel1, let journals, let coordinator {
+            let entries = try await journals.fetchAllEntries()
+            guard let focal = entries.first(where: { $0.id == journalId }) else { return [] }
+            let ids = try await coordinator.search(query: focal.title + "\n" + focal.content, k: limit + 1)
+            let byId = Dictionary(entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            let neighbours = ids.filter { $0 != journalId }.prefix(limit)
+            let n = max(neighbours.count, 1)
+            return neighbours.enumerated().compactMap { index, id in
+                guard let entry = byId[id] else { return nil }
+                return RelatedEntry(
+                    journalId: entry.id,
+                    title: entry.title,
+                    type: entry.type,
+                    date: Self.dateFormatter.string(from: entry.updatedAt),
+                    snippet: Self.snippet(from: entry.content, query: ""),
+                    score: Double(n - index) / Double(n)
+                )
+            }
+        }
         let response: RelatedResponse = try await api.post(
             path: "/v1/rag/related",
             body: RelatedBody(journalId: journalId, limit: limit)
@@ -221,7 +252,32 @@ final class ProxyAIService: AIService {
     }
 
     func journalGraph() async throws -> JournalGraph {
-        try await api.post(path: "/v1/rag/graph", body: EmptyBody())
+        // ── Model 1 (zero-knowledge) branch ──────────────────────────────────
+        // Build the similarity graph ON DEVICE from the local encrypted vectors
+        // (pairwise cosine, no re-embed, no server decrypt).
+        if DevFlags.aiModel1, let journals, let coordinator {
+            let entries = try await journals.fetchAllEntries()
+            let byId = Dictionary(entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            let edges = try await coordinator.similarityGraph(neighborsPerNode: 3)
+            var degree: [String: Int] = [:]
+            var links: [GraphLink] = []
+            for edge in edges where byId[edge.source] != nil && byId[edge.target] != nil {
+                links.append(GraphLink(source: edge.source, target: edge.target, value: edge.score))
+                degree[edge.source, default: 0] += 1
+                degree[edge.target, default: 0] += 1
+            }
+            let nodes = entries.map { entry in
+                GraphNode(
+                    id: entry.id,
+                    title: entry.title,
+                    date: Self.dateFormatter.string(from: entry.updatedAt),
+                    type: entry.type.rawValue,
+                    degree: degree[entry.id] ?? 0
+                )
+            }
+            return JournalGraph(nodes: nodes, links: links)
+        }
+        return try await api.post(path: "/v1/rag/graph", body: EmptyBody())
     }
 
     func deleteEntry(journalId: String) async throws {

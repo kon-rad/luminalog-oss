@@ -60,6 +60,12 @@ final class VapiVoiceCallService: VoiceCallService {
     }
 
     func startCall(chatId: String, journalId: String?, journalTitle: String?) async throws {
+        // Zero-knowledge accounts: the voice path still decrypts server-side (1c-E not
+        // built), so gate it off cleanly rather than 500 mid-call.
+        if DevFlags.aiModel1 {
+            broadcaster.send(.failed(message: VoiceCallError.unavailableInPrivateMode.localizedDescription))
+            throw VoiceCallError.unavailableInPrivateMode
+        }
         broadcaster.send(.connecting)
 
         let callConfig: CallConfigResponse

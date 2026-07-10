@@ -30,6 +30,14 @@ protocol SemanticIndexCoordinating: AnyObject {
     func backfill(_ entries: [(id: String, text: String)]) async throws
     /// Top-`k` entry ids by cosine similarity to `query`; `[]` for an empty index.
     func search(query: String, k: Int) async throws -> [String]
+    /// Undirected top-`neighborsPerNode` similarity edges across the whole index, for
+    /// the on-device journal graph. Default impl returns `[]` so test fakes need not
+    /// implement it.
+    func similarityGraph(neighborsPerNode: Int) async throws -> [(source: String, target: String, score: Double)]
+}
+
+extension SemanticIndexCoordinating {
+    func similarityGraph(neighborsPerNode: Int) async throws -> [(source: String, target: String, score: Double)] { [] }
 }
 
 /// Orchestrates the client-side, zero-knowledge semantic-search pipeline
@@ -155,6 +163,12 @@ final class SemanticIndexCoordinator {
         guard index.count > 0 else { return [] }
         let q = try await embedder.embed(query)
         return index.topK(k, query: q).map { $0.entryId }
+    }
+
+    func similarityGraph(neighborsPerNode: Int) async throws -> [(source: String, target: String, score: Double)] {
+        try await loadIndex()
+        return index.neighbors(perNode: neighborsPerNode)
+            .map { (source: $0.source, target: $0.target, score: Double($0.score)) }
     }
 }
 

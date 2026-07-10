@@ -48,4 +48,29 @@ struct VectorIndex {
 
         return Array(ranked.prefix(k))
     }
+
+    /// Undirected top-`perNode` nearest-neighbour edges across the whole index,
+    /// deduped, each with its cosine score. O(n²) — fine for a personal corpus
+    /// (hundreds of entries). Used to build the journal similarity graph on-device.
+    func neighbors(perNode: Int) -> [(source: String, target: String, score: Float)] {
+        guard perNode > 0, vectors.count > 1 else { return [] }
+        var seen = Set<String>()
+        var edges: [(source: String, target: String, score: Float)] = []
+        for (id, vector) in vectors {
+            let top = vectors
+                .compactMap { otherId, otherVec -> (String, Float)? in
+                    guard otherId != id, let s = vector.cosineSimilarity(to: otherVec) else { return nil }
+                    return (otherId, s)
+                }
+                .sorted { $0.1 > $1.1 }
+                .prefix(perNode)
+            for (otherId, score) in top {
+                let key = id < otherId ? id + "|" + otherId : otherId + "|" + id
+                if seen.contains(key) { continue }
+                seen.insert(key)
+                edges.append((source: id, target: otherId, score: score))
+            }
+        }
+        return edges
+    }
 }

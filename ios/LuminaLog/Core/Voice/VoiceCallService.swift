@@ -7,6 +7,10 @@ enum VoiceCallError: LocalizedError {
     case sdkNotIntegrated
     /// The proxy refused to issue a per-call configuration.
     case callConfigFailed(String)
+    /// Voice is unavailable for a zero-knowledge account: the voice path still
+    /// decrypts server-side (1c-E not built), so it can't run once the server holds
+    /// no key. Gated off rather than 500-ing mid-call.
+    case unavailableInPrivateMode
 
     var errorDescription: String? {
         switch self {
@@ -14,6 +18,8 @@ enum VoiceCallError: LocalizedError {
             return "Voice calls aren't available yet in this build."
         case .callConfigFailed(let message):
             return "The call couldn't be set up: \(message)"
+        case .unavailableInPrivateMode:
+            return "Voice journaling isn't available yet in private (zero-knowledge) mode."
         }
     }
 }
