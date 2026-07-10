@@ -245,9 +245,7 @@ final class ProxyAIService: AIService {
         // ON DEVICE over the client's own decrypted entries. Falls back to the legacy
         // server search when the flag is off / deps are unavailable.
         if DevFlags.aiModel1, let journals {
-            let entries = try await journals.fetchAllEntries()
-            let ranked = EntryRetriever().topK(50, matching: query, in: entries, now: Date())
-            return ranked.map { Self.searchResult(from: $0, query: query, score: 0.0) }
+            return Self.onDeviceKeywordResults(query: query, entries: try await journals.fetchAllEntries())
         }
         let response: SearchResponse = try await api.post(
             path: "/v1/rag/search/keyword",
@@ -276,16 +274,30 @@ final class ProxyAIService: AIService {
                     }
                 }
             }
-            // Index not ready → on-device keyword fallback (hybrid, never worse).
-            let entries = try await journals.fetchAllEntries()
-            let ranked = EntryRetriever().topK(50, matching: query, in: entries, now: Date())
-            return ranked.map { Self.searchResult(from: $0, query: query, score: 0.0) }
+            // Index not ready → on-device keyword fallback (matches only).
+            return Self.onDeviceKeywordResults(query: query, entries: try await journals.fetchAllEntries())
         }
         let response: SearchResponse = try await api.post(
             path: "/v1/rag/search/semantic",
             body: SearchBody(query: query)
         )
         return response.results
+    }
+
+    /// On-device keyword search: keep ONLY entries that actually contain a query token
+    /// (unlike `EntryRetriever.topK`, whose recency boost would return recent entries for
+    /// a zero-match query — right for RAG context, wrong for user search), then rank +
+    /// map. Empty query → no results.
+    private static func onDeviceKeywordResults(query: String, entries: [JournalEntry]) -> [SearchResult] {
+        let queryTerms = Set(EntryRetriever.tokenize(query))
+        guard !queryTerms.isEmpty else { return [] }
+        let matching = entries.filter { entry in
+            let entryTerms = Set(EntryRetriever.tokenize(entry.title))
+                .union(EntryRetriever.tokenize(entry.content))
+            return !queryTerms.isDisjoint(with: entryTerms)
+        }
+        let ranked = EntryRetriever().topK(50, matching: query, in: matching, now: Date())
+        return ranked.map { searchResult(from: $0, query: query, score: 0.0) }
     }
 
     /// Build a `SearchResult` from a decrypted on-device entry (Model-1 search).
