@@ -44,7 +44,11 @@ export function isWrappedKeyEnvelope(value: unknown): value is WrappedKeyEnvelop
 /** Seal `plaintext` under `key` (AES-256-GCM, fresh 12-byte nonce, no AAD). */
 export async function wrap(key: CryptoKey, plaintext: Uint8Array): Promise<WrappedKeyEnvelope> {
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES))
-  const combined = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext))
+  // Cast to an ArrayBuffer-backed view so it satisfies WebCrypto's `BufferSource`
+  // (TS 5.7+ types generic `Uint8Array` as `Uint8Array<ArrayBufferLike>`).
+  const combined = new Uint8Array(
+    await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext as Uint8Array<ArrayBuffer>),
+  )
   // WebCrypto returns ciphertext||tag; split off the trailing 16-byte tag to
   // match the CryptoKit `{ct, tag}` split.
   const ct = combined.slice(0, combined.length - TAG_BYTES)
@@ -61,6 +65,10 @@ export async function unwrap(key: CryptoKey, env: WrappedKeyEnvelope): Promise<U
   const combined = new Uint8Array(ct.length + tag.length)
   combined.set(ct, 0)
   combined.set(tag, ct.length)
-  const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, combined)
+  const plaintext = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: iv as Uint8Array<ArrayBuffer> },
+    key,
+    combined as Uint8Array<ArrayBuffer>,
+  )
   return new Uint8Array(plaintext)
 }

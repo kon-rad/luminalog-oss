@@ -31,9 +31,9 @@ export class VectorIndex {
   topK(k: number, query: Float32Array): ScoredEntry[] {
     if (k <= 0) return []
     const scored: ScoredEntry[] = []
-    for (const [entryId, vector] of this.vectors) {
+    this.vectors.forEach((vector, entryId) => {
       scored.push({ entryId, score: dot(query, vector) })
-    }
+    })
     scored.sort((a, b) => (b.score !== a.score ? b.score - a.score : a.entryId < b.entryId ? -1 : 1))
     return scored.slice(0, k)
   }
