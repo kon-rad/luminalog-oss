@@ -44,6 +44,10 @@ final class AppServices: ObservableObject {
     /// server-side wraps (i.e. migration already ran), independent of running
     /// the migration itself. Nil alongside `keyMigrator`.
     let keyMigrationTransport: KeyMigrationTransport?
+    /// One-shot on-device rebuild of the anchored soul constellation, gated by
+    /// `DevFlags.aiModel1` (OFF by default — `rebuildAndSync()` is a no-op until
+    /// the flag flips on). Triggered manually from the DEBUG developer tools.
+    let constellationCoordinator: ConstellationCoordinator
 
     init(
         auth: AuthService,
@@ -66,7 +70,8 @@ final class AppServices: ObservableObject {
         api: ProxyAPIClient? = nil,
         uploadTransport: BackgroundUploadTransport? = nil,
         keyMigrator: KeyMigrator? = nil,
-        keyMigrationTransport: KeyMigrationTransport? = nil
+        keyMigrationTransport: KeyMigrationTransport? = nil,
+        constellationCoordinator: ConstellationCoordinator
     ) {
         self.auth = auth
         self.keys = keys
@@ -89,6 +94,7 @@ final class AppServices: ObservableObject {
         self.uploadTransport = uploadTransport
         self.keyMigrator = keyMigrator
         self.keyMigrationTransport = keyMigrationTransport
+        self.constellationCoordinator = constellationCoordinator
     }
 
     /// Production service wiring — always uses Firebase and real backends.
@@ -215,6 +221,20 @@ final class AppServices: ObservableObject {
         // `DevFlags.zkMigration` (OFF by default) in `LuminaLogApp`.
         let keyMigrator = KeyMigrator(transport: migrationTransport, iCloudStore: SyncedKeychainStore())
 
+        // Anchored soul constellation (on-device, gated by `DevFlags.aiModel1`).
+        // Reuses the same embedder already selected above for the semantic index,
+        // and the `journals` repository (whichever wraps `baseJournals`) so the
+        // rebuild reads the full local corpus. `rebuildAndSync()` is a no-op with
+        // the flag off, so this is inert until manually triggered from Settings.
+        let constellationCoordinator = ConstellationCoordinator(
+            builder: ConstellationBuilder(embedder: embedder),
+            sync: ProxyConstellationSyncService(api: api),
+            entriesProvider: { [journals] in
+                try await journals.fetchAllEntries().map {
+                    (text: $0.content, wordCount: $0.wordCount, createdAt: $0.createdAt)
+                }
+            })
+
         return AppServices(
             auth: auth,
             keys: keys,
@@ -242,7 +262,8 @@ final class AppServices: ObservableObject {
             api: api,
             uploadTransport: transport,
             keyMigrator: keyMigrator,
-            keyMigrationTransport: migrationTransport
+            keyMigrationTransport: migrationTransport,
+            constellationCoordinator: constellationCoordinator
         )
     }
 
@@ -272,6 +293,19 @@ final class AppServices: ObservableObject {
             onFinalize: { pending in await finalizer.finalize(pending) }
         )
 
+        // Anchored soul constellation: no live `ProxyAPIClient` in mock wiring, so
+        // this is wired with a stub embedder + no-op sync (never exercised by
+        // previews/unit tests; real behavior is covered by `live()` + the
+        // dedicated ConstellationCoordinatorTests).
+        let constellationCoordinator = ConstellationCoordinator(
+            builder: ConstellationBuilder(embedder: StubTextEmbedder()),
+            sync: NoOpConstellationSyncService(),
+            entriesProvider: { [journals] in
+                try await journals.fetchAllEntries().map {
+                    (text: $0.content, wordCount: $0.wordCount, createdAt: $0.createdAt)
+                }
+            })
+
         return AppServices(
             auth: auth,
             keys: keys,
@@ -298,7 +332,8 @@ final class AppServices: ObservableObject {
                     transcoder: VideoTranscoder(), journal: uploadJournal,
                     uploadManager: uploadManager, finalizer: finalizer
                 )
-            )
+            ),
+            constellationCoordinator: constellationCoordinator
         )
     }
 }
@@ -306,4 +341,11 @@ final class AppServices: ObservableObject {
 /// Demo/preview upload transport that reports success without any network I/O.
 private final class AlwaysOKTransport: UploadTransport {
     func put(file: URL, to url: URL) async -> Int { 200 }
+}
+
+/// Demo/preview constellation sync that never leaves the device — `mocks()`
+/// has no live `ProxyAPIClient` to upload through, and previews/tests never
+/// exercise this path.
+private final class NoOpConstellationSyncService: ConstellationSyncing {
+    func upload(points: [ConstellationPoint]) async throws {}
 }

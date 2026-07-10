@@ -7,6 +7,8 @@ struct SettingsView: View {
     @StateObject private var viewModel: ProfileViewModel
     /// Backs the Soul Wallet card (custodial wallet address + BaseScan links).
     @StateObject private var soulViewModel: SoulViewModel
+    /// Only used by the DEBUG-only "Rebuild Soul Constellation" developer tool.
+    @EnvironmentObject private var services: AppServices
 
     private let subscriptions: SubscriptionService
     private let credits: CreditService
@@ -31,6 +33,10 @@ struct SettingsView: View {
     @State private var isGeneratingReport = false
     /// DEBUG-only: set when report generation fails, shown inline on the row.
     @State private var generateReportFailed = false
+    /// DEBUG-only: true while the "Rebuild Soul Constellation" tool is running.
+    @State private var isRebuildingConstellation = false
+    /// DEBUG-only: last rebuild outcome ("N stars uploaded" / failure), shown inline.
+    @State private var rebuildConstellationStatus: String?
 
     @AppStorage(ThemeMode.storageKey) private var themeMode: String = ThemeMode.system.rawValue
 
@@ -631,6 +637,8 @@ struct SettingsView: View {
                 showOnboardingRow
                 rowDivider
                 generateReportRow
+                rowDivider
+                rebuildConstellationRow
             }
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
@@ -693,6 +701,61 @@ struct SettingsView: View {
                 NotificationCenter.default.post(name: .dailyReportGenerated, object: nil)
             } catch {
                 generateReportFailed = true
+            }
+        }
+    }
+
+    /// One-shot rebuild of the anchored soul constellation from the full local
+    /// journal corpus, gated by `DevFlags.aiModel1` (`rebuildAndSync()` is a
+    /// no-op with the flag off). This is the one-time rewrite for the existing
+    /// account once the flag is flipped on.
+    private var rebuildConstellationRow: some View {
+        Button {
+            rebuildConstellation()
+        } label: {
+            HStack(spacing: Spacing.m) {
+                settingsIcon("sparkles.square.filled.on.square", tint: .accentWarm)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Rebuild Soul Constellation")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text(rebuildConstellationStatus ?? "Re-derive stars from the local corpus (requires DevFlags.aiModel1)")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                if isRebuildingConstellation {
+                    ProgressView()
+                        .tint(Color.accentWarm)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.textSecondary.opacity(0.6))
+                }
+            }
+            .padding(Spacing.m)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isRebuildingConstellation)
+        .accessibilityLabel("Rebuild Soul Constellation, re-derive stars from the local corpus")
+    }
+
+    /// Runs `ConstellationCoordinator.rebuildAndSync()` (no-op unless
+    /// `DevFlags.aiModel1` is on) and surfaces the resulting star count inline.
+    private func rebuildConstellation() {
+        guard !isRebuildingConstellation else { return }
+        isRebuildingConstellation = true
+        rebuildConstellationStatus = nil
+        Task {
+            defer { isRebuildingConstellation = false }
+            do {
+                let count = try await services.constellationCoordinator.rebuildAndSync()
+                rebuildConstellationStatus = DevFlags.aiModel1
+                    ? "Uploaded \(count) star\(count == 1 ? "" : "s")"
+                    : "No-op — DevFlags.aiModel1 is off"
+            } catch {
+                rebuildConstellationStatus = "Rebuild failed — tap to retry"
             }
         }
     }
