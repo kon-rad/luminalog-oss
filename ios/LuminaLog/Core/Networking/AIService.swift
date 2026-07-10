@@ -17,6 +17,17 @@ struct EntryAIBundle: Sendable {
     let prompts: AIPrompts
 }
 
+/// Plaintext context for a zero-knowledge (Model-1) voice call, built ON DEVICE at
+/// call start and baked into the Vapi assistant's system prompt so the server never
+/// decrypts mid-call. Mirrors the Model-1 text-chat context.
+struct VoiceCallContext: Sendable {
+    let name: String
+    let bio: String
+    let profile: [String: String]
+    let ragContext: String
+    let focalEntry: String?
+}
+
 /// All AI features — backed by the proxy API in production
 /// (routes per spec §4.1), canned responses in demo mode.
 @MainActor
@@ -35,6 +46,11 @@ protocol AIService: AnyObject {
     /// three itself. On the non-ZK path the server produces these at index time and
     /// this is unused — the default implementation throws `.unavailable`.
     func generateEntryAI(journalId: String) async throws -> EntryAIBundle
+
+    /// Zero-knowledge (Model-1) only: build the plaintext voice-call context on-device
+    /// (name, bio, profile, on-device RAG, focal entry) so it can be injected into the
+    /// Vapi system prompt. Returns nil off the ZK path (the server builds context then).
+    func voiceCallContext(journalId: String?) async throws -> VoiceCallContext?
 
     /// Today's five personalized prompts — one per life area — generated in a
     /// single server-side LLM call. The client caches them for the day.
@@ -101,4 +117,8 @@ extension AIService {
     func generateEntryAI(journalId: String) async throws -> EntryAIBundle {
         throw AIServiceError.unavailable
     }
+
+    /// Default: no client-built voice context (non-ZK paths and mocks). Only the
+    /// zero-knowledge `ProxyAIService` overrides this.
+    func voiceCallContext(journalId: String?) async throws -> VoiceCallContext? { nil }
 }

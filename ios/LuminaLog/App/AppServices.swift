@@ -229,7 +229,7 @@ final class AppServices: ObservableObject {
             credits: credits,
             speech: AppleSpeechTranscriber(),
             ocr: ocr,
-            voice: VapiVoiceCallService(api: api),
+            voice: VapiVoiceCallService(api: api, ai: ai),
             leaderboard: ProxyLeaderboardService(api: api),
             soul: ProxySoulService(api: api),
             entryProcessor: BackgroundEntryProcessor(

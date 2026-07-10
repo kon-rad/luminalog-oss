@@ -9,12 +9,14 @@ final class VapiVoiceCallService: VoiceCallService {
     private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "voice")
 
     private let api: ProxyAPIClient
+    private let ai: AIService
     private let broadcaster = VoiceCallEventBroadcaster()
     private var vapiClient: Vapi?
     private var cancellables = Set<AnyCancellable>()
 
-    init(api: ProxyAPIClient) {
+    init(api: ProxyAPIClient, ai: AIService) {
         self.api = api
+        self.ai = ai
     }
 
     // MARK: - DTOs
@@ -22,6 +24,14 @@ final class VapiVoiceCallService: VoiceCallService {
     struct CallConfigRequest: Encodable {
         let chatId: String
         let journalId: String?
+        // Zero-knowledge (Model-1): PLAINTEXT context built on-device and baked into the
+        // Vapi system prompt server-side, so the server never decrypts mid-call. Omitted
+        // (nil → not encoded) on the legacy path, where the server builds context itself.
+        var name: String?
+        var bio: String?
+        var profile: [String: String]?
+        var ragContext: String?
+        var focalEntry: String?
     }
 
     struct CallConfigResponse: Decodable {
@@ -60,19 +70,26 @@ final class VapiVoiceCallService: VoiceCallService {
     }
 
     func startCall(chatId: String, journalId: String?, journalTitle: String?) async throws {
-        // Zero-knowledge accounts: the voice path still decrypts server-side (1c-E not
-        // built), so gate it off cleanly rather than 500 mid-call.
-        if DevFlags.aiModel1 {
-            broadcaster.send(.failed(message: VoiceCallError.unavailableInPrivateMode.localizedDescription))
-            throw VoiceCallError.unavailableInPrivateMode
-        }
         broadcaster.send(.connecting)
+
+        // Zero-knowledge (Model-1): build the RAG context ON DEVICE from plaintext and
+        // send it so the server can bake it into the Vapi system prompt — no server-side
+        // decryption mid-call. Best-effort: a nil/failed context still starts the call
+        // (the assistant just has less anchoring), never blocks it.
+        var request = CallConfigRequest(chatId: chatId, journalId: journalId)
+        if let context = try? await ai.voiceCallContext(journalId: journalId) {
+            request.name = context.name
+            request.bio = context.bio
+            request.profile = context.profile
+            request.ragContext = context.ragContext
+            request.focalEntry = context.focalEntry
+        }
 
         let callConfig: CallConfigResponse
         do {
             callConfig = try await api.post(
                 path: "/v1/vapi/call-config",
-                body: CallConfigRequest(chatId: chatId, journalId: journalId)
+                body: request
             )
         } catch {
             Self.logger.error("call-config failed: \(error.localizedDescription, privacy: .public)")

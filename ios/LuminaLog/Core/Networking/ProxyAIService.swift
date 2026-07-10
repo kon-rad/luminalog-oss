@@ -522,6 +522,35 @@ final class ProxyAIService: AIService {
         )
     }
 
+    /// Builds the Model-1 voice-call context on-device: profile + on-device RAG over
+    /// all entries (queried by the focal entry, else recent text), so it can be baked
+    /// into the Vapi system prompt at call start. Mirrors `buildModel1ChatBody`.
+    func voiceCallContext(journalId: String?) async throws -> VoiceCallContext? {
+        guard DevFlags.aiModel1, let journals, let profiles else { return nil }
+        let profile = await firstEmission(profiles.profile()).flatMap { $0 }
+        let entries = (try? await journals.fetchAllEntries()) ?? []
+        let focalEntry = journalId.flatMap { id in entries.first(where: { $0.id == id })?.content }
+        // RAG query: the focal entry's text if launched from one, else the most recent
+        // entries — enough signal to anchor the assistant on the user's recent life.
+        let recentText = entries
+            .sorted { $0.createdAt > $1.createdAt }
+            .prefix(3)
+            .map(\.content)
+            .joined(separator: "\n\n")
+        let ragQuery = String((focalEntry ?? recentText).suffix(2000))
+        await primeSemanticIndexIfNeeded(entries: entries)
+        let ragContext = await Model1Requests.journalContext(
+            from: entries, query: ragQuery, now: now(), searcher: coordinator
+        )
+        return VoiceCallContext(
+            name: profile?.displayName ?? "",
+            bio: profile?.biography ?? "",
+            profile: profile.map { Model1Requests.profileFields(from: $0.details) } ?? [:],
+            ragContext: ragContext,
+            focalEntry: focalEntry
+        )
+    }
+
     /// Prime the semantic index at most once per session: load any server-synced
     /// vectors, then backfill entries that aren't indexed yet. Best-effort — every
     /// step swallows its error because retrieval falls back to keyword when the

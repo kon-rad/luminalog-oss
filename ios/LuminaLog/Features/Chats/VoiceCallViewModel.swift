@@ -176,6 +176,15 @@ final class VoiceCallViewModel: ObservableObject {
             if message.role == .assistant {
                 assistantPartial = nil
             }
+            // Zero-knowledge (Model-1): the server no longer persists voice turns (it
+            // can't decrypt), so persist each finalized transcript message to the chat
+            // ourselves (client-encrypted). Best-effort — a failed write never disrupts
+            // the live call.
+            if DevFlags.aiModel1, let chatId = chat?.id {
+                Task { [weak self] in
+                    try? await self?.chats.appendMessage(message, to: chatId)
+                }
+            }
 
         case .ended(let reason):
             stopTimer()
