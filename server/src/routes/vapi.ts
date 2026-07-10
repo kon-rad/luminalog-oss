@@ -186,80 +186,9 @@ export async function llmHandler(req: Request, res: Response) {
     }
     return
   }
-
-  // Guard the whole turn — an unguarded throw here (e.g. legacy biography data)
-  // sends Vapi no response and crashes the process under Node's default.
-  try {
-    const dek = await getOrCreateDEK(uid)
-
-    const userSnap = await db.collection('users').doc(uid).get()
-    // Biography is optional context — legacy/plaintext data must not abort the call.
-    const bio = openFieldSafe(dek, userSnap.data()?.biography, 'users.biography')
-    // Display name is stored plaintext (only biography is field-encrypted).
-    const name = (userSnap.data()?.displayName as string | undefined) ?? ''
-    // Extended onboarding profile fields (all optional, field-encrypted).
-    const profile = decodeProfileFields(dek, userSnap.data())
-
-    const rag = await retrieveContextWithSources(uid, lastUser, dek)
-    const focalEntry = journalId ? await fetchFocalEntryForVapi(uid, journalId, dek) : undefined
-
-    const systemContent = PROMPTS.voiceChat(name, bio, profile, rag.contextString, focalEntry)
-    const augmented = [
-      { role: 'system', content: systemContent },
-      ...messages.filter(m => m.role !== 'system'),
-    ]
-
-    const aiRes = await chatCompletion(augmented, { model: MODEL, stream: true })
-    if (!aiRes.ok || !aiRes.body) throw new Error(`AI error: ${aiRes.status}`)
-
-    res.setHeader('Content-Type', 'text/event-stream')
-    res.setHeader('Cache-Control', 'no-cache')
-    res.flushHeaders()
-
-    // Turn index = number of user messages so far → stable, idempotent doc ids.
-    const turnIndex = messages.filter(m => m.role === 'user').length
-    let assistantText = ''
-    let buffer = ''
-    const decoder = new TextDecoder()
-    const reader = (aiRes.body as any).getReader()
-
-    // Forward only COMPLETE SSE `data:` lines. The trailing partial line must be
-    // buffered across reads — a line split mid-JSON otherwise reaches Vapi
-    // malformed, which it silently drops, so the reply is generated/persisted but
-    // never spoken and the call ends on silence.
-    const flush = (raw: string) => {
-      const line = raw.trimEnd() // tolerate CRLF
-      if (!line.startsWith('data: ')) return
-      if (line.slice(6).trim() === '[DONE]') return // we emit our own terminator
-      res.write(line + '\n\n')
-      assistantText = accumulateAssistantText(assistantText, line + '\n')
-    }
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buffer += decoder.decode(value as Uint8Array, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() ?? '' // keep the (possibly partial) last line
-      for (const line of lines) flush(line)
-    }
-    if (buffer) flush(buffer)
-    res.write('data: [DONE]\n\n')
-    res.end()
-
-    // Persist AFTER responding — never block or break the voice stream.
-    if (chatId) {
-      try {
-        await persistVoiceTurn(db, dek, { chatId, turnIndex, userText: lastUser, assistantText, sources: rag.sources })
-      } catch (perr) {
-        console.error('[vapi/llm persist]', perr)
-      }
-    }
-  } catch (err) {
-    console.error('[vapi/llm]', err)
-    if (res.headersSent) res.end()
-    else res.status(500).json({ error: 'LLM turn failed' })
-  }
+  // A valid call always carries a zero-knowledge token (set at /call-config); reject
+  // anything else rather than hang the turn.
+  res.status(400).json({ error: 'Invalid call token' })
 }
 
 vapiRouter.post('/llm/:token/chat/completions', llmHandler)
