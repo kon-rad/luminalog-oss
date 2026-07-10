@@ -5,6 +5,8 @@ import SwiftUI
 struct SettingsView: View {
 
     @StateObject private var viewModel: ProfileViewModel
+    /// Backs the Soul Wallet card (custodial wallet address + BaseScan links).
+    @StateObject private var soulViewModel: SoulViewModel
 
     private let subscriptions: SubscriptionService
     private let credits: CreditService
@@ -49,7 +51,8 @@ struct SettingsView: View {
         speech: SpeechTranscriber,
         reminders: ReminderCoordinator,
         leaderboard: LeaderboardService,
-        ai: AIService
+        ai: AIService,
+        soul: SoulService
     ) {
         self.init(
             viewModel: ProfileViewModel(
@@ -66,6 +69,7 @@ struct SettingsView: View {
             speech: speech,
             leaderboard: leaderboard,
             ai: ai,
+            soul: soul,
             currentUserId: auth.currentUserId
         )
     }
@@ -78,9 +82,11 @@ struct SettingsView: View {
         speech: SpeechTranscriber? = nil,
         leaderboard: LeaderboardService = MockLeaderboardService(),
         ai: AIService,
+        soul: SoulService = MockSoulService(),
         currentUserId: String? = nil
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        _soulViewModel = StateObject(wrappedValue: SoulViewModel(service: soul))
         self.subscriptions = subscriptions
         self.credits = credits
         self.reminders = reminders
@@ -100,6 +106,7 @@ struct SettingsView: View {
                         errorBanner(message)
                     }
                     userInfoCard
+                    walletCard
                     appearanceCard
                     reminderCard
                     settingsCard
@@ -126,6 +133,7 @@ struct SettingsView: View {
             }
         }
         .task { viewModel.start() }
+        .task { await soulViewModel.load() }
         .sheet(isPresented: $showPaywall) {
             SubscriptionPaywall()
         }
@@ -337,6 +345,56 @@ struct SettingsView: View {
                 RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
                     .fill(Color.cardBackground)
             )
+        }
+    }
+
+    // MARK: - Soul Wallet
+
+    /// Custodial wallet for the user's LuminaSoul: the full address (selectable,
+    /// scales down rather than truncating) plus BaseScan links to the wallet and,
+    /// once minted, the token. Rendered as soon as the wallet is provisioned —
+    /// before and independent of minting.
+    @ViewBuilder
+    private var walletCard: some View {
+        if let wallet = soulViewModel.payload?.walletAddress {
+            VStack(alignment: .leading, spacing: Spacing.s) {
+                Text("Soul Wallet")
+                    .font(.sectionHeader)
+                    .foregroundStyle(Color.textPrimary)
+
+                VStack(spacing: 0) {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        HStack(spacing: Spacing.m) {
+                            settingsIcon("wallet.pass", tint: .accentWarm)
+                            Text("Wallet Address")
+                                .font(.uiBody)
+                                .foregroundStyle(Color.textPrimary)
+                            Spacer()
+                        }
+                        Text(wallet)
+                            .font(.system(size: 12, weight: .medium, design: .monospaced))
+                            .foregroundStyle(Color.textSecondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
+                            .textSelection(.enabled)
+                            .padding(.leading, Spacing.m + 30 + Spacing.m)
+                    }
+                    .padding(Spacing.m)
+
+                    if let url = soulViewModel.payload?.walletExplorerURL {
+                        rowDivider
+                        legalLinkRow(icon: "safari", label: "View Wallet on BaseScan", url: url)
+                    }
+                    if let url = soulViewModel.payload?.nft?.explorerURL {
+                        rowDivider
+                        legalLinkRow(icon: "seal", label: "View NFT on BaseScan", url: url)
+                    }
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                        .fill(Color.cardBackground)
+                )
+            }
         }
     }
 
@@ -852,7 +910,8 @@ struct SettingsView: View {
         speech: AppleSpeechTranscriber(),
         reminders: ReminderCoordinator(),
         leaderboard: MockLeaderboardService(),
-        ai: MockAIService()
+        ai: MockAIService(),
+        soul: MockSoulService()
     )
 }
 
@@ -870,7 +929,8 @@ struct SettingsView: View {
         speech: AppleSpeechTranscriber(),
         reminders: ReminderCoordinator(),
         leaderboard: MockLeaderboardService(),
-        ai: MockAIService()
+        ai: MockAIService(),
+        soul: MockSoulService()
     )
 }
 
@@ -884,7 +944,8 @@ struct SettingsView: View {
         speech: AppleSpeechTranscriber(),
         reminders: ReminderCoordinator(),
         leaderboard: MockLeaderboardService(),
-        ai: MockAIService()
+        ai: MockAIService(),
+        soul: MockSoulService()
     )
     .preferredColorScheme(.dark)
 }

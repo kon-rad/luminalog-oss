@@ -36,15 +36,26 @@ extension SoulPayload {
         return SoulPayload(
             constellation: Constellation(version: 3, points: pts),
             stats: SoulStats(streakCount: 5, maxStreakCount: 15, totalWords: 12480, goalDayWords: 420),
+            wallet: SoulWallet(address: "0x31Ca2F5af812b33EfC9C366a7D233FaD1E7df2fc", chain: "base-sepolia"),
             nft: SoulNft(tokenId: "2", contract: "0xd4889dd3a9fc8dcf962a09146a01befc910404fd",
                          chain: "base-sepolia",
                          walletAddress: "0x31Ca2F5af812b33EfC9C366a7D233FaD1E7df2fc", txHash: nil))
+    }
+
+    /// A soul whose wallet is provisioned but whose token hasn't minted yet — the
+    /// window where the address is visible but the NFT page link is not.
+    static var walletOnly: SoulPayload {
+        SoulPayload(constellation: sample.constellation,
+                    stats: sample.stats,
+                    wallet: SoulWallet(address: "0x31Ca2F5af812b33EfC9C366a7D233FaD1E7df2fc", chain: "base"),
+                    nft: nil)
     }
 
     /// A nascent (empty) soul.
     static var empty: SoulPayload {
         SoulPayload(constellation: Constellation(version: 0, points: []),
                     stats: SoulStats(streakCount: 0, maxStreakCount: 0, totalWords: 0, goalDayWords: 0),
+                    wallet: nil,
                     nft: nil)
     }
 }

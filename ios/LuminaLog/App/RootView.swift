@@ -97,7 +97,8 @@ struct RootView: View {
                     speech: services.speech,
                     reminders: reminders,
                     leaderboard: services.leaderboard,
-                    ai: services.ai
+                    ai: services.ai,
+                    soul: services.soul
                 )
             }
         }

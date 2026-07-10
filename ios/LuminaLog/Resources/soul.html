@@ -114,12 +114,22 @@
     }
 
     // Called by native (SoulGalaxyWebView) with the SoulPayload's points.
+    var lastCount = 0;
     window.renderSoul = function (payload) {
       var points = (payload && payload.points) || [];
+      lastCount = points.length;
       document.getElementById('empty').style.display = points.length ? 'none' : 'flex';
       Graph.graphData(buildGraph(points));
       if (points.length) { Graph.zoomToFit(500, 40); }
     };
+
+    // Keep the whole structure framed when the web view resizes (device
+    // rotation, split view, full-screen transition). zoomToFit re-derives the
+    // camera distance from the current bounding box, so it zooms out for a big
+    // soul and in for a small one, with a 40px margin.
+    window.addEventListener('resize', function () {
+      if (lastCount) { Graph.zoomToFit(400, 40); }
+    });
   </script>
 </body>
 </html>

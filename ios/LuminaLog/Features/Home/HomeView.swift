@@ -180,13 +180,14 @@ struct HomeView: View {
         .task { await soulViewModel.load() }
     }
 
-    /// Below the galaxy: wallet address + BaseScan NFT link (left), full-screen
-    /// button (right). Shown only once the soul is minted.
+    /// Below the galaxy: wallet address + BaseScan link (left), full-screen button
+    /// (right). Shows the custodial wallet as soon as it is provisioned — before
+    /// and independent of minting — and upgrades the link to the NFT once minted.
     private var soulControlsRow: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             // Full wallet address on its own line — fully visible (scales down on
             // narrow devices rather than truncating), long-press to copy.
-            if let wallet = soulViewModel.payload?.nft?.walletAddress {
+            if let wallet = soulViewModel.payload?.walletAddress {
                 Text(wallet)
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
                     .foregroundStyle(Color.textSecondary)
@@ -195,15 +196,12 @@ struct HomeView: View {
                     .textSelection(.enabled)
             }
             HStack(alignment: .center, spacing: Spacing.m) {
+                // Once minted, link to the NFT token page; before that, link to the
+                // wallet's BaseScan address page so there's always a BaseScan link.
                 if let url = soulViewModel.payload?.nft?.explorerURL {
-                    Link(destination: url) {
-                        HStack(spacing: 3) {
-                            Text("View NFT on BaseScan")
-                            Image(systemName: "arrow.up.right")
-                        }
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color.accentWarm)
-                    }
+                    basescanLink("View NFT on BaseScan", url: url)
+                } else if let url = soulViewModel.payload?.walletExplorerURL {
+                    basescanLink("View Wallet on BaseScan", url: url)
                 }
                 Spacer(minLength: 0)
                 Button {
@@ -217,6 +215,18 @@ struct HomeView: View {
                 }
                 .accessibilityLabel("Open full-screen galaxy")
             }
+        }
+    }
+
+    /// A small amber "open in BaseScan" link with a trailing arrow glyph.
+    private func basescanLink(_ title: String, url: URL) -> some View {
+        Link(destination: url) {
+            HStack(spacing: 3) {
+                Text(title)
+                Image(systemName: "arrow.up.right")
+            }
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(Color.accentWarm)
         }
     }
 

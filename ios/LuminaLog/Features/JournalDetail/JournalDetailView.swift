@@ -266,15 +266,24 @@ struct JournalDetailView: View {
         VStack(alignment: .leading, spacing: Spacing.l) {
             summarySection(entry)
 
-            switch entry.type {
-            case .text:
-                textContent(entry)
-            case .image:
-                imageContent(entry)
-            case .voice:
-                voiceContent(entry)
-            case .video:
-                videoContent(entry)
+            VStack(alignment: .leading, spacing: Spacing.s) {
+                if !entry.content.isEmpty {
+                    HStack {
+                        Spacer()
+                        CopyButton(text: entry.content, accessibilityText: "Copy entry")
+                    }
+                }
+
+                switch entry.type {
+                case .text:
+                    textContent(entry)
+                case .image:
+                    imageContent(entry)
+                case .voice:
+                    voiceContent(entry)
+                case .video:
+                    videoContent(entry)
+                }
             }
 
             excludeFromShareToggle(entry)
@@ -483,6 +492,11 @@ struct JournalDetailView: View {
     private func insightsTab(_ entry: JournalEntry) -> some View {
         if let insights = entry.insights, !insights.text.isEmpty {
             VStack(alignment: .leading, spacing: Spacing.m) {
+                HStack {
+                    Spacer()
+                    CopyButton(text: insights.text, accessibilityText: "Copy insights")
+                }
+
                 ForEach(Array(Self.insightBlocks(of: insights.text).enumerated()), id: \.offset) { _, block in
                     insightBlockView(block)
                 }
