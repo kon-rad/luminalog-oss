@@ -52,10 +52,6 @@ final class BackgroundEntryProcessor: EntryProcessor {
         let ai: AIService
         let media: MediaUploader
         let ocr: OCRService
-        /// On-device speech-to-text for voice/video entries on the zero-knowledge
-        /// (Model-1) path — the server can't decrypt the audio, so we transcribe the
-        /// still-local recording here before it's uploaded encrypted.
-        let transcriber: SpeechTranscriber
         let transcoder: VideoTranscoder
         let journal: UploadJournal
         let uploadManager: UploadManager
@@ -440,22 +436,28 @@ final class BackgroundEntryProcessor: EntryProcessor {
             return (joined, anyFailed ? .failed : .ready)
 
         case .voice, .video:
-            // Model 1 (zero-knowledge): the server can't decrypt the audio, so transcribe
-            // ON DEVICE here while the recording is still a local file (mirrors the image
-            // OCR path above). Non-ZK builds let server-side Whisper transcribe after save.
+            // Model 1 (zero-knowledge): the server never persists the audio, but good
+            // transcription needs a real model — so send the still-local recording to the
+            // STATELESS /transcribe-clip endpoint (Together `whisper-large-v3`, transcribed
+            // in memory and discarded) and store the returned text as content. This shares
+            // the clip's plaintext audio with the AI provider for that one request, the same
+            // "you choose what your AI sees" trade-off as chat/summary — see the privacy
+            // audit. Non-ZK builds let server-side Whisper transcribe from S3 after save.
             if DevFlags.aiModel1 {
-                guard let mediaURL = job.attachments.audio?.url ?? job.attachments.video?.url else {
+                guard let audioURL = job.attachments.audio?.url,
+                      let audioData = try? Data(contentsOf: audioURL) else {
+                    // Video-only or unreadable audio — don't leave the entry stuck "transcribing".
                     return (typed, typed.isEmpty ? .failed : .ready)
                 }
                 do {
-                    let spoken = try await deps.transcriber.transcribeFile(url: mediaURL)
+                    let spoken = try await deps.ai.transcribeClip(audio: audioData, contentType: "audio/m4a")
                         .trimmingCharacters(in: .whitespacesAndNewlines)
                     let joined = ([typed, spoken].filter { !$0.isEmpty }).joined(separator: "\n\n")
                     // Whatever we got is final — there is no server re-pass to wait on.
                     return (joined, joined.isEmpty ? .failed : .ready)
                 } catch {
-                    Self.logger.error("on-device transcription failed: \(error.localizedDescription)")
-                    // Don't leave the entry stuck "transcribing"; keep any typed text.
+                    Self.logger.error("clip transcription failed: \(error.localizedDescription)")
+                    // Keep any typed text; the user can re-transcribe from the transcript editor.
                     return (typed, typed.isEmpty ? .failed : .ready)
                 }
             }
