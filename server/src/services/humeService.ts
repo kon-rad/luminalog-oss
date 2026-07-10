@@ -75,7 +75,16 @@ async function runJob(body: string | FormData, headers: Record<string, string>):
 }
 
 /** Score raw text with the Hume `language` model. */
+/**
+ * Emotion detection is DISABLED (2026-07-10 privacy decision): NO journal text or
+ * audio is sent to api.hume.ai. `scoreText`/`scoreAudio` return null at the top, so
+ * every caller (entry scoring, daily report) gracefully records no emotion. Flip this
+ * to `true` to re-enable the Hume integration.
+ */
+const HUME_ENABLED = false
+
 export async function scoreText(text: string): Promise<RawEmotions | null> {
+  if (!HUME_ENABLED) return null
   if (!text.trim()) return null
   try {
     return await runJob(
@@ -87,6 +96,7 @@ export async function scoreText(text: string): Promise<RawEmotions | null> {
 
 /** Score an audio buffer with the Hume `prosody` model (multipart upload). */
 export async function scoreAudio(buffer: Buffer, filename = 'audio.m4a'): Promise<RawEmotions | null> {
+  if (!HUME_ENABLED) return null
   try {
     const form = new FormData()
     form.append('json', JSON.stringify({ models: { prosody: {} } }))
