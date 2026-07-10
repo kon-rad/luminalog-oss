@@ -52,6 +52,10 @@ final class BackgroundEntryProcessor: EntryProcessor {
         let ai: AIService
         let media: MediaUploader
         let ocr: OCRService
+        /// On-device speech-to-text for voice/video entries on the zero-knowledge
+        /// (Model-1) path — the server can't decrypt the audio, so we transcribe the
+        /// still-local recording here before it's uploaded encrypted.
+        let transcriber: SpeechTranscriber
         let transcoder: VideoTranscoder
         let journal: UploadJournal
         let uploadManager: UploadManager
@@ -436,6 +440,25 @@ final class BackgroundEntryProcessor: EntryProcessor {
             return (joined, anyFailed ? .failed : .ready)
 
         case .voice, .video:
+            // Model 1 (zero-knowledge): the server can't decrypt the audio, so transcribe
+            // ON DEVICE here while the recording is still a local file (mirrors the image
+            // OCR path above). Non-ZK builds let server-side Whisper transcribe after save.
+            if DevFlags.aiModel1 {
+                guard let mediaURL = job.attachments.audio?.url ?? job.attachments.video?.url else {
+                    return (typed, typed.isEmpty ? .failed : .ready)
+                }
+                do {
+                    let spoken = try await deps.transcriber.transcribeFile(url: mediaURL)
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    let joined = ([typed, spoken].filter { !$0.isEmpty }).joined(separator: "\n\n")
+                    // Whatever we got is final — there is no server re-pass to wait on.
+                    return (joined, joined.isEmpty ? .failed : .ready)
+                } catch {
+                    Self.logger.error("on-device transcription failed: \(error.localizedDescription)")
+                    // Don't leave the entry stuck "transcribing"; keep any typed text.
+                    return (typed, typed.isEmpty ? .failed : .ready)
+                }
+            }
             // Server-side Whisper transcribes after save; typed text saves now.
             return (typed, .processing)
         }

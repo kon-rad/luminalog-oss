@@ -173,6 +173,7 @@ final class EntryProcessorTests: XCTestCase {
             processor = BackgroundEntryProcessor(
                 dependencies: BackgroundEntryProcessor.Dependencies(
                     journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr,
+                    transcriber: MockSpeechTranscriber(),
                     transcoder: VideoTranscoder(), journal: journal,
                     uploadManager: uploadManager, finalizer: finalizer
                 )

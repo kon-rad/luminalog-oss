@@ -17,7 +17,10 @@ struct EntryFinalizer {
     private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "finalizer")
 
     func finalize(_ pending: PendingEntry) async {
-        let isAV = (pending.type == .voice || pending.type == .video)
+        // On the zero-knowledge path the audio was already transcribed ON DEVICE during
+        // `EntryProcessor.deriveContent`, so there is no server re-transcription to wait
+        // on — treat voice/video like any ready entry (else it stays stuck "transcribing").
+        let awaitsServerTranscription = (pending.type == .voice || pending.type == .video) && !DevFlags.aiModel1
         var entry = JournalEntry(
             id: pending.draftId, userId: pending.userId, type: pending.type,
             title: pending.title, createdAt: pending.createdAt, content: pending.content,
@@ -26,7 +29,7 @@ struct EntryFinalizer {
             promptText: pending.promptText)
         do {
             try await journals.save(entry)
-            entry.processingStatus = isAV ? .transcribing : .ready
+            entry.processingStatus = awaitsServerTranscription ? .transcribing : .ready
             try await journals.save(entry)
             do { try await profiles.recordEntrySaved(wordCountDelta: entry.wordCount, on: entry.createdAt) }
             catch { Self.logger.error("recordEntrySaved failed: \(error.localizedDescription)") }
@@ -34,7 +37,7 @@ struct EntryFinalizer {
                 do { try await profiles.recordPromptAnswered() }
                 catch { Self.logger.error("recordPromptAnswered failed: \(error.localizedDescription)") }
             }
-            if isAV { try? await ai.transcribeJournal(journalId: entry.id) }
+            if awaitsServerTranscription { try? await ai.transcribeJournal(journalId: entry.id) }
             else { await ai.requestIndex(journalId: entry.id) }
         } catch {
             Self.logger.error("finalize failed for \(pending.draftId): \(error.localizedDescription)")

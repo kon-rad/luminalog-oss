@@ -122,6 +122,7 @@ final class EntryProcessorRetryTests: XCTestCase {
             dependencies: BackgroundEntryProcessor.Dependencies(
                 journals: journals, profiles: profiles, ai: ai,
                 media: SpyMedia(), ocr: MockOCRService(),
+                transcriber: MockSpeechTranscriber(),
                 transcoder: VideoTranscoder(),
                 journal: uploadJournal, uploadManager: uploadManager,
                 finalizer: finalizer
@@ -186,6 +187,7 @@ final class EntryProcessorRetryTests: XCTestCase {
             dependencies: BackgroundEntryProcessor.Dependencies(
                 journals: journals, profiles: profiles, ai: ai,
                 media: SpyMedia(), ocr: MockOCRService(),
+                transcriber: MockSpeechTranscriber(),
                 transcoder: VideoTranscoder(),
                 journal: uploadJournal, uploadManager: uploadManager,
                 finalizer: finalizer

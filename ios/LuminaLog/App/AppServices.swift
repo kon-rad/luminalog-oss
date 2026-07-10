@@ -235,6 +235,7 @@ final class AppServices: ObservableObject {
             entryProcessor: BackgroundEntryProcessor(
                 dependencies: BackgroundEntryProcessor.Dependencies(
                     journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr,
+                    transcriber: AppleSpeechTranscriber(),
                     transcoder: VideoTranscoder(), journal: uploadJournal,
                     uploadManager: uploadManager, finalizer: finalizer
                 )
@@ -295,6 +296,7 @@ final class AppServices: ObservableObject {
             entryProcessor: BackgroundEntryProcessor(
                 dependencies: BackgroundEntryProcessor.Dependencies(
                     journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr,
+                    transcriber: AppleSpeechTranscriber(),
                     transcoder: VideoTranscoder(), journal: uploadJournal,
                     uploadManager: uploadManager, finalizer: finalizer
                 )
