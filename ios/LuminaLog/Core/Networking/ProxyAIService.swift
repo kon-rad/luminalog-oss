@@ -240,6 +240,15 @@ final class ProxyAIService: AIService {
     }
 
     func searchKeyword(query: String) async throws -> [SearchResult] {
+        // ── Model 1 (zero-knowledge) branch ──────────────────────────────────
+        // The server can't decrypt a migrated user's entries, so keyword search runs
+        // ON DEVICE over the client's own decrypted entries. Falls back to the legacy
+        // server search when the flag is off / deps are unavailable.
+        if DevFlags.aiModel1, let journals {
+            let entries = try await journals.fetchAllEntries()
+            let ranked = EntryRetriever().topK(50, matching: query, in: entries, now: Date())
+            return ranked.map { Self.searchResult(from: $0, query: query, score: 0.0) }
+        }
         let response: SearchResponse = try await api.post(
             path: "/v1/rag/search/keyword",
             body: SearchBody(query: query)
@@ -248,11 +257,70 @@ final class ProxyAIService: AIService {
     }
 
     func searchSemantic(query: String) async throws -> [SearchResult] {
+        // ── Model 1 (zero-knowledge) branch ──────────────────────────────────
+        // On-device semantic search via the local vector index; if the index isn't
+        // ready yet (model still downloading / not embedded), fall back to on-device
+        // keyword search so results never depend on the server decrypting.
+        if DevFlags.aiModel1, let journals {
+            if let coordinator {
+                let ids = try await coordinator.search(query: query, k: 50)
+                if !ids.isEmpty {
+                    let entries = try await journals.fetchAllEntries()
+                    let byId = Dictionary(entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+                    let ordered = ids.compactMap { byId[$0] }
+                    if !ordered.isEmpty {
+                        let n = ordered.count
+                        return ordered.enumerated().map { index, entry in
+                            Self.searchResult(from: entry, query: query, score: Double(n - index) / Double(n))
+                        }
+                    }
+                }
+            }
+            // Index not ready → on-device keyword fallback (hybrid, never worse).
+            let entries = try await journals.fetchAllEntries()
+            let ranked = EntryRetriever().topK(50, matching: query, in: entries, now: Date())
+            return ranked.map { Self.searchResult(from: $0, query: query, score: 0.0) }
+        }
         let response: SearchResponse = try await api.post(
             path: "/v1/rag/search/semantic",
             body: SearchBody(query: query)
         )
         return response.results
+    }
+
+    /// Build a `SearchResult` from a decrypted on-device entry (Model-1 search).
+    private static func searchResult(from entry: JournalEntry, query: String, score: Double) -> SearchResult {
+        SearchResult(
+            journalId: entry.id,
+            title: entry.title,
+            type: entry.type,
+            date: dateFormatter.string(from: entry.updatedAt),
+            snippet: snippet(from: entry.content, query: query),
+            score: score
+        )
+    }
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
+    /// ~200-char snippet centered on the first query-term match (or the start).
+    private static func snippet(from content: String, query: String) -> String {
+        let terms = query.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+        var matchIndex: String.Index?
+        for term in terms where !term.isEmpty {
+            if let r = content.range(of: term, options: .caseInsensitive) { matchIndex = r.lowerBound; break }
+        }
+        let start = matchIndex
+            .flatMap { content.index($0, offsetBy: -60, limitedBy: content.startIndex) } ?? content.startIndex
+        let end = content.index(start, offsetBy: 200, limitedBy: content.endIndex) ?? content.endIndex
+        var s = String(content[start..<end]).trimmingCharacters(in: .whitespacesAndNewlines)
+        if start != content.startIndex { s = "…" + s }
+        if end != content.endIndex { s += "…" }
+        return s
     }
 
     // MARK: - Daily Report
