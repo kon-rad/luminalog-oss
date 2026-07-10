@@ -57,6 +57,10 @@ struct ONNXTextEmbedder: TextEmbedder {
 
     private let fileManager: FileManager
 
+    /// Caches the ORT env + session so the ~258 MB model loads ONCE per embedder, not on
+    /// every `embed` call. Reused because `LazyONNXTextEmbedder` memoizes this instance.
+    private let sessionBox = ORTSessionBox()
+
     init(
         modelURL: URL,
         tokenizerDirectory: URL,
@@ -131,16 +135,21 @@ struct ONNXTextEmbedder: TextEmbedder {
         let attentionMask = [Int](repeating: 1, count: inputIds.count)
         let seqLen = inputIds.count
 
-        // 2. Run ORT.
+        // 2. Run ORT. The env + session are cached (loads the ~258 MB model once); the
+        //    previous per-call build reloaded the model on EVERY embed, which made
+        //    on-device backfill/search churn the model for each entry.
         do {
-            let env = try ORTEnv(loggingLevel: .warning)
-            let options = try ORTSessionOptions()
-            // Prefer the Core ML execution provider when the device supports it.
-            if ORTIsCoreMLExecutionProviderAvailable() {
-                let coreML = ORTCoreMLExecutionProviderOptions()
-                try? options.appendCoreMLExecutionProvider(with: coreML)
+            let session = try sessionBox.resolve {
+                let env = try ORTEnv(loggingLevel: .warning)
+                let options = try ORTSessionOptions()
+                // Prefer the Core ML execution provider when the device supports it.
+                if ORTIsCoreMLExecutionProviderAvailable() {
+                    let coreML = ORTCoreMLExecutionProviderOptions()
+                    try? options.appendCoreMLExecutionProvider(with: coreML)
+                }
+                let s = try ORTSession(env: env, modelPath: modelURL.path, sessionOptions: options)
+                return (env, s)
             }
-            let session = try ORTSession(env: env, modelPath: modelURL.path, sessionOptions: options)
 
             let shape: [NSNumber] = [1, NSNumber(value: seqLen)]
             let idsTensor = try ORTValue(
@@ -241,5 +250,24 @@ struct ONNXTextEmbedder: TextEmbedder {
             i += 4
         }
         return out
+    }
+}
+
+/// Lazily builds and caches the ORT env + session (retaining the env so the session
+/// stays valid). `embed` calls are serialized by the owning `LazyONNXTextEmbedder`
+/// actor; the lock only guards the rare concurrent first-call race.
+final class ORTSessionBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var env: ORTEnv?
+    private var session: ORTSession?
+
+    /// Returns the cached session, creating (and retaining env + session) once.
+    func resolve(_ create: () throws -> (ORTEnv, ORTSession)) throws -> ORTSession {
+        lock.lock(); defer { lock.unlock() }
+        if let session { return session }
+        let (e, s) = try create()
+        env = e
+        session = s
+        return s
     }
 }
