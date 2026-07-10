@@ -8,18 +8,43 @@ import CryptoKit
 /// extends this with tamper flags and reuses it for `KeyMigrator` tests.
 final class InMemoryKeyMigrationTransport: KeyMigrationTransport {
     private(set) var uploadedWraps: MultiWrappedDEK?
-    private(set) var finalizeMigrationCallCount = 0
+    private(set) var finalizeCalls = 0
+    var finalizeMigrationCallCount: Int { finalizeCalls }
+
+    /// When true, `fetchWraps` returns an `icloud` wrap of a DIFFERENT DEK than
+    /// was actually uploaded (the `recovery` wrap is left untouched), simulating
+    /// a server-side corruption/tamper of the iCloud wrap so `KeyMigrator`'s
+    /// verify gate must catch it.
+    var tamperICloudOnFetch = false
+    /// Same idea, but tampers the `recovery` wrap instead.
+    var tamperRecoveryOnFetch = false
 
     func uploadWraps(_ wraps: MultiWrappedDEK) async throws {
         uploadedWraps = wraps
     }
 
     func fetchWraps() async throws -> MultiWrappedDEK? {
-        uploadedWraps
+        guard let wraps = uploadedWraps else { return nil }
+        if tamperICloudOnFetch {
+            let differentKEK = SymmetricKey(size: .bits256)
+            let differentDEK = SymmetricKey(size: .bits256)
+            return MultiWrappedDEK(
+                icloud: WrappedKey.wrapping(dek: differentDEK, under: differentKEK),
+                recovery: wraps.recovery
+            )
+        }
+        if tamperRecoveryOnFetch {
+            let differentDEK = SymmetricKey(size: .bits256)
+            return MultiWrappedDEK(
+                icloud: wraps.icloud,
+                recovery: RecoveryCode.wrap(dek: differentDEK, code: "TAMPERED-CODE")
+            )
+        }
+        return wraps
     }
 
     func finalizeMigration() async throws {
-        finalizeMigrationCallCount += 1
+        finalizeCalls += 1
     }
 }
 
