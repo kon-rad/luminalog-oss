@@ -5,3 +5,6 @@ dist/
 
 
 service-account-secret.json
+# Local pre-cutover data backups (contain DEK + plaintext — never commit)
+*luminalog-backups*
+backup-*.json
