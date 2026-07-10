@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express'
 import admin from 'firebase-admin'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
-import { getOrCreateDEK, cryptoShredUser } from '../crypto/keyService'
+import { getOrCreateDEK, cryptoShredUser, MigratedNoServerDEKError } from '../crypto/keyService'
 
 export const keysRouter = Router()
 
@@ -17,6 +17,12 @@ keysRouter.post('/bootstrap', firebaseAuth, async (req: Request, res: Response) 
     const dek = await getOrCreateDEK(uid)
     res.json({ dek: dek.toString('base64') })
   } catch (err) {
+    // A migrated user has no server DEK; tell the client to use the iCloud-key path
+    // (never regenerate a DEK). 409 — this is what keeps the 1d finalize safe.
+    if (err instanceof MigratedNoServerDEKError) {
+      res.status(409).json({ error: 'Migrated: use client-held keys' })
+      return
+    }
     console.error('[keys/bootstrap]', err)
     res.status(500).json({ error: 'Key bootstrap failed' })
   }

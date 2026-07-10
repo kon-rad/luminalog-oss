@@ -98,7 +98,19 @@ final class AppServices: ObservableObject {
             baseURL: AppConfig.proxyBaseURL,
             tokenProvider: FirebaseTokenProvider()
         )
-        let keys = UserKeyStore(provider: ProxyKeyProvider(api: api), secrets: KeychainStore())
+        // Zero-knowledge read path (1d): try the iCloud-key path first (loads the DEK
+        // from KEK_icloud + the server's client wraps — works for migrated users),
+        // falling back to /bootstrap for un-migrated users. Once every account is
+        // migrated + finalized, the fallback + ProxyKeyProvider + /bootstrap are removed
+        // and ICloudKeyProvider stands alone.
+        let migrationTransport = ProxyKeyMigrationTransport(api: api)
+        let keys = UserKeyStore(
+            provider: HybridKeyProvider(
+                primary: ICloudKeyProvider(iCloudStore: SyncedKeychainStore(), transport: migrationTransport),
+                fallback: ProxyKeyProvider(api: api)
+            ),
+            secrets: KeychainStore()
+        )
 
         let subscriptions: SubscriptionService
         let credits: CreditService
@@ -198,10 +210,9 @@ final class AppServices: ObservableObject {
             onFinalize: { pending in await finalizer.finalize(pending) }
         )
 
-        // One-time ZK migration collaborators (phase 1d). Constructed
-        // unconditionally — actually running/prompting stays gated behind
+        // One-time ZK migration collaborators (phase 1d). Reuses `migrationTransport`
+        // built above for the read path. Actually running/prompting stays gated behind
         // `DevFlags.zkMigration` (OFF by default) in `LuminaLogApp`.
-        let migrationTransport = ProxyKeyMigrationTransport(api: api)
         let keyMigrator = KeyMigrator(transport: migrationTransport, iCloudStore: SyncedKeychainStore())
 
         return AppServices(

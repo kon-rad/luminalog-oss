@@ -5,6 +5,16 @@ import { config } from '../config'
 
 export interface WrappedDEK { v: number; iv: string; ct: string; tag: string }
 
+/** Thrown when a user who has migrated to client-held keys (has `wrappedKeys`) has no
+ *  server `wrappedDEK` — so the server must NOT regenerate one. The `/bootstrap` route
+ *  maps this to 409 so the client falls through to the iCloud-key path. */
+export class MigratedNoServerDEKError extends Error {
+  constructor(uid: string) {
+    super(`User ${uid} has migrated to client-held keys; server holds no DEK.`)
+    this.name = 'MigratedNoServerDEKError'
+  }
+}
+
 /** In-memory DEK cache to avoid repeated Firestore reads within a request burst. */
 const cache = new Map<string, { dek: Buffer; expires: number }>()
 const CACHE_MS = 5 * 60 * 1000
@@ -58,6 +68,11 @@ export async function getOrCreateDEK(uid: string): Promise<Buffer> {
     const snap = await tx.get(ref)
     const existing = snap.get('wrappedDEK') as WrappedDEK | undefined
     if (existing) return unwrapDEK(master(), existing)
+    // No server wrap. If the user has MIGRATED to client-held keys (wrappedKeys
+    // present), do NOT mint a new DEK — it would be the WRONG key for their existing
+    // ciphertext. Fail loud so the client uses the iCloud-key path instead of getting
+    // silently corrupted data. (This is what makes the 1d finalize safe.)
+    if (snap.get('wrappedKeys')) throw new MigratedNoServerDEKError(uid)
     const fresh = randomBytes(32)
     tx.set(ref, { wrappedDEK: wrapDEK(master(), fresh), keyVersion: 1 }, { merge: true })
     return fresh
