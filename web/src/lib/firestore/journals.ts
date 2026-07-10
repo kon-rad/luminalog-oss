@@ -65,6 +65,17 @@ export interface CreateTextEntryInput {
  * degrades to a targeted `updateDoc` of just the user-owned fields
  * (title/content/wordCount/updatedAt), leaving server-owned fields intact.
  */
+// Fire-and-forget on-device semantic (re)index. Dynamically imports the
+// coordinator so the heavy embedder stack (onnxruntime-web + transformers) stays
+// out of the main journal bundle and only loads when a write actually happens.
+// Never blocks or throws — indexing failures must not affect saving.
+function fireIndex(entryId: string, content: string): void {
+  void import('@/lib/vectors/coordinator-singleton').then((m) => m.indexEntrySafe(entryId, content))
+}
+function fireRemove(entryId: string): void {
+  void import('@/lib/vectors/coordinator-singleton').then((m) => m.removeEntrySafe(entryId))
+}
+
 export const createTextEntry = async (
   input: CreateTextEntryInput,
   id?: string,
@@ -83,6 +94,7 @@ export const createTextEntry = async (
       wordCount: wordCount(input.content),
       updatedAt: serverTimestamp(),
     })
+    fireIndex(journalId, input.content)
     return journalId
   }
 
@@ -100,6 +112,7 @@ export const createTextEntry = async (
   )
 
   await setDoc(ref, map)
+  fireIndex(journalId, input.content)
   return journalId
 }
 
@@ -205,6 +218,8 @@ export const applyEntryEdit = async (
   }
   if (contentEditedAt) patch.contentEditedAt = Timestamp.fromDate(contentEditedAt)
   await updateDoc(doc(db, COLLECTION, id), patch)
+  // Re-embed only when the content changed (contentEditedAt is set iff so).
+  if (contentEditedAt) fireIndex(id, content)
 }
 
 /** Toggle whether an entry is excluded from share/report generation. */
@@ -218,6 +233,7 @@ export const setExcludeFromShare = async (id: string, value: boolean): Promise<v
  */
 export const deleteEntry = async (id: string): Promise<void> => {
   await deleteDoc(doc(db, COLLECTION, id))
+  fireRemove(id)
 }
 
 /**
