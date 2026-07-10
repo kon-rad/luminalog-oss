@@ -5,9 +5,7 @@ import { retrieveContext } from '../services/journalRetriever'
 import { chatCompletion } from '../services/aiClient'
 import { PROMPTS } from '../services/prompts'
 import { decodeProfileFields, type ProfileFields } from '../services/profileContext'
-import { getOrCreateDEK } from '../crypto/keyService'
 import { openFieldSafe, encryptField } from '../crypto/fieldCipher'
-import { aiModel1Enabled } from '../config'
 
 export const chatRouter = Router()
 

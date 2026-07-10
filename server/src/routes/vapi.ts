@@ -8,8 +8,7 @@ import { persistVoiceTurn } from '../services/voicePersistence'
 import { storeRecording, signedPlaybackUrl } from '../services/voiceRecordingStore'
 import { PROMPTS } from '../services/prompts'
 import { decodeProfileFields, type ProfileFields } from '../services/profileContext'
-import { config, aiModel1Enabled } from '../config'
-import { getOrCreateDEK } from '../crypto/keyService'
+import { config } from '../config'
 import { openFieldSafe, encryptField } from '../crypto/fieldCipher'
 
 export const vapiRouter = Router()
@@ -34,12 +33,10 @@ export async function callConfigHandler(req: Request, res: Response) {
   const chatId = (req.body?.chatId as string | undefined) ?? ''
   const journalId = (req.body?.journalId as string | undefined) ?? undefined
 
-  // ── Model 1 (zero-knowledge) branch ──────────────────────────────────────────
-  // The client sends its RAG context as PLAINTEXT (built on-device, exactly like the
-  // Model-1 text-chat path). We bake it into the assistant's system prompt here so
-  // Vapi carries it into every /llm turn — the server then never decrypts mid-call.
-  // Gated by AI_MODEL1 + presence of client context.
-  const model1 = aiModel1Enabled() && typeof req.body?.ragContext === 'string'
+  // Zero-knowledge: the client sends its RAG context as PLAINTEXT (built on-device,
+  // like the text-chat path). We bake it into the assistant's system prompt here so
+  // Vapi carries it into every /llm turn — the server never decrypts mid-call.
+  const model1 = typeof req.body?.ragContext === 'string'
 
   // chatId and journalId ride in the token so /llm has them on every turn. `model1`
   // tells /llm to stream the client-provided context verbatim (no getOrCreateDEK).
@@ -271,47 +268,10 @@ vapiRouter.post('/webhook', async (req: Request, res: Response) => {
     hasRecording: !!parsed.recordingUrl, transcriptLen: parsed.rawTranscript.length,
   }))
 
-  if (parsed.type !== 'end-of-call-report') { res.json({ ok: true }); return }
-  const { chatId, callId, endedReason, rawTranscript, durationSeconds } = parsed
-  if (!chatId) { res.json({ ok: true }); return }
-
-  // Resolve the chat owner so transcript text is encrypted with their DEK,
-  // matching how chat.ts reads message text (openField throws on plaintext).
-  const chatSnap = await db.collection('chats').doc(chatId).get()
-  const ownerUid = chatSnap.data()?.userId as string | undefined
-  if (!ownerUid) { res.json({ ok: true }); return }
-  // Zero-knowledge account: the server holds no DEK, so it can't encrypt/persist the
-  // transcript — the client already persisted it locally from the live Vapi events.
-  // Skip cleanly (also fixes the previously-unhandled throw for migrated users).
-  let dek: Buffer
-  try {
-    dek = await getOrCreateDEK(ownerUid)
-  } catch (err) {
-    console.log('[vapi/webhook] ZK account — skipping server persistence', { chatId })
-    res.json({ ok: true })
-    return
-  }
-
-  const update: Record<string, unknown> = {
-    voiceStatus: 'completed',
-    endedReason,
-    lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
-  }
-  if (callId) update.vapiCallId = callId
-  if (rawTranscript) update.rawTranscript = encryptField(dek, rawTranscript, 'chats.rawTranscript')
-  if (durationSeconds !== null) update.recordingDurationSeconds = durationSeconds
-  await db.collection('chats').doc(chatId).update(update)
-
-  if (parsed.recordingUrl && callId) {
-    try {
-      const key = await storeRecording(ownerUid, callId, parsed.recordingUrl)
-      await db.collection('chats').doc(chatId).update({ recordingPath: key })
-    } catch (rerr) {
-      console.error('[vapi/webhook recording]', rerr)
-      await db.collection('chats').doc(chatId).update({ recordingError: true })
-    }
-  }
-
+  // Zero-knowledge: the client persists the voice transcript itself from the live Vapi
+  // events, and the server holds no DEK to encrypt it — there is nothing to persist.
+  // Acknowledge so Vapi doesn't retry. (Billing is client-side; server-side recording
+  // playback is dropped for zero-knowledge accounts.)
   res.json({ ok: true })
 })
 

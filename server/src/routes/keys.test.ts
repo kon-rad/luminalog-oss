@@ -267,13 +267,12 @@ describe('POST /finalize-migration (guarded, irreversible crypto-shred)', () => 
   })
 })
 
-describe('legacy bootstrap path is untouched (still present)', () => {
-  it('POST /bootstrap route is still registered on keysRouter', () => {
+describe('zero-knowledge is the only key path', () => {
+  it('the legacy POST /bootstrap route is gone; only the wrapped endpoints remain', () => {
     const paths = keysRouter.stack
       .filter((l: any) => l.route)
       .map((l: any) => `${Object.keys(l.route.methods)[0].toUpperCase()} ${l.route.path}`)
-    expect(paths).toContain('POST /bootstrap')
-    // The new wrapped endpoints coexist alongside it.
+    expect(paths).not.toContain('POST /bootstrap')
     expect(paths).toContain('PUT /wrapped')
     expect(paths).toContain('GET /wrapped')
   })

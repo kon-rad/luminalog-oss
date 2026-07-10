@@ -1,35 +1,12 @@
 import { Router, Request, Response } from 'express'
 import admin from 'firebase-admin'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
-import { getOrCreateDEK, cryptoShredUser, MigratedNoServerDEKError } from '../crypto/keyService'
+import { cryptoShredUser } from '../crypto/keyService'
 
 export const keysRouter = Router()
 
 // ---------------------------------------------------------------------------
-// LEGACY (non-ZK) key path — UNCHANGED. The server generates the DEK, wraps it
-// under `config.MASTER_KEY`, and hands the raw DEK to the client here. This is
-// the current, live behavior and stays alive during the ZK transition; it is
-// removed only at the gated 1d cutover — do NOT disable it in 1b.
-// ---------------------------------------------------------------------------
-keysRouter.post('/bootstrap', firebaseAuth, async (req: Request, res: Response) => {
-  const uid = (req as any).uid as string
-  try {
-    const dek = await getOrCreateDEK(uid)
-    res.json({ dek: dek.toString('base64') })
-  } catch (err) {
-    // A migrated user has no server DEK; tell the client to use the iCloud-key path
-    // (never regenerate a DEK). 409 — this is what keeps the 1d finalize safe.
-    if (err instanceof MigratedNoServerDEKError) {
-      res.status(409).json({ error: 'Migrated: use client-held keys' })
-      return
-    }
-    console.error('[keys/bootstrap]', err)
-    res.status(500).json({ error: 'Key bootstrap failed' })
-  }
-})
-
-// ---------------------------------------------------------------------------
-// ZERO-KNOWLEDGE wrapped-key storage (increment 1b — ADDITIVE).
+// ZERO-KNOWLEDGE wrapped-key storage.
 //
 // The DEK is wrapped CLIENT-SIDE under client-held KEKs (a random key in the
 // iCloud Keychain and an HKDF(recovery-code) key). The server stores only the
