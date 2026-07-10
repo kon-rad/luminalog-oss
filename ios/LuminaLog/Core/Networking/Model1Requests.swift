@@ -80,6 +80,12 @@ enum Model1Requests {
         let type: String
     }
 
+    /// Model-1 full-entry-AI body: PLAINTEXT content + type → summary/insights/prompts.
+    struct EntryAIBody: Encodable {
+        let content: String
+        let type: String
+    }
+
     /// Model-1 daily-prompt body. Presence of `entries` triggers the server branch.
     struct DailyPromptBody: Encodable {
         let name: String

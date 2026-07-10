@@ -66,6 +66,14 @@ final class ProxyAIService: AIService {
         let generatedAt: Date?
     }
 
+    private struct EntryAIResponse: Decodable {
+        let summary: String
+        let insights: String
+        let prompts: [String]
+        let model: String?
+        let generatedAt: Date?
+    }
+
     private struct DailyPromptResponse: Decodable {
         /// The five area-anchored prompts (new server). Optional so an older
         /// server that returns only `text` still decodes.
@@ -119,6 +127,28 @@ final class ProxyAIService: AIService {
             text: response.text,
             generatedAt: response.generatedAt ?? Date(),
             model: response.model ?? ""
+        )
+    }
+
+    func generateEntryAI(journalId: String) async throws -> EntryAIBundle {
+        // Zero-knowledge only: send the entry's PLAINTEXT content; the stateless
+        // /entry-ai endpoint returns summary + insights + prompts in one call and the
+        // caller persists all three client-encrypted. Reached only when the ZK flag is
+        // on and the entry is readable locally (the Insights/Prompts tabs guard on it).
+        guard DevFlags.aiModel1, let journals,
+              let entry = await firstEmission(journals.entry(id: journalId)).flatMap({ $0 }) else {
+            throw AIServiceError.unavailable
+        }
+        let response: EntryAIResponse = try await api.post(
+            path: "/v1/ai/entry-ai",
+            body: Model1Requests.EntryAIBody(content: entry.content, type: entry.type.rawValue)
+        )
+        let at = response.generatedAt ?? Date()
+        let model = response.model ?? ""
+        return EntryAIBundle(
+            summary: AIGeneration(text: response.summary, generatedAt: at, model: model),
+            insights: AIGeneration(text: response.insights, generatedAt: at, model: model),
+            prompts: AIPrompts(items: response.prompts, generatedAt: at, model: model)
         )
     }
 

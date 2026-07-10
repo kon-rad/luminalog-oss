@@ -7,7 +7,7 @@ import { chatCompletion, transcribeAudio, streamToBuffer } from '../services/aiC
 import { indexJournalEntry } from '../services/journalIndexer'
 import { extractAudio } from '../services/audioExtractor'
 import { PROMPTS } from '../services/prompts'
-import { generateSummaryText } from '../services/summaryGenerator'
+import { generateSummaryText, generateEntryAI } from '../services/summaryGenerator'
 import { ensureEntryAIIndexed } from '../services/summaryService'
 import { invalidateGraph } from '../services/graphBuilder'
 import { config, aiModel1Enabled } from '../config'
@@ -112,6 +112,38 @@ export async function summaryHandler(req: Request, res: Response): Promise<void>
 }
 
 aiRouter.post('/summary', firebaseAuth, summaryHandler)
+
+// Zero-knowledge (Model-1) full-entry AI: the client sends the entry's PLAINTEXT
+// content and gets { summary, insights, prompts } back in ONE LLM call — the same
+// three artifacts `ensureEntryAIIndexed` produces at index time on the legacy path.
+// STATELESS: no getOrCreateDEK, no Firestore write. The client persists the fields
+// itself (client-encrypted) via `updateAIFields`, so the Insights/Prompts tabs light
+// up for migrated accounts the server can no longer index. Gated by AI_MODEL1.
+export async function entryAiHandler(req: Request, res: Response): Promise<void> {
+  const uid = (req as any).uid as string
+  const { content, type } = req.body as { content?: string; type?: string }
+
+  try {
+    if (!aiModel1Enabled()) { res.status(404).json({ error: 'Not enabled' }); return }
+    if (typeof content !== 'string' || content.trim().length === 0) {
+      res.status(400).json({ error: 'Missing content' }); return
+    }
+    const userConfig = await fetchUserSummaryConfig(uid)
+    const ai = await generateEntryAI({ type: type ?? 'text', content, userConfig })
+    res.json({
+      summary: ai.summary,
+      insights: ai.insights,
+      prompts: ai.prompts,
+      model: ai.model,
+      generatedAt: ai.generatedAt,
+    })
+  } catch (err: any) {
+    console.error('[ai/entry-ai]', err)
+    res.status(err.status ?? 500).json({ error: err.message })
+  }
+}
+
+aiRouter.post('/entry-ai', firebaseAuth, entryAiHandler)
 
 // Per-entry insights and follow-up prompts are no longer generated on demand:
 // they are produced together with the summary in ONE LLM call at index time

@@ -1,5 +1,22 @@
 import Foundation
 
+/// Errors surfaced by `AIService` implementations.
+enum AIServiceError: Error {
+    /// The requested AI operation isn't available on this path (e.g. `generateEntryAI`
+    /// is only implemented on the zero-knowledge `ProxyAIService` path).
+    case unavailable
+}
+
+/// The three per-entry AI artifacts produced together in one call. On the legacy
+/// path the server generates + stores these at index time; on the zero-knowledge
+/// (Model-1) path the client generates them via `generateEntryAI` and persists them
+/// itself (client-encrypted) so the server never sees the entry.
+struct EntryAIBundle: Sendable {
+    let summary: AIGeneration
+    let insights: AIGeneration
+    let prompts: AIPrompts
+}
+
 /// All AI features — backed by the proxy API in production
 /// (routes per spec §4.1), canned responses in demo mode.
 @MainActor
@@ -12,6 +29,12 @@ protocol AIService: AnyObject {
     /// stores them on the entry (see `ensureEntryAIIndexed`). The Insights and
     /// Prompts tabs are read-only displays of those stored fields.
     func generateSummary(journalId: String) async throws -> AIGeneration
+
+    /// Zero-knowledge (Model-1) only: generate the entry's summary + insights +
+    /// prompts in ONE call from PLAINTEXT content, so the client can persist all
+    /// three itself. On the non-ZK path the server produces these at index time and
+    /// this is unused — the default implementation throws `.unavailable`.
+    func generateEntryAI(journalId: String) async throws -> EntryAIBundle
 
     /// Today's five personalized prompts — one per life area — generated in a
     /// single server-side LLM call. The client caches them for the day.
@@ -72,4 +95,10 @@ extension AIService {
     /// Default: the service does not persist chat messages, so the caller
     /// owns persistence. Only the production proxy overrides this to `true`.
     var persistsChatReplies: Bool { false }
+
+    /// Default: only the zero-knowledge `ProxyAIService` path generates entry AI
+    /// client-side. Every other conformer (mocks, test stubs) inherits this throw.
+    func generateEntryAI(journalId: String) async throws -> EntryAIBundle {
+        throw AIServiceError.unavailable
+    }
 }

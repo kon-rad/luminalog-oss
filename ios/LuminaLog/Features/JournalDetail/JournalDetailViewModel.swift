@@ -106,7 +106,13 @@ final class JournalDetailViewModel: ObservableObject {
     }
 
     private func generateSummaryIfMissing() async {
-        guard let entry, entry.summary == nil, !entry.content.isEmpty else { return }
+        guard let entry, !entry.content.isEmpty else { return }
+        // On the ZK path a missing summary OR missing insights/prompts triggers a
+        // (re)generation, since all three come from one client call — this also
+        // backfills entries that got a summary-only from the earlier client path.
+        let missingSummary = entry.summary == nil
+        let missingEntryAI = DevFlags.aiModel1 && (entry.insights == nil || entry.prompts == nil)
+        guard missingSummary || missingEntryAI else { return }
         await generateSummary()
     }
 
@@ -114,8 +120,16 @@ final class JournalDetailViewModel: ObservableObject {
         guard summaryState != .loading, entry != nil else { return }
         summaryState = .loading
         do {
-            let generation = try await ai.generateSummary(journalId: entryId)
-            try await persist(summary: generation)
+            if DevFlags.aiModel1 {
+                // Zero-knowledge: the server can't index migrated entries, so generate
+                // summary + insights + prompts client-side in one call and persist all
+                // three (client-encrypted). This lights up the Insights/Prompts tabs.
+                let bundle = try await ai.generateEntryAI(journalId: entryId)
+                try await persist(bundle: bundle)
+            } else {
+                let generation = try await ai.generateSummary(journalId: entryId)
+                try await persist(summary: generation)
+            }
             summaryState = .idle
         } catch {
             Self.logger.error("generateSummary failed: \(error.localizedDescription, privacy: .public)")
@@ -212,6 +226,31 @@ final class JournalDetailViewModel: ObservableObject {
             return
         }
         updated.summary = summary
+        entry = updated
+    }
+
+    /// Zero-knowledge counterpart to `persist(summary:)`: writes the client-generated
+    /// summary + insights + prompts through the repository (client-encrypted) and
+    /// mirrors them onto the local snapshot so all three tabs light up immediately.
+    private func persist(bundle: EntryAIBundle) async throws {
+        guard var updated = entry else { return }
+        do {
+            try await journals.updateAIFields(
+                id: entryId,
+                summary: bundle.summary,
+                insights: bundle.insights,
+                prompts: bundle.prompts
+            )
+        } catch JournalRepositoryError.entryNotFound {
+            Self.logger.notice("""
+            entry \(self.entryId, privacy: .private) deleted mid-generation; \
+            dropping AI result instead of recreating it
+            """)
+            return
+        }
+        updated.summary = bundle.summary
+        updated.insights = bundle.insights
+        updated.prompts = bundle.prompts
         entry = updated
     }
 }
