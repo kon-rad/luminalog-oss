@@ -42,72 +42,23 @@ export async function chatHandler(req: Request, res: Response): Promise<void> {
       journalContext?: string; focalEntry?: string
     }
 
-    // ── Model 1 (zero-knowledge) branch ──────────────────────────────────────
-    // The client sends every piece of context as PLAINTEXT: bio, profile, the
-    // chat history, the client-side RAG `journalContext`, and any focal entry.
-    // We build the prompt directly and NEVER call getOrCreateDEK/openField.
-    // Because there is no DEK on this path, message persistence is deferred to
-    // the client (which re-encrypts and stores in increment 1c-C) — the server
-    // does NOT write the user/assistant messages here. Gated by AI_MODEL1 (off in
-    // production). The legacy server-decrypt fallback below is removed at the 1d
-    // cutover. Trigger: flag on AND the body carries a `history` array (legacy
-    // clients never send one — the server builds history from Firestore).
-    const model1 = aiModel1Enabled() && Array.isArray(body.history)
-
-    let name: string, bio: string, profile: ProfileFields
-    let history: Array<{ role: string; content: string }>
-    let journalContext: string
-    let focalEntry: string | undefined
-    let dek: Buffer | undefined
-    let chatRef: any
-
-    if (model1) {
-      name = body.name ?? ''
-      bio = body.bio ?? ''
-      profile = body.profile ?? {}
-      history = (body.history ?? []).map(m => ({
-        role: String(m.role ?? 'user'),
-        content: String(m.content ?? ''),
-      }))
-      journalContext = body.journalContext ?? ''
-      focalEntry = body.focalEntry || undefined
-    } else {
-      // ── Legacy path (UNCHANGED — server decrypts everything with the DEK).
-      dek = await getOrCreateDEK(uid)
-
-      const userSnap = await db.collection('users').doc(uid).get()
-      // Biography is optional context — legacy/plaintext data must not abort chat.
-      bio = openFieldSafe(dek, userSnap.data()?.biography, 'users.biography')
-      // Display name is stored plaintext (only biography is field-encrypted).
-      name = (userSnap.data()?.displayName as string | undefined) ?? ''
-      // Extended onboarding profile fields (all optional, field-encrypted).
-      profile = decodeProfileFields(dek, userSnap.data())
-
-      const [msgsSnap, chatSnap] = await Promise.all([
-        db.collection('chats').doc(chatId).collection('messages')
-          .orderBy('createdAt', 'desc').limit(10).get(),
-        db.collection('chats').doc(chatId).get(),
-      ])
-      history = msgsSnap.docs.reverse().map(d => ({
-        role: d.data().role as string,
-        content: openFieldSafe(dek!, d.data().text, 'messages.text'),
-      }))
-
-      const assistantContext = history
-        .filter(m => m.role === 'assistant')
-        .slice(-2)
-        .map(m => m.content)
-        .join(' ')
-      const ragQuery = `${message} ${assistantContext}`.slice(-2000)
-
-      // Resolve journalId: prefer the value from the request body (legacy clients
-      // that send it), then fall back to the journalId stored on the chat document
-      // (set at chat creation time when launched from a journal entry detail page).
-      const resolvedJournalId = journalId || (chatSnap.data()?.journalId as string | undefined)
-
-      journalContext = await retrieveContext(uid, ragQuery, dek)
-      focalEntry = resolvedJournalId ? await fetchFocalEntry(uid, resolvedJournalId, dek) : undefined
+    // Zero-knowledge: the client sends every piece of context as PLAINTEXT (bio,
+    // profile, chat history, the client-side RAG `journalContext`, and any focal
+    // entry). The server NEVER decrypts — it builds the prompt and streams the reply;
+    // the client persists + re-encrypts the messages itself.
+    if (!Array.isArray(body.history)) {
+      res.status(400).json({ error: 'Missing client context (history)' })
+      return
     }
+    const name = body.name ?? ''
+    const bio = body.bio ?? ''
+    const profile: ProfileFields = body.profile ?? {}
+    const history = body.history.map(m => ({
+      role: String(m.role ?? 'user'),
+      content: String(m.content ?? ''),
+    }))
+    const journalContext = body.journalContext ?? ''
+    const focalEntry = body.focalEntry || undefined
 
     const systemPrompt = PROMPTS.chatSystem(name, bio, profile, journalContext, focalEntry)
     const messages = [
@@ -115,23 +66,6 @@ export async function chatHandler(req: Request, res: Response): Promise<void> {
       ...history,
       { role: 'user', content: message },
     ]
-
-    // User-message persistence runs ONLY on the legacy path (Model 1 has no DEK;
-    // the client persists + re-encrypts in 1c-C).
-    if (!model1 && dek) {
-      chatRef = db.collection('chats').doc(chatId)
-      // A client-supplied `messageId` makes the user-message write idempotent: a
-      // retry after a mid-stream failure re-`set`s the SAME doc instead of
-      // creating a duplicate. Legacy clients (iOS) omit it → auto-id, unchanged.
-      const userMsgRef = messageId
-        ? chatRef.collection('messages').doc(messageId)
-        : chatRef.collection('messages').doc()
-      await userMsgRef.set({
-        role: 'user',
-        text: encryptField(dek, message, 'messages.text'),
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      })
-    }
 
     const aiRes = await chatCompletion(messages, { stream: true })
     if (!aiRes.ok || !aiRes.body) {
@@ -174,18 +108,8 @@ export async function chatHandler(req: Request, res: Response): Promise<void> {
       }
     }
 
-    // Assistant-reply persistence runs ONLY on the legacy path (Model 1 has no
-    // DEK; the client persists + re-encrypts the reply in 1c-C).
-    if (!model1 && dek && chatRef) {
-      const assistantMsgRef = chatRef.collection('messages').doc()
-      await assistantMsgRef.set({
-        role: 'assistant',
-        text: encryptField(dek, fullReply, 'messages.text'),
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      })
-      await chatRef.update({ lastMessageAt: admin.firestore.FieldValue.serverTimestamp() })
-    }
-
+    // The client persists + re-encrypts both the user message and this reply itself
+    // (zero-knowledge: the server holds no DEK), so nothing is written here.
     res.write('data: [DONE]\n\n')
     res.end()
   } catch (err) {
