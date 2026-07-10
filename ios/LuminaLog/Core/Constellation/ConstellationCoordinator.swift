@@ -20,6 +20,9 @@ final class ConstellationCoordinator {
     func rebuildAndSync() async throws -> Int {
         guard DevFlags.aiModel1 else { return 0 }
         let entries = try await entriesProvider()
+        // A transient empty corpus fetch must not overwrite the server's existing
+        // point-set with an empty set — bail out before uploading anything.
+        guard !entries.isEmpty else { return 0 }
         let points = try await builder.build(entries: entries)
         try await sync.upload(points: points)
         return points.count

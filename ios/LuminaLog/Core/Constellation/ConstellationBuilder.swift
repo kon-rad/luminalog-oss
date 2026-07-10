@@ -30,8 +30,11 @@ final class ConstellationBuilder {
         return points
     }
 
-    /// Mean of L2-normalized chunk embeddings (no renormalization of the mean),
-    /// matching server `computeDayCentroid`.
+    /// Mean of per-entry L2-normalized embeddings (equal weight per entry; no
+    /// renormalization of the mean), consistent with the on-device
+    /// `SemanticIndexCoordinator`, which also embeds whole entries. This does not
+    /// match the server's chunk-weighted `computeDayCentroid` — the on-device
+    /// constellation is its own canonical space.
     private func meanCentroid(of texts: [String]) async throws -> [Float] {
         let dim = EmbeddingVector.dimension
         var sum = [Float](repeating: 0, count: dim)

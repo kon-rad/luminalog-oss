@@ -982,6 +982,7 @@ struct SettingsView: View {
         ai: MockAIService(),
         soul: MockSoulService()
     )
+    .environmentObject(AppServices.mocks())
 }
 
 #Preview("Pro") {
@@ -1001,6 +1002,7 @@ struct SettingsView: View {
         ai: MockAIService(),
         soul: MockSoulService()
     )
+    .environmentObject(AppServices.mocks())
 }
 
 #Preview("Dark") {
@@ -1016,5 +1018,6 @@ struct SettingsView: View {
         ai: MockAIService(),
         soul: MockSoulService()
     )
+    .environmentObject(AppServices.mocks())
     .preferredColorScheme(.dark)
 }

@@ -38,4 +38,17 @@ final class ConstellationCoordinatorTests: XCTestCase {
         XCTAssertNil(sync.uploaded)
         DevFlags.aiModel1 = true // restore DEBUG default
     }
+
+    func testRebuildDoesNotUploadWhenCorpusEmpty() async throws {
+        DevFlags.aiModel1 = true
+        let sync = CaptureSync()
+        let coord = ConstellationCoordinator(
+            builder: ConstellationBuilder(embedder: FakeEmbedder2()),
+            sync: sync,
+            entriesProvider: { [] })
+        let count = try await coord.rebuildAndSync()
+        XCTAssertEqual(count, 0)
+        XCTAssertNil(sync.uploaded)
+        DevFlags.aiModel1 = true // restore DEBUG default
+    }
 }
