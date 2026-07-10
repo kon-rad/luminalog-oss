@@ -13,6 +13,7 @@ enum DevFlags {
     static let devModeKey = "ll-dev-mode"
     static let forceOnboardingKey = "ll-force-onboarding"
     static let aiModel1Key = "ll-ai-model1"
+    static let zkMigrationKey = "ll-zk-migration"
 
     /// Client mirror of the server `AI_MODEL1` flag. When ON the client decrypts
     /// context locally and sends it as PLAINTEXT to the AI endpoints (server
@@ -27,6 +28,15 @@ enum DevFlags {
     static var aiModel1: Bool {
         get { UserDefaults.standard.bool(forKey: aiModel1Key) }
         set { UserDefaults.standard.set(newValue, forKey: aiModel1Key) }
+    }
+
+    /// Gates the one-time in-app zero-knowledge migration prompt (phase 1d).
+    /// OFF by default → the prompt never appears and no key handoff runs. Flip ON
+    /// per build to migrate the founder accounts; the whole path is deleted after
+    /// the one-time cutover.
+    static var zkMigration: Bool {
+        get { UserDefaults.standard.bool(forKey: zkMigrationKey) }
+        set { UserDefaults.standard.set(newValue, forKey: zkMigrationKey) }
     }
 
     /// When true the paywall, credit balance check, and credit deduction are
