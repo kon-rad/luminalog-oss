@@ -74,10 +74,13 @@ final class VapiVoiceCallService: VoiceCallService {
 
         // Zero-knowledge (Model-1): build the RAG context ON DEVICE from plaintext and
         // send it so the server can bake it into the Vapi system prompt — no server-side
-        // decryption mid-call. Best-effort: a nil/failed context still starts the call
-        // (the assistant just has less anchoring), never blocks it.
+        // decryption mid-call. Bounded by a hard timeout: the first build after a fresh
+        // launch primes the on-device embedding index (slow — it embeds every entry), and
+        // we must NOT let that block the call from connecting. On timeout we start the call
+        // with no context (the assistant just has less anchoring); the build keeps running
+        // in the background so the index is primed for the next call.
         var request = CallConfigRequest(chatId: chatId, journalId: journalId)
-        if let context = try? await ai.voiceCallContext(journalId: journalId) {
+        if let context = await boundedVoiceContext(journalId: journalId, seconds: 6) {
             request.name = context.name
             request.bio = context.bio
             request.profile = context.profile
@@ -180,6 +183,23 @@ final class VapiVoiceCallService: VoiceCallService {
 
     // MARK: - Helpers
 
+    /// Builds the voice context but gives up after `seconds`, returning nil. The build
+    /// keeps running unstructured on timeout so a slow first-time index prime still
+    /// completes in the background (ready for the next call) without blocking connection.
+    private func boundedVoiceContext(journalId: String?, seconds: Double) async -> VoiceCallContext? {
+        await withCheckedContinuation { (continuation: CheckedContinuation<VoiceCallContext?, Never>) in
+            let once = ResumeOnce()
+            Task { @MainActor in
+                let ctx = try? await self.ai.voiceCallContext(journalId: journalId)
+                if once.claim() { continuation.resume(returning: ctx) }
+            }
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                if once.claim() { continuation.resume(returning: nil) }
+            }
+        }
+    }
+
     private func buildOverrides(_ config: CallConfigResponse) -> [String: Any] {
         var overrides: [String: Any] = [:]
         var model: [String: Any] = ["provider": config.assistantOverrides.model.provider]
@@ -200,5 +220,18 @@ final class VapiVoiceCallService: VoiceCallService {
             overrides["metadata"] = metadata
         }
         return overrides
+    }
+}
+
+/// Thread-safe one-shot guard so exactly one of the racing context/timeout tasks
+/// resumes the continuation (resuming a `CheckedContinuation` twice would crash).
+private final class ResumeOnce: @unchecked Sendable {
+    private let lock = NSLock()
+    private var claimed = false
+    func claim() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        if claimed { return false }
+        claimed = true
+        return true
     }
 }
