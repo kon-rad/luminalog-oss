@@ -194,6 +194,11 @@ struct HomeView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                     .textSelection(.enabled)
+                // Public / on-chain disclosure (privacy).
+                Text("Public on Base: shows your first name + journaling stats on-chain.")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             HStack(alignment: .center, spacing: Spacing.m) {
                 // Once minted, link to the NFT token page; before that, link to the

@@ -362,6 +362,12 @@ struct SettingsView: View {
                     .font(.sectionHeader)
                     .foregroundStyle(Color.textPrimary)
 
+                // Public / on-chain disclosure (privacy).
+                Text("Your Soul is a public NFT on the Base blockchain. It publishes your first name and journaling stats — days journaled, current & longest streak, and total word count — on-chain, where anyone can view them. It never includes your journal entries.")
+                    .font(.footnote)
+                    .foregroundStyle(Color.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 VStack(spacing: 0) {
                     VStack(alignment: .leading, spacing: Spacing.xs) {
                         HStack(spacing: Spacing.m) {

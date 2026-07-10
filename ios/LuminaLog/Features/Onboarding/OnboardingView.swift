@@ -95,9 +95,13 @@ struct OnboardingView: View {
                         .foregroundStyle(Color.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    privacyBadge(icon: "lock.fill",       label: "End-to-end encrypted")
-                    privacyBadge(icon: "eye.slash.fill",  label: "We never read your entries")
-                    privacyBadge(icon: "shield.fill",     label: "Anonymized — AI can't identify you")
+                    // NOTE (privacy/legal): keep these TRUTHFUL for the CURRENT build.
+                    // "Only you hold the key / we never read" become accurate once the
+                    // zero-knowledge migration ships to all users; until then use the
+                    // conservative claims below. Strengthen after the ZK rollout.
+                    privacyBadge(icon: "lock.fill",       label: "Encrypted in transit & at rest")
+                    privacyBadge(icon: "hand.raised.fill", label: "You choose what your AI sees")
+                    privacyBadge(icon: "nosign",          label: "We never sell your data")
                 }
                 .padding(Spacing.l)
                 .background(
