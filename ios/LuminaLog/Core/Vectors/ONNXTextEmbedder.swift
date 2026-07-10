@@ -116,7 +116,17 @@ struct ONNXTextEmbedder: TextEmbedder {
         } catch {
             throw TextEmbedderError.tokenizationFailed
         }
-        let inputIds = tokenizer.encode(text: text)
+        let rawIds = tokenizer.encode(text: text)
+        guard !rawIds.isEmpty else { throw TextEmbedderError.tokenizationFailed }
+        // Truncate to the model's max sequence length (distiluse: 128). Long entries
+        // otherwise overflow the position embeddings and the ONNX run FAILS (this broke
+        // indexing + Related for multi-hundred-word entries). Keep the final special
+        // token ([SEP]) so the wrapped sequence stays well-formed, matching the
+        // reference tokenizer's max_length=128 truncation.
+        let maxLen = 128
+        let inputIds: [Int] = rawIds.count > maxLen
+            ? Array(rawIds.prefix(maxLen - 1)) + [rawIds[rawIds.count - 1]]
+            : rawIds
         guard !inputIds.isEmpty else { throw TextEmbedderError.tokenizationFailed }
         let attentionMask = [Int](repeating: 1, count: inputIds.count)
         let seqLen = inputIds.count
