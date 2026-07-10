@@ -20,13 +20,15 @@ export interface ScoredRetrievable {
 const TITLE_WEIGHT = 3.0
 const CONTENT_WEIGHT = 1.0
 
-/** Case+diacritic-fold and split on non-alphanumerics into a set of terms. */
+/** Case+diacritic-fold and split into a set of terms. Splits on ASCII
+ * whitespace/punctuation while keeping non-ASCII letters (Cyrillic, CJK, …) as
+ * tokens — a reasonable multilingual fallback without the regex `u` flag. */
 function tokenize(text: string): Set<string> {
   const folded = text
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '') // strip combining diacritics
     .toLowerCase()
-  return new Set(folded.split(/[^\p{L}\p{N}]+/u).filter(Boolean))
+  return new Set(folded.split(/[^0-9a-zÀ-￿]+/).filter(Boolean))
 }
 
 function recencyBoost(createdAt: Date, now: Date): number {
