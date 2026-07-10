@@ -66,6 +66,17 @@ final class ProxyAPIClient {
         _ = try await postData(path: path, body: body)
     }
 
+    /// PUT a JSON body and decode a JSON response.
+    func put<T: Decodable>(path: String, body: some Encodable) async throws -> T {
+        let data = try await putData(path: path, body: body)
+        return try decoder.decode(T.self, from: data)
+    }
+
+    /// PUT a JSON body, ignoring the response payload.
+    func put(path: String, body: some Encodable) async throws {
+        _ = try await putData(path: path, body: body)
+    }
+
     /// DELETE a path (query string allowed), ignoring the response payload.
     /// Retries exactly once with a force-refreshed token on HTTP 401.
     func delete(path: String) async throws {
@@ -145,6 +156,22 @@ final class ProxyAPIClient {
         return data
     }
 
+    private func putData(path: String, body: some Encodable) async throws -> Data {
+        let request = try await makeRequest(path: path, body: body, method: "PUT")
+        var (data, response) = try await session.data(for: request)
+
+        // On 401, retry exactly once with a force-refreshed token.
+        if (response as? HTTPURLResponse)?.statusCode == 401 {
+            let retryRequest = try await makeRequest(
+                path: path, body: body, method: "PUT", forceRefresh: true
+            )
+            (data, response) = try await session.data(for: retryRequest)
+        }
+
+        try Self.validate(response: response, data: data)
+        return data
+    }
+
     // MARK: - SSE streaming
 
     /// POST a JSON body and stream the SSE response, yielding the payload of
@@ -194,6 +221,7 @@ final class ProxyAPIClient {
     private func makeRequest(
         path: String,
         body: some Encodable,
+        method: String = "POST",
         forceRefresh: Bool = false
     ) async throws -> URLRequest {
         // Append to the base URL's path so a base URL with a path prefix
@@ -202,7 +230,7 @@ final class ProxyAPIClient {
         let component = path.hasPrefix("/") ? String(path.dropFirst()) : path
         let url = baseURL.appendingPathComponent(component)
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let token = try await tokenProvider.idToken(forceRefresh: forceRefresh)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
