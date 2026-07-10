@@ -35,6 +35,15 @@ final class AppServices: ObservableObject {
     /// system's background-URLSession completion handler to it (Task 6). Nil for
     /// `mocks()` (the mock transport isn't a `BackgroundUploadTransport`).
     let uploadTransport: BackgroundUploadTransport?
+    /// One-time zero-knowledge key-migration helper (phase 1d, gated by
+    /// `DevFlags.zkMigration` — OFF by default, deleted after the cutover).
+    /// Built from `api` + the iCloud-Keychain-backed `SyncedKeychainStore`;
+    /// nil when `api` is nil (`mocks()` — the migration path never runs there).
+    let keyMigrator: KeyMigrator?
+    /// Narrow transport used to detect whether the signed-in user already has
+    /// server-side wraps (i.e. migration already ran), independent of running
+    /// the migration itself. Nil alongside `keyMigrator`.
+    let keyMigrationTransport: KeyMigrationTransport?
 
     init(
         auth: AuthService,
@@ -55,7 +64,9 @@ final class AppServices: ObservableObject {
         soul: SoulService,
         entryProcessor: EntryProcessor,
         api: ProxyAPIClient? = nil,
-        uploadTransport: BackgroundUploadTransport? = nil
+        uploadTransport: BackgroundUploadTransport? = nil,
+        keyMigrator: KeyMigrator? = nil,
+        keyMigrationTransport: KeyMigrationTransport? = nil
     ) {
         self.auth = auth
         self.keys = keys
@@ -76,6 +87,8 @@ final class AppServices: ObservableObject {
         self.entryProcessor = entryProcessor
         self.api = api
         self.uploadTransport = uploadTransport
+        self.keyMigrator = keyMigrator
+        self.keyMigrationTransport = keyMigrationTransport
     }
 
     /// Production service wiring — always uses Firebase and real backends.
@@ -185,6 +198,12 @@ final class AppServices: ObservableObject {
             onFinalize: { pending in await finalizer.finalize(pending) }
         )
 
+        // One-time ZK migration collaborators (phase 1d). Constructed
+        // unconditionally — actually running/prompting stays gated behind
+        // `DevFlags.zkMigration` (OFF by default) in `LuminaLogApp`.
+        let migrationTransport = ProxyKeyMigrationTransport(api: api)
+        let keyMigrator = KeyMigrator(transport: migrationTransport, iCloudStore: SyncedKeychainStore())
+
         return AppServices(
             auth: auth,
             keys: keys,
@@ -210,7 +229,9 @@ final class AppServices: ObservableObject {
                 )
             ),
             api: api,
-            uploadTransport: transport
+            uploadTransport: transport,
+            keyMigrator: keyMigrator,
+            keyMigrationTransport: migrationTransport
         )
     }
 

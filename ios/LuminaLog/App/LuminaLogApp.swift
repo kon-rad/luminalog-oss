@@ -1,5 +1,6 @@
 import SwiftUI
 import OSLog
+import CryptoKit
 import FirebaseCore
 import GoogleSignIn
 
@@ -16,6 +17,10 @@ struct LuminaLogApp: App {
     @AppStorage(OnboardingStore.completedKey) private var onboardingCompleted: Bool = false
     @Environment(\.scenePhase) private var scenePhase
     @State private var foregroundStart: Date?
+    /// Set when the one-time ZK migration prompt (phase 1d, `DevFlags.zkMigration`
+    /// — OFF by default) needs to run for the signed-in user; presented as a
+    /// full-screen cover over `RootView`. Temporary — deleted after the cutover.
+    @State private var migrationPresentation: ZKMigrationPresentation?
 
     /// Shared onboarding store: the gate reads/writes the flag and the buffered
     /// draft; SessionStore reads the same draft to merge it after sign-in.
@@ -109,6 +114,21 @@ struct LuminaLogApp: App {
                         .task(id: uid) {
                             await services.entryProcessor.resumePendingJobs()
                         }
+                        // One-time ZK migration check (phase 1d). No-ops unless
+                        // `DevFlags.zkMigration` is ON; see `checkZKMigration`.
+                        .task(id: uid) {
+                            await checkZKMigration(uid: uid)
+                        }
+                        .fullScreenCover(item: $migrationPresentation) { presentation in
+                            if let migrator = services.keyMigrator {
+                                ZKMigrationView(
+                                    userId: presentation.userId,
+                                    dek: presentation.dek,
+                                    migrator: migrator,
+                                    onDone: { migrationPresentation = nil }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -144,6 +164,46 @@ struct LuminaLogApp: App {
             }
         }
     }
+
+    // MARK: - ZK migration (phase 1d, temporary — deleted after cutover)
+
+    /// Decides whether to present `ZKMigrationView` for the signed-in user and,
+    /// if so, arms `migrationPresentation`. A no-op whenever `DevFlags.zkMigration`
+    /// is OFF (the default), so this changes nothing in production.
+    @MainActor
+    private func checkZKMigration(uid: String) async {
+        guard DevFlags.zkMigration else { return }
+        guard let dek = services.keys.currentDataKey else { return }
+        guard let transport = services.keyMigrationTransport else { return }
+
+        let hasServerWraps: Bool
+        do {
+            hasServerWraps = try await transport.fetchWraps() != nil
+        } catch {
+            // Unknown state (e.g. offline) — fail closed and don't prompt; the
+            // check re-runs next launch/foreground via the `.task(id: uid)`.
+            return
+        }
+
+        let locallyMarkedDone = ZKMigrationLocalMark.isDone(userId: uid)
+        guard ZKMigrationGate.shouldPrompt(
+            flagOn: DevFlags.zkMigration,
+            userId: uid,
+            hasServerWraps: hasServerWraps,
+            locallyMarkedDone: locallyMarkedDone
+        ) else { return }
+
+        migrationPresentation = ZKMigrationPresentation(userId: uid, dek: dek)
+    }
+}
+
+/// Identifies the signed-in user + their DEK for the `ZKMigrationView`
+/// full-screen cover. Temporary — deleted with the rest of the phase-1d
+/// migration path after the one-time cutover.
+private struct ZKMigrationPresentation: Identifiable {
+    var id: String { userId }
+    let userId: String
+    let dek: SymmetricKey
 }
 
 /// Minimal splash shown while the first auth-state emission is in flight.
