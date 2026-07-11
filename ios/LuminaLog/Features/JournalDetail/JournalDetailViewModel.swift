@@ -37,6 +37,7 @@ final class JournalDetailViewModel: ObservableObject {
 
     private let journals: JournalRepository
     private let ai: AIService
+    private let media: MediaUploader
 
     private var liveTask: Task<Void, Never>?
     private var hasStarted = false
@@ -44,11 +45,13 @@ final class JournalDetailViewModel: ObservableObject {
     init(
         entryId: String,
         journals: JournalRepository,
-        ai: AIService
+        ai: AIService,
+        media: MediaUploader
     ) {
         self.entryId = entryId
         self.journals = journals
         self.ai = ai
+        self.media = media
     }
 
     deinit {
@@ -144,19 +147,37 @@ final class JournalDetailViewModel: ObservableObject {
 
     // MARK: - Transcript retry
 
-    /// Re-runs server-side Whisper transcription for a voice/video entry.
-    /// The server downloads the audio from S3, transcribes via Together AI
-    /// Whisper, updates Firestore content + transcriptStatus, and re-indexes.
-    /// The Firestore listener in `startLiveUpdates` picks up the update and
-    /// refreshes the UI without any additional client-side work.
+    /// Re-transcribes a voice/video entry. On the zero-knowledge (Model-1) path the
+    /// server can't decrypt the audio, so we re-fetch the entry's audio from S3,
+    /// decrypt it on-device (`media.localFileURL`), transcribe via the stateless
+    /// clip endpoint (Together Whisper), and write the transcript + `.ready` status
+    /// back through the repository (which re-indexes it). The live listener refreshes
+    /// the UI. (Off the ZK path this would defer to server-side Whisper — but that
+    /// path no longer exists.)
     func retryTranscription() async {
         guard transcriptRetryState != .loading, let entry else { return }
         guard entry.type == .voice || entry.type == .video else { return }
 
         transcriptRetryState = .loading
         do {
-            try await ai.transcribeJournal(journalId: entryId)
-            transcriptRetryState = .idle
+            // Prefer the audio attachment; fall back to a video file's audio track.
+            guard let clip = entry.media.first(where: { $0.kind == .audio })
+                ?? entry.media.first(where: { $0.kind == .video }) else {
+                transcriptRetryState = .failed
+                return
+            }
+            let fileURL = try await media.localFileURL(for: clip.s3Key)
+            let data = try Data(contentsOf: fileURL)
+            let transcript = try await ai.transcribeClip(audio: data, contentType: "audio/m4a")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            var updated = entry
+            updated.content = transcript
+            updated.transcriptStatus = transcript.isEmpty ? .failed : .ready
+            updated.wordCount = WordCount.of(transcript)
+            try await journals.save(updated)
+            self.entry = updated
+            transcriptRetryState = transcript.isEmpty ? .failed : .idle
         } catch {
             Self.logger.error("retryTranscription failed: \(error.localizedDescription, privacy: .public)")
             transcriptRetryState = .failed

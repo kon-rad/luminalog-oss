@@ -152,9 +152,9 @@ struct AudioPlayerCard: View {
     @State private var resolvedURL: URL?
     /// Non-nil while the download is in progress.
     @State private var isDownloading = false
-    /// Set just before showing the share sheet so the sheet has a file to share.
-    @State private var shareURL: URL?
-    @State private var showShareSheet = false
+    /// Drives the share sheet. Item-based (not `isPresented` + a separate URL) so the
+    /// sheet can NEVER present before the URL is set — that race rendered a blank sheet.
+    @State private var shareItem: ShareItem?
 
     private var isUnavailable: Bool {
         controller.loadState == .unavailable
@@ -210,10 +210,8 @@ struct AudioPlayerCard: View {
         .onDisappear {
             controller.teardown()
         }
-        .sheet(isPresented: $showShareSheet) {
-            if let url = shareURL {
-                MediaShareSheet(url: url)
-            }
+        .sheet(item: $shareItem) { item in
+            MediaShareSheet(url: item.url)
         }
     }
 
@@ -259,9 +257,9 @@ struct AudioPlayerCard: View {
 
     private func downloadAndShare() async {
         guard let url = resolvedURL else { return }
-        // resolvedURL is a decrypted local file from MediaContentCache.
-        shareURL = url
-        showShareSheet = true
+        // resolvedURL is a decrypted local file from MediaContentCache. Setting the
+        // item presents the sheet atomically with its URL (no blank-sheet race).
+        shareItem = ShareItem(url: url)
     }
 
     static func timeLabel(_ seconds: Double) -> String {
@@ -273,6 +271,13 @@ struct AudioPlayerCard: View {
 // MARK: - Share sheet wrapper
 
 /// Shared share-sheet wrapper for downloading decrypted photo/video/audio.
+/// Identifiable wrapper so a decrypted file URL can drive `.sheet(item:)` — presenting
+/// the share sheet and its URL together, never a blank sheet from a nil-URL race.
+private struct ShareItem: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
 private struct MediaShareSheet: UIViewControllerRepresentable {
     let url: URL
 

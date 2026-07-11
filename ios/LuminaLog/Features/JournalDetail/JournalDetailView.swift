@@ -48,7 +48,8 @@ struct JournalDetailView: View {
             wrappedValue: JournalDetailViewModel(
                 entryId: entryId,
                 journals: journals,
-                ai: ai
+                ai: ai,
+                media: media
             )
         )
         self.journals = journals
@@ -105,6 +106,16 @@ struct JournalDetailView: View {
 
     // MARK: - Layout
 
+    /// Bottom padding for the scrolling tab content. Insights and Prompts get a
+    /// generous margin (≥300pt) so the floating root tab bar never covers the
+    /// last card; the other tabs keep the standard screen-level inset.
+    private static func tabContentBottomInset(for tab: JournalDetailTab) -> CGFloat {
+        switch tab {
+        case .insights, .prompts: return 300
+        case .main, .related: return Spacing.xl
+        }
+    }
+
     private func loadedBody(_ entry: JournalEntry) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             titleHeader(entry)
@@ -129,7 +140,10 @@ struct JournalDetailView: View {
                     }
                 }
                 .padding(Spacing.m)
-                .padding(.bottom, Spacing.xl)
+                // Insights and Prompts tabs need extra bottom clearance so the
+                // root tab bar (and its raised "+") never overlaps their last
+                // rows when scrolled to the end.
+                .padding(.bottom, Self.tabContentBottomInset(for: selectedTab))
             }
         }
         .sheet(isPresented: $isEditingTranscript) {
