@@ -1,0 +1,107 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+
+const store = vi.hoisted(() => ({ data: new Map<string, any>(), failGetOnce: false, failSetOnce: false }))
+function deepMerge(a: any, b: any): any {
+  const out = { ...a }
+  for (const k of Object.keys(b)) {
+    out[k] = b[k] && typeof b[k] === 'object' && !Array.isArray(b[k])
+      ? deepMerge(a?.[k] ?? {}, b[k]) : b[k]
+  }
+  return out
+}
+const db = vi.hoisted(() => ({
+  collection: (_c: string) => ({
+    doc: (id: string) => ({
+      get: async () => {
+        if (store.failGetOnce) { store.failGetOnce = false; throw new Error('firestore get failed') }
+        return { exists: store.data.has(id), data: () => store.data.get(id) }
+      },
+      set: async (d: any, opts?: any) => {
+        if (store.failSetOnce) { store.failSetOnce = false; throw new Error('firestore set failed') }
+        store.data.set(id, opts?.merge ? deepMerge(store.data.get(id) ?? {}, d) : d)
+      },
+    }),
+  }),
+}))
+vi.mock('../middleware/firebaseAuth', () => ({
+  firebaseAuth: (req: any, _res: any, next: any) => { req.uid = 'u'; next() },
+  db,
+}))
+vi.mock('../config', () => ({ config: { BASE_CHAIN: 'base-sepolia' }, aiModel1Enabled: () => false }))
+const refreshSoulImage = vi.hoisted(() => vi.fn(async () => {}))
+vi.mock('../services/chain/soulService', () => ({ refreshSoulImage }))
+
+import { putConstellationHandler } from './soul'
+
+function mockRes() {
+  const res: any = { statusCode: 200, body: undefined }
+  res.status = (c: number) => { res.statusCode = c; return res }
+  res.json = (b: any) => { res.body = b; return res }
+  return res
+}
+const pt = (o: Partial<any> = {}) => ({ dayIndex: 20000, date: '2024-10-04', x: 0.1, y: -0.2, z: 0.3, wordCount: 800, streakAtEarn: 1, ...o })
+
+describe('putConstellationHandler', () => {
+  beforeEach(() => {
+    store.data.clear()
+    store.failGetOnce = false
+    store.failSetOnce = false
+    refreshSoulImage.mockClear()
+  })
+
+  it('returns 500 and skips image refresh when Firestore rejects', async () => {
+    store.failSetOnce = true
+    const req: any = { uid: 'u', body: { points: [pt()] } }
+    const res = mockRes()
+    await putConstellationHandler(req, res)
+    expect(res.statusCode).toBe(500)
+    expect(refreshSoulImage).not.toHaveBeenCalled()
+  })
+
+  it('strips unknown keys before persisting a point', async () => {
+    const req: any = { uid: 'u', body: { points: [{ ...pt(), evil: 'x' }] } }
+    const res = mockRes()
+    await putConstellationHandler(req, res)
+    expect(res.statusCode).toBe(200)
+    const stored = store.data.get('u').constellation.points[0]
+    expect(Object.keys(stored).sort()).toEqual(
+      ['dayIndex', 'date', 'x', 'y', 'z', 'wordCount', 'streakAtEarn'].sort(),
+    )
+    expect(stored).not.toHaveProperty('evil')
+  })
+
+  it('stores points, bumps version, fires image refresh', async () => {
+    store.data.set('u', { constellation: { version: 4, points: [] } })
+    const req: any = { uid: 'u', body: { points: [pt(), pt({ dayIndex: 20001, date: '2024-10-05' })] } }
+    const res = mockRes()
+    await putConstellationHandler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual({ version: 5, count: 2 })
+    expect(store.data.get('u').constellation.points).toHaveLength(2)
+    expect(refreshSoulImage).toHaveBeenCalledWith('u')
+  })
+
+  it('rejects a non-array points body', async () => {
+    const req: any = { uid: 'u', body: { points: 'nope' } }
+    const res = mockRes()
+    await putConstellationHandler(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(refreshSoulImage).not.toHaveBeenCalled()
+  })
+
+  it('rejects out-of-range / non-finite coordinates', async () => {
+    for (const bad of [pt({ x: 1.5 }), pt({ y: Number.NaN }), pt({ z: Infinity })]) {
+      const res = mockRes()
+      await putConstellationHandler({ uid: 'u', body: { points: [bad] } } as any, res)
+      expect(res.statusCode).toBe(400)
+    }
+  })
+
+  it('rejects malformed point fields', async () => {
+    for (const bad of [pt({ dayIndex: 1.5 }), pt({ wordCount: -1 }), pt({ date: '' })]) {
+      const res = mockRes()
+      await putConstellationHandler({ uid: 'u', body: { points: [bad] } } as any, res)
+      expect(res.statusCode).toBe(400)
+    }
+  })
+})
