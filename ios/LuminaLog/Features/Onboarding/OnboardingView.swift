@@ -113,7 +113,8 @@ struct OnboardingView: View {
                     // conservative claims below. Strengthen after the ZK rollout.
                     privacyBadge(icon: "lock.fill",       label: "Encrypted in transit & at rest")
                     privacyBadge(icon: "hand.raised.fill", label: "You choose what your AI sees")
-                    privacyBadge(icon: "nosign",          label: "We never sell your data")
+                    privacyBadge(icon: "eye.slash.fill",  label: "We can't read your stored entries")
+                    privacyBadge(icon: "key.fill",        label: "Your journal is encrypted with keys only you hold")
                 }
                 .padding(Spacing.l)
                 .background(
