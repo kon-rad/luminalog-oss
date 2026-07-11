@@ -29,13 +29,15 @@ struct LuminaLogApp: App {
     init() {
         let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "startup")
 
+        // Zero-knowledge is the ONLY architecture: the client always decrypts locally
+        // and the server holds no key (the legacy server-decrypt path was deleted at the
+        // Phase-3 cutover — see ADR-0073). So the Model-1 (ZK) path is the default for
+        // EVERY build; the non-ZK path no longer exists on the server.
+        UserDefaults.standard.register(defaults: [DevFlags.aiModel1Key: true])
+
         #if DEBUG
         // Dev mode is OFF by default so the paywall and credit gates — and the
-        // SettingsView developer tools (onboarding replay, daily-report
-        // generation) — behave exactly as they do in the App Store build. Flip to
-        // `true` locally to bring the dev tools back while developing. Release
-        // builds never reach this branch, so `devMode` is always false in
-        // production regardless.
+        // SettingsView developer tools — behave exactly as they do in the App Store build.
         UserDefaults.standard.register(defaults: [DevFlags.devModeKey: false])
         #endif
 
