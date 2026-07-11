@@ -16,7 +16,8 @@ final class SessionStoreTests: XCTestCase {
     @MainActor
     private func makeStore(
         auth: MockAuthService,
-        subscriptions: MockSubscriptionService
+        subscriptions: MockSubscriptionService,
+        consentService: ConsentService? = nil
     ) -> SessionStore {
         SessionStore(
             auth: auth,
@@ -24,7 +25,7 @@ final class SessionStoreTests: XCTestCase {
             profiles: MockProfileRepository(),
             subscriptions: subscriptions,
             onboarding: OnboardingStore(defaults: UserDefaults(suiteName: "test-session-\(UUID().uuidString)")!),
-            consentService: ConsentService(
+            consentService: consentService ?? ConsentService(
                 api: SpyPutAPI(),
                 store: ConsentStore(defaults: UserDefaults(suiteName: "test-consent-\(UUID().uuidString)")!)
             )
@@ -129,5 +130,58 @@ final class SessionStoreTests: XCTestCase {
 
         XCTAssertEqual(subscriptions.setUserCalls, [nil, MockData.userId],
                        "Duplicate uid emissions must not call setUser again")
+    }
+
+    // MARK: - Consent-sync bootstrap wiring
+
+    /// Sign-in bootstrap must mirror unsynced local consent to the server via
+    /// `consentService.syncIfNeeded()`. This is the fix for Task 6's review
+    /// finding: without it, a future refactor could silently drop or reorder
+    /// the consent sync call with no test going red.
+    @MainActor
+    func testSignInBootstrapSyncsUnsyncedLocalConsent() async {
+        let auth = MockAuthService(signedIn: false)
+        let subscriptions = MockSubscriptionService()
+        let putAPI = SpyPutAPI()
+        let consentStore = ConsentStore(defaults: UserDefaults(suiteName: "test-consent-sync-\(UUID().uuidString)")!)
+        consentStore.recordLocalConsent()
+        XCTAssertTrue(consentStore.needsServerSync, "Precondition: local consent recorded but not yet synced")
+        let consentService = ConsentService(api: putAPI, store: consentStore)
+        let store = makeStore(auth: auth, subscriptions: subscriptions, consentService: consentService)
+
+        await waitUntil("Starts signed out") { store.state == .signedOut }
+
+        await auth.signInDemo()
+
+        await waitUntil("Sign-in bootstrap PUTs the local consent to the server") {
+            putAPI.puts.contains { $0.path == "/v1/consent" }
+        }
+        XCTAssertFalse(consentStore.needsServerSync,
+                       "Bootstrap sync must mark local consent as synced")
+    }
+
+    @MainActor
+    func testSignInBootstrapSkipsConsentSyncWhenNothingToSync() async {
+        let auth = MockAuthService(signedIn: false)
+        let subscriptions = MockSubscriptionService()
+        let putAPI = SpyPutAPI()
+        // No `recordLocalConsent()` call: needsServerSync stays false.
+        let consentStore = ConsentStore(defaults: UserDefaults(suiteName: "test-consent-nosync-\(UUID().uuidString)")!)
+        XCTAssertFalse(consentStore.needsServerSync, "Precondition: no local consent to sync")
+        let consentService = ConsentService(api: putAPI, store: consentStore)
+        let store = makeStore(auth: auth, subscriptions: subscriptions, consentService: consentService)
+
+        await waitUntil("Starts signed out") { store.state == .signedOut }
+
+        await auth.signInDemo()
+
+        await waitUntil("Sign-in bootstrap completes") {
+            store.state == .signedIn(userId: MockData.userId) && store.profile != nil
+        }
+        // Give any stray async bootstrap work a moment to settle before the
+        // negative assertion.
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertTrue(putAPI.puts.isEmpty,
+                     "No unsynced local consent means bootstrap must not PUT /v1/consent")
     }
 }
