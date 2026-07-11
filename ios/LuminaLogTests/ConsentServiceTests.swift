@@ -1,16 +1,6 @@
 import XCTest
 @testable import LuminaLog
 
-private final class SpyPutAPI: ConsentAPIPutting {
-    var puts: [(path: String, json: String)] = []
-    var shouldThrow: Error?
-    func put(path: String, body: some Encodable) async throws {
-        if let shouldThrow { throw shouldThrow }
-        let data = try JSONEncoder().encode(body)
-        puts.append((path, String(data: data, encoding: .utf8) ?? ""))
-    }
-}
-
 final class ConsentServiceTests: XCTestCase {
     private func store() -> ConsentStore {
         ConsentStore(defaults: UserDefaults(suiteName: "cs-\(UUID().uuidString)")!)
