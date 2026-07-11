@@ -227,13 +227,21 @@ final class AppServices: ObservableObject {
         // rebuild reads the full local corpus. `rebuildAndSync()` is a no-op with
         // the flag off, so this is inert until manually triggered from Settings.
         let constellationCoordinator = ConstellationCoordinator(
-            builder: ConstellationBuilder(embedder: embedder),
+            builder: ConstellationBuilder(
+                embedder: embedder,
+                vectorProvider: { [weak coordinator] id in coordinator?.vector(for: id) }),
             sync: ProxyConstellationSyncService(api: api),
             entriesProvider: { [journals] in
                 try await journals.fetchAllEntries().map {
-                    (text: $0.content, wordCount: $0.wordCount, createdAt: $0.createdAt)
+                    (id: $0.id, text: $0.content, wordCount: $0.wordCount, createdAt: $0.createdAt)
                 }
             })
+        // Living sculpture: after each on-device index, rebuild reusing the
+        // just-cached vector (no re-embed). Coalesced; `weak` breaks the
+        // repo → coordinator → repo (entriesProvider captures `journals`) cycle.
+        journals.onEntryIndexed = { [weak constellationCoordinator] _ in
+            constellationCoordinator?.scheduleRebuild()
+        }
 
         return AppServices(
             auth: auth,
@@ -302,7 +310,7 @@ final class AppServices: ObservableObject {
             sync: NoOpConstellationSyncService(),
             entriesProvider: { [journals] in
                 try await journals.fetchAllEntries().map {
-                    (text: $0.content, wordCount: $0.wordCount, createdAt: $0.createdAt)
+                    (id: $0.id, text: $0.content, wordCount: $0.wordCount, createdAt: $0.createdAt)
                 }
             })
 

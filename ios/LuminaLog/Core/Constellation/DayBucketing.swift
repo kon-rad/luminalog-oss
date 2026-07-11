@@ -3,7 +3,9 @@ import Foundation
 struct DayBucket {
     let dayIndex: Int
     let date: String
-    let texts: [String]
+    /// The day's entries as (id, text) so a caller can reuse an already-computed
+    /// vector by id before falling back to embedding the text.
+    let entries: [(id: String, text: String)]
     let wordTotal: Int
 }
 
@@ -23,18 +25,18 @@ enum DayBucketing {
         return f.string(from: d)
     }
 
-    static func bucket(entries: [(text: String, wordCount: Int, createdAt: Date)]) -> [DayBucket] {
-        var byDay: [Int: (texts: [String], words: Int)] = [:]
+    static func bucket(entries: [(id: String, text: String, wordCount: Int, createdAt: Date)]) -> [DayBucket] {
+        var byDay: [Int: (entries: [(id: String, text: String)], words: Int)] = [:]
         for e in entries {
             let i = dayIndex(for: e.createdAt)
-            var slot = byDay[i] ?? (texts: [], words: 0)
-            slot.texts.append(e.text)
+            var slot = byDay[i] ?? (entries: [], words: 0)
+            slot.entries.append((id: e.id, text: e.text))
             slot.words += e.wordCount
             byDay[i] = slot
         }
         return byDay.keys.sorted().map { i in
             DayBucket(dayIndex: i, date: dateString(forDayIndex: i),
-                      texts: byDay[i]!.texts, wordTotal: byDay[i]!.words)
+                      entries: byDay[i]!.entries, wordTotal: byDay[i]!.words)
         }
     }
 

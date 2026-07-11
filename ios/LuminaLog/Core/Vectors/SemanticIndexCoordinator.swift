@@ -30,6 +30,9 @@ protocol SemanticIndexCoordinating: AnyObject {
     func backfill(_ entries: [(id: String, text: String)]) async throws
     /// Top-`k` entry ids by cosine similarity to `query`; `[]` for an empty index.
     func search(query: String, k: Int) async throws -> [String]
+    /// The cached on-device embedding for an indexed entry, or nil if absent
+    /// (not yet indexed / index not loaded). Callers must tolerate nil.
+    func vector(for id: String) -> EmbeddingVector?
     /// Undirected top-`neighborsPerNode` similarity edges across the whole index, for
     /// the on-device journal graph. Default impl returns `[]` so test fakes need not
     /// implement it.
@@ -38,6 +41,8 @@ protocol SemanticIndexCoordinating: AnyObject {
 
 extension SemanticIndexCoordinating {
     func similarityGraph(neighborsPerNode: Int) async throws -> [(source: String, target: String, score: Double)] { [] }
+    /// Default: no cache. Real coordinator overrides; test fakes need not implement it.
+    func vector(for id: String) -> EmbeddingVector? { nil }
 }
 
 /// Orchestrates the client-side, zero-knowledge semantic-search pipeline
@@ -95,6 +100,11 @@ final class SemanticIndexCoordinator {
 
     /// The number of vectors currently held in memory.
     var count: Int { index.count }
+
+    /// The cached plaintext embedding for `id`, or nil if it is not in the
+    /// in-memory index. Lets the soul constellation reuse it instead of
+    /// re-embedding the same text.
+    func vector(for id: String) -> EmbeddingVector? { index.vector(for: id) }
 
     // MARK: - Indexing
 
