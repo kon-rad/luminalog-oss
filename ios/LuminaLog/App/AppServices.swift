@@ -48,6 +48,10 @@ final class AppServices: ObservableObject {
     /// `DevFlags.aiModel1` (OFF by default — `rebuildAndSync()` is a no-op until
     /// the flag flips on). Triggered manually from the DEBUG developer tools.
     let constellationCoordinator: ConstellationCoordinator
+    /// App-level observer that reconciles today's daily-goal progress + streak
+    /// from the entries created today (self-healing across transcript retries,
+    /// edits, and deletes). Started per signed-in user from `LuminaLogApp`.
+    let dailyGoalReconciler: DailyGoalReconciler
 
     init(
         auth: AuthService,
@@ -95,6 +99,7 @@ final class AppServices: ObservableObject {
         self.keyMigrator = keyMigrator
         self.keyMigrationTransport = keyMigrationTransport
         self.constellationCoordinator = constellationCoordinator
+        self.dailyGoalReconciler = DailyGoalReconciler(journals: journals, profiles: profiles)
     }
 
     /// Production service wiring — always uses Firebase and real backends.
@@ -104,17 +109,13 @@ final class AppServices: ObservableObject {
             baseURL: AppConfig.proxyBaseURL,
             tokenProvider: FirebaseTokenProvider()
         )
-        // Zero-knowledge read path (1d): try the iCloud-key path first (loads the DEK
-        // from KEK_icloud + the server's client wraps — works for migrated users),
-        // falling back to /bootstrap for un-migrated users. Once every account is
-        // migrated + finalized, the fallback + ProxyKeyProvider + /bootstrap are removed
-        // and ICloudKeyProvider stands alone.
+        // Zero-knowledge key path: the DEK is loaded ON DEVICE from KEK_icloud (iCloud
+        // Keychain) + the server's opaque client wraps (which the server cannot open).
+        // There is NO server fallback — the legacy /bootstrap path (which handed the
+        // server a DEK) was deleted at the cutover, so the server holds no key, ever.
         let migrationTransport = ProxyKeyMigrationTransport(api: api)
         let keys = UserKeyStore(
-            provider: HybridKeyProvider(
-                primary: ICloudKeyProvider(iCloudStore: SyncedKeychainStore(), transport: migrationTransport),
-                fallback: ProxyKeyProvider(api: api)
-            ),
+            provider: ICloudKeyProvider(iCloudStore: SyncedKeychainStore(), transport: migrationTransport),
             secrets: KeychainStore()
         )
 

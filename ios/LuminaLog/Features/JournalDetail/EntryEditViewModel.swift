@@ -74,13 +74,11 @@ final class EntryEditViewModel: ObservableObject {
             // /v1/rag/index re-purges chunks and, because contentEditedAt now
             // post-dates the summary, regenerates the summary + its embedding.
             if contentChanged {
-                // Credit the word delta to the daily goal on the entry's
-                // original day (best-effort, like the creation side-effect).
+                // Credit the delta to the lifetime word odometer (best-effort).
+                // Today's goal progress + streak are reconciled from today's
+                // entries by the app-level DailyGoalReconciler.
                 if newWordCount != oldWordCount {
-                    try? await profiles.recordEntrySaved(
-                        wordCountDelta: newWordCount - oldWordCount,
-                        on: entry.createdAt
-                    )
+                    try? await profiles.addTotalWords(delta: newWordCount - oldWordCount)
                 }
                 await ai.requestIndex(journalId: entry.id)
             }

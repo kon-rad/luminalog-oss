@@ -60,6 +60,7 @@ final class InsightsViewModelTests: XCTestCase {
         struct Boom: Error {}
         func recentEntries(limit: Int) -> AsyncStream<[JournalEntry]> { AsyncStream { $0.finish() } }
         func entries(after: Date?, limit: Int) async throws -> [JournalEntry] { [] }
+        func entriesToday(timezone: TimeZone) -> AsyncStream<[JournalEntry]> { AsyncStream { $0.finish() } }
         func fetchAllEntries() async throws -> [JournalEntry] { throw Boom() }
         func entry(id: String) -> AsyncStream<JournalEntry?> { AsyncStream { $0.finish() } }
         func save(_ entry: JournalEntry) async throws {}

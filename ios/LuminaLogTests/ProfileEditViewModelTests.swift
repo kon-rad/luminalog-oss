@@ -37,7 +37,8 @@ final class ProfileEditViewModelTests: XCTestCase {
                   let updated = applyingOnboardingDraft(draft, to: current, overwriteExisting: overwriteExisting) else { return }
             try await update(updated)
         }
-        func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {}
+        func addTotalWords(delta: Int) async throws {}
+        func reconcileDailyGoal(todayTotal: Int, now: Date) async throws {}
         func recordMediaUploaded(kind: MediaKind, bytes: Int) async throws {}
         func recordTimeSpent(minutes: Int) async throws {}
         func recordPromptAnswered() async throws {}

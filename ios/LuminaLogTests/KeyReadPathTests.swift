@@ -74,29 +74,6 @@ final class KeyReadPathTests: XCTestCase {
         do { _ = try await sut.fetchDataKey(userId: "u1"); XCTFail("expected throw on wrong key") }
         catch { /* any error is acceptable — fails closed */ }
     }
-
-    // MARK: - HybridKeyProvider
-
-    func testHybridUsesPrimaryWhenItSucceeds() async throws {
-        let primaryData = Data(repeating: 7, count: 32)
-        let primary = FakeKeyProvider(.success(primaryData))
-        let fallback = FakeKeyProvider(.success(Data(repeating: 9, count: 32)))
-        let sut = HybridKeyProvider(primary: primary, fallback: fallback)
-
-        let got = try await sut.fetchDataKey(userId: "u1")
-        XCTAssertEqual(got, primaryData)
-        XCTAssertEqual(fallback.calls, 0, "fallback must not be called when primary succeeds")
-    }
-
-    func testHybridFallsBackWhenPrimaryThrows() async throws {
-        let fallbackData = Data(repeating: 9, count: 32)
-        let primary = FakeKeyProvider(.failure(Boom()))
-        let fallback = FakeKeyProvider(.success(fallbackData))
-        let sut = HybridKeyProvider(primary: primary, fallback: fallback)
-
-        let got = try await sut.fetchDataKey(userId: "u1")
-        XCTAssertEqual(got, fallbackData)
-        XCTAssertEqual(primary.calls, 1)
-        XCTAssertEqual(fallback.calls, 1)
-    }
+    // The legacy HybridKeyProvider / ProxyKeyProvider (/bootstrap) fallback was deleted
+    // at the zero-knowledge cutover — ICloudKeyProvider is the sole key path now.
 }

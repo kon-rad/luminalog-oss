@@ -36,6 +36,7 @@ final class JournalDetailViewModel: ObservableObject {
     let entryId: String
 
     private let journals: JournalRepository
+    private let profiles: ProfileRepository
     private let ai: AIService
     private let media: MediaUploader
 
@@ -46,12 +47,17 @@ final class JournalDetailViewModel: ObservableObject {
         entryId: String,
         journals: JournalRepository,
         ai: AIService,
-        media: MediaUploader
+        media: MediaUploader? = nil,
+        profiles: ProfileRepository? = nil
     ) {
         self.entryId = entryId
         self.journals = journals
         self.ai = ai
-        self.media = media
+        // Fallbacks are constructed inside this @MainActor init (legal), so the
+        // media/profiles arguments stay optional for tests that don't exercise
+        // those paths. Production (`JournalDetailView`) passes both explicitly.
+        self.media = media ?? MockMediaUploader()
+        self.profiles = profiles ?? MockProfileRepository()
     }
 
     deinit {
@@ -172,11 +178,19 @@ final class JournalDetailViewModel: ObservableObject {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
 
             var updated = entry
+            let oldWordCount = entry.wordCount
             updated.content = transcript
             updated.transcriptStatus = transcript.isEmpty ? .failed : .ready
             updated.wordCount = WordCount.of(transcript)
             try await journals.save(updated)
             self.entry = updated
+            // Credit the word delta to the lifetime odometer (best-effort). The
+            // day's goal progress + streak are reconciled from today's entries by
+            // the app-level DailyGoalReconciler, so a failed-then-retried
+            // transcription now correctly raises today's count.
+            if updated.wordCount != oldWordCount {
+                try? await profiles.addTotalWords(delta: updated.wordCount - oldWordCount)
+            }
             transcriptRetryState = transcript.isEmpty ? .failed : .idle
         } catch {
             Self.logger.error("retryTranscription failed: \(error.localizedDescription, privacy: .public)")
@@ -199,7 +213,7 @@ final class JournalDetailViewModel: ObservableObject {
     /// summary) server-side, then always remove the Firestore record so the
     /// entry disappears from the user's list (spec delete policy).
     func delete() async {
-        guard entry != nil else { return }
+        guard let deleted = entry else { return }
         do {
             try await ai.deleteEntry(journalId: entryId)
         } catch {
@@ -215,6 +229,12 @@ final class JournalDetailViewModel: ObservableObject {
             firestore delete failed for \(self.entryId, privacy: .private): \
             \(error.localizedDescription, privacy: .public)
             """)
+        }
+        // Remove the deleted words from the lifetime odometer (best-effort). The
+        // day's goal progress + streak reconcile from today's entries via the
+        // app-level DailyGoalReconciler.
+        if deleted.wordCount != 0 {
+            try? await profiles.addTotalWords(delta: -deleted.wordCount)
         }
         didDelete = true
     }

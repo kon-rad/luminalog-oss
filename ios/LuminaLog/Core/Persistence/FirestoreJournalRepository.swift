@@ -72,6 +72,43 @@ final class FirestoreJournalRepository: JournalRepository {
         }
     }
 
+    func entriesToday(timezone: TimeZone) -> AsyncStream<[JournalEntry]> {
+        AsyncStream { continuation in
+            guard let uid = self.auth.currentUserId else {
+                continuation.yield([])
+                continuation.finish()
+                return
+            }
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = timezone
+            let startOfDay = calendar.startOfDay(for: Date())
+            let listener = self.journals
+                .whereField("userId", isEqualTo: uid)
+                .whereField("createdAt", isGreaterThanOrEqualTo: Timestamp(date: startOfDay))
+                .order(by: "createdAt", descending: true)
+                .addSnapshotListener { snapshot, error in
+                    guard let snapshot else {
+                        // Keep the stream alive; the listener recovers on the
+                        // next good snapshot (see protocol stream convention).
+                        Self.logger.error("""
+                        entriesToday listener error (journals where userId == \(uid, privacy: .private) \
+                        createdAt >= startOfDay order by createdAt desc): \
+                        \(error?.localizedDescription ?? "unknown", privacy: .public)
+                        """)
+                        return
+                    }
+                    guard let cipher = self.keys.currentCipher else {
+                        continuation.yield([]); return
+                    }
+                    let entries = snapshot.documents.compactMap {
+                        JournalEntry(documentId: $0.documentID, data: $0.data(), cipher: cipher)
+                    }
+                    continuation.yield(entries)
+                }
+            continuation.onTermination = { _ in listener.remove() }
+        }
+    }
+
     func entries(after: Date?, limit: Int) async throws -> [JournalEntry] {
         guard let uid = auth.currentUserId else { return [] }
         var query: Query = journals

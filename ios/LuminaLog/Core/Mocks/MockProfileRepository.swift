@@ -7,9 +7,11 @@ final class MockProfileRepository: ProfileRepository {
 
     private var storedProfile: UserProfile?
     private(set) var lastSaved: UserProfile?
-    /// Records every `recordEntrySaved` call, for tests asserting on the
-    /// credited delta and the day it was attributed to.
-    private(set) var recordedDeltas: [(delta: Int, date: Date)] = []
+    /// Records every `addTotalWords` delta, for tests asserting on the credited
+    /// lifetime word delta.
+    private(set) var recordedDeltas: [Int] = []
+    /// Records every `reconcileDailyGoal(todayTotal:now:)` call.
+    private(set) var reconciledGoals: [(todayTotal: Int, now: Date)] = []
     private var continuations: [UUID: AsyncStream<UserProfile?>.Continuation] = [:]
 
     init(profile: UserProfile? = MockData.profile) {
@@ -52,14 +54,23 @@ final class MockProfileRepository: ProfileRepository {
         try await update(updated)
     }
 
-    func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {
-        recordedDeltas.append((wordCountDelta, date))
+    func addTotalWords(delta: Int) async throws {
+        recordedDeltas.append(delta)
+        guard delta != 0 else { return }
+        guard var profile = storedProfile else { throw AuthServiceError.notSignedIn }
+        profile.stats.totalWords += delta
+        storedProfile = profile
+        broadcast()
+    }
+
+    func reconcileDailyGoal(todayTotal: Int, now: Date) async throws {
+        reconciledGoals.append((todayTotal, now))
         guard var profile = storedProfile else { throw AuthServiceError.notSignedIn }
         let timezone = TimeZone(identifier: profile.timezone) ?? .current
-        profile.stats = DailyGoalStreak.nextStats(
+        profile.stats = DailyGoalStreak.reconciled(
             current: profile.stats,
-            wordCountDelta: wordCountDelta,
-            entryDate: date,
+            todayTotal: todayTotal,
+            now: now,
             timezone: timezone
         )
         storedProfile = profile

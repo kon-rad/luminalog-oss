@@ -20,6 +20,10 @@ final class JournalListViewModelTests: XCTestCase {
             AsyncStream { _ in } // silent, like an erroring listener
         }
 
+        func entriesToday(timezone: TimeZone) -> AsyncStream<[JournalEntry]> {
+            AsyncStream { $0.finish() }
+        }
+
         func entries(after: Date?, limit: Int) async throws -> [JournalEntry] {
             if pagesShouldFail { throw PageError() }
             let sorted = seed.sorted { $0.createdAt > $1.createdAt }

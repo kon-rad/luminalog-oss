@@ -69,13 +69,15 @@ struct ChatListView: View {
     var body: some View {
         NavigationStack(path: $path) {
             content
-                .background(Color.appBackground.ignoresSafeArea())
-                .navigationTitle("Chats")
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        newChatMenu
+                .overlay(alignment: .bottomTrailing) {
+                    // The empty state surfaces its own centered start buttons, so
+                    // the floating actions only appear once conversations exist.
+                    if !(viewModel.hasLoaded && viewModel.chats.isEmpty) {
+                        floatingActions
                     }
                 }
+                .background(Color.appBackground.ignoresSafeArea())
+                .navigationTitle("Chats")
                 .navigationDestination(for: ChatRoute.self) { route in
                     if route.kind == .voice {
                         VoiceCallDetailView(chatId: route.chatId, repository: chats, api: api)
@@ -248,23 +250,58 @@ struct ChatListView: View {
 
     // MARK: - New chat
 
-    private var newChatMenu: some View {
-        Menu {
-            Button {
-                Task { await startTextChat() }
-            } label: {
-                Label("Start Text Chat", systemImage: "bubble.left.and.text.bubble.right")
-            }
-            Button {
-                isVoiceCallPresented = true
-            } label: {
-                Label("Start Voice Chat", systemImage: "waveform")
-            }
-        } label: {
-            Image(systemName: "square.and.pencil")
-                .foregroundStyle(Color.accentWarm)
+    /// Two stacked floating action buttons (bottom-right), hovering above the
+    /// root tab bar: a primary "New chat" (text) and a secondary "New call"
+    /// (voice). Replaces the old top-right compose menu.
+    private var floatingActions: some View {
+        VStack(alignment: .trailing, spacing: Spacing.s) {
+            fabButton(
+                title: "New chat",
+                systemImage: "square.and.pencil",
+                prominent: true,
+                action: { Task { await startTextChat() } }
+            )
+            fabButton(
+                title: "New call",
+                systemImage: "phone.fill",
+                prominent: false,
+                action: { isVoiceCallPresented = true }
+            )
         }
-        .accessibilityLabel("New chat")
+        .padding(.trailing, Spacing.m)
+        // Clear the root tab bar (and its raised "+"): the safe-area inset from
+        // RootView doesn't propagate into this NavigationStack, so lift the FABs
+        // by the same constant scroll views use, plus a small gap.
+        .padding(.bottom, AppTabBar.scrollBottomPadding + Spacing.s)
+    }
+
+    private func fabButton(
+        title: String,
+        systemImage: String,
+        prominent: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.uiBody.weight(.semibold))
+                .foregroundStyle(prominent ? Color.white : Color.accentWarm)
+                .padding(.horizontal, Spacing.l)
+                .padding(.vertical, Spacing.s + 4)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(prominent ? Color.accentWarm : Color.cardBackground)
+                )
+                .overlay(
+                    Capsule(style: .continuous)
+                        .strokeBorder(
+                            prominent ? Color.clear : Color.accentWarm.opacity(0.35),
+                            lineWidth: 1
+                        )
+                )
+                .shadow(color: Color.black.opacity(0.18), radius: 10, y: 4)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
     }
 
     private func startTextChat() async {

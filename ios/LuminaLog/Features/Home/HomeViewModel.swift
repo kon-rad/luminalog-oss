@@ -43,6 +43,10 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var recentEntries: [JournalEntry]?
     @Published private(set) var profile: UserProfile?
     @Published private(set) var promptState: PromptState = .loading
+    /// All entries created today (user timezone) — the source of truth for the
+    /// self-healing "words journaled today" recompute. Empty until the stream
+    /// first emits (subscribed once the profile timezone is known).
+    @Published private(set) var todaysEntries: [JournalEntry] = []
 
     @Published var showMilestone = false
     /// The "yyyy-MM-dd" the goal was reached, for popup copy. Set when the
@@ -67,6 +71,10 @@ final class HomeViewModel: ObservableObject {
 
     private var entriesTask: Task<Void, Never>?
     private var profileTask: Task<Void, Never>?
+    /// Live stream of today's entries, subscribed once the profile timezone is
+    /// known (so the query's day boundary matches the user's timezone).
+    private var todayTask: Task<Void, Never>?
+    private var todaySubscribed = false
     /// The latest per-emission daily-prompt resolution, tracked so deinit
     /// cancels an in-flight AI fetch instead of leaking it.
     private var promptResolutionTask: Task<Void, Never>?
@@ -94,6 +102,7 @@ final class HomeViewModel: ObservableObject {
     deinit {
         entriesTask?.cancel()
         profileTask?.cancel()
+        todayTask?.cancel()
         promptResolutionTask?.cancel()
         recordingCancellable = nil
         activityCancellable = nil
@@ -140,10 +149,29 @@ final class HomeViewModel: ObservableObject {
             for await profile in stream {
                 guard let self, !Task.isCancelled else { return }
                 self.profile = profile
+                self.subscribeTodayEntriesIfNeeded()
                 self.handleProfileUpdate()
                 // Resolve off the stream loop so a slow AI fetch never
                 // blocks later profile emissions.
                 self.promptResolutionTask = Task { await self.resolveDailyPromptIfNeeded() }
+            }
+        }
+    }
+
+    /// Subscribes the today-entries stream once, using the user's timezone from
+    /// the first profile emission (so the query's midnight boundary matches the
+    /// user's timezone). Each emission refreshes the goal ring and re-evaluates
+    /// the milestone gate.
+    private func subscribeTodayEntriesIfNeeded() {
+        guard !todaySubscribed, let profile else { return }
+        todaySubscribed = true
+        let timezone = TimeZone(identifier: profile.timezone) ?? .current
+        todayTask = Task { [weak self] in
+            guard let stream = self?.journals.entriesToday(timezone: timezone) else { return }
+            for await entries in stream {
+                guard let self, !Task.isCancelled else { return }
+                self.todaysEntries = entries
+                self.coordinator?.update(goalWords: self.goalProgressWords, canPresent: self.activity.canPresentInterruption)
             }
         }
     }
@@ -247,12 +275,13 @@ final class HomeViewModel: ObservableObject {
 
     var goalTarget: Int { DailyGoal.wordTarget }
 
-    /// Words journaled today (user timezone); 0 if the cached goal-day is stale.
+    /// Words journaled today (user timezone), recomputed from today's entries so
+    /// it self-heals across a failed-then-retried transcription, edits, and
+    /// deletes. The day boundary re-evaluates against the current moment, so it
+    /// resets correctly at midnight without any cached goal-day state.
     var goalProgressWords: Int {
-        guard let stats = profile?.stats, let day = stats.goalDayDate else { return 0 }
-        var calendar = Calendar.current
-        if let tz = TimeZone(identifier: profile?.timezone ?? "") { calendar.timeZone = tz }
-        return calendar.isDate(day, inSameDayAs: Date()) ? stats.goalDayWords : 0
+        let timezone = TimeZone(identifier: profile?.timezone ?? "") ?? .current
+        return TodayWords.total(from: todaysEntries, timezone: timezone, now: Date())
     }
 
     var goalMet: Bool { goalProgressWords >= goalTarget }
