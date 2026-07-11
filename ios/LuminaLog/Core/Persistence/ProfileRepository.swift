@@ -51,6 +51,16 @@ protocol ProfileRepository: AnyObject {
     /// Atomically increment `stats.promptsAnswered` by 1 when the user saves
     /// an entry that answers a prompt. Best-effort — must not surface to the user.
     func recordPromptAnswered() async throws
+
+    /// Record the user's consent to the public, on-chain Soul NFT (which publishes
+    /// their first name + journaling stats). Written PLAINTEXT to `users/{uid}.consent`
+    /// (an operational flag, not secret); the server gates minting on `soulPublicNft`.
+    func recordSoulConsent(_ granted: Bool) async throws
+}
+
+extension ProfileRepository {
+    /// Default no-op so preview/test doubles don't have to implement the consent write.
+    func recordSoulConsent(_ granted: Bool) async throws {}
 }
 
 /// Applies onboarding `draft` onto `profile`. Non-empty draft values are applied;

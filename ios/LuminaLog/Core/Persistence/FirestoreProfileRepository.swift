@@ -127,6 +127,20 @@ final class FirestoreProfileRepository: ProfileRepository {
         ])
     }
 
+    func recordSoulConsent(_ granted: Bool) async throws {
+        guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
+        // Plaintext operational flag on the users doc (not secret) — the server gates
+        // public-Soul minting on `consent.soulPublicNft`. setData(merge:) so the nested
+        // map + server timestamp are written whether or not the field already exists.
+        try await userRef(uid).setData([
+            "consent": [
+                "soulPublicNft": granted,
+                "version": "1",
+                "acceptedAt": FieldValue.serverTimestamp(),
+            ]
+        ], merge: true)
+    }
+
     func addTotalWords(delta: Int) async throws {
         guard delta != 0 else { return }
         guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }

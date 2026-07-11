@@ -47,4 +47,13 @@ final class OnboardingViewModel: ObservableObject {
         store.saveDraft(values)
         store.markCompleted()
     }
+
+    /// Buffer the user's public-Soul NFT consent (recorded to the profile after
+    /// sign-in). `false` means the Soul never mints.
+    func setSoulConsent(_ granted: Bool) { store.setPendingSoulConsent(granted) }
+
+    /// First name typed at the "Your name" step, for personalizing the consent copy.
+    var firstName: String {
+        (values["name"] ?? "").split(whereSeparator: { $0.isWhitespace }).first.map(String.init) ?? ""
+    }
 }

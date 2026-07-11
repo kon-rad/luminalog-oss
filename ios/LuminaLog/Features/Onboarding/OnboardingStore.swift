@@ -8,6 +8,9 @@ final class OnboardingStore {
 
     static let completedKey = "ll-onboarding-completed"
     private static let draftKey = "ll-onboarding-draft"
+    /// Buffered public-Soul NFT consent answered pre-auth (nil until the user answers
+    /// the "Your public Soul" step). Recorded to the profile at the post-sign-in merge.
+    private static let soulConsentKey = "ll-onboarding-soul-consent"
 
     private let defaults: UserDefaults
 
@@ -17,6 +20,11 @@ final class OnboardingStore {
 
     var isCompleted: Bool { defaults.bool(forKey: Self.completedKey) }
     func markCompleted() { defaults.set(true, forKey: Self.completedKey) }
+
+    /// The user's answer to the public-Soul consent step, or nil if not yet answered.
+    var pendingSoulConsent: Bool? { defaults.object(forKey: Self.soulConsentKey) as? Bool }
+    func setPendingSoulConsent(_ granted: Bool) { defaults.set(granted, forKey: Self.soulConsentKey) }
+    func clearPendingSoulConsent() { defaults.removeObject(forKey: Self.soulConsentKey) }
 
     func loadDraft() -> [String: String] {
         guard let data = defaults.data(forKey: Self.draftKey),

@@ -130,6 +130,18 @@ final class SessionStore: ObservableObject {
     /// user only blank fields are filled. Best-effort: failures are logged, never
     /// block routing into the app.
     private func mergeOnboardingDraftIfPresent(overwriteExisting: Bool) async {
+        // Record the public-Soul NFT consent answered during onboarding (pre-auth), now
+        // that we're signed in. The server gates minting on `consent.soulPublicNft`, so
+        // the Soul never mints unless the user accepted. Runs independent of the draft.
+        if let granted = onboarding.pendingSoulConsent {
+            do {
+                try await profiles.recordSoulConsent(granted)
+                onboarding.clearPendingSoulConsent()
+            } catch {
+                Self.logger.error("soul consent record failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+
         let draft = onboarding.loadDraft()
         guard !draft.isEmpty else { return }
         do {
