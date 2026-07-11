@@ -12,6 +12,8 @@ struct OnboardingView: View {
     let onDismiss: (() -> Void)?
 
     @State private var showingLanding = true
+    /// Presents the final public-Soul consent gate after the last question.
+    @State private var showingSoulConsent = false
 
     init(
         store: OnboardingStore,
@@ -39,6 +41,16 @@ struct OnboardingView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.3), value: showingLanding)
+            .fullScreenCover(isPresented: $showingSoulConsent) {
+                SoulConsentStep(firstName: viewModel.firstName) { granted in
+                    // Buffer the choice (recorded to the profile after sign-in), finish
+                    // onboarding, and route into the app. Declining just means no mint.
+                    viewModel.setSoulConsent(granted)
+                    viewModel.finish()
+                    showingSoulConsent = false
+                    onComplete()
+                }
+            }
 
             // Dismiss button — only visible in dev mode (dev onboarding replay)
             if DevFlags.devMode, let onDismiss {
@@ -208,8 +220,8 @@ struct OnboardingView: View {
 
             Button(viewModel.isLast ? "Get started" : "Next") {
                 if viewModel.isLast {
-                    viewModel.finish()
-                    onComplete()
+                    // Final gate: informed consent for the public on-chain Soul NFT.
+                    showingSoulConsent = true
                 } else {
                     viewModel.next()
                 }

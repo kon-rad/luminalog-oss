@@ -45,7 +45,8 @@ final class EntryProcessorRetryTests: XCTestCase {
         func update(_ profile: UserProfile) async throws {}
         func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws -> Bool { false }
         func mergeOnboardingDraft(_ draft: [String: String], overwriteExisting: Bool) async throws {}
-        func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {}
+        func addTotalWords(delta: Int) async throws {}
+        func reconcileDailyGoal(todayTotal: Int, now: Date) async throws {}
         func recordMediaUploaded(kind: MediaKind, bytes: Int) async throws {}
         func recordTimeSpent(minutes: Int) async throws {}
         func recordPromptAnswered() async throws {}
@@ -55,6 +56,7 @@ final class EntryProcessorRetryTests: XCTestCase {
         private(set) var store: [JournalEntry] = []
         func recentEntries(limit: Int) -> AsyncStream<[JournalEntry]> { AsyncStream { $0.finish() } }
         func entries(after: Date?, limit: Int) async throws -> [JournalEntry] { store }
+        func entriesToday(timezone: TimeZone) -> AsyncStream<[JournalEntry]> { AsyncStream { $0.finish() } }
         func fetchAllEntries() async throws -> [JournalEntry] { store }
         func entry(id: String) -> AsyncStream<JournalEntry?> { AsyncStream { $0.finish() } }
         func save(_ entry: JournalEntry) async throws {

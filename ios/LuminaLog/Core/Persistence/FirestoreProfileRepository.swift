@@ -127,7 +127,29 @@ final class FirestoreProfileRepository: ProfileRepository {
         ])
     }
 
-    func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {
+    func recordSoulConsent(_ granted: Bool) async throws {
+        guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
+        // Plaintext operational flag on the users doc (not secret) — the server gates
+        // public-Soul minting on `consent.soulPublicNft`. setData(merge:) so the nested
+        // map + server timestamp are written whether or not the field already exists.
+        try await userRef(uid).setData([
+            "consent": [
+                "soulPublicNft": granted,
+                "version": "1",
+                "acceptedAt": FieldValue.serverTimestamp(),
+            ]
+        ], merge: true)
+    }
+
+    func addTotalWords(delta: Int) async throws {
+        guard delta != 0 else { return }
+        guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
+        try await userRef(uid).updateData([
+            "stats.totalWords": FieldValue.increment(Int64(delta))
+        ])
+    }
+
+    func reconcileDailyGoal(todayTotal: Int, now: Date) async throws {
         guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
         let ref = userRef(uid)
 
@@ -145,10 +167,10 @@ final class FirestoreProfileRepository: ProfileRepository {
             let timezone = (data["timezone"] as? String).flatMap(TimeZone.init(identifier:))
                 ?? .current
 
-            let next = DailyGoalStreak.nextStats(
+            let next = DailyGoalStreak.reconciled(
                 current: current,
-                wordCountDelta: wordCountDelta,
-                entryDate: date,
+                todayTotal: todayTotal,
+                now: now,
                 timezone: timezone
             )
 

@@ -31,8 +31,8 @@ struct EntryFinalizer {
             try await journals.save(entry)
             entry.processingStatus = awaitsServerTranscription ? .transcribing : .ready
             try await journals.save(entry)
-            do { try await profiles.recordEntrySaved(wordCountDelta: entry.wordCount, on: entry.createdAt) }
-            catch { Self.logger.error("recordEntrySaved failed: \(error.localizedDescription)") }
+            do { try await profiles.addTotalWords(delta: entry.wordCount) }
+            catch { Self.logger.error("addTotalWords failed: \(error.localizedDescription)") }
             if pending.promptText != nil {
                 do { try await profiles.recordPromptAnswered() }
                 catch { Self.logger.error("recordPromptAnswered failed: \(error.localizedDescription)") }

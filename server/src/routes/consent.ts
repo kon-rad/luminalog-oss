@@ -30,33 +30,37 @@ function isoAcceptedAt(ts: unknown): string | null {
   return typeof ts === 'string' ? ts : null
 }
 
-// PUT /v1/consent — record consent. Body: { aiDataSharing: boolean, version: string }
+// PUT /v1/consent — record consent. Body carries `version` (string) plus at least one
+// of the boolean consent flags: `aiDataSharing` and/or `soulPublicNft` (the public,
+// on-chain Soul NFT that publishes the user's first name + stats — gates minting).
 export async function putConsentHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
-  const body = req.body as { aiDataSharing?: unknown; version?: unknown }
-  if (typeof body?.aiDataSharing !== 'boolean') {
-    res.status(400).json({ error: 'Missing or invalid aiDataSharing (boolean)' })
+  const body = req.body as { aiDataSharing?: unknown; soulPublicNft?: unknown; version?: unknown }
+
+  const hasAi = typeof body?.aiDataSharing === 'boolean'
+  const hasSoul = typeof body?.soulPublicNft === 'boolean'
+  if (!hasAi && !hasSoul) {
+    res.status(400).json({ error: 'Provide aiDataSharing and/or soulPublicNft (boolean)' })
     return
   }
   if (typeof body.version !== 'string' || body.version.length === 0) {
     res.status(400).json({ error: 'Missing or invalid version (string)' })
     return
   }
+  // Merge only the flags that were provided, so recording one doesn't clobber the other.
+  const consent: Record<string, unknown> = {
+    version: body.version,
+    acceptedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }
+  if (hasAi) consent.aiDataSharing = body.aiDataSharing
+  if (hasSoul) consent.soulPublicNft = body.soulPublicNft
+
   try {
     await db
       .collection('users')
       .doc(uid) // ownership from the token — NEVER from the request body
-      .set(
-        {
-          consent: {
-            aiDataSharing: body.aiDataSharing,
-            version: body.version,
-            acceptedAt: admin.firestore.FieldValue.serverTimestamp(),
-          },
-        },
-        { merge: true },
-      )
-    res.json({ ok: true, aiDataSharing: body.aiDataSharing, version: body.version })
+      .set({ consent }, { merge: true })
+    res.json({ ok: true, aiDataSharing: body.aiDataSharing, soulPublicNft: body.soulPublicNft, version: body.version })
   } catch (e) {
     console.error('[consent/put]', e)
     res.status(500).json({ error: 'Store failed' })

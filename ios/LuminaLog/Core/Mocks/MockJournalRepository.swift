@@ -8,6 +8,7 @@ final class MockJournalRepository: JournalRepository {
     private var store: [JournalEntry]
 
     private var listContinuations: [UUID: (limit: Int, continuation: AsyncStream<[JournalEntry]>.Continuation)] = [:]
+    private var todayContinuations: [UUID: (timezone: TimeZone, continuation: AsyncStream<[JournalEntry]>.Continuation)] = [:]
     private var entryContinuations: [UUID: (id: String, continuation: AsyncStream<JournalEntry?>.Continuation)] = [:]
 
     init(entries: [JournalEntry] = MockData.journalEntries) {
@@ -29,6 +30,28 @@ final class MockJournalRepository: JournalRepository {
             }
             continuation.yield(Array(store.prefix(limit)))
         }
+    }
+
+    func entriesToday(timezone: TimeZone) -> AsyncStream<[JournalEntry]> {
+        AsyncStream { continuation in
+            let key = UUID()
+            todayContinuations[key] = (timezone, continuation)
+            continuation.onTermination = { [weak self] _ in
+                // onTermination runs off the main actor; hop back before
+                // touching main-actor state.
+                Task { @MainActor in
+                    self?.todayContinuations[key] = nil
+                }
+            }
+            continuation.yield(entriesOnCurrentDay(timezone: timezone))
+        }
+    }
+
+    private func entriesOnCurrentDay(timezone: TimeZone) -> [JournalEntry] {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timezone
+        let now = Date()
+        return store.filter { calendar.isDate($0.createdAt, inSameDayAs: now) }
     }
 
     func entries(after: Date?, limit: Int) async throws -> [JournalEntry] {
@@ -147,6 +170,9 @@ final class MockJournalRepository: JournalRepository {
     private func broadcast(changedId: String) {
         for (_, value) in listContinuations {
             value.continuation.yield(Array(store.prefix(value.limit)))
+        }
+        for (_, value) in todayContinuations {
+            value.continuation.yield(entriesOnCurrentDay(timezone: value.timezone))
         }
         for (_, value) in entryContinuations where value.id == changedId {
             value.continuation.yield(store.first { $0.id == changedId })

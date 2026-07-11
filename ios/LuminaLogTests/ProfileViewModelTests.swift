@@ -46,7 +46,8 @@ final class ProfileViewModelTests: XCTestCase {
 
         func ensureUserDocument(displayName: String?, email: String?, photoURL: URL?) async throws -> Bool { false }
         func mergeOnboardingDraft(_ draft: [String: String], overwriteExisting: Bool) async throws {}
-        func recordEntrySaved(wordCountDelta: Int, on date: Date) async throws {}
+        func addTotalWords(delta: Int) async throws {}
+        func reconcileDailyGoal(todayTotal: Int, now: Date) async throws {}
         func recordMediaUploaded(kind: MediaKind, bytes: Int) async throws {}
         func recordTimeSpent(minutes: Int) async throws {}
         func recordPromptAnswered() async throws {}

@@ -182,13 +182,14 @@ final class BackgroundEntryProcessor: EntryProcessor {
             entry.processingStatus = .ready
             try await deps.journals.save(entry)
 
-            // 5) Side effects (best-effort; the entry is already saved).
+            // 5) Side effects (best-effort; the entry is already saved). Today's
+            // goal progress + streak are reconciled from today's entries by the
+            // app-level DailyGoalReconciler, so here we only add to the lifetime
+            // word odometer.
             do {
-                try await deps.profiles.recordEntrySaved(
-                    wordCountDelta: entry.wordCount, on: entry.createdAt
-                )
+                try await deps.profiles.addTotalWords(delta: entry.wordCount)
             } catch {
-                Self.logger.error("recordEntrySaved failed: \(error)")
+                Self.logger.error("addTotalWords failed: \(error)")
             }
             if job.promptText != nil {
                 do { try await deps.profiles.recordPromptAnswered() }

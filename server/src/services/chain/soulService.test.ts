@@ -51,8 +51,15 @@ describe('ensureSoulMinted', () => {
     expect(ensureMinted).not.toHaveBeenCalled()
   })
 
-  it('provisions wallet then mints when the user has neither', async () => {
-    store['users/uid1'] = {}
+  it('does NOT provision or mint until the user has consented to the public Soul', async () => {
+    store['users/uid1'] = {} // no consent.soulPublicNft
+    await ensureSoulMinted('uid1')
+    expect(ensureUserWallet).not.toHaveBeenCalled()
+    expect(ensureMinted).not.toHaveBeenCalled()
+  })
+
+  it('provisions wallet then mints when the user has neither (consented)', async () => {
+    store['users/uid1'] = { consent: { soulPublicNft: true } }
     await ensureSoulMinted('uid1')
     expect(ensureUserWallet).toHaveBeenCalledWith('uid1')
     expect(ensureMinted).toHaveBeenCalledWith('uid1')
@@ -62,8 +69,8 @@ describe('ensureSoulMinted', () => {
     )
   })
 
-  it('completes minting when a wallet exists but no token was minted yet', async () => {
-    store['users/uid1'] = { wallet: { address: '0xW' } }
+  it('completes minting when a wallet exists but no token was minted yet (consented)', async () => {
+    store['users/uid1'] = { wallet: { address: '0xW' }, consent: { soulPublicNft: true } }
     await ensureSoulMinted('uid1')
     expect(ensureUserWallet).toHaveBeenCalledWith('uid1')
     expect(ensureMinted).toHaveBeenCalledWith('uid1')

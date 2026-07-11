@@ -40,6 +40,10 @@ final class IndexingJournalRepository: JournalRepository {
         try await base.entries(after: after, limit: limit)
     }
 
+    func entriesToday(timezone: TimeZone) -> AsyncStream<[JournalEntry]> {
+        base.entriesToday(timezone: timezone)
+    }
+
     func fetchAllEntries() async throws -> [JournalEntry] {
         try await base.fetchAllEntries()
     }

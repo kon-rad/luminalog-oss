@@ -31,6 +31,18 @@ protocol JournalRepository: AnyObject {
     /// Pass nil for the first page.
     func entries(after: Date?, limit: Int) async throws -> [JournalEntry]
 
+    /// Live-updating stream of ALL entries created on the current calendar day
+    /// (`createdAt >= startOfDay` in `timezone`), newest first. Feeds the
+    /// self-healing "words journaled today" recompute (`TodayWords`) for both the
+    /// Home progress ring and the goal-gated streak reconcile.
+    ///
+    /// The `startOfDay` lower bound is a query optimization only; correctness
+    /// across a midnight rollover comes from `TodayWords.total` re-filtering
+    /// against the current `now`, so the bound may only ever return a superset of
+    /// today. Same stream conventions as `recentEntries` (never throws; emits []
+    /// when signed out or the key is unavailable).
+    func entriesToday(timezone: TimeZone) -> AsyncStream<[JournalEntry]>
+
     /// One-shot fetch of ALL of the signed-in user's entries (newest first),
     /// decrypted in-memory. Used by the Insights dashboard for whole-corpus
     /// analysis. Not a listener — a single read. Returns [] when signed out

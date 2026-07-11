@@ -91,7 +91,7 @@ final class StreakCalculatorTests: XCTestCase {
     }
 
     @MainActor
-    func testMockProfileRepositoryRecordEntrySavedAppliesStreakAndWords() async throws {
+    func testMockProfileRepositoryReconcileAppliesStreakAndWords() async throws {
         var profile = MockData.profile
         profile.timezone = timezone.identifier
         profile.stats = UserProfile.Stats(
@@ -101,9 +101,10 @@ final class StreakCalculatorTests: XCTestCase {
         )
         let repository = MockProfileRepository(profile: profile)
 
-        // A qualifying day (≥ DailyGoal.wordTarget) after a qualifying yesterday
-        // bumps the streak and adds the words.
-        try await repository.recordEntrySaved(wordCountDelta: 800, on: date(2026, 6, 10))
+        // A qualifying day total (≥ DailyGoal.wordTarget) after a qualifying
+        // yesterday bumps the streak; the lifetime odometer is a separate add.
+        try await repository.addTotalWords(delta: 800)
+        try await repository.reconcileDailyGoal(todayTotal: 800, now: date(2026, 6, 10))
 
         var iterator = repository.profile().makeAsyncIterator()
         let updated = await iterator.next()
@@ -113,7 +114,7 @@ final class StreakCalculatorTests: XCTestCase {
     }
 
     @MainActor
-    func testMockProfileRepositorySubGoalEntryDoesNotBumpStreak() async throws {
+    func testMockProfileRepositorySubGoalDayDoesNotBumpStreak() async throws {
         var profile = MockData.profile
         profile.timezone = timezone.identifier
         profile.stats = UserProfile.Stats(
@@ -123,8 +124,10 @@ final class StreakCalculatorTests: XCTestCase {
         )
         let repository = MockProfileRepository(profile: profile)
 
-        // Below the daily goal: words accumulate but the streak is untouched.
-        try await repository.recordEntrySaved(wordCountDelta: 50, on: date(2026, 6, 10))
+        // Below the daily goal: words are added to the odometer but the streak
+        // is untouched.
+        try await repository.addTotalWords(delta: 50)
+        try await repository.reconcileDailyGoal(todayTotal: 50, now: date(2026, 6, 10))
 
         var iterator = repository.profile().makeAsyncIterator()
         let updated = await iterator.next()

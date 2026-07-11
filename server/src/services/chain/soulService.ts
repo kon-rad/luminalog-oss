@@ -30,6 +30,11 @@ export async function ensureSoulMinted(uid: string): Promise<void> {
   const d = snap.data()
   if (d?.wallet?.address && d?.nft?.tokenId) return
 
+  // Consent gate: NEVER provision a wallet or mint the public, on-chain Soul until the
+  // user has EXPLICITLY consented (onboarding "Your public Soul" step). The NFT
+  // publishes their first name + journaling stats on Base forever, so it is opt-in.
+  if (d?.consent?.soulPublicNft !== true) return
+
   // Idempotent + ordered: wallet must exist before we can mint to it.
   await ensureUserWallet(uid)
   await ensureMinted(uid)

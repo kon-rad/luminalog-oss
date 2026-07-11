@@ -116,6 +116,13 @@ struct LuminaLogApp: App {
                         .task(id: uid) {
                             await services.entryProcessor.resumePendingJobs()
                         }
+                        // Keep today's daily-goal progress + streak reconciled
+                        // from the entries created today (self-healing across
+                        // transcript retries, edits, and deletes). Runs for the
+                        // whole signed-in session; torn down when uid changes.
+                        .task(id: uid) {
+                            await services.dailyGoalReconciler.run()
+                        }
                         // One-time ZK migration check (phase 1d). No-ops unless
                         // `DevFlags.zkMigration` is ON; see `checkZKMigration`.
                         .task(id: uid) {

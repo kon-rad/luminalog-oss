@@ -49,7 +49,8 @@ struct JournalDetailView: View {
                 entryId: entryId,
                 journals: journals,
                 ai: ai,
-                media: media
+                media: media,
+                profiles: profiles
             )
         )
         self.journals = journals

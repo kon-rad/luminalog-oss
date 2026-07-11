@@ -71,14 +71,41 @@ struct SearchView: View {
 
     private var searchBar: some View {
         HStack(spacing: Spacing.s) {
-            TextField("Search your journal…", text: $viewModel.query)
-                .textFieldStyle(.plain)
-                .font(.uiBody)
-                .submitLabel(.search)
-                .onSubmit { Task { await viewModel.search() } }
-                .padding(.horizontal, Spacing.m)
-                .padding(.vertical, Spacing.s + 2)
-                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
+            HStack(spacing: Spacing.s) {
+                Image(systemName: "magnifyingglass")
+                    .font(.uiBody)
+                    .foregroundStyle(Color.textSecondary)
+
+                TextField("Search your journal…", text: $viewModel.query)
+                    .textFieldStyle(.plain)
+                    .font(.uiBody)
+                    .foregroundStyle(Color.textPrimary)
+                    .submitLabel(.search)
+                    .autocorrectionDisabled()
+                    .onSubmit { Task { await viewModel.search() } }
+
+                if !viewModel.query.isEmpty {
+                    Button {
+                        viewModel.query = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.uiBody)
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
+                }
+            }
+            .padding(.horizontal, Spacing.m)
+            .padding(.vertical, Spacing.s + 2)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)
+                    .fill(Color.secondaryBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)
+                    .strokeBorder(Color.textSecondary.opacity(0.18), lineWidth: 1)
+            )
 
             Button {
                 Task { await viewModel.search() }

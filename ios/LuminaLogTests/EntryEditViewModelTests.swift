@@ -80,7 +80,7 @@ final class EntryEditViewModelTests: XCTestCase {
         XCTAssertEqual(saved?.editHistory.count, 0)
     }
 
-    func testContentEditPersistsWordCountAndCreditsDeltaOnCreatedAtDay() async throws {
+    func testContentEditPersistsWordCountAndCreditsDeltaToLifetimeTotal() async throws {
         let createdAt = Date(timeIntervalSince1970: 1_700_000_000)
         let entry = JournalEntry(
             id: "e1", userId: "u", type: .text, title: "T",
@@ -93,9 +93,9 @@ final class EntryEditViewModelTests: XCTestCase {
         vm.content = "one two three four five"   // 5 words → delta +2
         await vm.save()
 
-        XCTAssertEqual(profiles.recordedDeltas.count, 1)
-        XCTAssertEqual(profiles.recordedDeltas.first?.delta, 2)
-        XCTAssertEqual(profiles.recordedDeltas.first?.date, createdAt)
+        // The daily-goal recompute is driven by the app-level reconciler, so the
+        // edit only credits the lifetime word delta here.
+        XCTAssertEqual(profiles.recordedDeltas, [2])
         let saved = try await repo.entries(after: nil, limit: 10).first { $0.id == "e1" }
         XCTAssertEqual(saved?.wordCount, 5)
     }
