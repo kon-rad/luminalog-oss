@@ -35,6 +35,15 @@ final class ProxyAPIClient {
     private let tokenProvider: TokenProvider
     private let session: URLSession
 
+    /// DRY client-side backstop for AI routes: when the server 403s with a
+    /// consent error (Task 8 gates AI routes on server-recorded consent),
+    /// re-sync consent locally then retry the request exactly once. Settable
+    /// after init (rather than injected via `init`) to break the
+    /// `ConsentService` <-> `ProxyAPIClient` construction cycle — `AppServices.live()`
+    /// wires this in after both are built. `nil` means no recovery is attempted
+    /// (e.g. in test/mock wiring), and the 403 surfaces as `ProxyAPIError.httpError` as before.
+    var consentRecovery: (() async throws -> Void)?
+
     private let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -121,6 +130,13 @@ final class ProxyAPIClient {
             (data, response) = try await session.data(for: retry)
         }
 
+        // On 403 with a consent error, re-sync consent and retry exactly once.
+        if let recovery = consentRecovery, Self.isConsentDenied(response: response, data: data) {
+            try await recovery()
+            let retry = try await makeRawRequest(path: path, body: body, contentType: contentType)
+            (data, response) = try await session.data(for: retry)
+        }
+
         try Self.validate(response: response, data: data)
         return data
     }
@@ -152,6 +168,13 @@ final class ProxyAPIClient {
             (data, response) = try await session.data(for: retryRequest)
         }
 
+        // On 403 with a consent error, re-sync consent and retry exactly once.
+        if let recovery = consentRecovery, Self.isConsentDenied(response: response, data: data) {
+            try await recovery()
+            let retryRequest = try await makeRequest(path: path, body: body)
+            (data, response) = try await session.data(for: retryRequest)
+        }
+
         try Self.validate(response: response, data: data)
         return data
     }
@@ -165,6 +188,13 @@ final class ProxyAPIClient {
             let retryRequest = try await makeRequest(
                 path: path, body: body, method: "PUT", forceRefresh: true
             )
+            (data, response) = try await session.data(for: retryRequest)
+        }
+
+        // On 403 with a consent error, re-sync consent and retry exactly once.
+        if let recovery = consentRecovery, Self.isConsentDenied(response: response, data: data) {
+            try await recovery()
+            let retryRequest = try await makeRequest(path: path, body: body, method: "PUT")
             (data, response) = try await session.data(for: retryRequest)
         }
 
@@ -192,6 +222,25 @@ final class ProxyAPIClient {
                         )
                         retryRequest.setValue("text/event-stream", forHTTPHeaderField: "Accept")
                         (bytes, response) = try await self.session.bytes(for: retryRequest)
+                    }
+
+                    // On 403 with a consent error, re-sync consent and retry exactly once.
+                    // The SSE transport only exposes a byte stream (no buffered `Data`), so
+                    // sniff the body for "consent" by draining and re-decoding the first
+                    // chunk of lines rather than the raw response body used elsewhere.
+                    if let recovery = self.consentRecovery,
+                       (response as? HTTPURLResponse)?.statusCode == 403 {
+                        var sniffed = ""
+                        for try await line in bytes.lines {
+                            sniffed += line
+                            if sniffed.count > 4096 { break }
+                        }
+                        if sniffed.contains("consent") {
+                            try await recovery()
+                            var retryRequest = try await self.makeRequest(path: path, body: body)
+                            retryRequest.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+                            (bytes, response) = try await self.session.bytes(for: retryRequest)
+                        }
                     }
 
                     if let http = response as? HTTPURLResponse,
@@ -256,6 +305,15 @@ final class ProxyAPIClient {
         let token = try await tokenProvider.idToken(forceRefresh: forceRefresh)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         return request
+    }
+
+    /// True when the response is a 403 whose body mentions "consent" — the
+    /// shape the server (Task 8) uses to signal `requireAiConsent` failed.
+    /// Shared by the buffered-`Data` request paths (`streamEvents` sniffs the
+    /// byte stream directly since it has no buffered body to inspect).
+    private static func isConsentDenied(response: URLResponse, data: Data) -> Bool {
+        (response as? HTTPURLResponse)?.statusCode == 403
+            && String(data: data, encoding: .utf8)?.contains("consent") == true
     }
 
     private static func validate(response: URLResponse, data: Data) throws {

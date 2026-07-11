@@ -127,6 +127,11 @@ final class AppServices: ObservableObject {
         // service that mirrors it to the server so `requireAiConsent` passes.
         let consentStore = ConsentStore()
         let consentService = ConsentService(api: api, store: consentStore)
+        // Client-side backstop (Task 7): if an AI call races ahead of the
+        // consent sync and the server 403s for a missing consent record,
+        // re-sync consent once and retry the request. Weak capture avoids a
+        // retain cycle (`consentService.api` already holds `api`).
+        api.consentRecovery = { [weak consentService] in try await consentService?.sync() }
 
         let migrationTransport = ProxyKeyMigrationTransport(api: api)
         let keys = UserKeyStore(
