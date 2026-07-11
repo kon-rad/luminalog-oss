@@ -213,7 +213,7 @@ final class BackgroundEntryProcessor: EntryProcessor {
     /// Voice/video path: stage encrypted ciphertext on disk + a durable journal
     /// record, write the entry as `.uploading`, then hand off to the background
     /// `UploadManager`. Finalization (status `.saving` → `.transcribing`, the
-    /// transcription trigger, and `recordEntrySaved`) happens inside the manager
+    /// transcription trigger, and `addTotalWords`) happens inside the manager
     /// via `onFinalize → finalizer.finalize` once every upload completes.
     private func processAudioVisual(_ job: EntryProcessingJob) async {
         let type = job.type

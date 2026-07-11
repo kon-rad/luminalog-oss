@@ -1155,7 +1155,183 @@ function KossSignalsContent() {
   )
 }
 
+/* ── Post: Chopstick Robots (interview with Chong Ing Kai) ── */
+function ChongIngKaiContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/chong-ing-kai-stickem-1.jpg"
+        alt="Two people sitting across a table with a microphone at Network School, at the start of a filmed conversation"
+        width={1280}
+        height={720}
+        caption="Recorded an hour after a robot hackathon at Network School."
+        priority
+      />
+      <P>
+        I met <strong>Chong Ing Kai</strong> an hour after we&apos;d both spent a Saturday at a robot
+        hackathon at Network School &mdash; a room of maybe forty kids and adults building machines out of
+        what look like chopsticks. He&apos;s 22, the founder and CEO of <strong>Stick &apos;Em</strong>, and
+        one of the more clear-headed builders I&apos;ve talked to in a while. So I asked him to tell me the
+        whole story.
+      </P>
+
+      <H2>A maker who never stopped</H2>
+      <P>
+        Kai has been taking things apart and putting them back together since he was six or seven. For a few
+        years that meant building <em>dangerous</em> things &mdash; flamethrowers, air cannons, tasers,
+        &ldquo;things that harm people,&rdquo; as he put it cheerfully. The turn came in primary five, when
+        his dad introduced him to Engineering Good, a Singapore nonprofit that pairs makers with people with
+        disabilities. Building a button that lets someone who can&apos;t turn a lock open their own door
+        taught him how powerful technology is when it&apos;s aimed at a real problem. He stopped building
+        dangerous things and started teaching kids to build useful ones.
+      </P>
+
+      <H2>Why STEAM, and why it&apos;s broken</H2>
+      <P>
+        Stick &apos;Em exists to make STEAM education accessible. The &ldquo;A&rdquo; &mdash; arts &mdash; is
+        the part people misunderstand. Kai&apos;s point is that Da Vinci was an inventor as much as a
+        painter, and without that inventive, human streak &ldquo;people would just build boring computers and
+        very boring things.&rdquo;
+      </P>
+      <P>
+        But the deeper problem he saw as a robotics teacher was exclusion. &ldquo;When I looked at my
+        classroom, everybody was a rich kid. 99% of them had the money.&rdquo; Every other school he visited,
+        the kids were bored &mdash; because they weren&apos;t building anything, they were <em>copying</em> a
+        robot off a screen. &ldquo;The whole approach to STEM education was so broken, so inaccessible, so
+        exclusive. So what if I can build something to solve it?&rdquo;
+      </P>
+      <P>
+        His answer is deliberately cheap and open-ended: chopstick-based robotics kits, ready-to-use lesson
+        materials, and teacher training that takes three hours and works whether the teacher logs in from
+        Uganda or shows up to a workshop in person. Some schools use it for robotics; others for English,
+        math, or physics. &ldquo;Ultimately, Stick &apos;Em is just a tool for hands-on learning.&rdquo;
+      </P>
+
+      <H2>Problem clarity beats vibe-coding</H2>
+      <P>
+        I asked how a maker becomes a founder. His answer was about <strong>problem clarity</strong>.
+        &ldquo;Y Combinator always said, build something people want. It&apos;s deceptively simple &mdash; the
+        real question is how <em>many</em> people want it.&rdquo; Today&apos;s tools make it trivially easy to
+        build things, he argues, which is exactly why so many entrepreneurs build things no one needs. Stick
+        &apos;Em has run six years without a meaningful pivot, and he credits that entirely to having spent
+        enough time inside a problem to actually understand it.
+      </P>
+      <Pull>
+        Ten customers is easy &mdash; I can WhatsApp every one. Getting to the next thousand, the next ten
+        thousand, is a completely different problem.
+      </Pull>
+      <P>
+        Getting started was almost accidental. He built in public &mdash; the first 3D print of a Stick
+        &apos;Em part was posted with a one-word, frustrated caption &mdash; and a teacher who followed him
+        from his robotics days asked, &ldquo;What is this? Tell me more.&rdquo; That became the first
+        customer, then a second, a third. Today Stick &apos;Em reaches roughly 35,000 students and 3,500
+        teachers across 300&ndash;400 schools in 18 countries, with the most active markets clustered in
+        Southeast Asia. The external validation has piled up too: Forbes 30 Under 30 at 21, Tatler, and a
+        US$1M Hult Prize for social entrepreneurship, won against roughly 15,000 competing teams.
+      </P>
+
+      <H2>Don&apos;t guide the kids</H2>
+      <P>
+        His teaching philosophy is almost anti-instruction. &ldquo;At the core of it, it&apos;s really to{' '}
+        <em>not</em> guide the kids.&rdquo; Give them a general problem statement, step back, and let them
+        create &mdash; which is why nothing in that hackathon room looked the same. Problem-solving, he
+        believes, doesn&apos;t come from sitting in front of a screen pressing buttons; it comes from touching
+        and building things, immersed for four hours instead of scrolling TikTok.
+      </P>
+      <P>
+        That belief extends to AI. Counterintuitively for a founder who&apos;s &ldquo;back coding
+        nowadays,&rdquo; Kai would <em>delay</em> giving kids the tools. &ldquo;Creativity is like an
+        instinct, an innate skill. If you don&apos;t sharpen it &mdash; if you chop it off and let the
+        computer do it &mdash; you&apos;re cooked.&rdquo; Hand a kid a challenge and they throw it straight to
+        ChatGPT; the packaged, perfect solution is, he thinks, exactly the wrong way to educate.
+      </P>
+
+      <H2>Two risks: almost jail, and the President of Singapore</H2>
+      <Figure
+        src="/blog/chong-ing-kai-stickem-2.jpg"
+        alt="Chong Ing Kai gesturing with both hands while telling the story of flying to London for the Hult Prize"
+        width={1280}
+        height={720}
+        caption="&ldquo;I go to jail for a week, it&rsquo;s not that bad, right?&rdquo; He went. They won."
+      />
+      <P>
+        The best stretch of the conversation was about risk. Last September, Stick &apos;Em made the Hult
+        Prize final in London &mdash; but Kai was in mandatory national service in Singapore and couldn&apos;t
+        leave the country without permission. He calculated it: fly secretly, and if they win a million
+        dollars, a week in jail is worth it. He went. They won.
+      </P>
+      <P>
+        The second story is tamer but just as telling. Singapore&apos;s president publishes his email
+        address. So Kai, fresh off the win, simply wrote to him &mdash; and within a week was shaking hands at
+        the Istana. &ldquo;If I had a boring mentality, if I didn&apos;t dare to play outside the system, I
+        wouldn&apos;t have taken the risk. The outcome is usually so much greater than the potential
+        risk.&rdquo;
+      </P>
+      <Note>
+        He&apos;s careful not to glorify it: risk-taking is also a <strong>privilege</strong>. Being able to
+        attend Network School, he notes, means being able to pay for it &mdash; &ldquo;some random kid in
+        Bangladesh can&apos;t take that risk&rdquo; &mdash; and those who can should stay aware of it.
+      </Note>
+
+      <H2>Documenting a life, and the Experience Cube</H2>
+      <Figure
+        src="/blog/chong-ing-kai-stickem-3.jpg"
+        alt="Chong Ing Kai and the interviewer discussing journaling and self-awareness"
+        width={1280}
+        height={720}
+        caption="On journaling: observe, think, feel, want — and how most people stop at the first."
+      />
+      <P>
+        We ended on something close to my own work &mdash; journaling. Kai connected it back to
+        self-awareness and a framework he&apos;d just learned, the Experience Cube: what you{' '}
+        <em>observed</em>, what you <em>thought</em>, what you <em>felt</em>, and what you <em>want</em>.
+        &ldquo;Many people just observe. They don&apos;t think hard, don&apos;t notice how they feel,
+        don&apos;t know what they want.&rdquo; Documenting, done honestly, is how you close that gap &mdash;
+        the same reason Da Vinci filled notebooks the moment paper became affordable.
+      </P>
+      <P>
+        Maybe the cleanest summary of Kai is a line he borrowed from Acumen&apos;s Jacqueline Novogratz: a
+        good social entrepreneur holds the <em>tension</em> between making money and making impact, and never
+        lets either side seduce them. He&apos;s very good at holding it.
+      </P>
+
+      <H2>Key takeaways</H2>
+      <UL
+        items={[
+          <><strong>Problem clarity is the moat.</strong> Six years, no pivot &mdash; because he understood the problem before he built the product.</>,
+          <><strong>Accessibility is a design choice.</strong> Chopsticks, three-hour training, and open-ended lessons are what let STEAM reach a floating village or a rural classroom.</>,
+          <><strong>Don&apos;t guide the kids.</strong> Real problem-solving comes from building, not copying &mdash; and that&apos;s why he&apos;d delay AI, not rush it.</>,
+          <><strong>Take the risk, but know it&apos;s a privilege.</strong> The upside usually dwarfs the downside &mdash; for those who can afford the downside.</>,
+          <><strong>Hold the tension.</strong> Between profit and impact, awareness and ambition &mdash; giving in to either means you&apos;ve stopped.</>,
+        ]}
+      />
+      <P>
+        You can find Kai on Instagram at{' '}
+        <A href="https://instagram.com/kaiiconic">@kaiiconic</A> and on LinkedIn, and Stick &apos;Em at
+        @stickem.sg.
+      </P>
+
+      <H2>Listen to the LuminaLog podcast</H2>
+      <P>
+        Subscribe on{' '}
+        <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
+        <A href="https://open.spotify.com/show/033Mu8Yn2ybRQIis1uKNv2">Spotify</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'chong-ing-kai-stickem',
+    title: 'The Founder Who Teaches Kids to Build With Chopsticks',
+    description:
+      'A conversation at Network School with Chong Ing Kai, the 22-year-old founder of Stick ’Em — who went from building flamethrowers to winning a US$1M Hult Prize for making STEAM education accessible. On problem clarity, why he’d delay AI for kids, the day he risked jail to win a million dollars, and holding the tension every social entrepreneur faces.',
+    date: 'July 11, 2026',
+    isoDate: '2026-07-11T18:00',
+    readingTime: '8 min read',
+    Content: ChongIngKaiContent,
+  },
   {
     slug: 'koss-ethereum-biomarkers-and-the-signals-of-nature',
     title: 'The Signals of Life: Ethereum, Biomarkers, and Bioregions — a Conversation with Koss',

@@ -8,7 +8,7 @@ import OSLog
 ///
 /// NOTE: `recordMediaUploaded` stats are recorded by the processor at enqueue
 /// time (the byte counts are known then), so the finalizer must NOT record them
-/// again — only `recordEntrySaved`, which is keyed to a single save.
+/// again — only `addTotalWords`, which is keyed to a single save.
 @MainActor
 struct EntryFinalizer {
     let journals: JournalRepository

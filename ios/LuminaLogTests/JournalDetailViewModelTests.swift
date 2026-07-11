@@ -41,9 +41,19 @@ final class JournalDetailViewModelTests: XCTestCase {
         }
 
         var transcribeClipCalls = 0
+        var shouldFailTranscribeClip = false
+        var clipTranscript = "spy clip transcript"
         func transcribeClip(audio: Data, contentType: String) async throws -> String {
             transcribeClipCalls += 1
-            return "spy clip transcript"
+            // Suspend like a real network call so the loading guard can observe
+            // an in-flight retry (otherwise concurrent retries can't be tested).
+            if delayNanos > 0 {
+                try await Task.sleep(nanoseconds: delayNanos)
+            }
+            if shouldFailTranscribeClip {
+                throw SpyError()
+            }
+            return clipTranscript
         }
 
         func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] { [] }
@@ -275,8 +285,27 @@ final class JournalDetailViewModelTests: XCTestCase {
 
     // MARK: - Transcript retry
 
+    /// Minimal `MediaUploader` for the zero-knowledge retry path: resolves a real
+    /// on-disk file for the entry's audio clip so `retryTranscription` can read
+    /// the bytes and hand them to `transcribeClip`.
+    @MainActor
+    private final class StubMedia: MediaUploader {
+        struct Unused: Error {}
+        func upload(fileURL: URL, kind: MediaKind, journalId: String) async throws -> MediaItem { throw Unused() }
+        func prepareUpload(fileURL: URL, kind: MediaKind, journalId: String) async throws -> PreparedUpload { throw Unused() }
+        func presignUpload(s3Key: String?, kind: MediaKind, ext: String, bytes: Int, journalId: String) async throws -> (s3Key: String, url: URL) { throw Unused() }
+        func viewURL(for s3Key: String) async throws -> URL { throw Unused() }
+        func localFileURL(for s3Key: String) async throws -> URL {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("\(UUID().uuidString).m4a")
+            try Data([0x1, 0x2, 0x3, 0x4]).write(to: url)
+            return url
+        }
+    }
+
     /// A voice entry whose transcription failed: audio media item present,
-    /// `transcriptStatus: .failed`.
+    /// `transcriptStatus: .failed`. One typed fallback word so a longer retry
+    /// transcript produces a positive word delta.
     @MainActor
     private func makeFailedVoiceEntry(id: String = "entry-1") -> JournalEntry {
         JournalEntry(
@@ -284,47 +313,57 @@ final class JournalDetailViewModelTests: XCTestCase {
             userId: MockData.userId,
             type: .voice,
             title: "Voice note",
-            content: "Typed fallback text.",
+            content: "Typed.",
             media: [MediaItem(s3Key: "audio-key.m4a", kind: .audio)],
             transcriptStatus: .failed,
             summary: AIGeneration(text: "s", model: "m"),
-            wordCount: 3
+            wordCount: 1
         )
     }
 
     @MainActor
-    func testRetryTranscriptionCallsWhisperAndIdlesOnSuccess() async {
+    func testRetryTranscriptionTranscribesClipAndCreditsWordDelta() async {
         let repo = MockJournalRepository(entries: [makeFailedVoiceEntry()])
         let ai = SpyAIService()
+        ai.clipTranscript = "one two three four five"   // 5 words; entry had 1 → +4
+        let profiles = MockProfileRepository()
 
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
+        let viewModel = JournalDetailViewModel(
+            entryId: "entry-1", journals: repo, ai: ai, media: StubMedia(), profiles: profiles)
         await viewModel.start()
         XCTAssertEqual(viewModel.entry?.transcriptStatus, .failed)
 
         await viewModel.retryTranscription()
 
-        XCTAssertEqual(ai.transcribeCalls, 1, "Retry delegates to server-side Whisper")
+        XCTAssertEqual(ai.transcribeClipCalls, 1, "Retry transcribes the clip on-device (zero-knowledge)")
         XCTAssertEqual(viewModel.transcriptRetryState, .idle)
-        // The entry is updated by Firestore listener after the server writes;
-        // in tests the mock repo doesn't auto-update, so status stays .failed.
-        XCTAssertEqual(viewModel.entry?.transcriptStatus, .failed, "Mock repo unchanged until listener fires")
+        XCTAssertEqual(viewModel.entry?.content, "one two three four five")
+        XCTAssertEqual(viewModel.entry?.transcriptStatus, .ready)
+        XCTAssertEqual(viewModel.entry?.wordCount, 5)
+        // The regression: a failed-then-retried transcription now credits the
+        // recovered words to the lifetime odometer (+4). The daily-goal total
+        // itself is reconciled from today's entries by DailyGoalReconciler.
+        XCTAssertEqual(profiles.recordedDeltas, [4])
     }
 
     @MainActor
     func testRetryTranscriptionFailureSetsFailedState() async {
         let repo = MockJournalRepository(entries: [makeFailedVoiceEntry()])
         let ai = SpyAIService()
-        ai.shouldFailTranscribe = true
+        ai.shouldFailTranscribeClip = true
+        let profiles = MockProfileRepository()
 
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
+        let viewModel = JournalDetailViewModel(
+            entryId: "entry-1", journals: repo, ai: ai, media: StubMedia(), profiles: profiles)
         await viewModel.start()
 
         await viewModel.retryTranscription()
 
-        XCTAssertEqual(ai.transcribeCalls, 1)
+        XCTAssertEqual(ai.transcribeClipCalls, 1)
         XCTAssertEqual(viewModel.transcriptRetryState, .failed)
-        XCTAssertEqual(viewModel.entry?.content, "Typed fallback text.", "Failure leaves the entry untouched")
+        XCTAssertEqual(viewModel.entry?.content, "Typed.", "Failure leaves the entry untouched")
         XCTAssertEqual(viewModel.entry?.transcriptStatus, .failed)
+        XCTAssertTrue(profiles.recordedDeltas.isEmpty, "A failed retry credits nothing")
     }
 
     @MainActor
@@ -333,14 +372,15 @@ final class JournalDetailViewModelTests: XCTestCase {
         let ai = SpyAIService()
         ai.delayNanos = 100_000_000
 
-        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
+        let viewModel = JournalDetailViewModel(
+            entryId: "entry-1", journals: repo, ai: ai, media: StubMedia())
         await viewModel.start()
 
         async let first: Void = viewModel.retryTranscription()
         async let second: Void = viewModel.retryTranscription()
         _ = await (first, second)
 
-        XCTAssertEqual(ai.transcribeCalls, 1, "Loading guard blocks duplicate retry calls")
+        XCTAssertEqual(ai.transcribeClipCalls, 1, "Loading guard blocks duplicate retry calls")
     }
 
     // MARK: - Delete

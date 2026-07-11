@@ -7,6 +7,21 @@ import XCTest
 /// at each step and retaining failed jobs for in-session retry.
 final class EntryProcessorTests: XCTestCase {
 
+    // These tests cover the server-side transcription branch (voice/video hand
+    // off to Whisper), which is the `aiModel1 == false` path. The app registers
+    // `aiModel1 = true` as a default and other suites flip it on, so pin it off
+    // here and restore, so these tests exercise the branch they were written for.
+    private var savedAIModel1 = false
+    override func setUp() {
+        super.setUp()
+        savedAIModel1 = DevFlags.aiModel1
+        DevFlags.aiModel1 = false
+    }
+    override func tearDown() {
+        DevFlags.aiModel1 = savedAIModel1
+        super.tearDown()
+    }
+
     // MARK: - Spies
 
     @MainActor

@@ -107,13 +107,13 @@ struct JournalDetailView: View {
 
     // MARK: - Layout
 
-    /// Bottom padding for the scrolling tab content. Insights and Prompts get a
-    /// generous margin (≥300pt) so the floating root tab bar never covers the
-    /// last card; the other tabs keep the standard screen-level inset.
+    /// Bottom padding for the scrolling tab content. Main, Insights, and Prompts
+    /// get a generous margin (≥300pt) so the floating root tab bar never covers
+    /// their last card; the Related tab keeps the standard screen-level inset.
     private static func tabContentBottomInset(for tab: JournalDetailTab) -> CGFloat {
         switch tab {
-        case .insights, .prompts: return 300
-        case .main, .related: return Spacing.xl
+        case .main, .insights, .prompts: return 300
+        case .related: return Spacing.xl
         }
     }
 
@@ -253,22 +253,34 @@ struct JournalDetailView: View {
                     .font(.captionText)
                     .foregroundStyle(Color.textSecondary)
                     .accessibilityLabel("\(entry.wordCount) words")
-                if onStartJournalChat != nil {
-                    Text("·")
-                        .font(.captionText)
-                        .foregroundStyle(Color.textSecondary)
-                    Button("Chat ›") {
-                        isShowingJournalChat = true
-                    }
-                    .font(.captionText.weight(.semibold))
-                    .foregroundStyle(Color.accentWarm)
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Start chat about this entry")
-                }
+            }
+
+            if onStartJournalChat != nil {
+                chatButton
+                    .padding(.top, Spacing.s)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+
+    /// Prominent full-width action that opens the text/voice chat picker for
+    /// this entry (only shown when the caller supports journal-linked chats).
+    private var chatButton: some View {
+        Button {
+            isShowingJournalChat = true
+        } label: {
+            Label("Chat about this entry", systemImage: "bubble.left.and.text.bubble.right")
+                .font(.uiBody.weight(.semibold))
+                .foregroundStyle(Color.white)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)
+                        .fill(Color.accentWarm)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Chat about this entry")
     }
 
     private func wordCountLabel(_ count: Int) -> String {

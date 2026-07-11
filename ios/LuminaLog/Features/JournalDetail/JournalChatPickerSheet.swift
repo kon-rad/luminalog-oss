@@ -11,15 +11,33 @@ struct JournalChatPickerSheet: View {
 
     var body: some View {
         VStack(spacing: Spacing.m) {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "book.closed")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.accentWarm)
-                Text("Context: \(journalTitle)")
-                    .font(.captionText.weight(.semibold))
-                    .foregroundStyle(Color.accentWarm)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+            VStack(spacing: Spacing.s) {
+                Text("Chat about this entry")
+                    .font(.sectionHeader)
+                    .foregroundStyle(Color.textPrimary)
+
+                Text("Start a new text or voice call with your AI. This journal entry will be included in the conversation as context.")
+                    .font(.captionText)
+                    .foregroundStyle(Color.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: "book.closed")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.accentWarm)
+                    Text(journalTitle)
+                        .font(.captionText.weight(.semibold))
+                        .foregroundStyle(Color.accentWarm)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .padding(.horizontal, Spacing.s)
+                .padding(.vertical, Spacing.xs)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color.accentWarm.opacity(0.12))
+                )
             }
             .frame(maxWidth: .infinity)
             .padding(.top, Spacing.s)
@@ -58,7 +76,7 @@ struct JournalChatPickerSheet: View {
         }
         .padding(.horizontal, Spacing.m)
         .padding(.bottom, Spacing.m)
-        .presentationDetents([.height(200)])
+        .presentationDetents([.height(300)])
         .presentationDragIndicator(.visible)
         .background(Color.appBackground.ignoresSafeArea())
     }

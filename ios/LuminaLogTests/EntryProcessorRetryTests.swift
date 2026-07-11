@@ -7,6 +7,19 @@ import XCTest
 @MainActor
 final class EntryProcessorRetryTests: XCTestCase {
 
+    // Exercises the server-side transcription branch (`aiModel1 == false`); the
+    // app registers `aiModel1 = true` by default, so pin it off here and restore.
+    private var savedAIModel1 = false
+    override func setUp() {
+        super.setUp()
+        savedAIModel1 = DevFlags.aiModel1
+        DevFlags.aiModel1 = false
+    }
+    override func tearDown() {
+        DevFlags.aiModel1 = savedAIModel1
+        super.tearDown()
+    }
+
     // MARK: - Minimal spies (mirrors EntryProcessorTests harness)
 
     private final class CountingTransport: UploadTransport {

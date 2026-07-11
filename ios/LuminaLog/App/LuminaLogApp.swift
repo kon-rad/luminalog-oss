@@ -36,9 +36,10 @@ struct LuminaLogApp: App {
         UserDefaults.standard.register(defaults: [DevFlags.aiModel1Key: true])
 
         #if DEBUG
-        // Dev mode is OFF by default so the paywall and credit gates — and the
-        // SettingsView developer tools — behave exactly as they do in the App Store build.
-        UserDefaults.standard.register(defaults: [DevFlags.devModeKey: false])
+        // Dev mode ON in DEBUG so the SettingsView developer tools (onboarding replay,
+        // daily-report generation, constellation rebuild) are available for testing.
+        // Release builds never reach this branch, so production is unaffected.
+        UserDefaults.standard.register(defaults: [DevFlags.devModeKey: true])
         #endif
 
         // Upgrade the legacy `ll-force-dark` boolean to the three-way theme setting

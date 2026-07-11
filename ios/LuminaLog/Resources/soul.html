@@ -67,7 +67,9 @@
       return s;
     }
 
-    var Graph = ForceGraph3D()(document.getElementById('soul'))
+    // 'orbit' controls give a turntable feel and — unlike the default trackball —
+    // support autoRotate (see below), so the constellation slowly turns in place.
+    var Graph = ForceGraph3D({ controlType: 'orbit' })(document.getElementById('soul'))
       .backgroundColor('rgba(0,0,0,0)')
       .showNavInfo(false)
       .enableNodeDrag(false)
@@ -84,8 +86,11 @@
            .nodeVal(function (n) { return 1 + Math.min(n.wordCount || 0, 3000) / 3000 * 2.4; });
     }
 
+    // Gentle turntable: the whole sky rotates in place (~60s / revolution) so it
+    // reads as a 3D object. OrbitControls only auto-rotates while idle, so it
+    // pauses the moment a finger touches the galaxy and resumes on release.
     var controls = Graph.controls();
-    if (controls) { controls.autoRotate = true; controls.autoRotateSpeed = 0.5; }
+    if (controls) { controls.autoRotate = true; controls.autoRotateSpeed = 1.0; }
 
     // Fixed-position nodes + nearest-neighbor links (reads as a constellation).
     function buildGraph(points) {
