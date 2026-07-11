@@ -23,7 +23,11 @@ final class SessionStoreTests: XCTestCase {
             keys: UserKeyStore(provider: MockKeyProvider(), secrets: MemorySecretStore()),
             profiles: MockProfileRepository(),
             subscriptions: subscriptions,
-            onboarding: OnboardingStore(defaults: UserDefaults(suiteName: "test-session-\(UUID().uuidString)")!)
+            onboarding: OnboardingStore(defaults: UserDefaults(suiteName: "test-session-\(UUID().uuidString)")!),
+            consentService: ConsentService(
+                api: SpyPutAPI(),
+                store: ConsentStore(defaults: UserDefaults(suiteName: "test-consent-\(UUID().uuidString)")!)
+            )
         )
     }
 

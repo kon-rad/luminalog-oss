@@ -21,6 +21,11 @@ final class AppServices: ObservableObject {
     let voice: VoiceCallService
     let leaderboard: LeaderboardService
     let soul: SoulService
+    /// Local record of AI-data-sharing consent (App Store 5.1.1/5.1.2) + the
+    /// service that mirrors it to `PUT /v1/consent`. Always non-nil — `mocks()`
+    /// wires a no-op transport since there's no live `ProxyAPIClient` there.
+    let consentStore: ConsentStore
+    let consentService: ConsentService
     /// Proxy client, exposed so views (e.g. the voice-call detail screen) can
     /// reach authed endpoints directly. Optional — mock wiring omits it.
     let api: ProxyAPIClient?
@@ -71,6 +76,8 @@ final class AppServices: ObservableObject {
         voice: VoiceCallService,
         leaderboard: LeaderboardService,
         soul: SoulService,
+        consentStore: ConsentStore,
+        consentService: ConsentService,
         entryProcessor: EntryProcessor,
         api: ProxyAPIClient? = nil,
         uploadTransport: BackgroundUploadTransport? = nil,
@@ -94,6 +101,8 @@ final class AppServices: ObservableObject {
         self.voice = voice
         self.leaderboard = leaderboard
         self.soul = soul
+        self.consentStore = consentStore
+        self.consentService = consentService
         self.entryProcessor = entryProcessor
         self.api = api
         self.uploadTransport = uploadTransport
@@ -114,6 +123,11 @@ final class AppServices: ObservableObject {
         // Keychain) + the server's opaque client wraps (which the server cannot open).
         // There is NO server fallback — the legacy /bootstrap path (which handed the
         // server a DEK) was deleted at the cutover, so the server holds no key, ever.
+        // AI-data-sharing consent (App Store 5.1.1/5.1.2): local record + the
+        // service that mirrors it to the server so `requireAiConsent` passes.
+        let consentStore = ConsentStore()
+        let consentService = ConsentService(api: api, store: consentStore)
+
         let migrationTransport = ProxyKeyMigrationTransport(api: api)
         let keys = UserKeyStore(
             provider: ICloudKeyProvider(iCloudStore: SyncedKeychainStore(), transport: migrationTransport),
@@ -262,6 +276,8 @@ final class AppServices: ObservableObject {
             voice: VapiVoiceCallService(api: api, ai: ai),
             leaderboard: ProxyLeaderboardService(api: api),
             soul: ProxySoulService(api: api),
+            consentStore: consentStore,
+            consentService: consentService,
             entryProcessor: BackgroundEntryProcessor(
                 dependencies: BackgroundEntryProcessor.Dependencies(
                     journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr,
@@ -289,6 +305,11 @@ final class AppServices: ObservableObject {
         let ai = MockAIService()
         let media = MockMediaUploader()
         let ocr = VisionOCRService()
+
+        // No live `ProxyAPIClient` in mock wiring — mirror consent through a
+        // no-op transport so `ConsentGate`/`ConsentService` are always usable.
+        let consentStore = ConsentStore()
+        let consentService = ConsentService(api: NoOpConsentAPI(), store: consentStore)
 
         // Mock upload pipeline: a transport that always "succeeds" so previews
         // never hit the network. Real wiring lives in `live()`.
@@ -336,6 +357,8 @@ final class AppServices: ObservableObject {
             voice: MockVoiceCallService(chats: chats),
             leaderboard: MockLeaderboardService(),
             soul: MockSoulService(),
+            consentStore: consentStore,
+            consentService: consentService,
             entryProcessor: BackgroundEntryProcessor(
                 dependencies: BackgroundEntryProcessor.Dependencies(
                     journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr,
@@ -358,4 +381,10 @@ private final class AlwaysOKTransport: UploadTransport {
 /// exercise this path.
 private final class NoOpConstellationSyncService: ConstellationSyncing {
     func upload(points: [ConstellationPoint]) async throws {}
+}
+
+/// Demo/preview consent transport — `mocks()` has no live `ProxyAPIClient` to
+/// PUT through, and previews/tests never exercise this path.
+private final class NoOpConsentAPI: ConsentAPIPutting {
+    func put(path: String, body: some Encodable) async throws {}
 }

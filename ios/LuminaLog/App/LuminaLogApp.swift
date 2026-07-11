@@ -60,7 +60,8 @@ struct LuminaLogApp: App {
             keys: services.keys,
             profiles: services.profiles,
             subscriptions: services.subscriptions,
-            onboarding: onboarding
+            onboarding: onboarding,
+            consentService: services.consentService
         ))
     }
 
@@ -97,17 +98,25 @@ struct LuminaLogApp: App {
                             }
                         )
                     } else {
+                        // AI-data-sharing consent gate (App Store 5.1.1/5.1.2):
+                        // blocks the signed-in app until consent is recorded AND
+                        // synced to the server. New users pass instantly (consent
+                        // was recorded in onboarding); already-onboarded users see
+                        // `AIConsentView` once.
+                        //
                         // Hard paywall: Pro is required to use the app. The gate
                         // renders RootView only once the entitlement resolves to pro.
                         // Re-key the whole shell per uid: repository streams capture
                         // the user at creation, so all tab content must be rebuilt
                         // when the signed-in user changes.
-                        PaywallGate(
-                            subscriptions: services.subscriptions,
-                            onSignOut: { try? services.auth.signOut() }
-                        ) {
-                            RootView()
-                                .id(uid)
+                        ConsentGate(store: services.consentStore, service: services.consentService) {
+                            PaywallGate(
+                                subscriptions: services.subscriptions,
+                                onSignOut: { try? services.auth.signOut() }
+                            ) {
+                                RootView()
+                                    .id(uid)
+                            }
                         }
                         .id(uid)
                         // Once the signed-in user is established, resume any

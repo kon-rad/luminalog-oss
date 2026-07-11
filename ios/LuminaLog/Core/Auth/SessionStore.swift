@@ -27,6 +27,7 @@ final class SessionStore: ObservableObject {
     private let profiles: ProfileRepository
     private let subscriptions: SubscriptionService
     private let onboarding: OnboardingStore
+    private let consentService: ConsentService
 
     private var authTask: Task<Void, Never>?
     private var profileTask: Task<Void, Never>?
@@ -36,13 +37,15 @@ final class SessionStore: ObservableObject {
         keys: UserKeyStore,
         profiles: ProfileRepository,
         subscriptions: SubscriptionService,
-        onboarding: OnboardingStore
+        onboarding: OnboardingStore,
+        consentService: ConsentService
     ) {
         self.auth = auth
         self.keys = keys
         self.profiles = profiles
         self.subscriptions = subscriptions
         self.onboarding = onboarding
+        self.consentService = consentService
 
         authTask = Task { [weak self] in
             guard let stream = self?.auth.authStateStream() else { return }
@@ -96,6 +99,11 @@ final class SessionStore: ObservableObject {
             await mergeOnboardingDraftIfPresent(overwriteExisting: createdNewUser)
             startProfileStream()
             await subscriptions.setUser(uid)
+            // Best-effort: mirror a locally-consented new user's AI-data-sharing
+            // choice (recorded pre-auth in onboarding) to the server before the
+            // app makes any AI calls. Never throws; a failure just leaves
+            // `needsServerSync` true so a later launch retries.
+            await consentService.syncIfNeeded()
         } else {
             if let previousUid { keys.signOut(userId: previousUid) }
             // Decrypted plaintext must not outlive the session.
