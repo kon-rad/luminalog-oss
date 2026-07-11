@@ -18,14 +18,15 @@ final class DayBucketingTests: XCTestCase {
 
     func testBucketGroupsByUtcDayAndSumsWords() {
         let buckets = DayBucketing.bucket(entries: [
-            (text: "a", wordCount: 300, createdAt: d("2024-10-04T08:00:00Z")),
-            (text: "b", wordCount: 500, createdAt: d("2024-10-04T20:00:00Z")),
-            (text: "c", wordCount: 100, createdAt: d("2024-10-05T09:00:00Z")),
+            (id: "a", text: "a", wordCount: 300, createdAt: d("2024-10-04T08:00:00Z")),
+            (id: "b", text: "b", wordCount: 500, createdAt: d("2024-10-04T20:00:00Z")),
+            (id: "c", text: "c", wordCount: 100, createdAt: d("2024-10-05T09:00:00Z")),
         ])
         XCTAssertEqual(buckets.count, 2)
         let day0 = buckets.first { $0.dayIndex == 20000 }!
         XCTAssertEqual(day0.wordTotal, 800)
-        XCTAssertEqual(day0.texts.count, 2)
+        XCTAssertEqual(day0.entries.count, 2)
+        XCTAssertEqual(Set(day0.entries.map { $0.id }), ["a", "b"])
         XCTAssertEqual(day0.date, "2024-10-04")
     }
 

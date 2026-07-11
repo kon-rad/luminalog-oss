@@ -44,9 +44,10 @@ final class AppServices: ObservableObject {
     /// server-side wraps (i.e. migration already ran), independent of running
     /// the migration itself. Nil alongside `keyMigrator`.
     let keyMigrationTransport: KeyMigrationTransport?
-    /// One-shot on-device rebuild of the anchored soul constellation, gated by
-    /// `DevFlags.aiModel1` (OFF by default — `rebuildAndSync()` is a no-op until
-    /// the flag flips on). Triggered manually from the DEBUG developer tools.
+    /// On-device anchored soul constellation. Rebuilds automatically after each
+    /// entry is indexed (reusing the semantic index's cached vector via a coalesced
+    /// `scheduleRebuild()`), and can be rebuilt on demand from the DEBUG developer
+    /// tools. Gated by `DevFlags.aiModel1` (the zero-knowledge path, on by default).
     let constellationCoordinator: ConstellationCoordinator
     /// App-level observer that reconciles today's daily-goal progress + streak
     /// from the entries created today (self-healing across transcript retries,
@@ -228,13 +229,21 @@ final class AppServices: ObservableObject {
         // rebuild reads the full local corpus. `rebuildAndSync()` is a no-op with
         // the flag off, so this is inert until manually triggered from Settings.
         let constellationCoordinator = ConstellationCoordinator(
-            builder: ConstellationBuilder(embedder: embedder),
+            builder: ConstellationBuilder(
+                embedder: embedder,
+                vectorProvider: { [weak coordinator] id in coordinator?.vector(for: id) }),
             sync: ProxyConstellationSyncService(api: api),
             entriesProvider: { [journals] in
                 try await journals.fetchAllEntries().map {
-                    (text: $0.content, wordCount: $0.wordCount, createdAt: $0.createdAt)
+                    (id: $0.id, text: $0.content, wordCount: $0.wordCount, createdAt: $0.createdAt)
                 }
             })
+        // Living sculpture: after each on-device index, rebuild reusing the
+        // just-cached vector (no re-embed). Coalesced; `weak` breaks the
+        // repo → coordinator → repo (entriesProvider captures `journals`) cycle.
+        journals.onEntryIndexed = { [weak constellationCoordinator] _ in
+            constellationCoordinator?.scheduleRebuild()
+        }
 
         return AppServices(
             auth: auth,
@@ -303,7 +312,7 @@ final class AppServices: ObservableObject {
             sync: NoOpConstellationSyncService(),
             entriesProvider: { [journals] in
                 try await journals.fetchAllEntries().map {
-                    (text: $0.content, wordCount: $0.wordCount, createdAt: $0.createdAt)
+                    (id: $0.id, text: $0.content, wordCount: $0.wordCount, createdAt: $0.createdAt)
                 }
             })
 

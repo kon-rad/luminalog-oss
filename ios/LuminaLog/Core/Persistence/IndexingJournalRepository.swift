@@ -20,6 +20,11 @@ final class IndexingJournalRepository: JournalRepository {
     private let base: JournalRepository
     private let coordinator: SemanticIndexCoordinating
 
+    /// Fired (on the main actor) after an entry's on-device vector is indexed.
+    /// Set post-construction to trigger a constellation rebuild that reuses the
+    /// just-cached vector. Nil = no-op (previews/tests/flag-off).
+    var onEntryIndexed: (@MainActor (String) -> Void)?
+
     init(base: JournalRepository, coordinator: SemanticIndexCoordinating) {
         self.base = base
         self.coordinator = coordinator
@@ -112,10 +117,12 @@ final class IndexingJournalRepository: JournalRepository {
 
     private func index(id: String, text: String) {
         guard DevFlags.aiModel1 else { return }
-        let coordinator = self.coordinator
         Task {
             do {
-                try await coordinator.indexEntry(id: id, text: text)
+                try await self.coordinator.indexEntry(id: id, text: text)
+                // Vector is now cached in the index; let the constellation rebuild
+                // reuse it (no re-embed). @MainActor closure, we're on the main actor.
+                self.onEntryIndexed?(id)
             } catch {
                 print("[IndexingJournalRepository] indexEntry(\(id)) failed: \(error)")
             }

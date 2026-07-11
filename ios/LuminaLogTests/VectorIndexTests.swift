@@ -103,4 +103,14 @@ final class VectorIndexTests: XCTestCase {
         let result = index.topK(5, query: EmbeddingVector([1, 0, 0]))
         XCTAssertEqual(ids(result), ["match"])   // wrongdim contributes no bogus score
     }
+
+    // MARK: - vector(for:)
+
+    func testVectorForReturnsUpsertedVectorAndNilForMissing() {
+        var idx = VectorIndex()
+        let v = EmbeddingVector([Float](repeating: 0.5, count: 512))
+        idx.upsert(entryId: "e1", vector: v)
+        XCTAssertEqual(idx.vector(for: "e1"), v)
+        XCTAssertNil(idx.vector(for: "missing"))
+    }
 }

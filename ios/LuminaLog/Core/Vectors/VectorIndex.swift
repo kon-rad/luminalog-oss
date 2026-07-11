@@ -30,6 +30,11 @@ struct VectorIndex {
         vectors.removeValue(forKey: entryId)
     }
 
+    /// The stored vector for `entryId`, or nil if not indexed. Lets other
+    /// on-device consumers (the soul constellation) reuse an already-computed
+    /// embedding instead of re-embedding the same text.
+    func vector(for entryId: String) -> EmbeddingVector? { vectors[entryId] }
+
     /// The top-`k` entries most similar to `query`, by cosine similarity, highest
     /// first. Ties (equal score) break on ascending `entryId` for deterministic
     /// output. `k <= 0` returns `[]`; `k` greater than the corpus returns everything.
