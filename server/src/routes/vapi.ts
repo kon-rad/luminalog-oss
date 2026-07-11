@@ -2,29 +2,15 @@ import { Router, Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
 import admin from 'firebase-admin'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
-import { retrieveContextWithSources } from '../services/journalRetriever'
 import { chatCompletion } from '../services/aiClient'
-import { persistVoiceTurn } from '../services/voicePersistence'
 import { storeRecording, signedPlaybackUrl } from '../services/voiceRecordingStore'
 import { PROMPTS } from '../services/prompts'
-import { decodeProfileFields, type ProfileFields } from '../services/profileContext'
+import type { ProfileFields } from '../services/profileContext'
 import { config } from '../config'
-import { openFieldSafe, encryptField } from '../crypto/fieldCipher'
 
 export const vapiRouter = Router()
 
 const MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
-
-async function fetchFocalEntryForVapi(uid: string, journalId: string, dek: Buffer): Promise<string | undefined> {
-  try {
-    const snap = await db.collection('journals').doc(journalId).get()
-    const data = snap.data()
-    if (!data || data.userId !== uid) return undefined
-    return openFieldSafe(dek, data.content, 'journals.content') || undefined
-  } catch {
-    return undefined
-  }
-}
 
 // ── call-config ──────────────────────────────────────────────────────────────
 

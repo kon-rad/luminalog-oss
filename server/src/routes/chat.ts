@@ -1,24 +1,11 @@
 import { Router, Request, Response } from 'express'
 import admin from 'firebase-admin'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
-import { retrieveContext } from '../services/journalRetriever'
 import { chatCompletion } from '../services/aiClient'
 import { PROMPTS } from '../services/prompts'
-import { decodeProfileFields, type ProfileFields } from '../services/profileContext'
-import { openFieldSafe, encryptField } from '../crypto/fieldCipher'
+import type { ProfileFields } from '../services/profileContext'
 
 export const chatRouter = Router()
-
-async function fetchFocalEntry(uid: string, journalId: string, dek: Buffer): Promise<string | undefined> {
-  try {
-    const snap = await db.collection('journals').doc(journalId).get()
-    const data = snap.data()
-    if (!data || data.userId !== uid) return undefined
-    return openFieldSafe(dek, data.content, 'journals.content') || undefined
-  } catch {
-    return undefined
-  }
-}
 
 export async function chatHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string

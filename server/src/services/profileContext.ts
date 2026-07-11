@@ -1,4 +1,3 @@
-import { openFieldSafe } from '../crypto/fieldCipher'
 
 /** Decrypted onboarding profile fields (all optional). */
 export interface ProfileFields {
@@ -26,17 +25,6 @@ export const PROFILE_FIELD_KEYS: Array<keyof ProfileFields> = [
   'starSign', 'maritalStatus', 'location', 'education', 'work',
   'favoriteMovies', 'favoriteArtists', 'favoriteBooks', 'languages', 'friendsDescribe',
 ]
-
-/**
- * Decrypts the `profileDetails` map from a user document with the given DEK.
- * Each field is optional context — legacy/plaintext or missing values fall back
- * to '' (via `openFieldSafe`) and must never abort the request.
- */
-export function decodeProfileFields(dek: Buffer, userData: unknown): ProfileFields {
-  const details = (userData as { profileDetails?: Record<string, unknown> } | undefined)?.profileDetails ?? {}
-  const out: ProfileFields = {}
-  for (const key of PROFILE_FIELD_KEYS) {
-    out[key] = openFieldSafe(dek, details[key], `users.profileDetails.${key}`)
-  }
-  return out
-}
+// NOTE: the server no longer decrypts profileDetails (zero-knowledge — it holds no
+// DEK). The client sends the decrypted profile as plaintext in AI request bodies; this
+// module now only defines the `ProfileFields` shape + key list used to build prompts.
