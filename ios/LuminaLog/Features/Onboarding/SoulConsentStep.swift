@@ -34,6 +34,7 @@ struct SoulConsentStep: View {
                     Text("LuminaLog can mint you a **LuminaSoul** — a one-of-a-kind NFT on the Base blockchain that grows as you journal. It's **public and permanent**.")
                         .font(.uiBody)
                         .foregroundStyle(Color.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 VStack(alignment: .leading, spacing: Spacing.m) {
@@ -52,7 +53,7 @@ struct SoulConsentStep: View {
                 )
 
                 Label {
-                    Text("Your journal entries, media, and everything you write are **never** included — they stay end-to-end encrypted and private.")
+                    Text("Your journal entries, media, and everything you write are **never** put on-chain — only the details above are public.")
                         .font(.captionText)
                         .foregroundStyle(Color.textSecondary)
                 } icon: {

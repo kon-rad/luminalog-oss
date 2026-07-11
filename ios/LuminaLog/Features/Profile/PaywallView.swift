@@ -111,17 +111,53 @@ struct SubscriptionPaywall: View {
             }
         )
         .overlay(alignment: .bottom) {
-            if !isDismissible, let onSignOut {
-                Button { onSignOut() } label: {
-                    Text("Sign out")
-                        .font(.captionText)
-                        .foregroundStyle(Color.textSecondary)
+            VStack(spacing: Spacing.s) {
+                if !isDismissible, let onSignOut {
+                    Button { onSignOut() } label: {
+                        Text("Sign out")
+                            .font(.captionText)
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Sign out")
                 }
-                .buttonStyle(.plain)
-                .padding(.bottom, Spacing.l)
-                .accessibilityLabel("Sign out")
+                PaywallLegalFooter()
             }
+            .padding(.bottom, Spacing.m)
         }
+    }
+}
+
+/// Terms of Use + Privacy Policy links, rendered natively at the bottom of every
+/// subscription paywall (App Store Guideline 3.1.2(c)). Kept in-app — rather than
+/// relying solely on the RevenueCat hosted-paywall template's footer config — so
+/// the required legal links are always present and verifiable in the binary.
+struct PaywallLegalFooter: View {
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        HStack(spacing: Spacing.s) {
+            link("Terms of Use", "https://luminalog.com/terms")
+            Text("·").foregroundStyle(Color.textSecondary.opacity(0.5))
+            link("Privacy Policy", "https://luminalog.com/privacy")
+        }
+        .font(.caption2)
+        .padding(.vertical, 6)
+        .padding(.horizontal, Spacing.m)
+        .background(Capsule().fill(.ultraThinMaterial))
+    }
+
+    private func link(_ title: String, _ urlString: String) -> some View {
+        Button {
+            if let url = URL(string: urlString) { openURL(url) }
+        } label: {
+            Text(title)
+                .underline()
+                .foregroundStyle(Color.textSecondary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityHint("Opens in Safari")
     }
 }
 

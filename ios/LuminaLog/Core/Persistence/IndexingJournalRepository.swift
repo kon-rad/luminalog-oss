@@ -1,4 +1,7 @@
 import Foundation
+import OSLog
+
+private let indexLog = Logger(subsystem: "com.konradgnat.luminalog", category: "indexing")
 
 /// A `JournalRepository` decorator that keeps the client-side semantic index
 /// (increment 1c-D / 19b) in sync with the entry lifecycle: after a create/edit
@@ -124,7 +127,7 @@ final class IndexingJournalRepository: JournalRepository {
                 // reuse it (no re-embed). @MainActor closure, we're on the main actor.
                 self.onEntryIndexed?(id)
             } catch {
-                print("[IndexingJournalRepository] indexEntry(\(id)) failed: \(error)")
+                indexLog.error("indexEntry(\(id, privacy: .public)) failed: \(error.localizedDescription, privacy: .public)")
             }
         }
     }
@@ -136,7 +139,7 @@ final class IndexingJournalRepository: JournalRepository {
             do {
                 try await coordinator.removeEntry(id: id)
             } catch {
-                print("[IndexingJournalRepository] removeEntry(\(id)) failed: \(error)")
+                indexLog.error("removeEntry(\(id, privacy: .public)) failed: \(error.localizedDescription, privacy: .public)")
             }
         }
     }

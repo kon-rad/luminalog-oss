@@ -15,16 +15,16 @@ enum DevFlags {
     static let aiModel1Key = "ll-ai-model1"
     static let zkMigrationKey = "ll-zk-migration"
 
-    /// Client mirror of the server `AI_MODEL1` flag. When ON the client decrypts
-    /// context locally and sends it as PLAINTEXT to the AI endpoints (server
-    /// "Model 1" / zero-knowledge path), and — because the server no longer
-    /// persists chat messages on that path — persists + re-encrypts chat messages
-    /// CLIENT-SIDE via the existing encrypting repository.
+    /// Selects the zero-knowledge AI path. When ON the client decrypts context
+    /// locally and sends it as PLAINTEXT to the AI endpoints, and — because the
+    /// server no longer persists chat messages — persists + re-encrypts chat
+    /// messages CLIENT-SIDE via the existing encrypting repository.
     ///
-    /// Default OFF: with this off, behavior is byte-identical to today (client
-    /// sends IDs, server decrypts + persists). This flag is only flipped ON at the
-    /// 1d cutover, after every 1c increment has landed and been verified — see the
-    /// step-1 phase-1c plan. Additive and reversible.
+    /// Registered ON for EVERY build (see LuminaLogApp.init). Post-cutover this is
+    /// the ONLY path: the legacy server-decrypt architecture (MASTER_KEY, server
+    /// DEK, the non-ZK route bodies) was deleted server-side (ADR-0073), so turning
+    /// this OFF would break AI features. It is no longer a dev toggle — kept as a
+    /// flag only until the client-side legacy-path cleanup lands.
     static var aiModel1: Bool {
         get { UserDefaults.standard.bool(forKey: aiModel1Key) }
         set { UserDefaults.standard.set(newValue, forKey: aiModel1Key) }

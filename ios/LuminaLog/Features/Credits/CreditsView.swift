@@ -32,6 +32,13 @@ struct CreditsView: View {
         .overlay(alignment: .topTrailing) {
             if !viewModel.isUpdatingBalance { closeButton }
         }
+        .overlay(alignment: .bottom) {
+            // Terms + Privacy links required on the credits paywall (3.1.2(c)).
+            if !viewModel.isUpdatingBalance && !viewModel.didCompletePurchase {
+                PaywallLegalFooter()
+                    .padding(.bottom, Spacing.m)
+            }
+        }
         .task { viewModel.start() }
     }
 
