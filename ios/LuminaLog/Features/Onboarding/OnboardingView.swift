@@ -12,8 +12,12 @@ struct OnboardingView: View {
     let onDismiss: (() -> Void)?
 
     @State private var showingLanding = true
-    /// Presents the final public-Soul consent gate after the last question.
+    /// Presents the required AI-data-sharing consent gate after the last question.
+    /// This must appear — and be agreed to — before the Soul consent step.
+    @State private var showingAIConsent = false
+    /// Presents the final public-Soul consent gate after AI consent is given.
     @State private var showingSoulConsent = false
+    private let consentStore = ConsentStore()
 
     init(
         store: OnboardingStore,
@@ -41,6 +45,14 @@ struct OnboardingView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.3), value: showingLanding)
+            .fullScreenCover(isPresented: $showingAIConsent) {
+                AIConsentView(onAgree: {
+                    consentStore.recordLocalConsent()
+                    showingAIConsent = false
+                    showingSoulConsent = true   // then the existing optional Soul step
+                })
+                .interactiveDismissDisabled(true)
+            }
             .fullScreenCover(isPresented: $showingSoulConsent) {
                 SoulConsentStep(firstName: viewModel.firstName) { granted in
                     // Buffer the choice (recorded to the profile after sign-in), finish
@@ -221,8 +233,9 @@ struct OnboardingView: View {
 
             Button(viewModel.isLast ? "Get started" : "Next") {
                 if viewModel.isLast {
-                    // Final gate: informed consent for the public on-chain Soul NFT.
-                    showingSoulConsent = true
+                    // Required gate: AI-data-sharing consent, shown before the
+                    // (optional) public on-chain Soul NFT consent step.
+                    showingAIConsent = true
                 } else {
                     viewModel.next()
                 }
