@@ -6,10 +6,12 @@ vi.mock('../config', () => ({
     TOGETHER_AI_API_KEY: 'k',
     TOGETHER_EMBEDDING_MODEL: 'togethercomputer/m2-bert-80M-8k-retrieval',
     TOGETHER_WHISPER_MODEL: 'whisper',
+    DEEPGRAM_API_KEY: 'dk',
+    DEEPGRAM_MODEL: 'nova-3',
   },
 }))
 
-import { fetchWithRetry, chatCompletion, transcribeAudio } from './aiClient'
+import { fetchWithRetry, chatCompletion, transcribeAudio, transcribeWithDeepgram } from './aiClient'
 
 const noSleep = async () => {}
 
@@ -113,6 +115,38 @@ describe('transcribeAudio', () => {
     const out = await transcribeAudio(Buffer.from('a'), 'c.m4a')
 
     expect(out).toBe('part one part two')
+  })
+})
+
+describe('transcribeWithDeepgram', () => {
+  beforeEach(() => { vi.unstubAllGlobals() })
+
+  function jsonResp(payload: any) {
+    return { status: 200, ok: true, json: async () => payload, text: async () => '' } as any
+  }
+
+  it('POSTs to Deepgram with the model + Token auth and returns the transcript', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResp({
+      results: { channels: [{ alternatives: [{ transcript: 'the full entry' }] }] },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const out = await transcribeWithDeepgram(Buffer.from('audio'), 'audio/m4a')
+
+    expect(out).toBe('the full entry')
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(String(url)).toContain('api.deepgram.com/v1/listen')
+    expect(String(url)).toContain('model=nova-3')
+    expect(init.headers.Authorization).toBe('Token dk')
+    // m4a is normalized to the container MIME Deepgram expects.
+    expect(init.headers['Content-Type']).toBe('audio/mp4')
+  })
+
+  it('throws on a non-2xx so the caller can fall back to Whisper', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({ status: 401, ok: false, text: async () => 'bad key' } as any)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(transcribeWithDeepgram(Buffer.from('a'), 'audio/mp4')).rejects.toThrow(/Deepgram transcribe error 401/)
   })
 })
 

@@ -19,9 +19,10 @@ struct AIConsentView: View {
                         .foregroundStyle(Color.textPrimary)
 
                     VStack(alignment: .leading, spacing: Spacing.s) {
-                        providerRow("Together AI", "summaries, chat, prompts, transcription")
+                        providerRow("Together AI", "summaries, reflections, chat, and prompts")
+                        providerRow("Deepgram", "transcribing your voice & video entries")
+                        providerRow("Vapi & Anthropic", "live voice conversations")
                         providerRow("Hume AI", "optional emotion insights")
-                        providerRow("Vapi & Deepgram", "live voice journaling")
                     }
                     .padding(Spacing.m)
                     .background(RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous).fill(Color.cardBackground))

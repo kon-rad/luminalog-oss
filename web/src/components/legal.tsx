@@ -158,12 +158,17 @@ export function PrivacyContent() {
         'To comply with legal obligations.',
       ]} />
 
-      <H2>3. On-device processing</H2>
+      <H2>3. On-device processing &amp; transcription</H2>
       <P>
-        Speech-to-text transcription of voice entries and optical character recognition (OCR) of
-        handwritten pages are performed on your device using Apple&apos;s on-device frameworks.
-        Your raw voice audio and the original handwriting images used for these steps are not
-        required to leave your device for transcription or OCR to work.
+        When you dictate into a text field, speech-to-text runs on your device using Apple&apos;s
+        on-device framework, and that audio is not required to leave your device. Optical character
+        recognition (OCR) of handwritten pages is likewise performed on your device.
+      </P>
+      <P>
+        Voice and video journal entries are handled differently: to produce an accurate transcript,
+        the recording&apos;s audio is sent over an encrypted connection to our speech-to-text
+        provider (Deepgram — see Section 6), transcribed to text, and not retained by that provider
+        for other purposes.
       </P>
 
       <H2>4. Encryption</H2>
@@ -201,7 +206,8 @@ export function PrivacyContent() {
       </P>
       <UL items={[
         'Cloud hosting and database / authentication providers (for example, Google Firebase / Firestore) to store accounts and encrypted data.',
-        'AI model providers (for example, Together AI) to generate insights, summaries, prompts, transcription, and conversation.',
+        'AI model providers (for example, Together AI) to generate insights, summaries, prompts, and conversation.',
+        'Speech-to-text providers (for example, Deepgram) to transcribe your voice and video journal entries into text.',
         'Live voice-conversation providers (for example, Vapi) — which use an Anthropic (Claude) model to power the conversation and Deepgram for speech-to-text — to run real-time spoken conversations with your AI companion; your audio is processed to run the call.',
         'Emotion-analysis providers (for example, Hume AI) used to estimate the emotional tone of an entry.',
         'Subscription-management providers (for example, RevenueCat) to process purchases and manage your subscription and entitlement status.',

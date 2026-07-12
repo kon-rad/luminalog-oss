@@ -115,6 +115,37 @@ export async function transcribeAudio(buffer: Buffer, filename: string): Promise
   return transcript
 }
 
+type DeepgramResponse = {
+  results?: { channels?: Array<{ alternatives?: Array<{ transcript?: string }> }> }
+}
+
+/**
+ * Transcribe a recorded clip with Deepgram's pre-recorded API (used for voice/
+ * video journal entries — higher accuracy than Whisper on real recordings).
+ * Sends the raw audio bytes with their Content-Type; `smart_format` adds
+ * punctuation/casing. Throws on a non-2xx so the caller can fall back to Whisper.
+ */
+export async function transcribeWithDeepgram(buffer: Buffer, contentType = 'audio/m4a'): Promise<string> {
+  if (!config.DEEPGRAM_API_KEY) throw new Error('Deepgram not configured')
+  // Normalize the m4a container to the MIME Deepgram expects; pass others through.
+  const mime = contentType === 'audio/m4a' ? 'audio/mp4' : contentType
+  const params = new URLSearchParams({ model: config.DEEPGRAM_MODEL, smart_format: 'true', punctuate: 'true' })
+
+  const res = await fetch(`https://api.deepgram.com/v1/listen?${params.toString()}`, {
+    method: 'POST',
+    headers: { Authorization: `Token ${config.DEEPGRAM_API_KEY}`, 'Content-Type': mime },
+    body: buffer,
+  })
+  if (!res.ok) {
+    throw new Error(`Deepgram transcribe error ${res.status}: ${await res.text()}`)
+  }
+  const data = (await res.json()) as DeepgramResponse
+  const transcript = (data?.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? '').trim()
+  const words = transcript ? transcript.split(/\s+/).length : 0
+  console.log(`[transcribeDeepgram] model=${config.DEEPGRAM_MODEL} words=${words}`)
+  return transcript
+}
+
 /**
  * Embed passages/documents. Inputs are sent verbatim — for the e5 family this
  * is correct (only queries take an instruction; passages stay raw).

@@ -57,6 +57,12 @@ const schema = z.object({
   // broken — it only flips ON after the consent UI (1e) ships. Never make this
   // required (a newly-required env var crash-loops the server at boot).
   ENFORCE_AI_CONSENT: z.string().optional(),
+  // Deepgram powers voice/video JOURNAL-ENTRY transcription (higher accuracy than
+  // Whisper on real recordings with pauses). OPTIONAL: when the key is absent the
+  // clip endpoint falls back to Together Whisper, so adding this never breaks a
+  // deploy. Text-field dictation stays on-device (Apple Speech) — unaffected.
+  DEEPGRAM_API_KEY: z.string().optional(),
+  DEEPGRAM_MODEL: z.string().default('nova-3'),
 })
 
 const parsed = schema.safeParse(process.env)
@@ -82,6 +88,14 @@ export const config = parsed.data
 export function enforceAiConsentEnabled(): boolean {
   const v = (config.ENFORCE_AI_CONSENT ?? '').trim().toLowerCase()
   return v === '1' || v === 'true' || v === 'yes' || v === 'on'
+}
+
+/**
+ * True when a Deepgram API key is configured. When false, journal-entry clip
+ * transcription falls back to Together Whisper (previous behavior).
+ */
+export function deepgramEnabled(): boolean {
+  return Boolean(config.DEEPGRAM_API_KEY)
 }
 
 export function chainEnabled(): boolean {
