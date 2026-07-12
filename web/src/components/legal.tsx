@@ -6,11 +6,11 @@ import Navbar from '@/components/Navbar'
  * Shared presentational helpers for the legal pages (/privacy and /terms).
  * Content is intentionally generic and reflects LuminaLog's shipped
  * functionality: AI-assisted journaling in text/voice/video/photo, on-device
- * transcription & OCR, encrypted storage, anonymized AI processing, a
- * no-training pledge, App Store subscriptions, and consumable Voice Credits.
+ * OCR, encrypted storage, third-party AI processing of content you choose to
+ * share, a no-training pledge, App Store subscriptions, and Voice Credits.
  * ────────────────────────────────────────────────────────────────────────── */
 
-export const LEGAL_UPDATED = 'July 1, 2026'
+export const LEGAL_UPDATED = 'July 12, 2026'
 
 export function LegalLayout({
   title,
@@ -173,13 +173,21 @@ export function PrivacyContent() {
         stored in plaintext.
       </P>
 
-      <H2>5. AI processing &amp; anonymization</H2>
+      <H2>5. AI processing</H2>
       <P>
         Some features — AI insights, pattern analysis, daily insight cards, emotional analysis,
-        and chat or live voice conversations — require secure cloud processing using third-party
-        AI providers. When your content is processed for these features, it is handled through
-        private, encrypted processing and is not connected to your personal identity. The AI can
-        come to understand you deeply without us disclosing who you are to the AI providers.
+        and chat or live-voice conversations — are produced using the third-party AI providers
+        named in Section 6. To generate them, the content a feature needs is sent to those
+        providers over an encrypted connection so they can process it on our behalf.
+      </P>
+      <P>
+        What is shared is largely up to you. It includes your journal text and, for voice
+        features, your audio — together with the details you chose to provide during onboarding:
+        the name you enter, the biography you write about yourself, and other profile information
+        you add (for example your age, location, work, and interests). You decide how much of this
+        to share — you provide only what you feel comfortable sharing, and you can leave any
+        onboarding field blank. We send a feature only the data it needs, and our providers may
+        use it solely to provide these features to you.
       </P>
       <P style={{ fontWeight: 600, color: 'var(--text)' }}>
         Your journal is never used to train AI models — not ours, and not those of our providers.
@@ -193,9 +201,9 @@ export function PrivacyContent() {
       </P>
       <UL items={[
         'Cloud hosting and database / authentication providers (for example, Google Firebase / Firestore) to store accounts and encrypted data.',
-        'AI model providers to generate insights, summaries, prompts, and conversation.',
-        'Live voice-conversation providers (for example, Vapi) to power real-time spoken conversations with your AI companion; audio is processed to run the call.',
-        'Emotion-analysis providers used to estimate the emotional tone of an entry.',
+        'AI model providers (for example, Together AI) to generate insights, summaries, prompts, transcription, and conversation.',
+        'Live voice-conversation providers (for example, Vapi) — which use an Anthropic (Claude) model to power the conversation and Deepgram for speech-to-text — to run real-time spoken conversations with your AI companion; your audio is processed to run the call.',
+        'Emotion-analysis providers (for example, Hume AI) used to estimate the emotional tone of an entry.',
         'Subscription-management providers (for example, RevenueCat) to process purchases and manage your subscription and entitlement status.',
         'An image provider (for example, Unsplash) used to match a themed photograph to your daily insight card; photographer attribution is shown on the card.',
         'Apple, for sign-in, subscriptions, and in-app purchases.',
@@ -239,8 +247,8 @@ export function PrivacyContent() {
 
       <H2>11. Security</H2>
       <P>
-        We use technical and organizational measures — including encryption, access controls, and
-        anonymized processing — to protect your information. No method of transmission or storage
+        We use technical and organizational measures — including encryption and access controls —
+        to protect your information. No method of transmission or storage
         is completely secure, but we work to protect your data and to limit who can access it.
       </P>
 
