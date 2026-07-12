@@ -47,9 +47,19 @@ final class VapiVoiceCallService: VoiceCallService {
             let metadata: [String: String]?
 
             struct Model: Decodable {
-                let provider: String
+                // Post-ADR-0077 the server overrides ONLY `messages` (the per-call
+                // personalized system prompt) and lets Vapi use its dashboard-configured
+                // model — so provider/url/model are absent. They stay optional for
+                // backward compatibility with the older custom-llm shape.
+                let provider: String?
                 let url: String?
                 let model: String?
+                let messages: [Message]?
+
+                struct Message: Decodable {
+                    let role: String
+                    let content: String
+                }
             }
             struct Voice: Decodable {
                 let provider: String?
@@ -117,7 +127,7 @@ final class VapiVoiceCallService: VoiceCallService {
             .store(in: &cancellables)
 
         do {
-            let overrides = buildOverrides(callConfig)
+            let overrides = Self.buildOverrides(callConfig)
             _ = try await vapi.start(assistantId: assistantId, assistantOverrides: overrides)
         } catch {
             Self.logger.error("Vapi start failed: \(error.localizedDescription, privacy: .public)")
@@ -200,19 +210,38 @@ final class VapiVoiceCallService: VoiceCallService {
         }
     }
 
-    private func buildOverrides(_ config: CallConfigResponse) -> [String: Any] {
+    /// Maps the server's `assistantOverrides` into the dict the Vapi SDK expects.
+    /// `nonisolated static` (pure function) so it is unit-testable without the Vapi
+    /// SDK / a live call and callable off the main actor.
+    nonisolated static func buildOverrides(_ config: CallConfigResponse) -> [String: Any] {
+        let m = config.assistantOverrides.model
         var overrides: [String: Any] = [:]
-        var model: [String: Any] = ["provider": config.assistantOverrides.model.provider]
-        if let url = config.assistantOverrides.model.url { model["url"] = url }
+        var model: [String: Any] = [:]
+        if let provider = m.provider { model["provider"] = provider }
+        if let url = m.url { model["url"] = url }
         // Vapi requires `model.model` to be a string for custom-llm providers;
         // forward what the server sent (dropping it triggers a 400 "Call failed").
-        if let name = config.assistantOverrides.model.model { model["model"] = name }
+        if let name = m.model { model["model"] = name }
+        // The per-call personalized system prompt (name/bio/profile/RAG/focal entry)
+        // lands here; Vapi merges it over its dashboard-configured model (ADR-0077).
+        // Without this, the assistant loses all personalization.
+        if let messages = m.messages {
+            model["messages"] = messages.map { ["role": $0.role, "content": $0.content] }
+        }
         overrides["model"] = model
         if let voice = config.assistantOverrides.voice {
             var v: [String: Any] = [:]
             if let p = voice.provider { v["provider"] = p }
             if let id = voice.voiceId { v["voiceId"] = id }
             overrides["voice"] = v
+        }
+        // The server pins the speech-to-text provider (Deepgram) for the call.
+        if let t = config.assistantOverrides.transcriber {
+            var tr: [String: Any] = [:]
+            if let p = t.provider { tr["provider"] = p }
+            if let name = t.model { tr["model"] = name }
+            if let lang = t.language { tr["language"] = lang }
+            overrides["transcriber"] = tr
         }
         // chatId metadata → Vapi echoes it in the end-of-call webhook so the
         // server can associate the transcript + recording with this chat.

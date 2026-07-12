@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
+import { requireAiConsent } from '../middleware/requireAiConsent'
 import { signedPlaybackUrl } from '../services/voiceRecordingStore'
 import { PROMPTS } from '../services/prompts'
 import type { ProfileFields } from '../services/profileContext'
@@ -57,7 +58,10 @@ export async function callConfigHandler(req: Request, res: Response) {
   })
 }
 
-vapiRouter.post('/call-config', firebaseAuth, callConfigHandler)
+// Voice calls send name/bio/profile/RAG context to the Anthropic-powered assistant,
+// so gate on AI-data-sharing consent like the other /v1/ai routes (defense in depth;
+// the client ConsentGate already blocks the UI path until consent is recorded).
+vapiRouter.post('/call-config', firebaseAuth, requireAiConsent, callConfigHandler)
 
 // ── webhook (call-ended transcript + recording persistence) ───────────────────
 
