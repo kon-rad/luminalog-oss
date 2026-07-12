@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import admin from 'firebase-admin'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
+import { requireAiConsent } from '../middleware/requireAiConsent'
 import { chatCompletion } from '../services/aiClient'
 import { PROMPTS } from '../services/prompts'
 import type { ProfileFields } from '../services/profileContext'
@@ -110,4 +111,4 @@ export async function chatHandler(req: Request, res: Response): Promise<void> {
   }
 }
 
-chatRouter.post('/', firebaseAuth, chatHandler)
+chatRouter.post('/', firebaseAuth, requireAiConsent, chatHandler)
