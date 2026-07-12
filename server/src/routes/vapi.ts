@@ -1,66 +1,39 @@
 import { Router, Request, Response } from 'express'
-import jwt from 'jsonwebtoken'
-import admin from 'firebase-admin'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
-import { chatCompletion } from '../services/aiClient'
-import { storeRecording, signedPlaybackUrl } from '../services/voiceRecordingStore'
+import { signedPlaybackUrl } from '../services/voiceRecordingStore'
 import { PROMPTS } from '../services/prompts'
 import type { ProfileFields } from '../services/profileContext'
 import { config } from '../config'
 
 export const vapiRouter = Router()
 
-const MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
-
 // ── call-config ──────────────────────────────────────────────────────────────
 
 export async function callConfigHandler(req: Request, res: Response) {
-  const uid = (req as any).uid as string
   const chatId = (req.body?.chatId as string | undefined) ?? ''
-  const journalId = (req.body?.journalId as string | undefined) ?? undefined
-
-  // Zero-knowledge: the client sends its RAG context as PLAINTEXT (built on-device,
-  // like the text-chat path). We bake it into the assistant's system prompt here so
-  // Vapi carries it into every /llm turn — the server never decrypts mid-call.
-  const model1 = typeof req.body?.ragContext === 'string'
-
-  // chatId and journalId ride in the token so /llm has them on every turn. `model1`
-  // tells /llm to stream the client-provided context verbatim (no getOrCreateDEK).
-  const callToken = jwt.sign(
-    { uid, chatId, journalId, model1 },
-    config.VAPI_WEBHOOK_SECRET,
-    { expiresIn: '2h' },
-  )
 
   const baseUrl =
     config.NODE_ENV === 'production'
       ? 'https://api.luminalog.com'
       : `http://localhost:${config.PORT}`
 
-  const model: Record<string, unknown> = {
-    provider: 'custom-llm',
-    // Vapi requires `model.model` to be a string for custom-llm providers
-    // (omitting it yields "assistantOverrides.model.model must be a string").
-    // Our /llm endpoint ignores it and always uses MODEL, but Vapi validates it.
-    model: MODEL,
-    // Vapi requests `${url}/chat/completions`. The per-call token MUST live in
-    // the path (not a query string) so it survives that append — a `?token=`
-    // here would put the token before `/chat/completions`, 404 the request,
-    // and end the call before it connects.
-    url: `${baseUrl}/v1/vapi/llm/${callToken}`,
-  }
-
-  if (model1) {
-    // Build the voice system prompt from the CLIENT'S plaintext context and attach it
-    // as the assistant system message. Prompt text still lives in prompts.ts.
-    const name = (req.body?.name as string | undefined) ?? ''
-    const bio = (req.body?.bio as string | undefined) ?? ''
-    const profile = (req.body?.profile as ProfileFields | undefined) ?? {}
-    const ragContext = (req.body?.ragContext as string | undefined) ?? ''
-    const focalEntry = (req.body?.focalEntry as string | undefined) || undefined
-    model.messages = [
+  // Zero-knowledge: the client sends its RAG context as PLAINTEXT (built on-device,
+  // like the text-chat path). We bake it into the assistant's system prompt here so
+  // Vapi carries it into every turn — the server never decrypts mid-call.
+  //
+  // We override ONLY `model.messages` (no provider/model/url): Vapi merges this over
+  // the assistant's dashboard-configured SOTA model, so the model + params live in the
+  // Vapi dashboard while the per-call personalized system prompt still lands. Prompt
+  // text stays in prompts.ts.
+  const name = (req.body?.name as string | undefined) ?? ''
+  const bio = (req.body?.bio as string | undefined) ?? ''
+  const profile = (req.body?.profile as ProfileFields | undefined) ?? {}
+  const ragContext = (req.body?.ragContext as string | undefined) ?? ''
+  const focalEntry = (req.body?.focalEntry as string | undefined) || undefined
+  const model = {
+    messages: [
       { role: 'system', content: PROMPTS.voiceChat(name, bio, profile, ragContext, focalEntry) },
-    ]
+    ],
   }
 
   res.json({
@@ -85,96 +58,6 @@ export async function callConfigHandler(req: Request, res: Response) {
 }
 
 vapiRouter.post('/call-config', firebaseAuth, callConfigHandler)
-
-// ── llm (OpenAI-compatible, called by Vapi on every turn) ────────────────────
-
-// Parse Together/OpenAI SSE chunks and append assistant delta text.
-export function accumulateAssistantText(acc: string, chunk: string): string {
-  for (const line of chunk.split('\n')) {
-    if (!line.startsWith('data: ')) continue
-    const payload = line.slice(6).trim()
-    if (payload === '[DONE]' || !payload) continue
-    try {
-      const delta = JSON.parse(payload)?.choices?.[0]?.delta?.content
-      if (typeof delta === 'string') acc += delta
-    } catch { /* ignore keep-alive / non-JSON lines */ }
-  }
-  return acc
-}
-
-export async function llmHandler(req: Request, res: Response) {
-  // Token rides in the path (`/llm/:token/chat/completions`) so it survives
-  // Vapi appending `/chat/completions` to the configured custom-llm url.
-  const token = req.params['token'] as string | undefined
-  if (!token) { res.status(401).json({ error: 'Missing token' }); return }
-
-  let uid: string
-  let chatId: string
-  let journalId: string | undefined
-  let model1 = false
-  try {
-    const decoded = jwt.verify(token, config.VAPI_WEBHOOK_SECRET) as { uid: string; chatId?: string; journalId?: string; model1?: boolean }
-    uid = decoded.uid
-    chatId = decoded.chatId ?? ''
-    journalId = decoded.journalId
-    model1 = decoded.model1 === true
-  } catch {
-    res.status(401).json({ error: 'Invalid or expired token' })
-    return
-  }
-
-  const { messages } = req.body as {
-    messages?: Array<{ role: string; content: string }>
-  }
-  if (!Array.isArray(messages)) { res.status(400).json({ error: 'Missing messages' }); return }
-
-  const lastUser = [...messages].reverse().find(m => m.role === 'user')?.content ?? ''
-
-  // ── Model 1 (zero-knowledge) branch ──────────────────────────────────────────
-  // The context already rides in the system message Vapi sends every turn (baked in
-  // at /call-config from the client's on-device RAG). Stream the messages verbatim
-  // to Together — NO getOrCreateDEK, NO server RAG, NO server persistence. The client
-  // persists the transcript locally from the live Vapi events.
-  if (model1) {
-    try {
-      const aiRes = await chatCompletion(messages, { model: MODEL, stream: true })
-      if (!aiRes.ok || !aiRes.body) throw new Error(`AI error: ${aiRes.status}`)
-      res.setHeader('Content-Type', 'text/event-stream')
-      res.setHeader('Cache-Control', 'no-cache')
-      res.flushHeaders()
-      let buffer = ''
-      const decoder = new TextDecoder()
-      const reader = (aiRes.body as any).getReader()
-      const flush = (raw: string) => {
-        const line = raw.trimEnd()
-        if (!line.startsWith('data: ')) return
-        if (line.slice(6).trim() === '[DONE]') return
-        res.write(line + '\n\n')
-      }
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value as Uint8Array, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-        for (const line of lines) flush(line)
-      }
-      if (buffer) flush(buffer)
-      res.write('data: [DONE]\n\n')
-      res.end()
-    } catch (err) {
-      console.error('[vapi/llm model1]', err)
-      if (!res.headersSent) res.status(500).json({ error: 'LLM error' })
-      else res.end()
-    }
-    return
-  }
-  // A valid call always carries a zero-knowledge token (set at /call-config); reject
-  // anything else rather than hang the turn.
-  res.status(400).json({ error: 'Invalid call token' })
-}
-
-vapiRouter.post('/llm/:token/chat/completions', llmHandler)
 
 // ── webhook (call-ended transcript + recording persistence) ───────────────────
 

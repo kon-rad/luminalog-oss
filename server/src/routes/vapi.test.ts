@@ -16,19 +16,13 @@ vi.mock('../middleware/firebaseAuth', () => ({
   firebaseAuth: (_req: any, _res: any, next: any) => next(),
   db: {},
 }))
-vi.mock('../services/journalRetriever', () => ({ retrieveContextWithSources: vi.fn() }))
-vi.mock('../services/aiClient', () => ({ chatCompletion: vi.fn() }))
-vi.mock('../services/prompts', () => ({ PROMPTS: { voiceChat: () => '' } }))
-vi.mock('../crypto/keyService', () => ({ getOrCreateDEK: vi.fn() }))
-vi.mock('../crypto/fieldCipher', () => ({ openFieldSafe: vi.fn(), encryptField: vi.fn() }))
-vi.mock('../services/voicePersistence', () => ({ persistVoiceTurn: vi.fn() }))
+vi.mock('../services/prompts', () => ({ PROMPTS: { voiceChat: () => 'VOICE_SYSTEM_PROMPT' } }))
 vi.mock('../services/voiceRecordingStore', () => ({
   signedPlaybackUrl: vi.fn().mockResolvedValue('https://signed'),
   storeRecording: vi.fn(),
   recordingKey: vi.fn(),
 }))
 
-import jwt from 'jsonwebtoken'
 import { callConfigHandler } from './vapi'
 import { config } from '../config'
 
@@ -39,34 +33,19 @@ function mockRes() {
   return res
 }
 
-// Express route pattern for the custom-LLM endpoint: /v1/vapi/llm/:token/chat/completions
-function matchLlmRoute(pathname: string): { token: string } | null {
-  const m = pathname.match(/^\/v1\/vapi\/llm\/([^/]+)\/chat\/completions$/)
-  return m ? { token: m[1] } : null
-}
-
-describe('vapi call-config → custom-LLM url', () => {
-  it('stays routable after Vapi appends /chat/completions, with a recoverable token', async () => {
-    const req: any = { uid: 'user-123' }
+describe('vapi call-config → dashboard model + injected system prompt', () => {
+  it('overrides only model.messages (no provider/model/url) so Vapi uses the dashboard model', async () => {
+    const req: any = { uid: 'user-123', body: { ragContext: 'ctx' } }
     const res = mockRes()
     await callConfigHandler(req, res)
 
-    const url: string = res.body.assistantOverrides.model.url
-    // Vapi treats model.url as the base and requests `${url}/chat/completions`.
-    // A token in the query string does NOT survive this append (the suffix lands
-    // after `?token=...`), which 404s the request and ends the call. The token
-    // must live in the path instead.
-    const appended = url + '/chat/completions'
-    const parsed = new URL(appended)
-
-    const match = matchLlmRoute(parsed.pathname)
-    expect(match).not.toBeNull()
-
-    const decoded = jwt.verify(
-      decodeURIComponent(match!.token),
-      config.VAPI_WEBHOOK_SECRET,
-    ) as { uid: string }
-    expect(decoded.uid).toBe('user-123')
+    const model = res.body.assistantOverrides.model
+    // We deliberately do NOT set provider/model/url — Vapi merges these messages over
+    // the dashboard-configured SOTA model, and the per-call system prompt still lands.
+    expect(model.provider).toBeUndefined()
+    expect(model.url).toBeUndefined()
+    expect(model.messages[0].role).toBe('system')
+    expect(model.messages[0].content).toBe('VOICE_SYSTEM_PROMPT')
   })
 })
 
@@ -166,18 +145,6 @@ describe('vapi webhook payload parsing', () => {
   })
 })
 
-import { accumulateAssistantText } from './vapi'
-
-describe('accumulateAssistantText', () => {
-  it('concatenates delta.content across SSE data lines, ignoring [DONE]', () => {
-    const chunk =
-      'data: {"choices":[{"delta":{"content":"Hel"}}]}\n' +
-      'data: {"choices":[{"delta":{"content":"lo"}}]}\n' +
-      'data: [DONE]\n'
-    expect(accumulateAssistantText('', chunk)).toBe('Hello')
-  })
-})
-
 describe('vapi call-config overrides', () => {
   it('sets metadata.chatId, enables recording, and points the webhook server url', async () => {
     const req: any = { uid: 'user-123', body: { chatId: 'chat-9' } }
@@ -188,10 +155,6 @@ describe('vapi call-config overrides', () => {
     expect(ov.artifactPlan.recordingEnabled).toBe(true)
     expect(ov.server.url).toContain('/v1/vapi/webhook')
     expect(ov.serverMessages).toContain('end-of-call-report')
-    // chatId rides in the LLM token so /llm can persist without a DB lookup
-    const token = ov.model.url.match(/\/llm\/([^/]+)$/)![1]
-    const decoded = jwt.verify(token, config.VAPI_WEBHOOK_SECRET) as any
-    expect(decoded.chatId).toBe('chat-9')
   })
 })
 
