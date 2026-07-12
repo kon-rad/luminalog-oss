@@ -53,7 +53,7 @@ export default function Home() {
               </div>
               <div style={{ marginTop: 22, display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 12, color: 'var(--text3)', lineHeight: 1.5 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🔒 End-to-end encrypted</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>📱 On-device AI</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>📱 On-device dictation</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🎯 You choose what the AI sees</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🚫 Never trained on your data</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>⭐ Open source</span>
@@ -512,15 +512,15 @@ export default function Home() {
           <div style={{ maxWidth: 640, marginBottom: 40 }}>
             <span className="eyebrow">Privacy & trust</span>
             <h2 className="serif" style={{ marginTop: 14, fontSize: 'clamp(30px,3.8vw,44px)', fontWeight: 600, letterSpacing: '-0.025em' }}>Zero-knowledge by design.<br />Verifiable by code.</h2>
-            <p style={{ marginTop: 16, fontSize: 18, color: 'var(--text2)', lineHeight: 1.65 }}>Your journal holds the most private data you own. It stays yours — end-to-end encrypted, with the keys and the AI running on your own device.</p>
+            <p style={{ marginTop: 16, fontSize: 18, color: 'var(--text2)', lineHeight: 1.65 }}>Your journal holds the most private data you own. It stays yours — end-to-end encrypted, with the keys derived on your own device, so your entries reach us already sealed. What you share with the AI is always up to you.</p>
           </div>
           <div style={{ background: 'var(--surfaceAlt)', borderRadius: 28, padding: 4, boxShadow: 'var(--shadow)' }}>
             <div style={{ background: 'var(--surface)', borderRadius: 25, padding: '40px 44px' }} className="privacy-inner">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 48px' }} className="privacy-grid">
                 {[
                   ['🔒', 'Zero-knowledge encryption', "End-to-end encrypted. We can't read your entries — and neither can anyone else. The keys are derived on your device and never leave it, so everything reaches our servers already sealed."],
-                  ['📱', 'On-device AI', "Transcription, handwriting recognition, and the embedding model that powers your AI's memory all run on your own device. Your raw voice, writing, and photos never leave it to be understood."],
-                  ['🎯', 'You choose what the AI sees', 'Your entries are searched locally on your device — only the context you allow is ever sent to the AI, and anything you mark private stays out entirely.'],
+                  ['📱', 'On-device dictation & search', "Voice dictation, handwriting recognition (OCR), and the semantic search that finds relevant entries all run on your own device."],
+                  ['🎯', 'You choose what the AI sees', "What you share with the AI is up to you — your journal entries plus the biography and profile details you provide, which can include personal, identifying information. Share as much or as little as you like; anything you keep private stays out entirely."],
                   ['🚫', 'Never used to train AI', "Your journal is never used to train AI models. Not ours. Not anyone else's. Full stop."],
                   ['⭐', 'Open source', 'The iOS app and backend API are publicly available on GitHub. Our privacy claims are not trust — they are code anyone can read and verify.'],
                   ['🗑️', 'Full deletion, always', 'Delete your account and everything goes with it — every entry, every AI vector, every media file. Permanently. One tap. No retention.'],

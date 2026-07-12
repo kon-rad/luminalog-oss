@@ -48,9 +48,12 @@ export default function SupportPage() {
 
       <h3>How is my data protected?</h3>
       <p>
-        Your journal entries are encrypted on-device before being stored. Our AI
-        processes anonymized content only — your name and identifying details are
-        never shared with AI providers. See our{' '}
+        Your journal entries are encrypted on your device before being stored, so we
+        can&apos;t read them at rest. When you use an AI feature, the content you choose
+        to share — which can include your name and other personal details you put in
+        your biography or entries — is sent to trusted AI providers to generate your
+        results, and is never used to train their models. You decide how much to share.
+        See our{' '}
         <a href="/privacy">Privacy Policy</a> for full details.
       </p>
 

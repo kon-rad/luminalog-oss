@@ -230,7 +230,7 @@ function BuildYourMindContent() {
         That&apos;s the half of the practice we care about most. Emptying your mind is a good place
         to start your day. Building your mind is how you change your life — and it&apos;s exactly
         what LuminaLog is designed to help you do: a daily entry in text, voice, or video, kept
-        private and encrypted, with AI that works on an anonymized copy to help you see the ideas,
+        private and encrypted, and you choose what you share with the AI to help you see the ideas,
         patterns, and progress you&apos;d never catch alone. Not a drain. A workbench.
       </P>
     </>
@@ -432,7 +432,7 @@ function SevenFiftyHabitContent() {
       </P>
       <P>
         That&apos;s exactly what LuminaLog is built for — a substantial daily entry, in text,
-        voice, or video, kept private and encrypted, with AI that works on an anonymized copy so
+        voice, or video, kept private and encrypted, and you choose what you share with the AI so
         the honest version always stays yours.
       </P>
     </>
@@ -596,7 +596,7 @@ function SevenFiftyWordsContent() {
         <>Capture in text, voice, or video — talk for ten minutes on a walk and reach the same depth as three written pages.</>,
         <>AI summaries that turn a rambling brain-dump into something you can actually review and act on.</>,
         <>Insights that surface the patterns across weeks you&apos;d never catch alone.</>,
-        <>Private and encrypted, with anonymized AI processing — because you can only write the honest version if it stays yours.</>,
+        <>Private and encrypted, and you choose what you share with the AI — because you can only write the honest version if it stays yours.</>,
       ]} />
       <P>
         Your mind moves faster than your day. Seven hundred and fifty words is how you catch up
@@ -958,8 +958,8 @@ function RuminationContent() {
         growing — if you change what you do with them. Move from re-feeling to making sense, from up
         close to a step back, from the problem to the next step. That&apos;s the whole difference
         between the loop and the page, and it&apos;s exactly what LuminaLog is built to help you do: a
-        daily entry in text, voice, or video — private and encrypted — with AI that works on an
-        anonymized copy to help you see the patterns, insights, and progress you&apos;d never catch
+        daily entry in text, voice, or video — private and encrypted — and you choose what you
+        share with the AI to help you see the patterns, insights, and progress you&apos;d never catch
         while circling. Not a drain. A way out.
       </P>
     </>
