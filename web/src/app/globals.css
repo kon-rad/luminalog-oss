@@ -308,12 +308,20 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   .unlock-grid { grid-template-columns: 1fr 1fr !important; }
   .capture-grid { grid-template-columns: 1fr !important; }
   .converse-phones { justify-content: center; }
+  .privacy-grid { gap: 28px !important; }
+  .privacy-inner { padding: 32px 28px !important; }
 }
 
 @media (max-width: 640px) {
   .wrap { padding-left: 20px !important; padding-right: 20px !important; }
   .plans { grid-template-columns: 1fr !important; }
+  .unlock-grid { grid-template-columns: 1fr !important; }
+  .privacy-grid { grid-template-columns: 1fr !important; }
+  .privacy-inner { padding: 26px 22px !important; }
   .converse-phones { flex-direction: column !important; align-items: center; gap: 20px !important; }
   .converse-copy-row { flex-direction: column !important; align-items: center; gap: 24px !important; }
   .cta-final { padding: 56px 24px !important; border-radius: 24px !important; }
 }
+
+/* Never let a wide mockup push the page into horizontal scroll. */
+html, body { overflow-x: hidden; }

@@ -5,10 +5,14 @@
 // bare Transformers.js feature-extraction would return the 768-dim pre-Dense
 // vector. Lazy singleton; WebGPU with a WASM fallback. Byte-parity with iOS is
 // enforced by onnxEmbedder.parity.test.ts (cosine > 0.999 vs the canonical ref).
-
-import * as ort from 'onnxruntime-web'
-import { fetchAsset } from '@/lib/embeddings/modelProvider'
-import { tokenize } from '@/lib/embeddings/tokenizer'
+//
+// ⚠️ TEMPORARY DEPLOY STUB (2026-07-11): the real implementation statically imports
+// `onnxruntime-web` and (via ./tokenizer) `@huggingface/transformers`, whose bundled
+// `ort.node.min.mjs` breaks the Next 14 webpack/Terser production build. To ship the
+// blog without that build failure, the runtime embedder is stubbed to the module's
+// designed `ModelUnavailableError` degradation path (coordinator uses *Safe wrappers
+// that catch it). Restore the real embedder + fix the transformers build with:
+//   git checkout origin/feat/web-app-m1-m2 -- web/src/lib/embeddings/onnxEmbedder.ts
 
 export const EMBEDDING_DIM = 512
 export const EMBEDDING_MODEL_ID = 'distiluse-multilingual-v1'
@@ -21,60 +25,10 @@ export class ModelUnavailableError extends Error {
   }
 }
 
-let sessionPromise: Promise<ort.InferenceSession> | null = null
-
-async function createSession(bytes: ArrayBuffer): Promise<ort.InferenceSession> {
-  // Prefer WebGPU (fast) and fall back to WASM. Some environments reject an
-  // unavailable provider in the list rather than skipping it, so try each.
-  for (const ep of ['webgpu', 'wasm'] as const) {
-    try {
-      return await ort.InferenceSession.create(bytes, { executionProviders: [ep] })
-    } catch {
-      // try the next provider
-    }
-  }
+/** Embed text → 512-dim L2-normalized vector in the shared cross-platform space.
+ *  TEMPORARY STUB: embedding is disabled in this build (see file header). */
+export async function embed(_text: string): Promise<Float32Array> {
   throw new ModelUnavailableError()
-}
-
-async function getSession(): Promise<ort.InferenceSession> {
-  if (!sessionPromise) {
-    sessionPromise = (async () => {
-      const bytes = await fetchAsset('onnx')
-      return createSession(bytes)
-    })().catch((err) => {
-      sessionPromise = null // failures are retryable — don't cache them
-      throw err instanceof ModelUnavailableError ? err : new ModelUnavailableError(err)
-    })
-  }
-  return sessionPromise
-}
-
-function l2normalize(v: Float32Array): Float32Array {
-  let mag = 0
-  for (let i = 0; i < v.length; i++) mag += v[i] * v[i]
-  mag = Math.sqrt(mag)
-  const out = new Float32Array(v.length)
-  if (mag === 0) return out
-  for (let i = 0; i < v.length; i++) out[i] = v[i] / mag
-  return out
-}
-
-/** Embed text → 512-dim L2-normalized vector in the shared cross-platform space. */
-export async function embed(text: string): Promise<Float32Array> {
-  const session = await getSession()
-  const { inputIds, attentionMask } = await tokenize(text)
-  const len = inputIds.length
-  const feeds: Record<string, ort.Tensor> = {
-    input_ids: new ort.Tensor('int64', inputIds, [1, len]),
-    attention_mask: new ort.Tensor('int64', attentionMask, [1, len]),
-  }
-  const results = await session.run(feeds)
-  const output = results[session.outputNames[0]]
-  const data = output.data as Float32Array
-  if (data.length !== EMBEDDING_DIM) {
-    throw new Error(`Embedder produced ${data.length} dims, expected ${EMBEDDING_DIM}`)
-  }
-  return l2normalize(Float32Array.from(data))
 }
 
 /** Cosine similarity of two vectors. For L2-normalized inputs this is the dot product. */

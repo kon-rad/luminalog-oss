@@ -52,11 +52,11 @@ export default function Home() {
                 </div>
               </div>
               <div style={{ marginTop: 22, display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 12, color: 'var(--text3)', lineHeight: 1.5 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🔒 Encrypted</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>📱 On-device transcription</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🎭 Anonymized to the AI</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>⭐ Open source</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🔒 End-to-end encrypted</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>📱 On-device AI</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🎯 You choose what the AI sees</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🚫 Never trained on your data</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>⭐ Open source</span>
               </div>
             </div>
 
@@ -511,16 +511,16 @@ export default function Home() {
         <div className="wrap">
           <div style={{ maxWidth: 640, marginBottom: 40 }}>
             <span className="eyebrow">Privacy & trust</span>
-            <h2 className="serif" style={{ marginTop: 14, fontSize: 'clamp(30px,3.8vw,44px)', fontWeight: 600, letterSpacing: '-0.025em' }}>Private by design.<br />Verifiable by code.</h2>
-            <p style={{ marginTop: 16, fontSize: 18, color: 'var(--text2)', lineHeight: 1.65 }}>Your journal holds the most private data you own. Here is exactly how we protect it.</p>
+            <h2 className="serif" style={{ marginTop: 14, fontSize: 'clamp(30px,3.8vw,44px)', fontWeight: 600, letterSpacing: '-0.025em' }}>Zero-knowledge by design.<br />Verifiable by code.</h2>
+            <p style={{ marginTop: 16, fontSize: 18, color: 'var(--text2)', lineHeight: 1.65 }}>Your journal holds the most private data you own. It stays yours — end-to-end encrypted, with the keys and the AI running on your own device.</p>
           </div>
           <div style={{ background: 'var(--surfaceAlt)', borderRadius: 28, padding: 4, boxShadow: 'var(--shadow)' }}>
-            <div style={{ background: 'var(--surface)', borderRadius: 25, padding: '40px 44px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 48px' }}>
+            <div style={{ background: 'var(--surface)', borderRadius: 25, padding: '40px 44px' }} className="privacy-inner">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 48px' }} className="privacy-grid">
                 {[
-                  ['🔒', 'Encrypted, always', 'Every entry, voice recording, video, and image is encrypted in transit and at rest. Your data is never stored or sent in plaintext.'],
-                  ['📱', 'On-device transcription & OCR', "Speech-to-text and handwriting recognition run entirely on your iPhone using Apple's on-device frameworks. Your voice and handwriting never leave your device."],
-                  ['🎭', 'Anonymized to the AI', 'When the AI helps you, your entries are processed anonymously — never linked to your name or identity. It comes to understand you deeply without ever knowing who you are.'],
+                  ['🔒', 'Zero-knowledge encryption', "End-to-end encrypted. We can't read your entries — and neither can anyone else. The keys are derived on your device and never leave it, so everything reaches our servers already sealed."],
+                  ['📱', 'On-device AI', "Transcription, handwriting recognition, and the embedding model that powers your AI's memory all run on your own device. Your raw voice, writing, and photos never leave it to be understood."],
+                  ['🎯', 'You choose what the AI sees', 'Your entries are searched locally on your device — only the context you allow is ever sent to the AI, and anything you mark private stays out entirely.'],
                   ['🚫', 'Never used to train AI', "Your journal is never used to train AI models. Not ours. Not anyone else's. Full stop."],
                   ['⭐', 'Open source', 'The iOS app and backend API are publicly available on GitHub. Our privacy claims are not trust — they are code anyone can read and verify.'],
                   ['🗑️', 'Full deletion, always', 'Delete your account and everything goes with it — every entry, every AI vector, every media file. Permanently. One tap. No retention.'],
@@ -648,7 +648,7 @@ export default function Home() {
       <section style={{ padding: '40px 0 80px' }}>
         <div className="wrap">
           <div style={{ padding: 16 }}>
-            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 32, background: 'linear-gradient(155deg, var(--accent), var(--accentDeep))', color: '#fff', padding: '80px 48px', textAlign: 'center', boxShadow: '0 30px 72px rgba(185,107,51,0.34)' }}>
+            <div className="cta-final" style={{ position: 'relative', overflow: 'hidden', borderRadius: 32, background: 'linear-gradient(155deg, var(--accent), var(--accentDeep))', color: '#fff', padding: '80px 48px', textAlign: 'center', boxShadow: '0 30px 72px rgba(185,107,51,0.34)' }}>
               <div style={{ position: 'absolute', top: -80, right: -50, width: 280, height: 280, borderRadius: '50%', background: 'rgba(255,255,255,0.13)', filter: 'blur(10px)' }} />
               <div style={{ position: 'absolute', bottom: -100, left: -40, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.09)', filter: 'blur(10px)' }} />
               <h2 className="serif" style={{ position: 'relative', zIndex: 1, fontSize: 'clamp(30px,4.2vw,52px)', fontWeight: 600, lineHeight: 1.06, letterSpacing: '-0.025em' }}>Merge with AI.<br />One conversation at a time.</h2>
@@ -676,7 +676,7 @@ export default function Home() {
               <p className="serif" style={{ fontStyle: 'italic', fontSize: 16, color: 'var(--text2)', marginTop: 14, maxWidth: 280 }}>Merge with AI through daily conversation with your journaling companion.</p>
             </div>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', paddingTop: 6 }}>
-              {[['Privacy Policy', '/privacy'], ['Terms', '/terms'], ['Send me a tweet', 'https://x.com/konrad_gnat'], ['Support', 'mailto:konradmgnat@gmail.com'], ['GitHub', 'https://github.com/konradgnat/luminalog']].map(([label, href]) => (
+              {[['Blog', '/blog'], ['Privacy Policy', '/privacy'], ['Terms', '/terms'], ['Send me a tweet', 'https://x.com/konrad_gnat'], ['Support', 'mailto:konradmgnat@gmail.com'], ['GitHub', 'https://github.com/konradgnat/luminalog']].map(([label, href]) => (
                 <a key={label} href={href} style={{ fontSize: 14, color: 'var(--text2)', transition: 'color .15s' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--accentDeep)')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--text2)')}>

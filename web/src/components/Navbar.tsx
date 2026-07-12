@@ -10,12 +10,23 @@ import { useAuth } from '@/lib/auth-context'
 // Popup cancellations aren't errors — the user just dismissed the sheet.
 const CANCEL_CODES = new Set(['auth/popup-closed-by-user', 'auth/cancelled-popup-request'])
 
+// The section anchors shared by the desktop bar and the mobile drawer.
+const NAV_LINKS: [label: string, href: string][] = [
+  ['Reflect', '/#reflect'],
+  ['Practice', '/#practice'],
+  ['Privacy', '/#privacy'],
+  ['Pricing', '/#pricing'],
+  ['Blog', '/blog'],
+]
+
 export default function Navbar() {
   const router = useRouter()
   const [scrolled, setScrolled] = useState(false)
   const [signingIn, setSigningIn] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const drawerRef = useRef<HTMLDivElement>(null)
   const { user, loading, signInWithApple, signInWithGoogle, signOut } = useAuth()
 
   useEffect(() => {
@@ -34,11 +45,27 @@ export default function Navbar() {
     return () => window.removeEventListener('mousedown', onDown)
   }, [menuOpen])
 
+  // Close the mobile drawer on outside-click or Escape.
+  useEffect(() => {
+    if (!drawerOpen) return
+    const onDown = (e: MouseEvent) => {
+      if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) setDrawerOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setDrawerOpen(false)
+    window.addEventListener('mousedown', onDown)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('mousedown', onDown)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [drawerOpen])
+
   const signInWith = async (provider: 'apple' | 'google') => {
     setSigningIn(true)
     try {
       await (provider === 'apple' ? signInWithApple() : signInWithGoogle())
       setMenuOpen(false)
+      setDrawerOpen(false)
       router.push('/home') // into the app; the (app) gate takes over from here
     } catch (err) {
       if (!(err instanceof FirebaseError && CANCEL_CODES.has(err.code))) {
@@ -73,15 +100,13 @@ export default function Navbar() {
 
           {/* Right */}
           <div className="flex items-center gap-6">
-            <Link href="/#reflect" className="nav-link hidden md:block">Reflect</Link>
-            <Link href="/#practice" className="nav-link hidden md:block">Practice</Link>
-            <Link href="/#privacy" className="nav-link hidden md:block">Privacy</Link>
-            <Link href="/#pricing" className="nav-link hidden md:block">Pricing</Link>
-            <Link href="/blog" className="nav-link hidden md:block">Blog</Link>
+            {NAV_LINKS.map(([label, href]) => (
+              <Link key={label} href={href} className="nav-link hidden md:block">{label}</Link>
+            ))}
 
             {!loading && (
               user ? (
-                <div className="flex items-center gap-3">
+                <div className="hidden md:flex items-center gap-3">
                   <Link href="/home" className="flex items-center gap-2" style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text2)', transition: 'color .15s' }}>
                     {user.photoURL ? (
                       <Image src={user.photoURL} width={28} height={28} alt={user.displayName || 'User'} className="rounded-full" />
@@ -90,17 +115,17 @@ export default function Navbar() {
                         {user.displayName?.[0] || user.email?.[0] || '?'}
                       </span>
                     )}
-                    <span className="hidden md:block">Open app</span>
+                    <span>Open app</span>
                   </Link>
                   <button onClick={() => signOut()} className="nav-link text-sm" style={{ fontSize: 13 }}>Sign out</button>
                 </div>
               ) : (
-                <div className="flex items-center gap-3">
+                <div className="hidden md:flex items-center gap-3">
                   <div ref={menuRef} className="relative">
                     <button
                       onClick={() => setMenuOpen((v) => !v)}
                       disabled={signingIn}
-                      className="nav-link hidden md:block"
+                      className="nav-link"
                       style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text2)' }}
                       aria-haspopup="menu"
                       aria-expanded={menuOpen}
@@ -136,16 +161,123 @@ export default function Navbar() {
                       </div>
                     )}
                   </div>
-                  <a href="#waitlist" className="nav-cta hidden md:inline-flex">
+                  <a href="#waitlist" className="nav-cta">
                     Join waitlist
                   </a>
                 </div>
               )
             )}
+
+            {/* Mobile controls: always-visible Blog + hamburger */}
+            <Link href="/blog" className="nav-link md:hidden">Blog</Link>
+            <button
+              onClick={() => setDrawerOpen((v) => !v)}
+              className="md:hidden inline-flex items-center justify-center"
+              style={{ width: 40, height: 40, marginRight: -8, color: 'var(--text)' }}
+              aria-label="Menu"
+              aria-haspopup="menu"
+              aria-expanded={drawerOpen}
+              aria-controls="mobile-drawer"
+            >
+              {drawerOpen ? <CloseGlyph /> : <MenuGlyph />}
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Mobile drawer */}
+      {drawerOpen && (
+        <div ref={drawerRef} id="mobile-drawer" role="menu" className="md:hidden" style={{ borderTop: '1px solid var(--hairline)' }}>
+          <div className="wrap" style={{ paddingTop: 12, paddingBottom: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {NAV_LINKS.map(([label, href]) => (
+              <Link
+                key={label}
+                href={href}
+                role="menuitem"
+                onClick={() => setDrawerOpen(false)}
+                className="nav-link"
+                style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', padding: '11px 4px' }}
+              >
+                {label}
+              </Link>
+            ))}
+
+            <div style={{ height: 1, background: 'var(--hairline)', margin: '8px 0' }} />
+
+            {!loading && (
+              user ? (
+                <>
+                  <Link
+                    href="/home"
+                    role="menuitem"
+                    onClick={() => setDrawerOpen(false)}
+                    className="nav-link"
+                    style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', padding: '11px 4px' }}
+                  >
+                    Open app
+                  </Link>
+                  <button
+                    onClick={() => { setDrawerOpen(false); signOut() }}
+                    role="menuitem"
+                    className="nav-link text-left"
+                    style={{ fontSize: 16, fontWeight: 600, color: 'var(--text2)', padding: '11px 4px' }}
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    role="menuitem"
+                    onClick={() => signInWith('apple')}
+                    disabled={signingIn}
+                    className="flex items-center gap-2.5 text-left"
+                    style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', padding: '11px 4px' }}
+                  >
+                    <AppleGlyph />
+                    Sign in with Apple
+                  </button>
+                  <button
+                    role="menuitem"
+                    onClick={() => signInWith('google')}
+                    disabled={signingIn}
+                    className="flex items-center gap-2.5 text-left"
+                    style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', padding: '11px 4px' }}
+                  >
+                    <GoogleGlyph />
+                    Continue with Google
+                  </button>
+                  <a
+                    href="#waitlist"
+                    onClick={() => setDrawerOpen(false)}
+                    className="btn-amber-full"
+                    style={{ marginTop: 10 }}
+                  >
+                    Join waitlist
+                  </a>
+                </>
+              )
+            )}
+          </div>
+        </div>
+      )}
     </header>
+  )
+}
+
+function MenuGlyph() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+      <line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />
+    </svg>
+  )
+}
+
+function CloseGlyph() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+      <line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />
+    </svg>
   )
 }
 
