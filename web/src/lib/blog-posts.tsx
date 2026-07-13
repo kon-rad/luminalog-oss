@@ -1321,7 +1321,188 @@ function ChongIngKaiContent() {
   )
 }
 
+/* ── Post: LLP#015 — Building a Quantum-Proof Bitcoin (Chris of Quantus) ── */
+function QuantumProofBitcoinContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/quantum-proof-bitcoin-chris-quantus-hero.jpg"
+        alt="Chris Smith (UV Lightman) in conversation at Network School, gesturing as he explains an idea across the podcast microphone"
+        width={1280}
+        height={720}
+        priority
+      />
+      <P>
+        Some conversations start with small talk. This one started with Fourier. Chris Smith and I
+        first met in the Network School caf&eacute; months ago, and within minutes we were thirty
+        deep into a French mathematician who was laughed out of academia for suggesting you could
+        decompose any wave into its constituent frequencies &mdash; the same math that now underpins
+        every piece of audio and video you touch. It was the perfect opening for a guest who moves
+        fluidly between the technical and the human: Chris, known online as UV Lightman, is a
+        founder, a musician, a comedian, and someone building a blockchain to survive a threat most
+        people haven&apos;t started worrying about yet.
+      </P>
+
+      <H2>The threat is an efficient attack</H2>
+      <P>
+        Quantus exists because of a tip. Chris and his co-founder Joe heard that quantum computing
+        was advancing faster than the public was being told &mdash; and if you know where to look,
+        that&apos;s an alarming sentence. Modern cryptography rests on problems that are easy to
+        state and astronomically hard to reverse: factoring large numbers (RSA), and elliptic-curve
+        math. Shor&apos;s algorithm collapses both.
+      </P>
+      <Figure
+        src="/blog/quantum-proof-bitcoin-chris-quantus-1.jpg"
+        alt="Chris explaining Shor's algorithm and the threat quantum computing poses to Bitcoin's cryptography"
+        width={1280}
+        height={720}
+        caption="The risk isn&rsquo;t that an attack exists &mdash; it&rsquo;s that an efficient one does."
+      />
+      <P>
+        The framing Chris uses is the one worth keeping: the danger isn&apos;t that an attack exists
+        &mdash; every algorithm has known attacks. The danger is that an <em>efficient</em> attack
+        exists. A well-designed system assumes even the world&apos;s biggest supercomputer would need
+        thousands of years to break it. Shor&apos;s algorithm turns that from millennia into
+        something tractable, provided someone builds the machine. Over a trillion dollars in Bitcoin
+        currently sits on cryptography that a sufficiently capable quantum computer would peel open.
+      </P>
+
+      <H2>A &ldquo;new Bitcoin&rdquo; as a backstop</H2>
+      <P>
+        Quantus is a deliberate throwback. It&apos;s a proof-of-work chain focused entirely on the
+        money use case &mdash; not a smart-contract platform. Chris built on Ethereum for years and
+        respects it, but he&apos;s blunt that &ldquo;the average quality of a smart contract is
+        somewhere between malicious and completely broken.&rdquo; So Quantus keeps the surface area
+        small: 21 million coins, mined on your GPU, no ASICs, no KYC to acquire it.
+      </P>
+      <P>
+        The pitch is audacious, and he knows it. VCs have told him he&apos;s crazy &mdash; not only
+        launching an L1, but positioning it against Bitcoin itself. His answer is that someone has to
+        solve this, the timelines are compressing (the US government has already cut its own quantum
+        estimates by more than half), and it might as well be a Bitcoin-Cash veteran who once wrote
+        the bootloader decompression running on your Samsung TV. Quantus isn&apos;t trying to replace
+        Bitcoin so much as stand behind it: a backstop, ready to catch the net if the thing everyone
+        is trusting quietly breaks.
+      </P>
+
+      <H2>What money actually is</H2>
+      <P>
+        The most clarifying stretch of the conversation isn&apos;t about quantum at all. It&apos;s
+        about money. When Chris first encountered Bitcoin in 2011, the hardest part wasn&apos;t the
+        peer-to-peer networking or the proof of work &mdash; it was understanding why anyone would
+        call it money. Digging in, he found that money has been &ldquo;dramatically
+        over-complicated.&rdquo; At its core it&apos;s almost embarrassingly simple: if I do things
+        for you, my number goes up; if you do things for me, my number goes down. Everything else
+        &mdash; consensus, mining, the elaborate machinery &mdash; exists so a group of strangers can
+        agree on that ledger without trusting a single point of failure.
+      </P>
+      <Pull>
+        There&apos;s a LuminaLog lesson buried in there. The things we treat as impossibly complex
+        often turn out to have a simple core we&apos;ve buried under jargon. Naming that core &mdash;
+        putting it into plain words &mdash; is most of the work.
+      </Pull>
+
+      <H2>A warning from a stranger</H2>
+      <P>
+        The origin story has a cinematic beat. At a Token 2049 side event, Chris demoed a Bluetooth
+        peer-to-peer chat app he&apos;d built &mdash; a geographic 4chan where you don&apos;t know who
+        anyone is, but you know you&apos;ve shared a room with them. Afterward a man approached, said
+        he worked for NIST &mdash; the agency that effectively decides what cryptography the US
+        government, and much of the world, uses &mdash; and told him quantum computers were further
+        along than anyone was admitting, and that the public would not be warned.
+      </P>
+      <Figure
+        src="/blog/quantum-proof-bitcoin-chris-quantus-2.jpg"
+        alt="Chris recounting the story of a stranger claiming to be from NIST who warned him about quantum progress"
+        width={1280}
+        height={720}
+        caption="&ldquo;Does this guy really work for NIST? If so, why is he telling me this? If not, why is he telling me this?&rdquo;"
+      />
+      <P>
+        Chris&apos;s reaction is the honest one: <em>does this guy really work for NIST? If so, why
+        is he telling me this? If not, why is he telling me this?</em> You can&apos;t verify it. But
+        it&apos;s the kind of signal that, combined with everything else, tips a person from thinking
+        about a problem to building against it.
+      </P>
+
+      <H2>Local AI and the exocortex</H2>
+      <P>
+        When the conversation turned to LuminaLog &mdash; the private, AI-assisted journaling
+        practice this podcast is part of &mdash; Chris was thoughtfully cautious, and that&apos;s
+        exactly why it&apos;s worth hearing. He&apos;s protective of his inner life; he doesn&apos;t
+        want a model on his phone reporting his mind-state back to the network. But he lit up at the
+        <em>idea</em> underneath it: AI as an exocortex. An external memory where the patterns that
+        shape our lives &mdash; the ones that recur too infrequently to notice &mdash; could finally
+        become visible. &ldquo;Imagine someone who knows everything about you,&rdquo; he said,
+        &ldquo;and can tell you: in the past few relationships, you had this pattern.&rdquo;
+      </P>
+      <Figure
+        src="/blog/quantum-proof-bitcoin-chris-quantus-3.jpg"
+        alt="Chris reflecting on local AI, privacy, and the idea of AI as an exocortex for self-knowledge"
+        width={1280}
+        height={720}
+        caption="His condition is sovereignty: run it locally, keep the key, don&rsquo;t trade self-knowledge for surveillance."
+      />
+      <P>
+        His condition is sovereignty: run it locally, keep the key, don&apos;t trade self-knowledge
+        for surveillance. That maps almost exactly onto why LuminaLog is end-to-end encrypted. The
+        tool should serve the human, not the other way around.
+      </P>
+
+      <H2>Both halves of the brain</H2>
+      <P>
+        We closed where Chris lives most comfortably &mdash; the seam between logic and intuition.
+        &ldquo;God gave us two hemispheres,&rdquo; he said; treating yourself as a
+        &ldquo;left-brain person&rdquo; or a &ldquo;right-brain person&rdquo; is a way of amputating
+        half your capacity. Language, in his view, should be a set of toys you pick up, play with,
+        and put down &mdash; never a master. He makes music as UV Lightman, writes a Substack called
+        <em>weaponized schizophrenia</em> about cybernetics and sense-making, and points out that the
+        very conversation we were having was improvised: nobody rehearsed it, and it worked fine. The
+        plan-everything-or-it-fails instinct, he argues, is a profound misunderstanding of how your
+        own mind already works.
+      </P>
+
+      <H2>Key takeaways</H2>
+      <UL
+        items={[
+          <><strong>The real cryptographic risk is efficiency.</strong> Not that an attack exists &mdash; that an <em>efficient</em> one does. Shor&apos;s algorithm targets the RSA and elliptic-curve math securing most of the internet and over a trillion dollars in Bitcoin.</>,
+          <><strong>Quantus is a narrow, quantum-secure backstop.</strong> A proof-of-work chain focused only on money, in case Bitcoin&apos;s cryptography fails.</>,
+          <><strong>Money is simpler than we make it.</strong> A shared ledger of who did what for whom; the complexity exists to remove the trusted third party.</>,
+          <><strong>AI&apos;s best use may be self-knowledge.</strong> An exocortex that surfaces your patterns &mdash; but only if it runs locally and keeps your sovereignty intact.</>,
+          <><strong>Don&apos;t pick a hemisphere.</strong> Logic and intuition are tools that snap together, and most of what you do well, you already improvise.</>,
+        ]}
+      />
+      <P>
+        Links &amp; mentions:{' '}
+        <A href="https://www.quantus.com/">Quantus</A> (mining at quantusminer.com), NEAR Protocol, ecdsa.fail, The Network
+        State by Balaji Srinivasan, Boost VC / Draper University, Coinbase&apos;s Brian Armstrong,
+        NIST, Token 2049, Buckminster Fuller, Norbert Wiener, Douglas Hofstadter&apos;s{' '}
+        <em>G&ouml;del, Escher, Bach</em>, and Steven Levy&apos;s <em>Crypto</em>. Find Chris as UV
+        Lightman (search &ldquo;yuvilightman&rdquo;) on X, YouTube, SoundCloud, and Spotify, and his
+        Substack at weaponizedschizophrenia.com.
+      </P>
+
+      <H2>Listen to the LuminaLog podcast</H2>
+      <P>
+        Subscribe on{' '}
+        <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
+        <A href="https://open.spotify.com/show/033Mu8Yn2ybRQIis1uKNv2">Spotify</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'quantum-proof-bitcoin-chris-quantus',
+    title: 'LLP#015 — Building a Quantum-Proof Bitcoin: Chris of Quantus',
+    description:
+      'A wide-ranging conversation at Network School with Chris Smith — UV Lightman — founder of Quantus, a proof-of-work blockchain built to survive the day quantum computers can break Bitcoin’s cryptography. On Shor’s algorithm and the efficient-attack problem, what money actually is, a stranger from NIST, local AI as an exocortex, and using both halves of your brain.',
+    date: 'July 13, 2026',
+    isoDate: '2026-07-13T18:00',
+    readingTime: '6 min read',
+    Content: QuantumProofBitcoinContent,
+  },
   {
     slug: 'chong-ing-kai-stickem',
     title: 'The Founder Who Teaches Kids to Build With Chopsticks',

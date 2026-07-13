@@ -132,13 +132,8 @@ export default function Home() {
               Most people move through life without ever truly seeing themselves. They repeat the same fears. Ask the wrong questions. Miss the connections between where they are and where they&apos;ve been. Not because they&apos;re not thoughtful — but because no one can see themselves clearly from inside their own head.
             </p>
             <p style={{ marginTop: 16, fontSize: 18, color: 'var(--text2)', lineHeight: 1.75 }}>
-              LuminaLog gives you the outside view. Every entry you write, speak, or film is indexed and remembered. The AI reads across everything — your words, your voice, your face, your history — and shows you what it sees.
+              LuminaLog gives you the outside view. Every entry you write, speak, or film is indexed and remembered. The AI reads across everything — your words, your voice, your history — and shows you what it sees.
             </p>
-            <div style={{ margin: '40px auto', maxWidth: 560, textAlign: 'left', borderLeft: '3px solid var(--accent)', paddingLeft: 24 }}>
-              <p className="serif" style={{ fontStyle: 'italic', fontSize: 20, lineHeight: 1.55, color: 'var(--text2)' }}>
-                &ldquo;It&apos;s the first time I&apos;ve ever had a conversation about my journal that didn&apos;t start with me explaining who I am — and the first time something showed me a pattern I was completely blind to.&rdquo;
-              </p>
-            </div>
           </div>
           {/* Chat mockup */}
           <div style={{ maxWidth: 520, margin: '52px auto 0' }}>
@@ -186,7 +181,7 @@ export default function Home() {
               ['Ask the right questions', "LuminaLog doesn't give you answers — it gives you the questions you weren't asking. The ones drawn from your actual history that unlock the next level of clarity."],
               ['Spot invisible patterns', 'Recurring fears, creative blocks, emotional cycles, belief contradictions. The AI finds what repeats and shows it to you plainly, without judgment.'],
               ['Connect past to present', 'A goal from last month linked to an insight from six months ago. A current fear traced back to something you wrote and forgot. The dots you never connected — connected.'],
-              ['Get holistic feedback from video', "When you record a video entry, the AI analyses your face, tone of voice, and energy — not just your words. It notices what you didn't say."],
+              ['Own your practice', 'Every day you cross your 750-word goal becomes a star in your On-Chain Soul — a soulbound token on Base that\'s provably earned, impossible to fake, and permanently yours.'],
             ].map(([title, desc]) => (
               <div key={title as string} className="card" style={{ padding: 24 }}>
                 <div style={{ color: 'var(--accent)', fontSize: 18, marginBottom: 14 }}>✦</div>
@@ -209,8 +204,8 @@ export default function Home() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="capture-grid">
             {[
               { pill: 'Text', pillBg: 'rgba(206,127,68,0.12)', pillColor: 'var(--accentDeep)', title: 'Write what\'s on your mind.', desc: 'A clean, distraction-free editor. No formatting toolbars, no pressure. Just you and the page — and an AI that will remember every word.' },
-              { pill: 'Voice', pillBg: 'rgba(193,108,108,0.12)', pillColor: '#C16C6C', title: 'Speak your thoughts.', desc: 'Record as you go — LuminaLog transcribes in real time, on your device. Your voice stays private, and your tone is analysed for patterns you didn\'t notice. The more you speak, the sharper your language — and your ability to put your inner life into words.' },
-              { pill: 'Video', pillBg: 'rgba(137,123,168,0.12)', pillColor: '#7B6FA0', title: 'Film yourself.', desc: 'Record a moment, a reflection, a conversation with yourself. The AI reads your words — and watches your face and hears your voice for what\'s beneath them.' },
+              { pill: 'Voice', pillBg: 'rgba(193,108,108,0.12)', pillColor: '#C16C6C', title: 'Speak your thoughts.', desc: 'Record as you go — LuminaLog transcribes in real time, on your device, and folds every word into your journal\'s memory. The more you speak, the sharper your language — and your ability to put your inner life into words.' },
+              { pill: 'Video', pillBg: 'rgba(137,123,168,0.12)', pillColor: '#7B6FA0', title: 'Film yourself.', desc: 'Record a moment, a reflection, a conversation with yourself. LuminaLog transcribes what you say and adds it to your journal — remembered alongside everything else you\'ve written.' },
               { pill: 'Image', pillBg: 'rgba(110,140,119,0.12)', pillColor: '#4E7A5A', title: 'Photograph your notebook.', desc: 'Already journaling on paper? Snap the page. We read your handwriting, make it searchable, and add it to your AI\'s memory.' },
             ].map(({ pill, pillBg, pillColor, title, desc }) => (
               <div key={pill} className="card" style={{ padding: 28 }}>
@@ -223,19 +218,20 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── VIDEO INTELLIGENCE (DARK) ── */}
+      {/* ── YOUR ON-CHAIN SOUL (DARK) ── */}
       <section className="fade-up" style={{ padding: '104px 0', background: 'var(--dark-bg)' }}>
         <div className="wrap">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 72, alignItems: 'center' }} className="video-split">
             <div>
-              <span className="eyebrow">Video Intelligence</span>
-              <h2 className="serif" style={{ marginTop: 12, fontSize: 'clamp(30px,3.6vw,42px)', fontWeight: 600, color: 'var(--dark-text)', letterSpacing: '-0.025em' }}>It sees what<br />you don&apos;t say.</h2>
-              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 20 }}>When you record a video entry, LuminaLog doesn&apos;t just transcribe your words. The AI analyses your facial expressions, your tone of voice, your energy, and your body language — then offers feedback that goes far beyond what you said out loud.</p>
+              <span className="eyebrow">Your On-Chain Soul</span>
+              <h2 className="serif" style={{ marginTop: 12, fontSize: 'clamp(30px,3.6vw,42px)', fontWeight: 600, color: 'var(--dark-text)', letterSpacing: '-0.025em' }}>Every day you show up<br />becomes a star.</h2>
+              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 20 }}>Cross your 750-word goal and the day is minted as a star in your On-Chain Soul — a soulbound token, live on Base, that grows into a constellation of every day you did the work on yourself. It&apos;s provably earned, impossible to fake, and permanently, un-transferably yours.</p>
+              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 16 }}>You never touch crypto. A secure wallet is created for you the moment you sign in with Apple or Google — no seed phrase, no gas, no jargon. The chain is invisible plumbing; the only promise it makes is that your Soul is yours.</p>
               <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
-                  '"Your voice tightened noticeably when you mentioned the project deadline."',
-                  '"You smiled three times talking about Thursday — you didn\'t mention it as a good day."',
-                  '"This is the fourth entry where your energy dropped when you brought up that relationship."',
+                  'A new star for every day you cross 750 words.',
+                  'Soulbound — it can\'t be sold, transferred, gifted, or faked.',
+                  'A wallet auto-created at sign-in — you\'ll never see the blockchain.',
                 ].map((chip) => (
                   <div key={chip} style={{ background: 'var(--dark-surface)', border: '1px solid var(--dark-hairline)', borderRadius: 14, padding: '13px 16px', fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 14, color: 'var(--dark-text)', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                     <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }}>✦</span>
@@ -244,42 +240,34 @@ export default function Home() {
                 ))}
               </div>
             </div>
-            {/* Dark phone */}
+            {/* Soul constellation visual */}
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-              <div style={{ position: 'absolute', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle,rgba(206,127,68,0.18),transparent 65%)', filter: 'blur(16px)' }} />
-              <div className="phone dark" style={{ position: 'relative', zIndex: 1 }}>
-                <div className="phone-island" />
-                <div className="phone-bar" />
-                <div style={{ paddingTop: 48 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px 0', color: 'var(--dark-text2)', fontSize: 13 }}>
-                    <span style={{ color: 'var(--accent)' }}>‹ Journal</span>
-                    <span style={{ fontWeight: 600, color: 'var(--dark-text)', fontSize: 15 }}>Wednesday</span>
-                    <span>···</span>
-                  </div>
-                  <div style={{ margin: '10px 16px 0', borderRadius: 18, overflow: 'hidden', height: 160, background: '#000', position: 'relative' }}>
-                    <div style={{ width: '100%', height: '100%', background: 'radial-gradient(ellipse 60% 70% at 50% 40%, #3A3028, #0C0A06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, opacity: 0.5 }}>
-                        <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(206,127,68,0.4)' }} />
-                        <div style={{ width: 64, height: 28, borderRadius: 8, background: 'rgba(206,127,68,0.2)' }} />
-                      </div>
-                    </div>
-                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 44, height: 44, background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
-                    </div>
-                    <div style={{ position: 'absolute', bottom: 8, right: 10, fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>2:34</div>
-                  </div>
-                  <div style={{ padding: '10px 16px 0' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.7px', textTransform: 'uppercase', color: 'var(--dark-text2)', marginBottom: 6 }}>Transcript</div>
-                    <div className="serif" style={{ fontSize: 12, color: 'var(--dark-text2)', lineHeight: 1.55, fontStyle: 'italic' }}>&ldquo;I keep telling myself it doesn&apos;t matter, but every time the deadline comes up I feel this tightening in my chest and I...&rdquo;</div>
-                  </div>
-                  <div style={{ padding: '8px 16px 0' }}>
-                    <div style={{ background: 'var(--dark-surface)', border: '1px solid var(--dark-hairline)', borderRadius: 16, padding: '12px 14px', marginBottom: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--accent)', fontSize: 10, fontWeight: 700, letterSpacing: '0.7px', textTransform: 'uppercase', marginBottom: 7 }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5c.5 3.6 1.9 5 5.5 5.5-3.6.5-5 1.9-5.5 5.5-.5-3.6-1.9-5-5.5-5.5 3.6-.5 5-1.9 5.5-5.5z"/></svg>
-                        Video insights
-                      </div>
-                      <div className="serif" style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--dark-text2)', fontStyle: 'italic' }}>&ldquo;Your voice tightened noticeably when you mentioned the project deadline — a pattern I&apos;ve seen in three prior entries.&rdquo;</div>
-                    </div>
+              <div style={{ position: 'absolute', width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle,rgba(206,127,68,0.20),transparent 65%)', filter: 'blur(18px)' }} />
+              <div style={{ position: 'relative', zIndex: 1, width: 320, maxWidth: '100%', aspectRatio: '320 / 420', borderRadius: 26, overflow: 'hidden', boxShadow: '0 30px 70px rgba(0,0,0,0.45)', background: 'linear-gradient(160deg, #241B33, #0A0710)', border: '1px solid var(--dark-hairline)' }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 72% 55% at 55% 38%, rgba(232,160,90,0.30), transparent 62%)' }} />
+                <svg viewBox="0 0 320 420" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+                  <g stroke="rgba(232,160,90,0.28)" strokeWidth="1" fill="none">
+                    <polyline points="52,86 108,132 168,104 214,168 268,120" />
+                    <polyline points="80,214 140,180 196,238 244,206" />
+                    <polyline points="64,300 132,264 190,312 252,278" />
+                    <line x1="140" y1="180" x2="168" y2="104" />
+                    <line x1="132" y1="264" x2="140" y2="180" />
+                  </g>
+                  {([
+                    [52,86,2.4],[108,132,1.8],[168,104,2.8],[214,168,2],[268,120,1.6],
+                    [80,214,2.2],[140,180,3.2],[196,238,2],[244,206,1.7],
+                    [64,300,1.8],[132,264,2.6],[190,312,2.1],[252,278,1.6],
+                    [96,60,1.3],[236,64,1.4],[292,236,1.5],[40,168,1.4],[292,330,1.3],
+                  ] as [number, number, number][]).map(([cx, cy, r], i) => (
+                    <circle key={i} cx={cx} cy={cy} r={r} fill="#F4CE9B" />
+                  ))}
+                </svg>
+                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '20px 22px', background: 'linear-gradient(180deg, transparent, rgba(6,4,10,0.82))' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.4px', textTransform: 'uppercase', color: '#F0C18A' }}>On-Chain Soul</div>
+                  <div className="serif" style={{ fontSize: 15, color: 'rgba(255,255,255,0.94)', marginTop: 6, lineHeight: 1.3 }}>247 stars · 247 days you showed up</div>
+                  <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 100, padding: '5px 12px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.85)' }}>
+                    <span style={{ color: 'var(--accent)' }}>✦</span>
+                    Soulbound · Base
                   </div>
                 </div>
               </div>
@@ -334,7 +322,7 @@ export default function Home() {
             <div>
               <span className="eyebrow">AI Analysis</span>
               <h2 className="serif" style={{ marginTop: 14, fontSize: 'clamp(30px,3.6vw,42px)', fontWeight: 600, letterSpacing: '-0.025em' }}>Your life,<br />reflected back.</h2>
-              <p style={{ marginTop: 18, fontSize: 17, color: 'var(--text2)', lineHeight: 1.7 }}>Every entry receives an AI-generated summary and a set of insights — not just from what you wrote today, but from everything the AI knows about you. It finds the themes threading through your last six months, the emotional patterns you couldn&apos;t name, and the connections between your current goals and things you recorded and forgot.</p>
+              <p style={{ marginTop: 18, fontSize: 17, color: 'var(--text2)', lineHeight: 1.7 }}>Every entry receives an AI-generated summary and a set of insights — not just from what you wrote today, but from everything the AI knows about you. It finds the themes threading through your last six months, the patterns you couldn&apos;t name, and the connections between your current goals and things you recorded and forgot.</p>
               <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {[
                   ['Daily prompt', 'One personalized question each morning, drawn from your recent themes and where you are in your growth.'],
@@ -578,7 +566,7 @@ export default function Home() {
               <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$9.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ month</span></div>
               <div style={{ fontSize: 14, color: 'var(--text3)' }}>Cancel anytime</div>
               <ul style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {['Unlimited text, voice, video & photo entries', 'AI video intelligence (face + voice)', 'Unlimited AI insights & patterns', 'Unlimited chat with your companion', 'Daily 750-word streak + shareable insights card', 'Daily personalized prompt'].map(f => (
+                {['Unlimited text, voice, video & photo entries', 'End-to-end encrypted — zero-knowledge by design', 'Unlimited AI insights & patterns', 'Unlimited chat with your companion', 'Daily 750-word streak + shareable insights card', 'Daily personalized prompt', 'Your On-Chain Soul — a soulbound token'].map(f => (
                   <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15, textAlign: 'left' }}>
                     <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
