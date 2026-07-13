@@ -69,13 +69,25 @@
 
     // 'orbit' controls give a turntable feel and — unlike the default trackball —
     // support autoRotate (see below), so the constellation slowly turns in place.
+    // Padding (screen px) left around the constellation when framing it. Small,
+    // so the constellation fills most of the card with just a little breathing
+    // room to the edges (the glow sprites extend a bit past the node centers,
+    // which zoomToFit measures, so this isn't edge-to-edge in practice).
+    var FIT_PAD = 12;
+
     var Graph = ForceGraph3D({ controlType: 'orbit' })(document.getElementById('soul'))
       .backgroundColor('rgba(0,0,0,0)')
       .showNavInfo(false)
       .enableNodeDrag(false)
       .linkColor(function () { return 'rgba(232,164,76,0.22)'; })
       .linkWidth(0.6)
-      .cooldownTicks(0);
+      .cooldownTicks(0)
+      // Refit once the layout settles: onEngineStop fires after the engine has
+      // committed fixed positions into node.x/y/z, so zoomToFit finally has a
+      // real bounding box to frame (calling it synchronously after graphData is
+      // a no-op — coords aren't populated yet — which left the camera parked at
+      // its far default distance and the constellation looking tiny).
+      .onEngineStop(function () { if (lastCount) Graph.zoomToFit(0, FIT_PAD); });
 
     if (T && GLOW) {
       Graph.nodeThreeObject(makeStar).nodeThreeObjectExtend(false);
@@ -118,6 +130,20 @@
       return { nodes: nodes, links: links };
     }
 
+    // Frame the constellation once node coords exist. zoomToFit reads node.x/y/z,
+    // which the engine only populates from the fixed fx/fy/fz a few frames after
+    // graphData(), so retry across animation frames until they're ready rather
+    // than firing once (a no-op) the instant we hand over the data.
+    function fitSoon(ms) {
+      var tries = 0;
+      (function attempt() {
+        var nodes = Graph.graphData().nodes;
+        var ready = nodes.length && nodes.every(function (n) { return typeof n.x === 'number'; });
+        if (ready) { Graph.zoomToFit(ms, FIT_PAD); return; }
+        if (tries++ < 60) requestAnimationFrame(attempt);
+      })();
+    }
+
     // Called by native (SoulGalaxyWebView) with the SoulPayload's points.
     var lastCount = 0;
     window.renderSoul = function (payload) {
@@ -125,7 +151,7 @@
       lastCount = points.length;
       document.getElementById('empty').style.display = points.length ? 'none' : 'flex';
       Graph.graphData(buildGraph(points));
-      if (points.length) { Graph.zoomToFit(500, 40); }
+      if (points.length) { fitSoon(500); }
     };
 
     // Keep the whole structure framed when the web view resizes (device
@@ -133,7 +159,7 @@
     // camera distance from the current bounding box, so it zooms out for a big
     // soul and in for a small one, with a 40px margin.
     window.addEventListener('resize', function () {
-      if (lastCount) { Graph.zoomToFit(400, 40); }
+      if (lastCount) { fitSoon(400); }
     });
   </script>
 </body>
