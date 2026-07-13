@@ -16,7 +16,7 @@ vi.mock('../middleware/firebaseAuth', () => ({
   firebaseAuth: (_req: any, _res: any, next: any) => next(),
   db: {},
 }))
-vi.mock('../services/prompts', () => ({ PROMPTS: { voiceChat: () => 'VOICE_SYSTEM_PROMPT' } }))
+vi.mock('../services/prompts', () => ({ PROMPTS: { voiceChat: vi.fn(() => 'VOICE_SYSTEM_PROMPT') } }))
 vi.mock('../services/voiceRecordingStore', () => ({
   signedPlaybackUrl: vi.fn().mockResolvedValue('https://signed'),
   storeRecording: vi.fn(),
@@ -25,6 +25,7 @@ vi.mock('../services/voiceRecordingStore', () => ({
 
 import { callConfigHandler } from './vapi'
 import { config } from '../config'
+import { PROMPTS } from '../services/prompts'
 
 function mockRes() {
   const res: any = { statusCode: 200 }
@@ -34,18 +35,33 @@ function mockRes() {
 }
 
 describe('vapi call-config → dashboard model + injected system prompt', () => {
-  it('overrides only model.messages (no provider/model/url) so Vapi uses the dashboard model', async () => {
+  it('injects the system prompt via variableValues and sends NO model override', async () => {
     const req: any = { uid: 'user-123', body: { ragContext: 'ctx' } }
     const res = mockRes()
     await callConfigHandler(req, res)
 
-    const model = res.body.assistantOverrides.model
-    // We deliberately do NOT set provider/model/url — Vapi merges these messages over
-    // the dashboard-configured SOTA model, and the per-call system prompt still lands.
-    expect(model.provider).toBeUndefined()
-    expect(model.url).toBeUndefined()
-    expect(model.messages[0].role).toBe('system')
-    expect(model.messages[0].content).toBe('VOICE_SYSTEM_PROMPT')
+    const ov = res.body.assistantOverrides
+    // No `model` override: Vapi validates any model object as complete and rejects the
+    // call for a missing provider. The dashboard owns model/provider/params (ADR-0077).
+    expect(ov.model).toBeUndefined()
+    // The per-call system prompt rides in `variableValues.systemPrompt`, substituted
+    // into the dashboard prompt's `{{systemPrompt}}` placeholder.
+    expect(ov.variableValues.systemPrompt).toBe('VOICE_SYSTEM_PROMPT')
+  })
+
+  it('forwards the client-sent local `now` and today-context to voiceChat', async () => {
+    const req: any = {
+      uid: 'user-123',
+      body: { ragContext: 'ctx', now: '2026-07-13 14:29 PDT', todayContext: 'today-block' },
+    }
+    const res = mockRes()
+    await callConfigHandler(req, res)
+
+    // voiceChat(name, bio, profile, ragContext, focalEntry, currentDateTime, todayEntries)
+    expect(PROMPTS.voiceChat).toHaveBeenCalledWith(
+      expect.anything(), expect.anything(), expect.anything(),
+      'ctx', undefined, '2026-07-13 14:29 PDT', 'today-block',
+    )
   })
 })
 

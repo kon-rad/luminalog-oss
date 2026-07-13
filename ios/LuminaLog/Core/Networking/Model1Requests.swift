@@ -184,29 +184,87 @@ enum Model1Requests {
         retriever: EntryRetriever = EntryRetriever(),
         searcher: SemanticIndexCoordinating?
     ) async -> String {
+        let ranked = await rankedEntries(
+            from: entries, query: query, now: now, topK: topK, retriever: retriever, searcher: searcher
+        )
+        return format(ranked, snippetChars: snippetChars)
+    }
+
+    /// The semantic-first ranked entries (with the keyword+recency hybrid fallback)
+    /// that back `journalContext`. Exposed so callers can post-process the ranked set
+    /// before formatting — e.g. the voice path unions today's entries in so the
+    /// assistant never misses an entry the user just wrote.
+    static func rankedEntries(
+        from entries: [JournalEntry],
+        query: String,
+        now: Date,
+        topK: Int = 5,
+        retriever: EntryRetriever = EntryRetriever(),
+        searcher: SemanticIndexCoordinating?
+    ) async -> [JournalEntry] {
         if let searcher,
            let ids = try? await searcher.search(query: query, k: topK), !ids.isEmpty {
             let byId = Dictionary(entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
             let ranked = ids.compactMap { byId[$0] }
-            if !ranked.isEmpty {
-                return format(ranked, snippetChars: snippetChars)
-            }
+            if !ranked.isEmpty { return ranked }
         }
         // Hybrid fallback: identical to the legacy keyword path.
-        let top = retriever.topK(topK, matching: query, in: entries, now: now)
-        return format(top, snippetChars: snippetChars)
+        return retriever.topK(topK, matching: query, in: entries, now: now)
     }
 
-    /// Format ranked entries into the server-shaped RAG block string. Shared by the
-    /// keyword and semantic paths so their output is byte-identical for the same
-    /// entry ordering.
-    private static func format(_ entries: [JournalEntry], snippetChars: Int) -> String {
-        entries.enumerated().map { index, entry in
-            let date = dayFormatter.string(from: entry.createdAt)
+    /// How per-entry timestamps and types are rendered in the RAG context.
+    enum ContextDateStyle {
+        /// `yyyy-MM-dd` in UTC with the raw type value — the server-mirrored shape
+        /// used by the text-chat path (byte-identical to the pre-1c-D behavior).
+        case dayUTC
+        /// `yyyy-MM-dd HH:mm` in `timeZone` (device-local) with a human type label —
+        /// used by the voice path so the assistant can reason about *when* and *how*
+        /// each entry was made ("today's voice note", "yesterday's handwritten page").
+        case dateTimeLocal
+    }
+
+    /// Format ranked entries into the RAG block string. Shared by the keyword and
+    /// semantic paths; `dateStyle` selects the legacy server shape (text) or the
+    /// timestamped local shape (voice).
+    static func format(
+        _ entries: [JournalEntry],
+        snippetChars: Int,
+        dateStyle: ContextDateStyle = .dayUTC,
+        timeZone: TimeZone = .current
+    ) -> String {
+        let localFormatter = dateStyle == .dateTimeLocal ? dateTimeFormatter(timeZone) : nil
+        return entries.enumerated().map { index, entry in
             let title = entry.title.isEmpty ? "Untitled" : entry.title
             let snippet = String(entry.content.prefix(snippetChars))
-            return "[#\(index + 1) — \(entry.type.rawValue) · \(title) · \(date)]\n\(snippet)"
+            switch dateStyle {
+            case .dayUTC:
+                let date = dayFormatter.string(from: entry.createdAt)
+                return "[#\(index + 1) — \(entry.type.rawValue) · \(title) · \(date)]\n\(snippet)"
+            case .dateTimeLocal:
+                let stamp = localFormatter!.string(from: entry.createdAt)
+                return "[#\(index + 1) — \(typeLabel(entry.type)) · \(title) · \(stamp)]\n\(snippet)"
+            }
         }.joined(separator: "\n\n")
+    }
+
+    /// Human, voice-friendly label for an entry type. `image` entries are the user's
+    /// handwritten journal pages, so we name them as such for the assistant.
+    static func typeLabel(_ type: JournalType) -> String {
+        switch type {
+        case .text:  return "text"
+        case .voice: return "voice"
+        case .video: return "video"
+        case .image: return "handwritten image"
+        }
+    }
+
+    /// `yyyy-MM-dd HH:mm` in `timeZone` — the device-local stamp for the voice path.
+    static func dateTimeFormatter(_ timeZone: TimeZone) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return formatter
     }
 
     /// `yyyy-MM-dd` in UTC — matches the server's `indexedAt.slice(0, 10)` shape.

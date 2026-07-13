@@ -529,25 +529,44 @@ final class ProxyAIService: AIService {
         guard DevFlags.aiModel1, let journals, let profiles else { return nil }
         let profile = await firstEmission(profiles.profile()).flatMap { $0 }
         let entries = (try? await journals.fetchAllEntries()) ?? []
-        let focalEntry = journalId.flatMap { id in entries.first(where: { $0.id == id })?.content }
-        // RAG query: the focal entry's text if launched from one, else the most recent
-        // entries — enough signal to anchor the assistant on the user's recent life.
+        let focal = journalId.flatMap { id in entries.first(where: { $0.id == id }) }
+
+        // TODAY's entries come straight from the local DB — NOT RAG. They must always be
+        // present and complete: a just-written entry isn't in the semantic index yet, and
+        // "what did I write today?" is the most common ask. Fetching them directly also
+        // skips the slower semantic path for the entries that matter most.
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let todays = entries
+            .filter { calendar.isDateInToday($0.createdAt) }
+            .sorted { $0.createdAt > $1.createdAt }
+        let todayContext = Model1Requests.format(todays, snippetChars: 1000, dateStyle: .dateTimeLocal)
+
+        // RAG retrieves only PAST entries (today's are already included above, so they are
+        // never dropped by top-K ranking) — matched on the focal entry if launched from
+        // one, else the most recent entries.
+        let todayIds = Set(todays.map(\.id))
+        let pastEntries = entries.filter { !todayIds.contains($0.id) }
         let recentText = entries
             .sorted { $0.createdAt > $1.createdAt }
             .prefix(3)
             .map(\.content)
             .joined(separator: "\n\n")
-        let ragQuery = String((focalEntry ?? recentText).suffix(2000))
-        await primeSemanticIndexIfNeeded(entries: entries)
-        let ragContext = await Model1Requests.journalContext(
-            from: entries, query: ragQuery, now: now(), searcher: coordinator
+        let ragQuery = String((focal?.content ?? recentText).suffix(2000))
+        await primeSemanticIndexIfNeeded(entries: pastEntries)
+        let ranked = await Model1Requests.rankedEntries(
+            from: pastEntries, query: ragQuery, now: now(), searcher: coordinator
         )
+        // Local timestamp + type per block so the assistant can reason about when/how each
+        // entry was made; paired with CURRENT DATE & TIME in the system prompt.
+        let ragContext = Model1Requests.format(ranked, snippetChars: 500, dateStyle: .dateTimeLocal)
         return VoiceCallContext(
             name: profile?.displayName ?? "",
             bio: profile?.biography ?? "",
             profile: profile.map { Model1Requests.profileFields(from: $0.details) } ?? [:],
+            todayContext: todayContext,
             ragContext: ragContext,
-            focalEntry: focalEntry
+            focalEntry: focal?.content
         )
     }
 

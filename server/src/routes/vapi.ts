@@ -22,20 +22,26 @@ export async function callConfigHandler(req: Request, res: Response) {
   // like the text-chat path). We bake it into the assistant's system prompt here so
   // Vapi carries it into every turn — the server never decrypts mid-call.
   //
-  // We override ONLY `model.messages` (no provider/model/url): Vapi merges this over
-  // the assistant's dashboard-configured SOTA model, so the model + params live in the
-  // Vapi dashboard while the per-call personalized system prompt still lands. Prompt
-  // text stays in prompts.ts.
+  // We inject the per-call personalized prompt via a Vapi TEMPLATE VARIABLE, not a
+  // `model` override. The dashboard assistant's system prompt is literally
+  // `{{systemPrompt}}`; Vapi substitutes this value at call time. Model + provider +
+  // params live entirely on the dashboard (ADR-0077). We must NOT send `model` here:
+  // Vapi validates any `assistantOverrides.model` as a COMPLETE model object and rejects
+  // the call with `model.provider must be one of…` (a 400 "Call failed") if provider is
+  // absent — it does not deep-merge a bare `messages` override. Prompt text stays in
+  // prompts.ts.
   const name = (req.body?.name as string | undefined) ?? ''
   const bio = (req.body?.bio as string | undefined) ?? ''
   const profile = (req.body?.profile as ProfileFields | undefined) ?? {}
   const ragContext = (req.body?.ragContext as string | undefined) ?? ''
   const focalEntry = (req.body?.focalEntry as string | undefined) || undefined
-  const model = {
-    messages: [
-      { role: 'system', content: PROMPTS.voiceChat(name, bio, profile, ragContext, focalEntry) },
-    ],
-  }
+  // Today's entries, fetched client-side straight from the local DB (not RAG) so they are
+  // always complete and current.
+  const todayContext = (req.body?.todayContext as string | undefined) ?? ''
+  // Device-local wall clock at call start; anchors the assistant's "today"/"now" against
+  // the local timestamps the client stamped onto each entry block.
+  const currentDateTime = (req.body?.now as string | undefined) || undefined
+  const systemPrompt = PROMPTS.voiceChat(name, bio, profile, ragContext, focalEntry, currentDateTime, todayContext)
 
   res.json({
     publicKey: config.VAPI_PUBLIC_KEY,
@@ -49,7 +55,8 @@ export async function callConfigHandler(req: Request, res: Response) {
       // the dashboard assistant config).
       server: { url: `${baseUrl}/v1/vapi/webhook`, secret: config.VAPI_WEBHOOK_SECRET },
       serverMessages: ['end-of-call-report'],
-      model,
+      // Substituted into the dashboard prompt's `{{systemPrompt}}` placeholder.
+      variableValues: { systemPrompt },
       // PlayHT/jennifer raised `playht-unknown-error` on the first message and
       // ended the call in ~0s. Vapi's native TTS needs no third-party account.
       voice: { provider: 'vapi', voiceId: 'Elliot' },

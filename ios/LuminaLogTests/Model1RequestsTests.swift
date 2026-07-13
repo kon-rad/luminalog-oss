@@ -150,6 +150,24 @@ final class Model1RequestsTests: XCTestCase {
                       "Unexpected context:\n\(context)")
     }
 
+    func testFormatDateTimeLocalTagsLocalTimestampAndHumanType() {
+        // The voice path renders a local date+TIME stamp and a human type label so the
+        // assistant can reason about when/how each entry was made.
+        let e = entry(id: "h", type: .image, title: "Morning pages", content: "handwritten thoughts")
+        let tz = TimeZone(identifier: "America/Los_Angeles")!
+        let context = Model1Requests.format([e], snippetChars: 500, dateStyle: .dateTimeLocal, timeZone: tz)
+        let stamp = Model1Requests.dateTimeFormatter(tz).string(from: e.createdAt)
+        XCTAssertEqual(context, "[#1 — handwritten image · Morning pages · \(stamp)]\nhandwritten thoughts")
+        XCTAssertTrue(stamp.contains(":"), "expected an HH:mm time component in \(stamp)")
+    }
+
+    func testTypeLabelMapsImageToHandwritten() {
+        XCTAssertEqual(Model1Requests.typeLabel(.text), "text")
+        XCTAssertEqual(Model1Requests.typeLabel(.voice), "voice")
+        XCTAssertEqual(Model1Requests.typeLabel(.video), "video")
+        XCTAssertEqual(Model1Requests.typeLabel(.image), "handwritten image")
+    }
+
     func testJournalContextRespectsTopK() {
         let entries = (0..<5).map { entry(id: "e\($0)", content: "shared term", daysAgo: Double($0)) }
         let context = Model1Requests.journalContext(from: entries, query: "shared", now: now, topK: 2)

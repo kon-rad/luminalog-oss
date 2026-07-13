@@ -1,10 +1,12 @@
 import XCTest
 @testable import LuminaLog
 
-/// Regression guard for the iOS↔server Vapi contract (ADR-0077). The server
-/// overrides ONLY `assistantOverrides.model.messages` (the per-call system prompt)
-/// and omits provider/url/model — so the decode struct must tolerate that shape and
-/// `buildOverrides` must forward the messages, or every voice call breaks.
+/// Regression guard for the iOS↔server Vapi contract (ADR-0077). The server injects the
+/// per-call system prompt via `assistantOverrides.variableValues.systemPrompt` and sends
+/// NO `model` override — so the decode struct must tolerate a missing `model` and
+/// `buildOverrides` must forward `variableValues` WITHOUT emitting a `model` object
+/// (a bare `model` makes Vapi reject the call for a missing provider), or every voice
+/// call breaks.
 final class VapiVoiceCallServiceTests: XCTestCase {
 
     /// Exact shape the server's `callConfigHandler` returns today.
@@ -17,35 +19,53 @@ final class VapiVoiceCallServiceTests: XCTestCase {
         "artifactPlan": { "recordingEnabled": true },
         "server": { "url": "https://api.example.com/v1/vapi/webhook", "secret": "s" },
         "serverMessages": ["end-of-call-report"],
-        "model": { "messages": [ { "role": "system", "content": "PERSONALIZED PROMPT" } ] },
+        "variableValues": { "systemPrompt": "PERSONALIZED PROMPT" },
         "voice": { "provider": "vapi", "voiceId": "Elliot" },
         "transcriber": { "provider": "deepgram", "model": "nova-2" }
       }
     }
     """.data(using: .utf8)!
 
-    func testDecodesServerShapeWithoutProviderAndKeepsMessages() throws {
+    func testDecodesServerShapeWithoutModelAndKeepsVariableValues() throws {
         let config = try JSONDecoder().decode(VapiVoiceCallService.CallConfigResponse.self, from: serverJSON)
-        XCTAssertNil(config.assistantOverrides.model.provider)
-        XCTAssertEqual(config.assistantOverrides.model.messages?.first?.role, "system")
-        XCTAssertEqual(config.assistantOverrides.model.messages?.first?.content, "PERSONALIZED PROMPT")
+        XCTAssertNil(config.assistantOverrides.model)
+        XCTAssertEqual(config.assistantOverrides.variableValues?["systemPrompt"], "PERSONALIZED PROMPT")
     }
 
-    func testBuildOverridesForwardsSystemPromptAndTranscriber() throws {
+    func testBuildOverridesForwardsVariableValuesAndOmitsModel() throws {
         let config = try JSONDecoder().decode(VapiVoiceCallService.CallConfigResponse.self, from: serverJSON)
         let overrides = VapiVoiceCallService.buildOverrides(config)
 
-        let model = overrides["model"] as? [String: Any]
-        let messages = model?["messages"] as? [[String: String]]
-        XCTAssertEqual(messages?.first?["role"], "system")
-        XCTAssertEqual(messages?.first?["content"], "PERSONALIZED PROMPT")
-        // No stale custom-llm keys leak when the server didn't send them.
-        XCTAssertNil(model?["provider"])
+        let vars = overrides["variableValues"] as? [String: String]
+        XCTAssertEqual(vars?["systemPrompt"], "PERSONALIZED PROMPT")
+        // Critically: NO `model` key when the server didn't send one — a bare `model`
+        // object triggers Vapi's `model.provider must be one of…` 400.
+        XCTAssertNil(overrides["model"])
 
         let transcriber = overrides["transcriber"] as? [String: Any]
         XCTAssertEqual(transcriber?["provider"] as? String, "deepgram")
 
         let metadata = overrides["metadata"] as? [String: String]
         XCTAssertEqual(metadata?["chatId"], "chat-1")
+    }
+
+    /// The legacy custom-llm shape (server sends a full `model`) must still forward.
+    func testBuildOverridesForwardsLegacyModelWhenPresent() throws {
+        let legacyJSON = """
+        {
+          "publicKey": "pk_test",
+          "assistantId": "asst_1",
+          "assistantOverrides": {
+            "model": { "provider": "custom-llm", "url": "https://x/llm", "model": "m",
+                       "messages": [ { "role": "system", "content": "P" } ] }
+          }
+        }
+        """.data(using: .utf8)!
+        let config = try JSONDecoder().decode(VapiVoiceCallService.CallConfigResponse.self, from: legacyJSON)
+        let overrides = VapiVoiceCallService.buildOverrides(config)
+        let model = overrides["model"] as? [String: Any]
+        XCTAssertEqual(model?["provider"] as? String, "custom-llm")
+        let messages = model?["messages"] as? [[String: String]]
+        XCTAssertEqual(messages?.first?["content"], "P")
     }
 }

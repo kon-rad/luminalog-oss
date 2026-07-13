@@ -24,6 +24,9 @@ struct VoiceCallContext: Sendable {
     let name: String
     let bio: String
     let profile: [String: String]
+    /// Everything the user wrote TODAY, fetched straight from the local DB (not RAG) so
+    /// it is always present and current — the assistant's most-asked-about material.
+    let todayContext: String
     let ragContext: String
     let focalEntry: String?
 }

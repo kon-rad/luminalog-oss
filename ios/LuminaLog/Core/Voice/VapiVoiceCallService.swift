@@ -30,8 +30,15 @@ final class VapiVoiceCallService: VoiceCallService {
         var name: String?
         var bio: String?
         var profile: [String: String]?
+        /// Today's entries, fetched straight from the local DB (not RAG) and always
+        /// included so the assistant can answer "what did I write today?".
+        var todayContext: String?
         var ragContext: String?
         var focalEntry: String?
+        /// Device-local wall clock at call start (`yyyy-MM-dd HH:mm zzz`) so the server
+        /// can anchor the assistant's sense of "today"/"now" — the RAG blocks carry
+        /// local timestamps, but the model needs a reference point to resolve them.
+        var now: String?
     }
 
     struct CallConfigResponse: Decodable {
@@ -40,17 +47,22 @@ final class VapiVoiceCallService: VoiceCallService {
         let assistantOverrides: AssistantOverrides
 
         struct AssistantOverrides: Decodable {
-            let model: Model
+            // Post-ADR-0077 the server injects the per-call system prompt via
+            // `variableValues.systemPrompt` (substituted into the dashboard prompt's
+            // `{{systemPrompt}}` placeholder) and sends NO `model` — Vapi rejects any
+            // `model` override that lacks a provider. `model` stays optional only for
+            // backward compatibility with the older custom-llm shape.
+            let model: Model?
             let voice: Voice?
             let transcriber: Transcriber?
+            /// Per-call Vapi template variables, e.g. `{ systemPrompt: … }`.
+            let variableValues: [String: String]?
             /// `{ chatId }` so Vapi echoes it back in the end-of-call webhook.
             let metadata: [String: String]?
 
             struct Model: Decodable {
-                // Post-ADR-0077 the server overrides ONLY `messages` (the per-call
-                // personalized system prompt) and lets Vapi use its dashboard-configured
-                // model — so provider/url/model are absent. They stay optional for
-                // backward compatibility with the older custom-llm shape.
+                // Legacy custom-llm shape: provider/url/model/messages. The current
+                // server sends no `model` at all (see above).
                 let provider: String?
                 let url: String?
                 let model: String?
@@ -90,10 +102,12 @@ final class VapiVoiceCallService: VoiceCallService {
         // with no context (the assistant just has less anchoring); the build keeps running
         // in the background so the index is primed for the next call.
         var request = CallConfigRequest(chatId: chatId, journalId: journalId)
-        if let context = await boundedVoiceContext(journalId: journalId, seconds: 6) {
+        request.now = Self.localNowStamp()
+        if let context = await boundedVoiceContext(journalId: journalId, seconds: 3) {
             request.name = context.name
             request.bio = context.bio
             request.profile = context.profile
+            request.todayContext = context.todayContext
             request.ragContext = context.ragContext
             request.focalEntry = context.focalEntry
         }
@@ -210,25 +224,43 @@ final class VapiVoiceCallService: VoiceCallService {
         }
     }
 
+    /// Device-local wall clock at call start, e.g. `2026-07-13 14:29 PDT`. Sent to the
+    /// server so `PROMPTS.voiceChat` can anchor the assistant's "today"/"now" against
+    /// the local timestamps carried in each RAG block.
+    nonisolated static func localNowStamp(_ date: Date = Date(), timeZone: TimeZone = .current) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "yyyy-MM-dd HH:mm zzz"
+        return formatter.string(from: date)
+    }
+
     /// Maps the server's `assistantOverrides` into the dict the Vapi SDK expects.
     /// `nonisolated static` (pure function) so it is unit-testable without the Vapi
     /// SDK / a live call and callable off the main actor.
     nonisolated static func buildOverrides(_ config: CallConfigResponse) -> [String: Any] {
-        let m = config.assistantOverrides.model
         var overrides: [String: Any] = [:]
-        var model: [String: Any] = [:]
-        if let provider = m.provider { model["provider"] = provider }
-        if let url = m.url { model["url"] = url }
-        // Vapi requires `model.model` to be a string for custom-llm providers;
-        // forward what the server sent (dropping it triggers a 400 "Call failed").
-        if let name = m.model { model["model"] = name }
-        // The per-call personalized system prompt (name/bio/profile/RAG/focal entry)
-        // lands here; Vapi merges it over its dashboard-configured model (ADR-0077).
-        // Without this, the assistant loses all personalization.
-        if let messages = m.messages {
-            model["messages"] = messages.map { ["role": $0.role, "content": $0.content] }
+        // The per-call personalized system prompt (name/bio/profile/RAG/focal entry) is
+        // injected via Vapi template variables — the dashboard prompt is `{{systemPrompt}}`
+        // and Vapi substitutes this value at call time (ADR-0077). Without it, the
+        // assistant loses all personalization.
+        if let vars = config.assistantOverrides.variableValues {
+            overrides["variableValues"] = vars
         }
-        overrides["model"] = model
+        // Legacy custom-llm shape: forward a `model` ONLY if the server actually sent
+        // model keys. Sending a `model` object — even an empty one or a bare `messages`
+        // override — makes Vapi validate it as a complete model config and reject the
+        // call with `model.provider must be one of…` (a 400 "Call failed").
+        if let m = config.assistantOverrides.model {
+            var model: [String: Any] = [:]
+            if let provider = m.provider { model["provider"] = provider }
+            if let url = m.url { model["url"] = url }
+            if let name = m.model { model["model"] = name }
+            if let messages = m.messages {
+                model["messages"] = messages.map { ["role": $0.role, "content": $0.content] }
+            }
+            if !model.isEmpty { overrides["model"] = model }
+        }
         if let voice = config.assistantOverrides.voice {
             var v: [String: Any] = [:]
             if let p = voice.provider { v["provider"] = p }
