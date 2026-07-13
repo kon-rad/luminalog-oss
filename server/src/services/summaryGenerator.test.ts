@@ -55,6 +55,12 @@ describe('parseEntryAI', () => {
     expect(parseEntryAI(raw)!.prompts).toEqual(['a?', 'b?', 'c?', 'd?', 'e?'])
   })
 
+  it('keeps questions with full-width / decorative marks or a trailing quote', () => {
+    const raw =
+      '{"summary":"s","insights":"i","prompts":["a？","b﹖","c⁇","d?\\"","e?"]}'
+    expect(parseEntryAI(raw)!.prompts).toEqual(['a?', 'b?', 'c?', 'd?', 'e?'])
+  })
+
   it('returns null when there is no JSON', () => {
     expect(parseEntryAI('sorry, I could not do that')).toBeNull()
   })
@@ -88,5 +94,33 @@ describe('generateEntryAI', () => {
     await expect(
       generateEntryAI({ type: 'text', content: 'x', userConfig: undefined }),
     ).rejects.toThrow()
+  })
+
+  it('retries once when the first response has a valid summary but no prompts', async () => {
+    ;(chatCompletion as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: '{"summary":"s","insights":"i","prompts":[]}' } }],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: '{"summary":"s2","insights":"i2","prompts":["What next?"]}' } }],
+        }),
+      })
+    const out = await generateEntryAI({ type: 'text', content: 'x', userConfig: undefined })
+    expect((chatCompletion as any).mock.calls.length).toBe(2)
+    expect(out.prompts).toEqual(['What next?'])
+    expect(out.summary).toBe('s2')
+  })
+
+  it('keeps the first result when the retry is also promptless', async () => {
+    mockCompletion('{"summary":"s","insights":"i","prompts":[]}')
+    const out = await generateEntryAI({ type: 'text', content: 'x', userConfig: undefined })
+    expect((chatCompletion as any).mock.calls.length).toBe(2)
+    expect(out.summary).toBe('s')
+    expect(out.prompts).toEqual([])
   })
 })

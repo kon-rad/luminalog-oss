@@ -56,7 +56,17 @@ export function parseEntryAI(raw: string): EntryAI | null {
   const summary = (parsed?.summary ?? '').toString().trim()
   const insights = (parsed?.insights ?? '').toString().trim()
   const prompts = (Array.isArray(parsed?.prompts) ? parsed.prompts : [])
-    .map((p: any) => (p ?? '').toString().trim())
+    .map((p: any) =>
+      (p ?? '')
+        .toString()
+        .trim()
+        // Normalize decorative / full-width question marks (？﹖⁇) and strip a
+        // trailing wrapping quote so a well-formed question isn't discarded on a
+        // punctuation quirk — that previously dropped ALL prompts, leaving the
+        // entry's Prompts tab stuck showing a spinner (ADR-0081).
+        .replace(/["'”’]$/, '')
+        .replace(/[？﹖⁇]$/, '?'),
+    )
     .filter((p: string) => p.endsWith('?'))
     .slice(0, 5)
   if (!summary) return null
@@ -76,16 +86,28 @@ export async function generateEntryAI(params: {
   userConfig: Partial<SummaryConfig> | undefined | null
 }): Promise<EntryAI & { model: string; generatedAt: string }> {
   const cfg = resolveSummaryConfig(params.userConfig)
-  const res = await chatCompletion(
-    [
-      { role: 'system', content: PROMPTS.entryAI(params.type, cfg) },
-      { role: 'user', content: params.content },
-    ],
-    { model: SUMMARY_MODEL, response_format: { type: 'json_object' } },
-  )
-  if (!res.ok) throw new Error(`Together AI error: ${res.status}`)
-  const data = (await res.json()) as { choices: Array<{ message: { content: string } }> }
-  const parsed = parseEntryAI(data.choices[0]?.message?.content ?? '')
+  const generate = async (): Promise<EntryAI | null> => {
+    const res = await chatCompletion(
+      [
+        { role: 'system', content: PROMPTS.entryAI(params.type, cfg) },
+        { role: 'user', content: params.content },
+      ],
+      { model: SUMMARY_MODEL, response_format: { type: 'json_object' } },
+    )
+    if (!res.ok) throw new Error(`Together AI error: ${res.status}`)
+    const data = (await res.json()) as { choices: Array<{ message: { content: string } }> }
+    return parseEntryAI(data.choices[0]?.message?.content ?? '')
+  }
+
+  let parsed = await generate()
+  // Retry once when the model returns a valid summary but no usable prompts —
+  // otherwise the entry persists with an empty Prompts tab (ADR-0081). Mirrors
+  // the daily-prompt double-try. If the retry is still promptless we keep the
+  // first result (summary + insights survive) rather than failing the whole call.
+  if (parsed && parsed.prompts.length === 0) {
+    const retry = await generate()
+    if (retry && retry.prompts.length > 0) parsed = retry
+  }
   if (!parsed) throw new Error('Entry AI: unparseable response')
   return { ...parsed, model: SUMMARY_MODEL, generatedAt: new Date().toISOString() }
 }

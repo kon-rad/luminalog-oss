@@ -504,12 +504,22 @@ struct JournalDetailView: View {
 
     // MARK: - Insights tab
 
-    /// True while the entry has content to analyze but the server-generated AI
-    /// fields (summary + insights + prompts) have not yet landed — the tabs show
-    /// a quiet "analyzing" state until indexing completes. Once `vector.status`
-    /// is terminal (`.indexed`/`.failed`) an absent field means "none".
+    /// True while the entry's AI fields (summary + insights + prompts) are still
+    /// being generated — the Insights/Prompts tabs show a quiet "analyzing" state
+    /// until then, and once generation settles an absent field means "none".
+    ///
+    /// The in-flight signal differs by path. On the zero-knowledge path the client
+    /// generates + persists the AI itself and NEVER advances `vector.status`, so
+    /// keying off `.pending` there leaves the spinner up forever (ADR-0081); the
+    /// real signal is the view model's generation state. On the legacy path the
+    /// server produces the AI at index time, so `vector.status == .pending` is the
+    /// signal and a terminal status (`.indexed`/`.failed`) means "none".
     private func aiIsPending(_ entry: JournalEntry) -> Bool {
-        !entry.content.isEmpty && entry.vector.status == .pending
+        guard !entry.content.isEmpty else { return false }
+        if DevFlags.aiModel1 {
+            return viewModel.summaryState == .loading
+        }
+        return entry.vector.status == .pending
     }
 
     /// Read-only Insights tab: displays the server-generated insights stored on

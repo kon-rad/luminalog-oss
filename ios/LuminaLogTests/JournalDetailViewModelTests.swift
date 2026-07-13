@@ -25,6 +25,17 @@ final class JournalDetailViewModelTests: XCTestCase {
             return AIGeneration(text: "spy summary", model: "spy")
         }
 
+        var entryAICalls = 0
+        func generateEntryAI(journalId: String) async throws -> EntryAIBundle {
+            entryAICalls += 1
+            try await waitAndMaybeFail()
+            return EntryAIBundle(
+                summary: AIGeneration(text: "spy summary", model: "spy"),
+                insights: AIGeneration(text: "spy insights", model: "spy"),
+                prompts: AIPrompts(items: ["What next?"], model: "spy")
+            )
+        }
+
         func dailyPrompt() async throws -> [DailyPromptItem] { [DailyPromptItem(area: "Inner World", text: "spy daily prompt")] }
 
         func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error> {
@@ -151,6 +162,56 @@ final class JournalDetailViewModelTests: XCTestCase {
 
         XCTAssertEqual(ai.summaryCalls, 0)
         XCTAssertEqual(viewModel.entry?.summary?.text, "existing")
+    }
+
+    @MainActor
+    func testEmptyPromptsBackfillRegeneratesOnZeroKnowledgePath() async throws {
+        let saved = DevFlags.aiModel1
+        DevFlags.aiModel1 = true
+        defer { DevFlags.aiModel1 = saved }
+
+        // Entry has a summary + insights but the follow-up prompts landed empty
+        // (the server dropped them). On the ZK path that counts as missing, so the
+        // one-call entry-AI regenerates and backfills prompts (ADR-0081) instead of
+        // leaving the Prompts tab stuck.
+        let entry = makeEntry(
+            summary: AIGeneration(text: "existing", model: "m"),
+            insights: AIGeneration(text: "existing insights", model: "m"),
+            prompts: AIPrompts(items: [], model: "m")
+        )
+        let repo = MockJournalRepository(entries: [entry])
+        let ai = SpyAIService()
+
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
+        await viewModel.start()
+
+        XCTAssertEqual(ai.entryAICalls, 1, "Empty prompts trigger one entry-AI regeneration")
+        XCTAssertEqual(ai.summaryCalls, 0, "The ZK path uses generateEntryAI, not generateSummary")
+        XCTAssertEqual(viewModel.entry?.prompts?.items, ["What next?"])
+
+        let stored = try await storedEntry(id: "entry-1", in: repo)
+        XCTAssertEqual(stored?.prompts?.items, ["What next?"], "Backfilled prompts persist")
+    }
+
+    @MainActor
+    func testFullyPopulatedEntryDoesNotRegenerateOnZeroKnowledgePath() async {
+        let saved = DevFlags.aiModel1
+        DevFlags.aiModel1 = true
+        defer { DevFlags.aiModel1 = saved }
+
+        let entry = makeEntry(
+            summary: AIGeneration(text: "s", model: "m"),
+            insights: AIGeneration(text: "i", model: "m"),
+            prompts: AIPrompts(items: ["Q?"], model: "m")
+        )
+        let repo = MockJournalRepository(entries: [entry])
+        let ai = SpyAIService()
+
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
+        await viewModel.start()
+
+        XCTAssertEqual(ai.entryAICalls, 0, "A fully-populated entry never regenerates")
+        XCTAssertEqual(ai.summaryCalls, 0)
     }
 
     @MainActor

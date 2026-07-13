@@ -132,8 +132,13 @@ final class JournalDetailViewModel: ObservableObject {
         // On the ZK path a missing summary OR missing insights/prompts triggers a
         // (re)generation, since all three come from one client call — this also
         // backfills entries that got a summary-only from the earlier client path.
+        // EMPTY (not just nil) insights/prompts count as missing too, so an entry
+        // that persisted with an empty follow-up section — e.g. the server dropped
+        // all prompts — self-heals on next open instead of showing a blank/stuck
+        // Prompts tab forever (ADR-0081).
         let missingSummary = entry.summary == nil
-        let missingEntryAI = DevFlags.aiModel1 && (entry.insights == nil || entry.prompts == nil)
+        let missingEntryAI = DevFlags.aiModel1
+            && ((entry.insights?.text.isEmpty ?? true) || (entry.prompts?.items.isEmpty ?? true))
         guard missingSummary || missingEntryAI else { return }
         // Latch before awaiting so a concurrent listener emission can't slip a
         // second call in; release it if the generation fails so a retry is allowed.
