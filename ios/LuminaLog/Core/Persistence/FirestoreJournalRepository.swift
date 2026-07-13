@@ -164,7 +164,14 @@ final class FirestoreJournalRepository: JournalRepository {
 
     func save(_ entry: JournalEntry) async throws {
         guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
-        try await journals.document(entry.id).setData(try entry.firestoreData(cipher: cipher))
+        // `merge: true` (not a full replace): the background pipeline re-saves an
+        // entry on every status transition with a fresh `JournalEntry` whose AI
+        // fields are nil, and `firestoreData` omits `summary`/`insights`/`prompts`
+        // when nil. A full `setData` would therefore WIPE any AI the detail view
+        // just generated (and force a wasteful re-generation). Merging preserves
+        // fields the writer doesn't include; genuine field removals go through the
+        // scoped `updateData`/`delete` paths, never `save`.
+        try await journals.document(entry.id).setData(try entry.firestoreData(cipher: cipher), merge: true)
     }
 
     func updateAIFields(

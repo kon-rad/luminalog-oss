@@ -173,6 +173,49 @@ final class JournalDetailViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.entry?.summary?.text, "spy summary")
     }
 
+    /// Regression for the "generate → clear → regenerate" waste: a voice entry
+    /// opens before its transcript lands (empty content), the transcript then
+    /// arrives via a background full-document save, and a *second* background
+    /// save (status settle) races in afterwards. The summary must generate
+    /// EXACTLY ONCE and survive the racing save — no clobber, no second LLM call.
+    @MainActor
+    func testLateContentGeneratesOnceAndSurvivesRacingSave() async throws {
+        let pending = JournalEntry(
+            id: "v1",
+            userId: MockData.userId,
+            type: .voice,
+            title: "Voice note",
+            content: "",                       // transcript not ready yet
+            processingStatus: .transcribing
+        )
+        let repo = MockJournalRepository(entries: [pending])
+        let ai = SpyAIService()
+
+        let viewModel = JournalDetailViewModel(entryId: "v1", journals: repo, ai: ai)
+        await viewModel.start()
+        XCTAssertEqual(ai.summaryCalls, 0, "Nothing to summarize while content is empty")
+
+        // Transcript arrives — background save with content but no AI fields.
+        var transcribed = pending
+        transcribed.content = "Some transcribed words worth summarizing."
+        transcribed.processingStatus = .ready
+        try await repo.save(transcribed)
+        try await Task.sleep(nanoseconds: 200_000_000)   // listener lands + generates
+
+        XCTAssertEqual(ai.summaryCalls, 1, "Content arrival triggers exactly one generation")
+        XCTAssertEqual(viewModel.entry?.summary?.text, "spy summary")
+
+        // A later racing pipeline save (still no AI fields) must neither wipe the
+        // summary nor trigger a second generation.
+        var settled = transcribed
+        settled.processingStatus = nil
+        try await repo.save(settled)
+        try await Task.sleep(nanoseconds: 200_000_000)
+
+        XCTAssertEqual(viewModel.entry?.summary?.text, "spy summary", "Racing save must not clobber the summary")
+        XCTAssertEqual(ai.summaryCalls, 1, "No second, wasteful LLM call")
+    }
+
     // MARK: - Regenerate visibility rule
 
     @MainActor

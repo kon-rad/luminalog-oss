@@ -86,7 +86,16 @@ final class MockJournalRepository: JournalRepository {
 
     func save(_ entry: JournalEntry) async throws {
         if let index = store.firstIndex(where: { $0.id == entry.id }) {
-            store[index] = entry
+            // Mirror production `setData(merge: true)` + `firestoreData` omitting
+            // nil AI fields: a save that carries no AI (the background pipeline's
+            // status writes) must NOT clear summary/insights/prompts an earlier
+            // `updateAIFields` persisted. Preserve them when the incoming entry
+            // leaves them nil.
+            var merged = entry
+            merged.summary = merged.summary ?? store[index].summary
+            merged.insights = merged.insights ?? store[index].insights
+            merged.prompts = merged.prompts ?? store[index].prompts
+            store[index] = merged
         } else {
             store.append(entry)
         }

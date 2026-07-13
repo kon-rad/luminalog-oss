@@ -119,10 +119,12 @@ struct OnboardingView: View {
                         .foregroundStyle(Color.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    // NOTE (privacy/legal): keep these TRUTHFUL for the CURRENT build.
-                    // "Only you hold the key / we never read" become accurate once the
-                    // zero-knowledge migration ships to all users; until then use the
-                    // conservative claims below. Strengthen after the ZK rollout.
+                    // NOTE (privacy/legal): these are TRUTHFUL for the CURRENT build.
+                    // The zero-knowledge migration is complete — all keys are client-held
+                    // (iCloud Keychain + recovery code) and the server holds no DEK, so the
+                    // "only you hold the key / we can't read your entries" claims are accurate.
+                    // Keep any wording about STORED data (never "we never see" for live AI,
+                    // whose plaintext transits the server transiently — see docs/marketing-privacy-statements.md).
                     privacyBadge(icon: "lock.fill",       label: "Encrypted in transit & at rest")
                     privacyBadge(icon: "hand.raised.fill", label: "You choose what your AI sees")
                     privacyBadge(icon: "eye.slash.fill",  label: "We can't read your stored entries")

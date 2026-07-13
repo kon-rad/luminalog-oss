@@ -44,7 +44,7 @@
 	<key>EMBEDDING_TOKENIZER_URL</key>
 	<string>https://luminalog-models.s3.us-east-1.amazonaws.com/distiluse-multilingual/v1/tokenizer.json</string>
 	<key>GitCommitHash</key>
-	<string>271370b</string>
+	<string>6032a51</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationQueriesSchemes</key>

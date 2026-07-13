@@ -166,4 +166,40 @@ final class MockJournalRepositoryTests: XCTestCase {
             XCTFail("unexpected error: \(error)")
         }
     }
+
+    /// Regression: a background-pipeline `save` writes a fresh `JournalEntry`
+    /// whose AI fields are nil (EntryProcessor/EntryFinalizer never load them).
+    /// Production `save` is `setData(merge: true)` and `firestoreData` omits the
+    /// AI keys when nil, so such a save must NOT clear a summary/insights/prompts
+    /// that a previous `updateAIFields` already persisted. The mock mirrors that
+    /// merge contract so demo mode behaves like Firestore.
+    @MainActor
+    func testSaveDoesNotClobberPersistedAIFields() async throws {
+        let generated = JournalEntry(
+            id: "e1",
+            userId: "user-1",
+            type: .text,
+            title: "Entry",
+            content: "Body worth summarizing.",
+            summary: AIGeneration(text: "keep me", model: "m"),
+            insights: AIGeneration(text: "## keep insights", model: "m"),
+            prompts: AIPrompts(items: ["Keep this prompt?"], model: "m"),
+            wordCount: 3
+        )
+        let repo = MockJournalRepository(entries: [generated])
+
+        // Background status transition: same entry, AI fields nil.
+        var pipelineWrite = generated
+        pipelineWrite.summary = nil
+        pipelineWrite.insights = nil
+        pipelineWrite.prompts = nil
+        pipelineWrite.processingStatus = .ready
+        try await repo.save(pipelineWrite)
+
+        let stored = try await repo.entries(after: nil, limit: 10).first { $0.id == "e1" }
+        XCTAssertEqual(stored?.summary?.text, "keep me", "save must not clear a persisted summary")
+        XCTAssertEqual(stored?.insights?.text, "## keep insights", "save must not clear persisted insights")
+        XCTAssertEqual(stored?.prompts?.items, ["Keep this prompt?"], "save must not clear persisted prompts")
+        XCTAssertEqual(stored?.processingStatus, .ready, "non-AI fields still update normally")
+    }
 }
