@@ -233,6 +233,22 @@ describe('vapi webhook — recording staging', () => {
     await webhookHandler(req, res, db)
     expect(res.statusCode).toBe(401)
   })
+
+  it('does not stage when callId is missing', async () => {
+    ;(stageRecording as any).mockClear()
+    const { db, update } = chatDbMock({ userId: 'user-1' })
+    const req: any = {
+      query: { secret: 'secret_test' }, headers: {},
+      body: { message: { type: 'end-of-call-report',
+        call: { metadata: { chatId: 'chat_1' } },   // no id
+        artifact: { recordingUrl: 'https://storage.vapi.ai/x.wav' } } },
+    }
+    const res = mockRes()
+    await webhookHandler(req, res, db)
+    expect(stageRecording).not.toHaveBeenCalled()
+    expect(update).not.toHaveBeenCalled()
+    expect(res.body).toEqual({ ok: true })
+  })
 })
 
 import { recordingFinalizeHandler } from './vapi'

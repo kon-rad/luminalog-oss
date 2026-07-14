@@ -153,7 +153,7 @@ export async function webhookHandler(req: Request, res: Response, database = db)
   // plaintext audio promptly (Vapi retains it ~14 days) and records a pointer; the
   // client encrypts + finalizes on next foreground. Best-effort — always ack so Vapi
   // does not retry.
-  if (parsed.recordingUrl && parsed.chatId) {
+  if (parsed.recordingUrl && parsed.chatId && parsed.callId) {
     try {
       const snap = await database.collection('chats').doc(parsed.chatId).get()
       const uid = snap.data()?.userId as string | undefined
