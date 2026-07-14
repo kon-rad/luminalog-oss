@@ -172,16 +172,16 @@ export default function Home() {
         <div className="wrap">
           <div style={{ marginBottom: 52 }}>
             <h2 className="serif" style={{ fontSize: 'clamp(30px,3.8vw,44px)', fontWeight: 600, lineHeight: 1.08, letterSpacing: '-0.025em' }}>What you unlock.</h2>
-            <p style={{ marginTop: 16, fontSize: 18, color: 'var(--text2)', lineHeight: 1.65 }}>Six capabilities you did not have before.</p>
+            <p style={{ marginTop: 16, fontSize: 18, color: 'var(--text2)', lineHeight: 1.65 }}>Six things that change when you sit with yourself every day.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }} className="unlock-grid">
             {[
-              ['Grow in any direction', 'Set any goal that matters to you. The AI links your entries to it and tracks your progress across time.'],
-              ['See things differently', 'The AI reads across months of entries and returns a view of you that you could never construct from inside your own head. Your perspective expands.'],
-              ['Ask the right questions', "LuminaLog doesn't give you answers — it gives you the questions you weren't asking. The ones drawn from your actual history that unlock the next level of clarity."],
-              ['Spot invisible patterns', 'Recurring fears, creative blocks, emotional cycles, belief contradictions. The AI finds what repeats and shows it to you plainly, without judgment.'],
-              ['Connect past to present', 'A goal from last month linked to an insight from six months ago. A current fear traced back to something you wrote and forgot. The dots you never connected — connected.'],
-              ['Own your practice', 'Every day you cross your 750-word goal becomes a star in your On-Chain Soul — a soulbound token on Base that\'s provably earned, impossible to fake, and permanently yours.'],
+              ['Reclaim your attention', 'Every screen you own is built to spend your attention on someone else\'s story. LuminaLog spends it on yours — ten minutes a day pointed inward, the one direction the feed never sends you.'],
+              ['Turn experience into language', 'Most of a day goes unexamined — felt, replayed, never put into words. Ten minutes of saying it, out loud or on the page, turns fog into words you can actually work with.'],
+              ['Sharpen your mental models', 'You can only work with what you can name. As your articulation compounds, so do your models — of your work, your people, your life.'],
+              ['Ask the right questions', "LuminaLog doesn't hand you answers. It asks the question you weren't asking — drawn from your actual history — that makes you say it more truly."],
+              ['A daily ceremony', 'Ten minutes — morning coffee or midnight quiet — where you cross from living your day to understanding it. Write or speak your 750 words; no guilt for missed days, the ceremony waits.'],
+              ['What your soul is made of', 'Every day you cross your goal becomes a star, placed by the meaning of your words — never the words themselves. Together they form your On-Chain Soul: a soulbound token on Base, provably earned, impossible to fake, yours alone.'],
             ].map(([title, desc]) => (
               <div key={title as string} className="card" style={{ padding: 24 }}>
                 <div style={{ color: 'var(--accent)', fontSize: 18, marginBottom: 14 }}>✦</div>
@@ -558,12 +558,40 @@ export default function Home() {
         <div className="wrap" style={{ textAlign: 'center' }}>
           <span className="eyebrow">Pricing</span>
           <h2 className="serif" style={{ marginTop: 16, fontSize: 'clamp(30px,3.8vw,44px)', fontWeight: 600, letterSpacing: '-0.025em' }}>Simple, honest pricing.</h2>
-          <p style={{ marginTop: 14, fontSize: 18, color: 'var(--text2)' }}>Monthly or annual — the whole app, no tiers. Live voice calls run on add-on Voice Credits.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, maxWidth: 640, margin: '50px auto 0' }} className="plans">
+          <p style={{ marginTop: 14, fontSize: 18, color: 'var(--text2)' }}>One price, everywhere — the whole app, no tiers. The same on the web and in the app. Live voice calls run on add-on Voice Credits.</p>
+
+          {/* Founding Member preorder */}
+          <div style={{ maxWidth: 640, margin: '44px auto 0' }}>
+            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 24, background: 'linear-gradient(150deg, var(--accent), var(--accentDeep))', color: '#fff', padding: '34px 34px 30px', textAlign: 'left', boxShadow: '0 20px 52px rgba(185,107,51,0.28)' }}>
+              <div style={{ position: 'absolute', top: -70, right: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', filter: 'blur(10px)', pointerEvents: 'none' }} />
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 100, padding: '5px 13px', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>✦ Founding offer · coming soon</div>
+                <h3 className="serif" style={{ marginTop: 16, fontSize: 'clamp(26px,3.4vw,36px)', fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.02em' }}>Become a Founding Member.</h3>
+                <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0 12px', marginTop: 14 }}>
+                  <span className="serif" style={{ fontSize: 40, fontWeight: 600, letterSpacing: '-0.025em' }}>$29.99</span>
+                  <span style={{ fontSize: 17, color: 'rgba(255,255,255,0.9)' }}>for your first 3 months</span>
+                  <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}><s>$59.97</s> · 50% off · then $19.99/mo</span>
+                </div>
+                <p style={{ marginTop: 16, fontSize: 15.5, lineHeight: 1.62, color: 'rgba(255,255,255,0.9)', maxWidth: 520 }}>
+                  Reserve LuminaLog before launch and lock in half price. Founding Members start the moment we open — on the web today, on iOS at launch — carry a permanent Founding Member mark, and grow their On-Chain Soul from day one. Cancel anytime.
+                </p>
+                <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
+                  <span aria-disabled="true" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.4)', color: '#fff', fontSize: 16, fontWeight: 700, padding: '13px 26px', borderRadius: 14, whiteSpace: 'nowrap', cursor: 'default' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff', display: 'inline-block' }} />
+                    Coming soon
+                  </span>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>Founding preorder opens soon — join the waitlist to be first.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ maxWidth: 640, margin: '30px auto 0', fontSize: 13, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text3)' }}>Standard pricing</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, maxWidth: 640, margin: '14px auto 0' }} className="plans">
             {/* Monthly */}
             <div style={{ background: 'var(--surface)', border: '1px solid var(--hairline2)', borderRadius: 24, padding: '32px 30px', boxShadow: 'var(--shadow)' }}>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text3)' }}>Monthly</div>
-              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$9.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ month</span></div>
+              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$19.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ month</span></div>
               <div style={{ fontSize: 14, color: 'var(--text3)' }}>Cancel anytime</div>
               <ul style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {['Unlimited text, voice, video & photo entries', 'End-to-end encrypted — zero-knowledge by design', 'Unlimited AI insights & patterns', 'Unlimited chat with your companion', 'Daily 750-word streak + shareable insights card', 'Daily personalized prompt', 'Your On-Chain Soul — a soulbound token'].map(f => (
@@ -584,8 +612,8 @@ export default function Home() {
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'linear-gradient(90deg, var(--accent), var(--accentDeep))' }} />
               <div style={{ position: 'absolute', top: 18, right: 18, background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '4px 10px', borderRadius: 100 }}>Save 17%</div>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accentDeep)' }}>Annual</div>
-              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$99.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ year</span></div>
-              <div style={{ fontSize: 14, color: 'var(--text3)' }}>~$8.33 / month · billed once a year</div>
+              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$199.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ year</span></div>
+              <div style={{ fontSize: 14, color: 'var(--text3)' }}>~$16.67 / month · billed once a year</div>
               <ul style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {['Everything in Monthly', 'Two months free', 'Full year of compounding self-knowledge'].map(f => (
                   <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15, textAlign: 'left' }}>
@@ -641,7 +669,7 @@ export default function Home() {
               <div style={{ position: 'absolute', bottom: -100, left: -40, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.09)', filter: 'blur(10px)' }} />
               <h2 className="serif" style={{ position: 'relative', zIndex: 1, fontSize: 'clamp(30px,4.2vw,52px)', fontWeight: 600, lineHeight: 1.06, letterSpacing: '-0.025em' }}>Merge with AI.<br />One conversation at a time.</h2>
               <p className="serif" style={{ position: 'relative', zIndex: 1, fontStyle: 'italic', fontSize: 26, color: 'rgba(255,255,255,0.88)', marginTop: 14 }}>It starts with one entry.</p>
-              <p style={{ position: 'relative', zIndex: 1, fontSize: 17, color: 'rgba(255,255,255,0.75)', marginTop: 10 }}>$9.99 / month or $99.99 / year. Be first in line when we open.</p>
+              <p style={{ position: 'relative', zIndex: 1, fontSize: 17, color: 'rgba(255,255,255,0.75)', marginTop: 10 }}>Founding Members: 3 months for $29.99, then $19.99 / month. Be first in line when we open.</p>
               <div style={{ position: 'relative', zIndex: 1, marginTop: 36, display: 'flex', justifyContent: 'center' }}>
                 <WaitlistForm variant="onAccent" source="final-cta" />
               </div>
