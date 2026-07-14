@@ -10,13 +10,7 @@ vi.mock('../config', () => {
     DEEPGRAM_API_KEY: 'dk',
     DEEPGRAM_MODEL: 'nova-3',
   }
-  return {
-    config,
-    togetherFallbackEnabled: () => {
-      const v = String(config.AI_FALLBACK_TO_TOGETHER ?? '').trim().toLowerCase()
-      return v === '1' || v === 'true' || v === 'yes' || v === 'on'
-    },
-  }
+  return { config }
 })
 
 import { config } from '../config'
@@ -131,6 +125,29 @@ describe('transcribeAudio', () => {
 
     expect(out).toBe('part one part two')
   })
+
+  // Reliability: Together's serverless Whisper intermittently 429/500s under load.
+  // The call must retry transiently (a fresh FormData per attempt — the body is
+  // single-use once streamed) instead of surfacing a one-off blip as a failure.
+  it('retries a transient 429 then succeeds, rebuilding the multipart body each attempt', async () => {
+    const transient = { status: 429, ok: false, body: { cancel: vi.fn(async () => {}) }, text: async () => 'busy' } as any
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(transient)
+      .mockResolvedValueOnce(jsonResp({ text: 'full transcript', segments: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const out = await transcribeAudio(Buffer.from('audio'), 'clip.m4a', { sleep: noSleep })
+
+    expect(out).toBe('full transcript')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    // Each attempt gets its own valid FormData (not a reused, already-consumed one).
+    for (const call of fetchMock.mock.calls) {
+      const body = call[1].body as FormData
+      expect(body.get('model')).toBe('whisper')
+      expect(body.get('response_format')).toBe('verbose_json')
+    }
+  })
 })
 
 describe('transcribeWithDeepgram', () => {
@@ -163,6 +180,24 @@ describe('transcribeWithDeepgram', () => {
 
     await expect(transcribeWithDeepgram(Buffer.from('a'), 'audio/mp4')).rejects.toThrow(/Deepgram transcribe error 401/)
   })
+
+  // A 401 is a request problem (bad key) and must NOT be retried — but a 502/503/504
+  // under load is transient and should retry before falling back to Whisper.
+  it('retries a transient 503 then succeeds', async () => {
+    const transient = { status: 503, ok: false, body: { cancel: vi.fn(async () => {}) }, text: async () => 'unavailable' } as any
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(transient)
+      .mockResolvedValueOnce(jsonResp({
+        results: { channels: [{ alternatives: [{ transcript: 'recovered' }] }] },
+      }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const out = await transcribeWithDeepgram(Buffer.from('audio'), 'audio/m4a', { sleep: noSleep })
+
+    expect(out).toBe('recovered')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
 })
 
 describe('chatCompletion transient resilience', () => {
@@ -182,12 +217,11 @@ describe('chatCompletion transient resilience', () => {
   })
 })
 
-// --- Provider switch (ADR-0085) -------------------------------------------------
+// --- Provider switch (ADR-0085/0087) — single active provider, NO fallback --------
 // These mutate the shared mocked `config`; reset the switch fields after each.
 function resetProviderConfig() {
   const c = config as any
   c.AI_PROVIDER = undefined
-  c.AI_FALLBACK_TO_TOGETHER = undefined
   c.MORPHEUS_API_KEY = undefined
   c.MORPHEUS_BASE_URL = undefined
   c.MORPHEUS_CHAT_MODEL = undefined
@@ -197,71 +231,58 @@ describe('resolveProviders', () => {
   beforeEach(resetProviderConfig)
   afterEach(resetProviderConfig)
 
-  it('defaults to Together with no fallback', () => {
-    const { primary, fallback } = resolveProviders()
+  it('resolves Together when AI_PROVIDER is unset', () => {
+    const { primary } = resolveProviders()
     expect(primary.name).toBe('together')
     expect(primary.baseUrl).toContain('together.xyz')
-    expect(fallback).toBeUndefined()
   })
 
-  it('selects Morpheus as primary when AI_PROVIDER=morpheus', () => {
+  it('resolves Morpheus as the active provider when AI_PROVIDER=morpheus', () => {
     config.AI_PROVIDER = 'morpheus'
     config.MORPHEUS_API_KEY = 'mk'
-    config.MORPHEUS_BASE_URL = 'https://api.mor.org/api/v1'
-    config.MORPHEUS_CHAT_MODEL = 'llama-3.3-70b'
-    const { primary, fallback } = resolveProviders()
+    config.MORPHEUS_CHAT_MODEL = 'claude-opus-4.8'
+    const { primary } = resolveProviders()
     expect(primary.name).toBe('morpheus')
     expect(primary.apiKey).toBe('mk')
-    expect(primary.chatModel).toBe('llama-3.3-70b')
-    // Fallback OFF by default, even with a Together key present.
-    expect(fallback).toBeUndefined()
-  })
-
-  it('adds a Together fallback only when AI_FALLBACK_TO_TOGETHER is on', () => {
-    config.AI_PROVIDER = 'morpheus'
-    config.MORPHEUS_API_KEY = 'mk'
-    config.AI_FALLBACK_TO_TOGETHER = '1'
-    const { primary, fallback } = resolveProviders()
-    expect(primary.name).toBe('morpheus')
-    expect(fallback?.name).toBe('together')
-  })
-
-  it('never adds a fallback when the active provider is already Together', () => {
-    config.AI_FALLBACK_TO_TOGETHER = 'true'
-    const { fallback } = resolveProviders()
-    expect(fallback).toBeUndefined()
+    expect(primary.chatModel).toBe('claude-opus-4.8')
   })
 })
 
-describe('chatCompletion provider fallback', () => {
+describe('chatCompletion (single provider, no fallback)', () => {
   beforeEach(() => { vi.unstubAllGlobals(); resetProviderConfig() })
   afterEach(resetProviderConfig)
 
-  it('falls back to Together when the Morpheus primary fails, and reports ok', async () => {
+  it('hits the active provider (Morpheus) and returns its response', async () => {
     config.AI_PROVIDER = 'morpheus'
     config.MORPHEUS_API_KEY = 'mk'
-    config.AI_FALLBACK_TO_TOGETHER = '1'
-    // Morpheus exhausts its 3 retry attempts with 500s, then Together answers 200.
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(resp(500))
-      .mockResolvedValueOnce(resp(500))
-      .mockResolvedValueOnce(resp(500))
-      .mockResolvedValueOnce(resp(200))
+    const fetchMock = vi.fn().mockResolvedValueOnce(resp(200))
     vi.stubGlobal('fetch', fetchMock)
 
     const res = await chatCompletion([{ role: 'user', content: 'hi' }])
 
     expect(res.ok).toBe(true)
-    expect(fetchMock).toHaveBeenCalledTimes(4)
-    // First 3 calls hit Morpheus; the successful 4th hits Together.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock.mock.calls[0][0]).toContain('mor.org')
-    expect(fetchMock.mock.calls[3][0]).toContain('together.xyz')
   })
 
-  it('throws when Morpheus has no key and fallback is disabled (no boot crash, call-time error)', async () => {
+  it('does NOT fall back to Together on a non-ok Morpheus response', async () => {
     config.AI_PROVIDER = 'morpheus'
-    // no MORPHEUS_API_KEY, no fallback → empty provider chain
-    await expect(chatCompletion([{ role: 'user', content: 'hi' }])).rejects.toThrow(/no usable AI provider/)
+    config.MORPHEUS_API_KEY = 'mk'
+    // Morpheus exhausts its retries with 500s; the 500 is returned as-is — Together is never called.
+    const fetchMock = vi.fn().mockResolvedValue(resp(500))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const res = await chatCompletion([{ role: 'user', content: 'hi' }])
+
+    expect(res.status).toBe(500)
+    for (const call of fetchMock.mock.calls) {
+      expect(call[0]).toContain('mor.org')
+      expect(call[0]).not.toContain('together.xyz')
+    }
+  })
+
+  it('throws when the active provider has no API key', async () => {
+    config.AI_PROVIDER = 'morpheus' // no MORPHEUS_API_KEY
+    await expect(chatCompletion([{ role: 'user', content: 'hi' }])).rejects.toThrow(/no API key/)
   })
 })
