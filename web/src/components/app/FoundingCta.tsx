@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useSession } from '@/lib/session/session-context'
-import { getPurchases, BILLING_ENABLED } from '@/lib/billing/revenuecat'
+import { getPurchases, BILLING_ENABLED, PRO_ENTITLEMENT_ID } from '@/lib/billing/revenuecat'
 
 // Founding-offer CTA (design: /founding offer card). Client island so
 // `founding/page.tsx` can stay a server component with `metadata`.
@@ -60,6 +60,11 @@ export default function FoundingCta() {
     setErr(null)
     try {
       const purchases = await getPurchases(uid)
+      const info = await purchases.getCustomerInfo()
+      if (info?.entitlements?.active?.[PRO_ENTITLEMENT_ID]) {
+        window.location.href = '/dashboard' // already Pro — don't double-charge
+        return
+      }
       const offerings = await purchases.getOfferings()
       const founding = offerings.all['founding'] ?? offerings.current
       const pkg = founding?.availablePackages?.[0]
