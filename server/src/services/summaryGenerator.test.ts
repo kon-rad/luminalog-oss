@@ -1,10 +1,10 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
-vi.mock('./aiClient', () => ({ chatCompletion: vi.fn() }))
+vi.mock('./aiClient', () => ({ chatCompletion: vi.fn(), activeChatModel: () => 'test-chat-model' }))
 vi.mock('../config', () => ({ config: {} }))
 
 import { chatCompletion } from './aiClient'
-import { generateSummaryText, generateEntryAI, parseEntryAI, SUMMARY_MODEL } from './summaryGenerator'
+import { generateSummaryText, generateEntryAI, parseEntryAI } from './summaryGenerator'
 
 function mockCompletion(text: string) {
   ;(chatCompletion as any).mockResolvedValue({
@@ -24,7 +24,7 @@ describe('generateSummaryText', () => {
       userConfig: { wordLength: 30, systemPrompt: 'Summarize {type}.' },
     })
     expect(out.text).toBe('You reflected on a calm morning.')
-    expect(out.model).toBe(SUMMARY_MODEL)
+    expect(out.model).toBe('test-chat-model')
     const [messages] = (chatCompletion as any).mock.calls[0]
     expect(messages[0].content).toContain('Summarize text.')
     expect(messages[0].content).toMatch(/30 words/)
@@ -83,7 +83,7 @@ describe('generateEntryAI', () => {
     expect(out.summary).toBe('You rested.')
     expect(out.insights).toBe('## Rest')
     expect(out.prompts).toEqual(['What next?'])
-    expect(out.model).toBe(SUMMARY_MODEL)
+    expect(out.model).toBe('test-chat-model')
     const [messages, opts] = (chatCompletion as any).mock.calls[0]
     expect(messages[1].content).toBe('Long entry...')
     expect(opts.response_format).toEqual({ type: 'json_object' })

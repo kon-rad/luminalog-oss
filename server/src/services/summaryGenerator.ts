@@ -1,8 +1,6 @@
-import { chatCompletion } from './aiClient'
+import { chatCompletion, activeChatModel } from './aiClient'
 import { PROMPTS } from './prompts'
 import { resolveSummaryConfig, SummaryConfig } from '../config/summaryDefaults'
-
-export const SUMMARY_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
 
 export async function generateSummaryText(params: {
   type: string
@@ -10,18 +8,16 @@ export async function generateSummaryText(params: {
   userConfig: Partial<SummaryConfig> | undefined | null
 }): Promise<{ text: string; model: string; generatedAt: string }> {
   const cfg = resolveSummaryConfig(params.userConfig)
-  const res = await chatCompletion(
-    [
-      { role: 'system', content: PROMPTS.summary(params.type, cfg) },
-      { role: 'user', content: params.content },
-    ],
-    { model: SUMMARY_MODEL },
-  )
-  if (!res.ok) throw new Error(`Together AI error: ${res.status}`)
+  // The active provider (AI_PROVIDER) picks the model — don't pass a hardcoded id.
+  const res = await chatCompletion([
+    { role: 'system', content: PROMPTS.summary(params.type, cfg) },
+    { role: 'user', content: params.content },
+  ])
+  if (!res.ok) throw new Error(`AI error: ${res.status}`)
   const data = (await res.json()) as { choices: Array<{ message: { content: string } }> }
   return {
     text: data.choices[0].message.content.trim(),
-    model: SUMMARY_MODEL,
+    model: activeChatModel(),
     generatedAt: new Date().toISOString(),
   }
 }
@@ -92,9 +88,9 @@ export async function generateEntryAI(params: {
         { role: 'system', content: PROMPTS.entryAI(params.type, cfg) },
         { role: 'user', content: params.content },
       ],
-      { model: SUMMARY_MODEL, response_format: { type: 'json_object' } },
+      { response_format: { type: 'json_object' } },
     )
-    if (!res.ok) throw new Error(`Together AI error: ${res.status}`)
+    if (!res.ok) throw new Error(`AI error: ${res.status}`)
     const data = (await res.json()) as { choices: Array<{ message: { content: string } }> }
     return parseEntryAI(data.choices[0]?.message?.content ?? '')
   }
@@ -109,5 +105,5 @@ export async function generateEntryAI(params: {
     if (retry && retry.prompts.length > 0) parsed = retry
   }
   if (!parsed) throw new Error('Entry AI: unparseable response')
-  return { ...parsed, model: SUMMARY_MODEL, generatedAt: new Date().toISOString() }
+  return { ...parsed, model: activeChatModel(), generatedAt: new Date().toISOString() }
 }

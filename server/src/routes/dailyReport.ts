@@ -2,7 +2,7 @@ import { Request, Response } from 'express'
 import { db } from '../middleware/firebaseAuth'
 import { searchPhoto } from '../services/unsplashService'
 import { scoreText } from '../services/humeService'
-import { chatCompletion, DEFAULT_CHAT_MODEL } from '../services/aiClient'
+import { chatCompletion, activeChatModel } from '../services/aiClient'
 import { PROMPTS } from '../services/prompts'
 
 /** Calendar-day [start,end) for `date` in `timeZone`, as UTC instants. */
@@ -35,7 +35,7 @@ async function llm(systemPrompt: string): Promise<string> {
       { role: 'system', content: systemPrompt },
       { role: 'user', content: 'Generate the shareable daily insights card now as strict JSON.' },
     ],
-    { model: DEFAULT_CHAT_MODEL, response_format: { type: 'json_object' } },
+    { response_format: { type: 'json_object' } },
   )
   if (!r.ok) throw new Error(`LLM error ${r.status}`)
   return ((await r.json()) as { choices: Array<{ message: { content: string } }> })?.choices?.[0]?.message?.content ?? ''
@@ -108,7 +108,7 @@ export async function dailyReportHandler(req: Request, res: Response): Promise<v
       photographerName: photo?.photographerName ?? null,
       photographerUrl: photo?.photographerUrl ?? null,
       sourceEntryIds,
-      model: DEFAULT_CHAT_MODEL,
+      model: activeChatModel(),
       generatedAt: new Date().toISOString(),
     }
 

@@ -1,7 +1,79 @@
-import { config } from '../config'
+import { config, togetherFallbackEnabled } from '../config'
 import { Readable } from 'stream'
 
-const BASE = 'https://api.together.xyz/v1'
+// Together's REST base. Transcription (Whisper) stays pinned here regardless of
+// AI_PROVIDER — Morpheus has no speech-to-text endpoint (ADR-0085).
+const TOGETHER_BASE = 'https://api.together.xyz/v1'
+
+// Defaults mirror the Zod defaults in config.ts, but are duplicated here so the
+// provider resolver is robust even when a test mocks `config` with a partial object.
+const DEFAULT_TOGETHER_CHAT_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
+const DEFAULT_TOGETHER_EMBEDDING_MODEL = 'intfloat/multilingual-e5-large-instruct'
+const DEFAULT_MORPHEUS_BASE = 'https://api.mor.org/api/v1'
+const DEFAULT_MORPHEUS_CHAT_MODEL = 'llama-3.3-70b'
+const DEFAULT_MORPHEUS_EMBEDDING_MODEL = 'text-embedding-bge-m3'
+
+export type AiProviderName = 'together' | 'morpheus'
+export interface AiProvider {
+  name: AiProviderName
+  baseUrl: string
+  apiKey: string
+  chatModel: string
+  embeddingModel: string
+}
+
+function togetherProvider(): AiProvider {
+  return {
+    name: 'together',
+    baseUrl: TOGETHER_BASE,
+    apiKey: config.TOGETHER_AI_API_KEY ?? '',
+    chatModel: config.TOGETHER_CHAT_MODEL ?? DEFAULT_TOGETHER_CHAT_MODEL,
+    embeddingModel: config.TOGETHER_EMBEDDING_MODEL ?? DEFAULT_TOGETHER_EMBEDDING_MODEL,
+  }
+}
+
+function morpheusProvider(): AiProvider {
+  return {
+    name: 'morpheus',
+    baseUrl: config.MORPHEUS_BASE_URL ?? DEFAULT_MORPHEUS_BASE,
+    apiKey: config.MORPHEUS_API_KEY ?? '',
+    chatModel: config.MORPHEUS_CHAT_MODEL ?? DEFAULT_MORPHEUS_CHAT_MODEL,
+    embeddingModel: config.MORPHEUS_EMBEDDING_MODEL ?? DEFAULT_MORPHEUS_EMBEDDING_MODEL,
+  }
+}
+
+/**
+ * The active provider plus an optional Together fallback. Fallback is included
+ * only when AI_FALLBACK_TO_TOGETHER is on, the active provider isn't already
+ * Together, and a Together key exists.
+ */
+export function resolveProviders(): { primary: AiProvider; fallback?: AiProvider } {
+  const name: AiProviderName = config.AI_PROVIDER === 'morpheus' ? 'morpheus' : 'together'
+  const primary = name === 'morpheus' ? morpheusProvider() : togetherProvider()
+  let fallback: AiProvider | undefined
+  if (togetherFallbackEnabled() && primary.name !== 'together' && (config.TOGETHER_AI_API_KEY ?? '')) {
+    fallback = togetherProvider()
+  }
+  return { primary, fallback }
+}
+
+/** Ordered providers with a usable API key to actually attempt, primary first. */
+function chatProviderChain(): AiProvider[] {
+  const { primary, fallback } = resolveProviders()
+  const chain: AiProvider[] = []
+  if (primary.apiKey) chain.push(primary)
+  if (fallback?.apiKey) chain.push(fallback)
+  return chain
+}
+
+/**
+ * The model id generations are tagged with (stored on the entry's AI metadata).
+ * Best-effort under fallback: it reports the *intended* (primary) model even if a
+ * fallback provider ultimately served the request.
+ */
+export function activeChatModel(): string {
+  return resolveProviders().primary.chatModel
+}
 
 // Together's serverless endpoints intermittently return these under load. They
 // are explicitly retryable ("busy, ask again") — unlike 4xx (e.g. 400) which is
@@ -87,7 +159,7 @@ export async function transcribeAudio(buffer: Buffer, filename: string): Promise
   form.append('response_format', 'verbose_json')
   form.append('file', new Blob([buffer]), filename)
 
-  const res = await fetch(`${BASE}/audio/transcriptions`, {
+  const res = await fetch(`${TOGETHER_BASE}/audio/transcriptions`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${config.TOGETHER_AI_API_KEY}` },
     body: form,
@@ -151,16 +223,21 @@ export async function transcribeWithDeepgram(buffer: Buffer, contentType = 'audi
  * is correct (only queries take an instruction; passages stay raw).
  */
 export async function embed(texts: string[]): Promise<number[][]> {
-  const res = await fetchWithRetry(`${BASE}/embeddings`, {
+  // Dormant path (no live caller today). Routes through the active provider so a
+  // future reactivation follows AI_PROVIDER. NOTE: Morpheus BGE-M3 is 1024-dim vs
+  // the on-device 512-dim index — reactivating on Morpheus is an index-breaking
+  // project, not a drop-in (ADR-0085).
+  const p = resolveProviders().primary
+  const res = await fetchWithRetry(`${p.baseUrl}/embeddings`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${config.TOGETHER_AI_API_KEY}`,
+      Authorization: `Bearer ${p.apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ model: config.TOGETHER_EMBEDDING_MODEL, input: texts }),
+    body: JSON.stringify({ model: p.embeddingModel, input: texts }),
   })
   if (!res.ok) {
-    throw new Error(`Together AI embed error ${res.status}: ${await res.text()}`)
+    throw new Error(`${p.name} embed error ${res.status}: ${await res.text()}`)
   }
   const data = (await res.json()) as { data: Array<{ embedding: number[]; index: number }> }
   return data.data.sort((a, b) => a.index - b.index).map(d => d.embedding)
@@ -175,30 +252,63 @@ const E5_QUERY_TASK = 'Given a journal search query, retrieve the relevant past 
  * models. Query and passage embeddings must come from the same model to compare.
  */
 export async function embedQuery(text: string): Promise<number[]> {
-  const isE5Instruct = /e5.*instruct/i.test(config.TOGETHER_EMBEDDING_MODEL)
+  const isE5Instruct = /e5.*instruct/i.test(resolveProviders().primary.embeddingModel)
   const input = isE5Instruct ? `Instruct: ${E5_QUERY_TASK}\nQuery: ${text}` : text
   const [vector] = await embed([input])
   return vector
 }
 
-// Default chat model for callers that don't override it (e.g. text chat). Must be
-// a serverless model — non-serverless ids (e.g. Llama-4-Maverick) 400 with
-// "create a dedicated endpoint". This matches the model the voice (/llm) path uses.
-export const DEFAULT_CHAT_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
-
+/**
+ * OpenAI-compatible chat completion against the active provider, with an optional
+ * transparent fallback to Together (ADR-0085). Each provider uses its OWN model id
+ * — a Morpheus id is invalid on Together and vice-versa — so `opts.model` (if given)
+ * is honored ONLY for the primary provider; a fallback always uses Together's model.
+ *
+ * Fallback is stream-safe: `fetchWithRetry` resolves with the Response (headers)
+ * before the caller reads the SSE body, so a non-200 from the primary is caught and
+ * re-routed BEFORE any bytes reach the caller. Once a 200 stream begins we do not
+ * fall back mid-stream (provider outages surface as non-200 / connect errors).
+ */
 export async function chatCompletion(
   messages: Array<{ role: string; content: string }>,
   opts: { model?: string; stream?: boolean; response_format?: { type: string } } = {},
 ): Promise<Response> {
-  const model = opts.model ?? DEFAULT_CHAT_MODEL
-  const body: Record<string, unknown> = { model, messages, stream: opts.stream ?? false }
-  if (opts.response_format) body.response_format = opts.response_format
-  return fetchWithRetry(`${BASE}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${config.TOGETHER_AI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
+  const chain = chatProviderChain()
+  if (chain.length === 0) {
+    throw new Error(
+      `chatCompletion: no usable AI provider (AI_PROVIDER=${config.AI_PROVIDER ?? 'together'}). ` +
+        `Set the provider's API key, or enable AI_FALLBACK_TO_TOGETHER.`,
+    )
+  }
+
+  let lastErr: unknown
+  for (let i = 0; i < chain.length; i++) {
+    const p = chain[i]
+    const isLast = i === chain.length - 1
+    const model = i === 0 && opts.model ? opts.model : p.chatModel
+    const body: Record<string, unknown> = { model, messages, stream: opts.stream ?? false }
+    if (opts.response_format) body.response_format = opts.response_format
+    try {
+      const res = await fetchWithRetry(`${p.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${p.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
+      if (res.ok || isLast) {
+        if (i > 0) console.log(`[chatCompletion] served by fallback provider=${p.name}`)
+        return res
+      }
+      // Non-ok with a fallback remaining: drain the discarded body and try the next.
+      console.warn(`[chatCompletion] provider=${p.name} status=${res.status}; trying fallback`)
+      await res.body?.cancel().catch(() => {})
+    } catch (err) {
+      lastErr = err
+      if (isLast) throw err
+      console.warn(`[chatCompletion] provider=${p.name} threw; trying fallback:`, err)
+    }
+  }
+  throw lastErr ?? new Error('chatCompletion: exhausted provider chain')
 }

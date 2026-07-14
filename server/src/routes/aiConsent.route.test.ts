@@ -37,7 +37,7 @@ vi.mock('../services/aiClient', () => ({
   chatCompletion: vi.fn(),
   transcribeAudio: vi.fn(),
   streamToBuffer: vi.fn(),
-  DEFAULT_CHAT_MODEL: 'mock-model',
+  activeChatModel: () => 'mock-model',
 }))
 vi.mock('../services/audioExtractor', () => ({ extractAudio: vi.fn() }))
 vi.mock('@aws-sdk/client-s3', () => ({

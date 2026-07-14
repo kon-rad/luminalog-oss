@@ -8,6 +8,19 @@ const schema = z.object({
   TOGETHER_AI_API_KEY: z.string(),
   TOGETHER_EMBEDDING_MODEL: z.string().default('intfloat/multilingual-e5-large-instruct'),
   TOGETHER_WHISPER_MODEL: z.string().default('openai/whisper-large-v3'),
+  TOGETHER_CHAT_MODEL: z.string().default('meta-llama/Llama-3.3-70B-Instruct-Turbo'),
+  // Server LLM provider switch. `together` (default) preserves existing behavior;
+  // `morpheus` routes chat/summary/entry-AI/daily-report to the Morpheus decentralized
+  // TEE marketplace (ADR-0085). All Morpheus vars are OPTIONAL/defaulted so flipping
+  // the switch — or shipping the code with the switch off — never crash-loops boot.
+  AI_PROVIDER: z.enum(['together', 'morpheus']).default('together'),
+  // When truthy, a failed primary-provider completion transparently falls back to
+  // Together (only matters when AI_PROVIDER=morpheus). Truthy = 1/true/yes/on.
+  AI_FALLBACK_TO_TOGETHER: z.string().optional(),
+  MORPHEUS_API_KEY: z.string().optional(),
+  MORPHEUS_BASE_URL: z.string().default('https://api.mor.org/api/v1'),
+  MORPHEUS_CHAT_MODEL: z.string().default('llama-3.3-70b'),
+  MORPHEUS_EMBEDDING_MODEL: z.string().default('text-embedding-bge-m3'),
   AWS_ACCESS_KEY_ID: z.string(),
   AWS_SECRET_ACCESS_KEY: z.string(),
   AWS_S3_BUCKET: z.string(),
@@ -96,6 +109,16 @@ export function enforceAiConsentEnabled(): boolean {
  */
 export function deepgramEnabled(): boolean {
   return Boolean(config.DEEPGRAM_API_KEY)
+}
+
+/**
+ * True when Together is allowed as an automatic fallback for a failed primary
+ * completion (AI_FALLBACK_TO_TOGETHER truthy). Only takes effect when the active
+ * provider is not already Together and a Together key is configured.
+ */
+export function togetherFallbackEnabled(): boolean {
+  const v = (config.AI_FALLBACK_TO_TOGETHER ?? '').trim().toLowerCase()
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on'
 }
 
 export function chainEnabled(): boolean {

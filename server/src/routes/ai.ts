@@ -34,8 +34,6 @@ aiRouter.post(
   transcribeClipHandler,
 )
 
-const MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
-
 const s3 = new S3Client({
   region: config.AWS_REGION,
   credentials: {
@@ -47,9 +45,8 @@ const s3 = new S3Client({
 async function generate(systemPrompt: string, userContent: string): Promise<string> {
   const res = await chatCompletion(
     [{ role: 'system', content: systemPrompt }, { role: 'user', content: userContent }],
-    { model: MODEL },
   )
-  if (!res.ok) throw new Error(`Together AI error: ${res.status}`)
+  if (!res.ok) throw new Error(`AI error: ${res.status}`)
   const data = (await res.json()) as { choices: Array<{ message: { content: string } }> }
   return data.choices[0].message.content.trim()
 }
