@@ -422,6 +422,7 @@ extension Chat {
             endedReason: data["endedReason"] as? String,
             recordingPath: data["recordingPath"] as? String,
             recordingDurationSeconds: (data["recordingDurationSeconds"] as? NSNumber)?.doubleValue,
+            pendingRecordingKey: data["pendingRecordingKey"] as? String,
             rawTranscript: (try? cipher.openedIfPresent(data["rawTranscript"], "chats.rawTranscript")) ?? nil,
             journalId: data["journalId"] as? String,
             journalTitle: data["journalTitle"] as? String

@@ -58,6 +58,9 @@ final class AppServices: ObservableObject {
     /// from the entries created today (self-healing across transcript retries,
     /// edits, and deletes). Started per signed-in user from `LuminaLogApp`.
     let dailyGoalReconciler: DailyGoalReconciler
+    /// Encrypts + re-uploads webhook-staged voice recordings on next foreground.
+    /// Nil when `api` is nil (`mocks()`), like other network-backed helpers.
+    let voiceRecordingImporter: VoiceRecordingImporter?
 
     init(
         auth: AuthService,
@@ -110,6 +113,9 @@ final class AppServices: ObservableObject {
         self.keyMigrationTransport = keyMigrationTransport
         self.constellationCoordinator = constellationCoordinator
         self.dailyGoalReconciler = DailyGoalReconciler(journals: journals, profiles: profiles)
+        self.voiceRecordingImporter = api.map {
+            VoiceRecordingImporter(api: $0, media: media, keys: keys, repository: chats)
+        }
     }
 
     /// Production service wiring — always uses Firebase and real backends.

@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express'
+import admin from 'firebase-admin'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
 import { requireAiConsent } from '../middleware/requireAiConsent'
-import { signedPlaybackUrl } from '../services/voiceRecordingStore'
+import { stageRecording, deleteStaging } from '../services/voiceRecordingStore'
 import { PROMPTS } from '../services/prompts'
 import type { ProfileFields } from '../services/profileContext'
 import { config } from '../config'
@@ -128,11 +129,10 @@ export function parseWebhookMessage(body: any): ParsedWebhook {
   }
 }
 
-vapiRouter.post('/webhook', async (req: Request, res: Response) => {
-  // Vapi auth = a shared secret (NOT an HMAC of the body). Vapi only attaches
-  // custom HTTP headers to SOME server messages — the end-of-call-report arrives
-  // with none — so we accept the secret from the URL query (?secret=, always sent
-  // verbatim, same trick as the /llm token), falling back to the secret headers.
+export async function webhookHandler(req: Request, res: Response, database = db): Promise<void> {
+  // Vapi auth = a shared secret (NOT an HMAC of the body). The end-of-call-report
+  // arrives with no custom headers, so accept ?secret= (always sent verbatim),
+  // falling back to the secret headers.
   const provided = (req.query['secret']
     ?? req.headers['x-vapi-secret']
     ?? req.headers['x-vapi-signature']) as string | undefined
@@ -148,27 +148,59 @@ vapiRouter.post('/webhook', async (req: Request, res: Response) => {
     hasRecording: !!parsed.recordingUrl, transcriptLen: parsed.rawTranscript.length,
   }))
 
-  // Zero-knowledge: the client persists the voice transcript itself from the live Vapi
-  // events, and the server holds no DEK to encrypt it — there is nothing to persist.
-  // Acknowledge so Vapi doesn't retry. (Billing is client-side; server-side recording
-  // playback is dropped for zero-knowledge accounts.)
+  // Zero-knowledge: the client persists the voice TRANSCRIPT itself from live events.
+  // For the recording, the server can't encrypt (no DEK), so it only STAGES the
+  // plaintext audio promptly (Vapi retains it ~14 days) and records a pointer; the
+  // client encrypts + finalizes on next foreground. Best-effort — always ack so Vapi
+  // does not retry.
+  if (parsed.recordingUrl && parsed.chatId && parsed.callId) {
+    try {
+      const snap = await database.collection('chats').doc(parsed.chatId).get()
+      const uid = snap.data()?.userId as string | undefined
+      if (!uid) {
+        console.error('[vapi/webhook] no chat/uid for recording', { chatId: parsed.chatId })
+      } else {
+        const key = await stageRecording(uid, parsed.callId, parsed.recordingUrl)
+        if (key) {
+          const update: Record<string, unknown> = { pendingRecordingKey: key }
+          if (parsed.durationSeconds != null) update.recordingDurationSeconds = parsed.durationSeconds
+          await database.collection('chats').doc(parsed.chatId).update(update)
+        }
+      }
+    } catch (err) {
+      console.error('[vapi/webhook] recording stage failed', err)
+    }
+  }
+
   res.json({ ok: true })
-})
-
-// ── recording-url (authed playback url for the detail page) ───────────────────
-
-export async function recordingUrlHandler(req: Request, res: Response, database = db) {
-  const uid = (req as any).uid as string
-  const chatId = (req.body?.chatId as string | undefined) ?? ''
-  if (!chatId) { res.status(400).json({ error: 'chatId required' }); return }
-
-  const snap = await database.collection('chats').doc(chatId).get()
-  const data = snap.data()
-  if (!data || data.userId !== uid) { res.status(403).json({ error: 'forbidden' }); return }
-  if (!data.recordingPath) { res.status(404).json({ error: 'no recording' }); return }
-
-  const url = await signedPlaybackUrl(data.recordingPath as string)
-  res.json({ url })
 }
 
-vapiRouter.post('/recording-url', firebaseAuth, (req, res) => recordingUrlHandler(req, res))
+vapiRouter.post('/webhook', (req: Request, res: Response) => webhookHandler(req, res))
+
+// ── recording-finalize (client re-uploaded the encrypted recording) ───────────
+
+export async function recordingFinalizeHandler(req: Request, res: Response, database = db): Promise<void> {
+  const uid = (req as any).uid as string
+  const chatId = (req.body?.chatId as string | undefined) ?? ''
+  const recordingPath = (req.body?.recordingPath as string | undefined) ?? ''
+  if (!chatId || !recordingPath) { res.status(400).json({ error: 'chatId and recordingPath required' }); return }
+  // The client may only point recordingPath at its own namespace.
+  if (!recordingPath.startsWith(`users/${uid}/`)) { res.status(403).json({ error: 'forbidden' }); return }
+
+  const ref = database.collection('chats').doc(chatId)
+  const snap = await ref.get()
+  const data = snap.data()
+  if (!data || data.userId !== uid) { res.status(403).json({ error: 'forbidden' }); return }
+
+  const stagingPath = data.pendingRecordingKey as string | undefined
+  await ref.update({
+    recordingPath,
+    pendingRecordingKey: admin.firestore.FieldValue.delete(),
+  })
+  if (stagingPath) {
+    try { await deleteStaging(stagingPath) } catch (err) { console.error('[vapi/recording-finalize] staging delete failed', err) }
+  }
+  res.json({ ok: true })
+}
+
+vapiRouter.post('/recording-finalize', firebaseAuth, (req: Request, res: Response) => recordingFinalizeHandler(req, res))

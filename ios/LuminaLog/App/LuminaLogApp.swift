@@ -126,6 +126,9 @@ struct LuminaLogApp: App {
                         .task(id: uid) {
                             await services.entryProcessor.resumePendingJobs()
                         }
+                        .task(id: uid) {
+                            await services.voiceRecordingImporter?.sweep()
+                        }
                         // Keep today's daily-goal progress + streak reconciled
                         // from the entries created today (self-healing across
                         // transcript retries, edits, and deletes). Runs for the

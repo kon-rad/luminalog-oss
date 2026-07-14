@@ -18,9 +18,10 @@ vi.mock('../middleware/firebaseAuth', () => ({
 }))
 vi.mock('../services/prompts', () => ({ PROMPTS: { voiceChat: vi.fn(() => 'VOICE_SYSTEM_PROMPT') } }))
 vi.mock('../services/voiceRecordingStore', () => ({
-  signedPlaybackUrl: vi.fn().mockResolvedValue('https://signed'),
-  storeRecording: vi.fn(),
-  recordingKey: vi.fn(),
+  stageRecording: vi.fn(),
+  deleteStaging: vi.fn(),
+  stagingKey: (uid: string, callId: string) => `users/${uid}/voice-staging/${callId}.wav`,
+  finalRecordingKey: (uid: string, callId: string) => `users/${uid}/voice/${callId}.wav`,
 }))
 
 import { callConfigHandler } from './vapi'
@@ -174,22 +175,117 @@ describe('vapi call-config overrides', () => {
   })
 })
 
-import { recordingUrlHandler } from './vapi'
+import { webhookHandler } from './vapi'
+import { stageRecording, deleteStaging } from '../services/voiceRecordingStore'
 
-describe('recording-url handler', () => {
-  it('returns a signed url when the caller owns the chat', async () => {
-    const db: any = { collection: () => ({ doc: () => ({ get: () => Promise.resolve({ data: () => ({ userId: 'user-123', recordingPath: 'voice/user-123/c.wav' }) }) }) }) }
-    const req: any = { uid: 'user-123', body: { chatId: 'chat-1' } }
+function chatDbMock(chatData: any) {
+  const update = vi.fn().mockResolvedValue(undefined)
+  const db: any = {
+    collection: () => ({
+      doc: () => ({
+        get: () => Promise.resolve({ data: () => chatData }),
+        update,
+      }),
+    }),
+  }
+  return { db, update }
+}
+
+describe('vapi webhook — recording staging', () => {
+  it('stages the recording and writes pendingRecordingKey + duration', async () => {
+    ;(stageRecording as any).mockResolvedValue('users/user-1/voice-staging/call_1.wav')
+    const { db, update } = chatDbMock({ userId: 'user-1' })
+    const req: any = {
+      query: { secret: 'secret_test' },
+      headers: {},
+      body: { message: { type: 'end-of-call-report', durationSeconds: 42,
+        call: { id: 'call_1', metadata: { chatId: 'chat_1' } },
+        artifact: { recordingUrl: 'https://storage.vapi.ai/x.wav' } } },
+    }
     const res = mockRes()
-    await recordingUrlHandler(req, res, db)
-    expect(res.body.url).toBe('https://signed')
+    await webhookHandler(req, res, db)
+    expect(stageRecording).toHaveBeenCalledWith('user-1', 'call_1', 'https://storage.vapi.ai/x.wav')
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ pendingRecordingKey: 'users/user-1/voice-staging/call_1.wav', recordingDurationSeconds: 42 }),
+    )
+    expect(res.body).toEqual({ ok: true })
+  })
+
+  it('still acks (200) and writes nothing when the download fails', async () => {
+    ;(stageRecording as any).mockResolvedValue(null)
+    const { db, update } = chatDbMock({ userId: 'user-1' })
+    const req: any = {
+      query: { secret: 'secret_test' }, headers: {},
+      body: { message: { type: 'end-of-call-report',
+        call: { id: 'call_1', metadata: { chatId: 'chat_1' } },
+        artifact: { recordingUrl: 'https://storage.vapi.ai/x.wav' } } },
+    }
+    const res = mockRes()
+    await webhookHandler(req, res, db)
+    expect(update).not.toHaveBeenCalled()
+    expect(res.body).toEqual({ ok: true })
+  })
+
+  it('rejects a bad secret with 401', async () => {
+    const { db } = chatDbMock({ userId: 'user-1' })
+    const req: any = { query: { secret: 'wrong' }, headers: {}, body: {} }
+    const res = mockRes()
+    await webhookHandler(req, res, db)
+    expect(res.statusCode).toBe(401)
+  })
+
+  it('does not stage when callId is missing', async () => {
+    ;(stageRecording as any).mockClear()
+    const { db, update } = chatDbMock({ userId: 'user-1' })
+    const req: any = {
+      query: { secret: 'secret_test' }, headers: {},
+      body: { message: { type: 'end-of-call-report',
+        call: { metadata: { chatId: 'chat_1' } },   // no id
+        artifact: { recordingUrl: 'https://storage.vapi.ai/x.wav' } } },
+    }
+    const res = mockRes()
+    await webhookHandler(req, res, db)
+    expect(stageRecording).not.toHaveBeenCalled()
+    expect(update).not.toHaveBeenCalled()
+    expect(res.body).toEqual({ ok: true })
+  })
+})
+
+import { recordingFinalizeHandler } from './vapi'
+
+describe('recording-finalize handler', () => {
+  it('sets recordingPath, clears pendingRecordingKey, deletes staging', async () => {
+    const { db, update } = chatDbMock({ userId: 'user-1', pendingRecordingKey: 'users/user-1/voice-staging/c.wav' })
+    const req: any = { uid: 'user-1', body: { chatId: 'chat-1', recordingPath: 'users/user-1/voice/c.wav' } }
+    const res = mockRes()
+    await recordingFinalizeHandler(req, res, db)
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ recordingPath: 'users/user-1/voice/c.wav' }))
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ pendingRecordingKey: expect.anything() }))
+    expect(deleteStaging).toHaveBeenCalledWith('users/user-1/voice-staging/c.wav')
+    expect(res.body).toEqual({ ok: true })
+  })
+
+  it('403s when the recordingPath is outside the caller namespace', async () => {
+    const { db } = chatDbMock({ userId: 'user-1' })
+    const req: any = { uid: 'user-1', body: { chatId: 'chat-1', recordingPath: 'users/other/voice/c.wav' } }
+    const res = mockRes()
+    await recordingFinalizeHandler(req, res, db)
+    expect(res.statusCode).toBe(403)
   })
 
   it('403s when the chat belongs to someone else', async () => {
-    const db: any = { collection: () => ({ doc: () => ({ get: () => Promise.resolve({ data: () => ({ userId: 'other', recordingPath: 'x' }) }) }) }) }
-    const req: any = { uid: 'user-123', body: { chatId: 'chat-1' } }
+    const { db } = chatDbMock({ userId: 'other' })
+    const req: any = { uid: 'user-1', body: { chatId: 'chat-1', recordingPath: 'users/user-1/voice/c.wav' } }
     const res = mockRes()
-    await recordingUrlHandler(req, res, db)
+    await recordingFinalizeHandler(req, res, db)
     expect(res.statusCode).toBe(403)
+  })
+
+  it('400s when fields are missing', async () => {
+    const { db } = chatDbMock({ userId: 'user-1' })
+    const req: any = { uid: 'user-1', body: { chatId: 'chat-1' } }
+    const res = mockRes()
+    await recordingFinalizeHandler(req, res, db)
+    expect(res.statusCode).toBe(400)
   })
 })

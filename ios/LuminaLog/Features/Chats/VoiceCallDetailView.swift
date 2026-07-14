@@ -17,9 +17,10 @@ struct VoiceCallDetailView: View {
     init(
         chatId: String,
         repository: ChatRepository,
-        api: ProxyAPIClient?
+        media: MediaUploader?,
+        importer: VoiceRecordingImporter?
     ) {
-        _viewModel = StateObject(wrappedValue: VoiceCallDetailViewModel(chatId: chatId, repository: repository, api: api))
+        _viewModel = StateObject(wrappedValue: VoiceCallDetailViewModel(chatId: chatId, repository: repository, media: media, importer: importer))
     }
 
     var body: some View {
@@ -107,6 +108,17 @@ struct VoiceCallDetailView: View {
                 Image(systemName: "waveform.slash")
                     .foregroundStyle(Color.textSecondary)
                 Text("Recording not available")
+                    .font(.captionText)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(Spacing.m)
+            .background(Color.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous))
+        case .processing:
+            HStack(spacing: Spacing.s) {
+                ProgressView()
+                Text("Processing recording…")
                     .font(.captionText)
                     .foregroundStyle(Color.textSecondary)
             }
