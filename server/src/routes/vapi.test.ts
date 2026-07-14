@@ -234,3 +234,47 @@ describe('vapi webhook — recording staging', () => {
     expect(res.statusCode).toBe(401)
   })
 })
+
+import { recordingFinalizeHandler } from './vapi'
+
+describe('recording-finalize handler', () => {
+  function db(chatData: any) {
+    const update = vi.fn().mockResolvedValue(undefined)
+    const database: any = { collection: () => ({ doc: () => ({
+      get: () => Promise.resolve({ data: () => chatData }), update }) }) }
+    return { database, update }
+  }
+
+  it('sets recordingPath, clears pendingRecordingKey, deletes staging', async () => {
+    const { database, update } = db({ userId: 'user-1', pendingRecordingKey: 'users/user-1/voice-staging/c.wav' })
+    const req: any = { uid: 'user-1', body: { chatId: 'chat-1', recordingPath: 'users/user-1/voice/c.wav' } }
+    const res = mockRes()
+    await recordingFinalizeHandler(req, res, database)
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ recordingPath: 'users/user-1/voice/c.wav' }))
+    expect(res.body).toEqual({ ok: true })
+  })
+
+  it('403s when the recordingPath is outside the caller namespace', async () => {
+    const { database } = db({ userId: 'user-1' })
+    const req: any = { uid: 'user-1', body: { chatId: 'chat-1', recordingPath: 'users/other/voice/c.wav' } }
+    const res = mockRes()
+    await recordingFinalizeHandler(req, res, database)
+    expect(res.statusCode).toBe(403)
+  })
+
+  it('403s when the chat belongs to someone else', async () => {
+    const { database } = db({ userId: 'other' })
+    const req: any = { uid: 'user-1', body: { chatId: 'chat-1', recordingPath: 'users/user-1/voice/c.wav' } }
+    const res = mockRes()
+    await recordingFinalizeHandler(req, res, database)
+    expect(res.statusCode).toBe(403)
+  })
+
+  it('400s when fields are missing', async () => {
+    const { database } = db({ userId: 'user-1' })
+    const req: any = { uid: 'user-1', body: { chatId: 'chat-1' } }
+    const res = mockRes()
+    await recordingFinalizeHandler(req, res, database)
+    expect(res.statusCode).toBe(400)
+  })
+})

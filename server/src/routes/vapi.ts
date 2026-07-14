@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express'
+import admin from 'firebase-admin'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
 import { requireAiConsent } from '../middleware/requireAiConsent'
 import { stageRecording, deleteStaging } from '../services/voiceRecordingStore'
@@ -176,20 +177,30 @@ export async function webhookHandler(req: Request, res: Response, database = db)
 
 vapiRouter.post('/webhook', (req: Request, res: Response) => webhookHandler(req, res))
 
-// ── recording-url (authed playback url for the detail page) ───────────────────
+// ── recording-finalize (client re-uploaded the encrypted recording) ───────────
 
-export async function recordingUrlHandler(req: Request, res: Response, database = db) {
+export async function recordingFinalizeHandler(req: Request, res: Response, database = db): Promise<void> {
   const uid = (req as any).uid as string
   const chatId = (req.body?.chatId as string | undefined) ?? ''
-  if (!chatId) { res.status(400).json({ error: 'chatId required' }); return }
+  const recordingPath = (req.body?.recordingPath as string | undefined) ?? ''
+  if (!chatId || !recordingPath) { res.status(400).json({ error: 'chatId and recordingPath required' }); return }
+  // The client may only point recordingPath at its own namespace.
+  if (!recordingPath.startsWith(`users/${uid}/`)) { res.status(403).json({ error: 'forbidden' }); return }
 
-  const snap = await database.collection('chats').doc(chatId).get()
+  const ref = database.collection('chats').doc(chatId)
+  const snap = await ref.get()
   const data = snap.data()
   if (!data || data.userId !== uid) { res.status(403).json({ error: 'forbidden' }); return }
-  if (!data.recordingPath) { res.status(404).json({ error: 'no recording' }); return }
 
-  const url = await signedPlaybackUrl(data.recordingPath as string)
-  res.json({ url })
+  const stagingPath = data.pendingRecordingKey as string | undefined
+  await ref.update({
+    recordingPath,
+    pendingRecordingKey: admin.firestore.FieldValue.delete(),
+  })
+  if (stagingPath) {
+    try { await deleteStaging(stagingPath) } catch (err) { console.error('[vapi/recording-finalize] staging delete failed', err) }
+  }
+  res.json({ ok: true })
 }
 
-vapiRouter.post('/recording-url', firebaseAuth, (req, res) => recordingUrlHandler(req, res))
+vapiRouter.post('/recording-finalize', firebaseAuth, (req: Request, res: Response) => recordingFinalizeHandler(req, res))
