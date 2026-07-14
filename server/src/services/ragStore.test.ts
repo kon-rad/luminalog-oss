@@ -8,7 +8,11 @@ const col = {
     distances: [[0.1, 0.4]],
   })),
 }
-vi.mock('../db/chroma', () => ({ getJournalsCollection: async () => col }))
+const resetJournalsCollection = vi.fn()
+vi.mock('../db/chroma', () => ({
+  getJournalsCollection: async () => col,
+  resetJournalsCollection: () => resetJournalsCollection(),
+}))
 vi.mock('./aiClient', () => ({ embed: vi.fn(async (t: string[]) => t.map(() => [0.1, 0.2, 0.3])) }))
 
 import { indexEntryChunks, deleteEntryChunks, searchChunks, CHUNKER_VERSION } from './ragStore'
@@ -38,6 +42,20 @@ describe('indexEntryChunks', () => {
     // NO document/text field anywhere in the payload
     expect(JSON.stringify(addArg)).not.toContain('alpha')
     expect(JSON.stringify(addArg)).not.toContain('beta')
+  })
+
+  it('self-heals a stale collection: resets the cache and retries once on NotFound', async () => {
+    // First delete throws a Chroma NotFound (collection was wiped/recreated);
+    // after resetJournalsCollection the retry succeeds.
+    col.delete
+      .mockRejectedValueOnce(Object.assign(new Error('The requested resource could not be found'), { name: 'ChromaNotFoundError' }))
+      .mockResolvedValueOnce(undefined)
+    const n = await indexEntryChunks({
+      userId: 'u1', entryId: 'e1', type: 'text', dayIndex: 0, wordCount: 1, chunks: ['a'],
+    })
+    expect(n).toBe(1)
+    expect(resetJournalsCollection).toHaveBeenCalledTimes(1)
+    expect(col.add).toHaveBeenCalledTimes(1) // add still ran after the retry
   })
 
   it('deletes and adds nothing for an empty chunk list', async () => {
