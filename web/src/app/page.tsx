@@ -53,6 +53,7 @@ export default function Home() {
               </div>
               <div style={{ marginTop: 22, display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 12, color: 'var(--text3)', lineHeight: 1.5 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🔒 End-to-end encrypted</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🛡️ Private AI inference</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>📱 On-device dictation</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🎯 You choose what the AI sees</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🚫 Never trained on your data</span>
@@ -494,6 +495,83 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── PRIVATE INFERENCE (DARK) ── */}
+      <section className="fade-up" id="private-ai" style={{ padding: '104px 0', background: 'var(--dark-bg)' }}>
+        <div className="wrap">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 72, alignItems: 'center' }} className="video-split">
+            <div>
+              <span className="eyebrow">Private AI</span>
+              <h2 className="serif" style={{ marginTop: 12, fontSize: 'clamp(30px,3.6vw,42px)', fontWeight: 600, color: 'var(--dark-text)', letterSpacing: '-0.025em', lineHeight: 1.08 }}>Even the AI reads your<br />journal in a sealed room.</h2>
+              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 20 }}>The reflective AI — every chat, insight, summary, and daily prompt — runs on <b style={{ color: 'var(--dark-text)', fontWeight: 600 }}>Morpheus</b>, a decentralized network where your words are processed inside hardware enclaves, encrypted end to end. Your entries stay unreadable to the machine running the model, to Morpheus, and to us. Not a privacy policy — a locked box no one holds the key to.</p>
+              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 16 }}>Your journal is yours: sealed at rest, sealed in thought, and never used to train anyone&apos;s AI. Own your data — down to the moment a model reasons over it.</p>
+              <div style={{ marginTop: 26, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {['Runs on Morpheus', 'Hardware enclaves (TEE)', 'End-to-end encrypted'].map((chip) => (
+                  <span key={chip} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'var(--dark-surface)', border: '1px solid var(--dark-hairline)', borderRadius: 100, padding: '8px 15px', fontSize: 13, fontWeight: 600, color: 'var(--dark-text)' }}>
+                    <span style={{ color: 'var(--accent)' }}>✦</span>
+                    {chip}
+                  </span>
+                ))}
+              </div>
+              <p style={{ marginTop: 20, fontSize: 13, color: 'var(--dark-text2)', lineHeight: 1.55, opacity: 0.85 }}>Speech-to-text for voice &amp; video is transcribed separately; on-device dictation never leaves your phone.</p>
+            </div>
+            {/* Sealed enclave visual */}
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+              <div style={{ position: 'absolute', width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle,rgba(206,127,68,0.20),transparent 65%)', filter: 'blur(18px)' }} />
+              <div style={{ position: 'relative', zIndex: 1, width: 320, maxWidth: '100%', aspectRatio: '320 / 420', borderRadius: 26, overflow: 'hidden', boxShadow: '0 30px 70px rgba(0,0,0,0.45)', background: 'linear-gradient(160deg, #241B33, #0A0710)', border: '1px solid var(--dark-hairline)' }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 72% 55% at 50% 42%, rgba(232,160,90,0.30), transparent 62%)' }} />
+                <svg viewBox="0 0 320 420" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+                  {/* incoming entry → enclave → insight out */}
+                  <g stroke="rgba(232,160,90,0.55)" strokeWidth="1.4" fill="none" strokeLinecap="round">
+                    <line x1="40" y1="92" x2="120" y2="150" strokeDasharray="4 5" />
+                    <line x1="280" y1="92" x2="200" y2="150" strokeDasharray="4 5" />
+                    <line x1="160" y1="300" x2="160" y2="356" strokeDasharray="4 5" />
+                  </g>
+                  {/* your words (in) */}
+                  <g fill="rgba(243,238,228,0.9)" fontFamily="Georgia, serif" fontStyle="italic" fontSize="11">
+                    <text x="40" y="80" textAnchor="middle">your words</text>
+                    <text x="280" y="80" textAnchor="middle">your voice</text>
+                  </g>
+                  {/* the enclave (locked vault) */}
+                  <g>
+                    <rect x="108" y="150" width="104" height="104" rx="22" fill="rgba(20,14,28,0.85)" stroke="rgba(244,206,155,0.55)" strokeWidth="1.6" />
+                    <rect x="108" y="150" width="104" height="104" rx="22" fill="none" stroke="rgba(232,160,90,0.25)" strokeWidth="6" />
+                    {/* AI core */}
+                    <circle cx="160" cy="196" r="26" fill="url(#coreGrad)" />
+                    <path d="M160 180c1.6 11 5.6 15 16.5 16.5-11 1.6-15 5.6-16.5 16.5-1.6-11-5.6-15-16.5-16.5 11-1.6 15-5.6 16.5-16.5z" fill="#1A1206" opacity="0.9" />
+                    {/* padlock shackle above the core */}
+                    <path d="M150 236v-6a10 10 0 0 1 20 0v6" fill="none" stroke="#F4CE9B" strokeWidth="2.4" />
+                    <rect x="146" y="236" width="28" height="20" rx="4" fill="#F4CE9B" />
+                    <circle cx="160" cy="245" r="2.6" fill="#241B33" />
+                  </g>
+                  {/* insight (out) */}
+                  <g fill="rgba(244,206,155,0.95)" fontFamily="Georgia, serif" fontStyle="italic" fontSize="12">
+                    <text x="160" y="378" textAnchor="middle">insight, reflected back</text>
+                  </g>
+                  {/* faint sealed-room frame dots */}
+                  {([[52,300,1.6],[268,300,1.6],[40,168,1.3],[292,168,1.3]] as [number, number, number][]).map(([cx, cy, r], i) => (
+                    <circle key={i} cx={cx} cy={cy} r={r} fill="#F4CE9B" opacity="0.6" />
+                  ))}
+                  <defs>
+                    <radialGradient id="coreGrad" cx="40%" cy="36%" r="70%">
+                      <stop offset="0%" stopColor="#F4CE9B" />
+                      <stop offset="100%" stopColor="var(--accentDeep)" />
+                    </radialGradient>
+                  </defs>
+                </svg>
+                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '20px 22px', background: 'linear-gradient(180deg, transparent, rgba(6,4,10,0.82))' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.4px', textTransform: 'uppercase', color: '#F0C18A' }}>Confidential inference</div>
+                  <div className="serif" style={{ fontSize: 15, color: 'rgba(255,255,255,0.94)', marginTop: 6, lineHeight: 1.3 }}>Processed inside a hardware enclave — invisible even to us.</div>
+                  <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 100, padding: '5px 12px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.85)' }}>
+                    <span style={{ color: 'var(--accent)' }}>✦</span>
+                    Morpheus · TEE
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── PRIVACY ── */}
       <section className="fade-up" id="privacy" style={{ padding: '104px 0', background: 'var(--surfaceAlt)' }}>
         <div className="wrap">
@@ -507,6 +585,7 @@ export default function Home() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 48px' }} className="privacy-grid">
                 {[
                   ['🔒', 'Zero-knowledge encryption', "End-to-end encrypted. We can't read your entries — and neither can anyone else. The keys are derived on your device and never leave it, so everything reaches our servers already sealed."],
+                  ['🛡️', 'Private, confidential inference', "The AI that reads your journal runs on Morpheus — a decentralized network where inference happens inside hardware enclaves (TEEs) with end-to-end-encrypted prompts. Even while the AI reasons over your words, no one — not the compute node, not Morpheus, not us — can see them."],
                   ['📱', 'On-device dictation & search', "Voice dictation, handwriting recognition (OCR), and the semantic search that finds relevant entries all run on your own device."],
                   ['🎯', 'You choose what the AI sees', "What you share with the AI is up to you — your journal entries plus the biography and profile details you provide, which can include personal, identifying information. Share as much or as little as you like; anything you keep private stays out entirely."],
                   ['🚫', 'Never used to train AI', "Your journal is never used to train AI models. Not ours. Not anyone else's. Full stop."],
@@ -594,7 +673,7 @@ export default function Home() {
               <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$19.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ month</span></div>
               <div style={{ fontSize: 14, color: 'var(--text3)' }}>Cancel anytime</div>
               <ul style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {['Unlimited text, voice, video & photo entries', 'End-to-end encrypted — zero-knowledge by design', 'Unlimited AI insights & patterns', 'Unlimited chat with your companion', 'Daily 750-word streak + shareable insights card', 'Daily personalized prompt', 'Your On-Chain Soul — a soulbound token'].map(f => (
+                {['Unlimited text, voice, video & photo entries', 'End-to-end encrypted — zero-knowledge by design', 'Private AI inference on Morpheus (TEE)', 'Unlimited AI insights & patterns', 'Unlimited chat with your companion', 'Daily 750-word streak + shareable insights card', 'Daily personalized prompt', 'Your On-Chain Soul — a soulbound token'].map(f => (
                   <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15, textAlign: 'left' }}>
                     <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
