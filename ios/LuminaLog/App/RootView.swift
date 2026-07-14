@@ -84,7 +84,8 @@ struct RootView: View {
                     api: services.api,
                     journals: services.journals,
                     profiles: services.profiles,
-                    media: services.media
+                    media: services.media,
+                    voiceRecordingImporter: services.voiceRecordingImporter
                 )
             }
             tabContent(for: .settings) {

@@ -17,12 +17,8 @@ struct VoiceCallDetailView: View {
     init(
         chatId: String,
         repository: ChatRepository,
-        // `api` is retained (unused) so the existing ChatListView call site keeps
-        // compiling; Task 8 rewires the caller to pass `media`/`importer` directly
-        // and drops this parameter.
-        api: ProxyAPIClient? = nil,
-        media: MediaUploader? = nil,
-        importer: VoiceRecordingImporter? = nil
+        media: MediaUploader?,
+        importer: VoiceRecordingImporter?
     ) {
         _viewModel = StateObject(wrappedValue: VoiceCallDetailViewModel(chatId: chatId, repository: repository, media: media, importer: importer))
     }

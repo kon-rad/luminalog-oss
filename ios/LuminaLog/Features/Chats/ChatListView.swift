@@ -36,6 +36,7 @@ struct ChatListView: View {
     private let journals: JournalRepository
     private let profiles: ProfileRepository
     private let media: MediaUploader
+    private let voiceRecordingImporter: VoiceRecordingImporter?
 
     @State private var path = NavigationPath()
     @State private var isVoiceCallPresented = false
@@ -52,7 +53,8 @@ struct ChatListView: View {
         api: ProxyAPIClient? = nil,
         journals: JournalRepository,
         profiles: ProfileRepository,
-        media: MediaUploader
+        media: MediaUploader,
+        voiceRecordingImporter: VoiceRecordingImporter? = nil
     ) {
         _viewModel = StateObject(wrappedValue: ChatListViewModel(chats: chats))
         self.chats = chats
@@ -64,6 +66,7 @@ struct ChatListView: View {
         self.journals = journals
         self.profiles = profiles
         self.media = media
+        self.voiceRecordingImporter = voiceRecordingImporter
     }
 
     var body: some View {
@@ -80,7 +83,7 @@ struct ChatListView: View {
                 .navigationTitle("Chats")
                 .navigationDestination(for: ChatRoute.self) { route in
                     if route.kind == .voice {
-                        VoiceCallDetailView(chatId: route.chatId, repository: chats, api: api)
+                        VoiceCallDetailView(chatId: route.chatId, repository: chats, media: media, importer: voiceRecordingImporter)
                     } else {
                         ChatView(
                             chatId: route.chatId,
