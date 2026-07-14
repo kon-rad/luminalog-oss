@@ -1,18 +1,32 @@
-import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { s3 } from './s3'
 import { config } from '../config'
 
-export function recordingKey(uid: string, callId: string): string {
-  return `voice/${uid}/${callId}.wav`
+// Plaintext staging (transient) lives under the user's own prefix so the existing
+// media presign authorization (users/<uid>/) covers the client's GET/PUT. The client
+// derives finalRecordingKey from stagingKey by swapping the path segment.
+export function stagingKey(uid: string, callId: string): string {
+  return `users/${uid}/voice-staging/${callId}.wav`
 }
 
-/** Download Vapi's recording and store it in our bucket. Returns the S3 key. */
-export async function storeRecording(uid: string, callId: string, sourceUrl: string): Promise<string> {
+export function finalRecordingKey(uid: string, callId: string): string {
+  return `users/${uid}/voice/${callId}.wav`
+}
+
+/**
+ * Download Vapi's recording from its (public) URL and stage it PLAINTEXT in our
+ * bucket, promptly — Vapi retains call recordings only ~14 days. Returns the
+ * staging S3 key, or null on a non-OK fetch (e.g. expired/gated URL — logged so
+ * we can detect Vapi gating). Never encrypts: the server holds no DEK.
+ */
+export async function stageRecording(uid: string, callId: string, sourceUrl: string): Promise<string | null> {
   const res = await fetch(sourceUrl)
-  if (!res.ok) throw new Error(`recording fetch ${res.status}`)
+  if (!res.ok) {
+    console.error('[voiceRecordingStore] recording fetch failed', { callId, status: res.status })
+    return null
+  }
   const body = Buffer.from(await res.arrayBuffer())
-  const Key = recordingKey(uid, callId)
+  const Key = stagingKey(uid, callId)
   await s3.send(new PutObjectCommand({
     Bucket: config.AWS_S3_BUCKET,
     Key,
@@ -22,7 +36,7 @@ export async function storeRecording(uid: string, callId: string, sourceUrl: str
   return Key
 }
 
-/** Short-lived presigned GET for playback (15 min). */
-export async function signedPlaybackUrl(key: string): Promise<string> {
-  return getSignedUrl(s3, new GetObjectCommand({ Bucket: config.AWS_S3_BUCKET, Key: key }), { expiresIn: 900 })
+/** Delete a staged plaintext recording once the client has re-uploaded the ciphertext. */
+export async function deleteStaging(key: string): Promise<void> {
+  await s3.send(new DeleteObjectCommand({ Bucket: config.AWS_S3_BUCKET, Key: key }))
 }

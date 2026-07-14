@@ -1,26 +1,36 @@
 import { vi, describe, it, expect } from 'vitest'
 
-// node_modules here is sparse (no @aws-sdk); mock the SDK so the module loads.
-const { sendMock, getSignedUrlMock } = vi.hoisted(() => ({
+// Hoist mocks so they're initialized before imports
+const { sendMock } = vi.hoisted(() => ({
   sendMock: vi.fn().mockResolvedValue({}),
-  getSignedUrlMock: vi.fn().mockResolvedValue('https://signed/url'),
 }))
 
-vi.mock('../config', () => ({ config: { AWS_S3_BUCKET: 'bkt', AWS_REGION: 'us-east-1', AWS_ACCESS_KEY_ID: 'k', AWS_SECRET_ACCESS_KEY: 's' } }))
+vi.mock('../config', () => ({
+  config: {
+    AWS_S3_BUCKET: 'test-bucket',
+    AWS_REGION: 'us-east-1',
+    AWS_ACCESS_KEY_ID: 'test-key',
+    AWS_SECRET_ACCESS_KEY: 'test-secret',
+  },
+}))
+
 vi.mock('./s3', () => ({ s3: { send: sendMock } }))
+
 vi.mock('@aws-sdk/client-s3', () => ({
   PutObjectCommand: class { constructor(public input: any) {} },
-  GetObjectCommand: class { constructor(public input: any) {} },
+  DeleteObjectCommand: class { constructor(public input: any) {} },
 }))
-vi.mock('@aws-sdk/s3-request-presigner', () => ({ getSignedUrl: getSignedUrlMock }))
 
-import { recordingKey, signedPlaybackUrl } from './voiceRecordingStore'
+import { stagingKey, finalRecordingKey } from './voiceRecordingStore'
 
-describe('voiceRecordingStore', () => {
-  it('builds a per-user recording key', () => {
-    expect(recordingKey('u1', 'call_9')).toBe('voice/u1/call_9.wav')
+describe('voiceRecordingStore key builders', () => {
+  it('stages under the user-scoped voice-staging prefix', () => {
+    expect(stagingKey('u1', 'call_9')).toBe('users/u1/voice-staging/call_9.wav')
   })
-  it('returns a presigned playback url', async () => {
-    await expect(signedPlaybackUrl('voice/u1/call_9.wav')).resolves.toBe('https://signed/url')
+  it('final key swaps voice-staging → voice under the same prefix', () => {
+    expect(finalRecordingKey('u1', 'call_9')).toBe('users/u1/voice/call_9.wav')
+    // Final key must be derivable from staging key by segment swap (client relies on this).
+    expect(stagingKey('u1', 'call_9').replace('/voice-staging/', '/voice/'))
+      .toBe(finalRecordingKey('u1', 'call_9'))
   })
 })
