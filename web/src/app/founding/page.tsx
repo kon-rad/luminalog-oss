@@ -2,17 +2,20 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
-import FoundingCta from '@/components/app/FoundingCta'
 import ColophonEndpiece from '@/components/ColophonEndpiece'
+
+// Founding checkout — a Stripe Payment Link for the one-time $29.99 / 3-month
+// founding pass. Update this single constant to point at a new link.
+const FOUNDING_CHECKOUT_URL = 'https://buy.stripe.com/28E6oH5bP6Kr6xV7zf2Ry02'
 
 export const metadata: Metadata = {
   title: 'Founding Member — LuminaLog',
   description:
-    'Become a LuminaLog Founding Member: your first 3 months for $29.99 (50% off), then $19.99/month. One price everywhere — web and iOS. Coming soon.',
+    'Become a LuminaLog Founding Member: a one-time $29.99 for your first 3 months (50% off the $19.99/month price). No auto-renew — renew if you choose. One price everywhere, web and iOS.',
 }
 
 const PERKS: [string, string][] = [
-  ['Half price, locked in', 'Your first 3 months for $29.99 — 50% off — then $19.99/month. The same one price everywhere, web or app. Cancel anytime.'],
+  ['Half price, up front', 'A one-time $29.99 covers your first 3 months — 50% off the regular $19.99/month. No auto-renew: after 3 months you simply renew if you want to keep going.'],
   ['First through the door', 'Start the moment we open: full access on the web immediately, and on iOS the day we launch. Your access carries over.'],
   ['A permanent Founding mark', 'Founding Members carry a lasting badge — you were here at the beginning, before anyone else.'],
   ['Your On-Chain Soul from day one', 'Every day you cross your 750-word goal becomes a star in your Soul — a soulbound token on Base, provably earned, yours alone.'],
@@ -32,7 +35,7 @@ export default function FoundingPage() {
           }}
         />
         <div className="wrap" style={{ position: 'relative', zIndex: 1, padding: '88px 0 40px', textAlign: 'center' }}>
-          <span className="eyebrow">✦ Founding Member · Coming soon</span>
+          <span className="eyebrow">✦ Founding Member</span>
           <h1
             className="serif"
             style={{ marginTop: 16, fontSize: 'clamp(38px,5vw,60px)', lineHeight: 1.05, fontWeight: 600, letterSpacing: '-0.03em', color: 'var(--text)' }}
@@ -40,8 +43,8 @@ export default function FoundingPage() {
             Be one of the first<br />to merge.
           </h1>
           <p style={{ marginTop: 22, fontSize: 19, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 560, margin: '22px auto 0' }}>
-            LuminaLog is opening soon. Founding Members reserve their place before launch —
-            and lock in half price for their first three months.
+            LuminaLog is opening soon. Founding Members reserve their place before launch
+            with a one-time payment — half price for a full three months.
           </p>
         </div>
       </section>
@@ -66,11 +69,24 @@ export default function FoundingPage() {
                   <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.9)' }}>for your first 3 months</span>
                 </div>
                 <div style={{ marginTop: 8, fontSize: 15, color: 'rgba(255,255,255,0.78)' }}>
-                  <s>$59.97</s> · 50% off · then $19.99/month · cancel anytime
+                  <s>$59.97</s> · 50% off · one-time payment · no auto-renew
                 </div>
 
                 <div style={{ marginTop: 30 }}>
-                  <FoundingCta />
+                  <a
+                    href={FOUNDING_CHECKOUT_URL}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 9,
+                      background: '#fff', color: 'var(--accentDeep)', fontSize: 17, fontWeight: 700,
+                      padding: '15px 34px', borderRadius: 15, textDecoration: 'none', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Become a Founding Member →
+                  </a>
+                  <p style={{ marginTop: 18, fontSize: 14, color: 'rgba(255,255,255,0.78)', lineHeight: 1.55 }}>
+                    A one-time charge for your first 3 months. It does not auto-renew —
+                    after 3 months you renew only if you choose to.
+                  </p>
                 </div>
               </div>
             </div>
