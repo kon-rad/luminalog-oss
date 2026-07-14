@@ -6,12 +6,14 @@ import CryptoKit
 /// → POST recording-finalize (captured). Everything 200s.
 final class VRIStubProtocol: URLProtocol {
     nonisolated(unsafe) static var finalizeBody: Data?
+    nonisolated(unsafe) static var putBody: Data?
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for r: URLRequest) -> URLRequest { r }
     override func startLoading() {
         let url = request.url!.absoluteString
         let body = request.httpBody ?? request.bodyStreamData()
         if url.contains("/v1/vapi/recording-finalize") { Self.finalizeBody = body }
+        if url.contains("/put") { Self.putBody = body }
         let payload: Data
         if url.contains("/v1/media/view-urls") {
             payload = Data(#"{"urls":[{"s3Key":"users/u1/voice-staging/c.wav","viewUrl":"https://s3.test/get"}]}"#.utf8)
@@ -56,6 +58,7 @@ private final class VRIStubToken: TokenProvider {
 final class VoiceRecordingImporterTests: XCTestCase {
     func testProcessEncryptsAndFinalizesWithDerivedKey() async throws {
         VRIStubProtocol.finalizeBody = nil
+        VRIStubProtocol.putBody = nil
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [VRIStubProtocol.self]
         let session = URLSession(configuration: config)
@@ -76,5 +79,9 @@ final class VoiceRecordingImporterTests: XCTestCase {
         let json = try JSONSerialization.jsonObject(with: body) as! [String: String]
         XCTAssertEqual(json["chatId"], "chat_1")
         XCTAssertEqual(json["recordingPath"], "users/u1/voice/c.wav")
+
+        let put = try XCTUnwrap(VRIStubProtocol.putBody)
+        XCTAssertNotEqual(put, Data("RAW_WAV_BYTES".utf8))
+        XCTAssertEqual(put.prefix(4), Data("LLM1".utf8))
     }
 }
