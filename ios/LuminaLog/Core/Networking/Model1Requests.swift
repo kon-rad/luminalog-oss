@@ -184,10 +184,44 @@ enum Model1Requests {
         retriever: EntryRetriever = EntryRetriever(),
         searcher: SemanticIndexCoordinating?
     ) async -> String {
+        // Server-RAG (Architecture A): chunk-only context. When `serverRag` is ON,
+        // the searcher returns chunk references; format ONLY those matched chunks
+        // (re-extracted on-device via the deterministic `JournalChunker`), not whole
+        // entries. Falls through to the entry-level path on any miss, so it is never
+        // worse. The on-device path (`serverRag` OFF) is byte-identical to before.
+        if DevFlags.serverRag, let searcher,
+           let refs = try? await searcher.searchChunks(query: query, k: topK), !refs.isEmpty {
+            let ctx = chunkContext(from: entries, refs: refs, snippetChars: snippetChars)
+            if !ctx.isEmpty { return ctx }
+        }
         let ranked = await rankedEntries(
             from: entries, query: query, now: now, topK: topK, retriever: retriever, searcher: searcher
         )
         return format(ranked, snippetChars: snippetChars)
+    }
+
+    /// Chunk-only RAG context (Architecture A): for each chunk ref, re-run the
+    /// deterministic `JournalChunker` on the resolved entry and format
+    /// `chunk[chunkIndex]` with the same header shape as `format(_:snippetChars:)`.
+    /// Refs that don't resolve (unknown entry id / out-of-range chunk) are skipped.
+    /// Pure + testable; only the server-RAG path uses it.
+    static func chunkContext(
+        from entries: [JournalEntry],
+        refs: [ChunkRef],
+        snippetChars: Int = 600
+    ) -> String {
+        let byId = Dictionary(entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let blocks = refs.compactMap { ref -> (entry: JournalEntry, text: String)? in
+            guard let entry = byId[ref.entryId] else { return nil }
+            let chunks = JournalChunker.chunks(of: entry.content)
+            guard ref.chunkIndex >= 0, ref.chunkIndex < chunks.count else { return nil }
+            return (entry, String(chunks[ref.chunkIndex].prefix(snippetChars)))
+        }
+        return blocks.enumerated().map { index, block in
+            let title = block.entry.title.isEmpty ? "Untitled" : block.entry.title
+            let date = dayFormatter.string(from: block.entry.createdAt)
+            return "[#\(index + 1) — \(block.entry.type.rawValue) · \(title) · \(date)]\n\(block.text)"
+        }.joined(separator: "\n\n")
     }
 
     /// The semantic-first ranked entries (with the keyword+recency hybrid fallback)

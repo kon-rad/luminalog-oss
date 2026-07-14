@@ -119,7 +119,7 @@ final class IndexingJournalRepository: JournalRepository {
     // MARK: - Fire-and-forget indexing side-effects
 
     private func index(id: String, text: String) {
-        guard DevFlags.aiModel1 else { return }
+        guard DevFlags.aiModel1 || DevFlags.serverRag else { return }
         Task {
             do {
                 try await self.coordinator.indexEntry(id: id, text: text)
@@ -133,7 +133,7 @@ final class IndexingJournalRepository: JournalRepository {
     }
 
     private func remove(id: String) {
-        guard DevFlags.aiModel1 else { return }
+        guard DevFlags.aiModel1 || DevFlags.serverRag else { return }
         let coordinator = self.coordinator
         Task {
             do {

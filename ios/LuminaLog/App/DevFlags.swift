@@ -14,6 +14,19 @@ enum DevFlags {
     static let forceOnboardingKey = "ll-force-onboarding"
     static let aiModel1Key = "ll-ai-model1"
     static let zkMigrationKey = "ll-zk-migration"
+    static let serverRagKey = "ll-server-rag"
+
+    /// Routes semantic RAG (embeddings + similarity search) to the SERVER
+    /// (`/v1/rag/*`, Morpheus BGE-M3 embeddings) instead of the on-device ONNX
+    /// index. Additive and coexisting: when ON, `AppServices` builds
+    /// `ServerSemanticIndex` and skips constructing the on-device embedder; when
+    /// OFF the on-device path is unchanged. Chunking stays on-device
+    /// (`JournalChunker`); the vector store lives server-side. Exercised only when
+    /// `aiModel1` is also ON (that gates the Model-1 retrieval path).
+    static var serverRag: Bool {
+        get { UserDefaults.standard.bool(forKey: serverRagKey) }
+        set { UserDefaults.standard.set(newValue, forKey: serverRagKey) }
+    }
 
     /// Selects the zero-knowledge AI path. When ON the client decrypts context
     /// locally and sends it as PLAINTEXT to the AI endpoints, and — because the
