@@ -20,6 +20,9 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
     var endedReason: String?
     var recordingPath: String?
     var recordingDurationSeconds: Double?
+    /// S3 key of the plaintext recording staged by the webhook, awaiting on-device
+    /// encryption + re-upload. Cleared by the server once `recordingPath` is set.
+    var pendingRecordingKey: String?
     var rawTranscript: String?
     /// ID of the focal journal entry this chat is anchored to, if any.
     var journalId: String?
@@ -38,6 +41,7 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
         endedReason: String? = nil,
         recordingPath: String? = nil,
         recordingDurationSeconds: Double? = nil,
+        pendingRecordingKey: String? = nil,
         rawTranscript: String? = nil,
         journalId: String? = nil,
         journalTitle: String? = nil
@@ -53,6 +57,7 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
         self.endedReason = endedReason
         self.recordingPath = recordingPath
         self.recordingDurationSeconds = recordingDurationSeconds
+        self.pendingRecordingKey = pendingRecordingKey
         self.rawTranscript = rawTranscript
         self.journalId = journalId
         self.journalTitle = journalTitle
