@@ -16,7 +16,7 @@ import SignIn from '@/components/app/SignIn'
 // `pro` entitlement (useEntitlement) gates access.
 export default function PaywallGate({ children }: { children: ReactNode }) {
   const { phase, uid } = useSession()
-  const ent = useEntitlement(uid)
+  const ent = useEntitlement(BILLING_ENABLED ? uid : null)
 
   if (phase === 'loading') return <Splash />
   if (phase === 'signedOut') return <SignIn />
