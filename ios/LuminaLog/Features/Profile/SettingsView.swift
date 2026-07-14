@@ -37,6 +37,10 @@ struct SettingsView: View {
     @State private var isRebuildingConstellation = false
     /// DEBUG-only: last rebuild outcome ("N stars uploaded" / failure), shown inline.
     @State private var rebuildConstellationStatus: String?
+    /// DEBUG-only: true while the "Re-index All Entries" server-RAG backfill is running.
+    @State private var isReindexing = false
+    /// DEBUG-only: live re-index progress / final outcome, shown inline.
+    @State private var reindexStatus: String?
 
     @AppStorage(ThemeMode.storageKey) private var themeMode: String = ThemeMode.system.rawValue
 
@@ -639,6 +643,8 @@ struct SettingsView: View {
                 generateReportRow
                 rowDivider
                 rebuildConstellationRow
+                rowDivider
+                reindexEntriesRow
             }
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
@@ -756,6 +762,86 @@ struct SettingsView: View {
                     : "No-op — DevFlags.aiModel1 is off"
             } catch {
                 rebuildConstellationStatus = "Rebuild failed — tap to retry"
+            }
+        }
+    }
+
+    /// One-tap migration: re-index the ENTIRE journal corpus into the server RAG
+    /// index (Morpheus BGE-M3 → Chroma). Because entries are zero-knowledge encrypted,
+    /// the server can't re-index them itself — this fetches + decrypts every entry
+    /// on-device, chunks it (`JournalChunker`), and sends the chunks to
+    /// `PUT /v1/rag/index` via `ServerSemanticIndex`. Sequential to respect provider
+    /// rate limits; surfaces live N/total progress inline.
+    private var reindexEntriesRow: some View {
+        Button {
+            reindexAllEntries()
+        } label: {
+            HStack(spacing: Spacing.m) {
+                settingsIcon("arrow.triangle.2.circlepath", tint: .accentWarm)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Re-index All Entries")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text(reindexStatus ?? "Rebuild the server RAG index from every entry (Morpheus embeddings)")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                if isReindexing {
+                    ProgressView()
+                        .tint(Color.accentWarm)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.textSecondary.opacity(0.6))
+                }
+            }
+            .padding(Spacing.m)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isReindexing)
+        .accessibilityLabel("Re-index all entries into the server RAG index")
+    }
+
+    /// Fetches + decrypts the full corpus on-device and (re)indexes each entry into
+    /// the server RAG via `ServerSemanticIndex` (built from the live `ProxyAPIClient`).
+    /// Per-entry failures are counted and reported rather than aborting the migration.
+    private func reindexAllEntries() {
+        guard !isReindexing else { return }
+        guard let api = services.api else {
+            reindexStatus = "No API client available"
+            return
+        }
+        isReindexing = true
+        reindexStatus = "Loading entries…"
+        Task {
+            defer { isReindexing = false }
+            do {
+                let entries = try await services.journals.fetchAllEntries()
+                if entries.isEmpty {
+                    reindexStatus = "No entries to index"
+                    return
+                }
+                let index = ServerSemanticIndex(rag: RagService(api: api))
+                var done = 0
+                var failed = 0
+                for entry in entries {
+                    do {
+                        try await index.indexEntry(id: entry.id, text: entry.content)
+                    } catch {
+                        failed += 1
+                    }
+                    done += 1
+                    reindexStatus = "Re-indexing \(done)/\(entries.count)…"
+                        + (failed > 0 ? " (\(failed) failed)" : "")
+                }
+                let ok = entries.count - failed
+                reindexStatus = failed == 0
+                    ? "Done — re-indexed \(ok) entr\(ok == 1 ? "y" : "ies")"
+                    : "Done — \(ok) ok, \(failed) failed (tap to retry)"
+            } catch {
+                reindexStatus = "Re-index failed — tap to retry"
             }
         }
     }
