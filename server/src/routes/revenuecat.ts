@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import admin from 'firebase-admin'
-import { db } from '../middleware/firebaseAuth'
+import { db, firebaseAuth } from '../middleware/firebaseAuth'
 import { config } from '../config'
 
 export const revenueCatRouter = Router()
@@ -138,3 +138,37 @@ export async function revenueCatWebhookHandler(
 }
 
 revenueCatRouter.post('/webhook', (req: Request, res: Response) => revenueCatWebhookHandler(req, res))
+
+/**
+ * Pure derivation of the caller's `pro` entitlement from their Firestore user
+ * doc. `isPro` is computed at read time (`proExpiresAtMs > nowMs`), never
+ * stored — an expired subscription reads false even without a fresh webhook.
+ */
+export function computeEntitlement(
+  doc: { entitlement?: { proExpiresAtMs?: number; source?: string } } | undefined,
+  nowMs: number,
+): { isPro: boolean; source: string | null; expiresAt: string | null } {
+  const ent = doc?.entitlement
+  const exp = ent?.proExpiresAtMs
+  if (typeof exp !== 'number') return { isPro: false, source: null, expiresAt: null }
+  return {
+    isPro: exp > nowMs,
+    source: ent?.source ?? null,
+    expiresAt: new Date(exp).toISOString(),
+  }
+}
+
+/** Authed: returns the caller's computed entitlement. `firebaseAuth` sets `(req as any).uid`. */
+export async function entitlementHandler(
+  req: Request,
+  res: Response,
+  database: FirebaseFirestore.Firestore = db,
+): Promise<void> {
+  const uid = (req as any).uid as string
+  if (!uid) { res.status(401).json({ error: 'unauthenticated' }); return }
+  const snap = await database.collection('users').doc(uid).get()
+  res.json(computeEntitlement(snap.exists ? (snap.data() as any) : undefined, Date.now()))
+}
+
+export const entitlementRouter = Router()
+entitlementRouter.get('/', firebaseAuth, (req, res) => entitlementHandler(req, res))

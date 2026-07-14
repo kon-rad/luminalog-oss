@@ -5,7 +5,7 @@ import { healthRouter } from './routes/health'
 import { chatRouter } from './routes/chat'
 import { aiRouter } from './routes/ai'
 import { vapiRouter } from './routes/vapi'
-import { revenueCatRouter } from './routes/revenuecat'
+import { revenueCatRouter, entitlementRouter } from './routes/revenuecat'
 import { mediaRouter } from './routes/media'
 import { keysRouter } from './routes/keys'
 import { leaderboardRouter } from './routes/leaderboard'
@@ -24,6 +24,7 @@ app.use('/v1/ai/chat', chatRouter)
 app.use('/v1/ai', aiRouter)
 app.use('/v1/vapi', vapiRouter)
 app.use('/v1/revenuecat', revenueCatRouter)
+app.use('/v1/entitlement', entitlementRouter)
 app.use('/v1/media', mediaRouter)
 app.use('/v1/keys', keysRouter)
 app.use('/v1/leaderboards', leaderboardRouter)

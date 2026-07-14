@@ -3,9 +3,25 @@ import { vi, describe, it, expect } from 'vitest'
 vi.mock('../config', () => ({
   config: { NODE_ENV: 'test', REVENUECAT_WEBHOOK_SECRET: 'rc_secret_test' },
 }))
-vi.mock('../middleware/firebaseAuth', () => ({ db: {} }))
+vi.mock('../middleware/firebaseAuth', () => ({
+  db: {},
+  firebaseAuth: vi.fn((_req: any, _res: any, next: any) => next()),
+}))
 
-import { creditsForProduct, proExpiryFromEvent, revenueCatWebhookHandler } from './revenuecat'
+import { creditsForProduct, proExpiryFromEvent, revenueCatWebhookHandler, computeEntitlement } from './revenuecat'
+
+describe('computeEntitlement', () => {
+  const now = 1_000_000
+  it('isPro true when proExpiresAtMs is in the future', () => {
+    expect(computeEntitlement({ entitlement: { proExpiresAtMs: now + 1, source: 'rc_billing' } }, now))
+      .toEqual({ isPro: true, source: 'rc_billing', expiresAt: new Date(now + 1).toISOString() })
+  })
+  it('isPro false when expired or missing', () => {
+    expect(computeEntitlement({ entitlement: { proExpiresAtMs: now - 1, source: 'app_store' } }, now).isPro).toBe(false)
+    expect(computeEntitlement(undefined, now)).toEqual({ isPro: false, source: null, expiresAt: null })
+    expect(computeEntitlement({}, now)).toEqual({ isPro: false, source: null, expiresAt: null })
+  })
+})
 
 describe('creditsForProduct', () => {
   it('maps every known consumable product id to its credit count', () => {
