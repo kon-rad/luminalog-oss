@@ -14,7 +14,7 @@ vi.mock('./aiClient', () => ({ embed: vi.fn(async (t: string[]) => t.map(() => [
 import { indexEntryChunks, deleteEntryChunks, searchChunks, CHUNKER_VERSION } from './ragStore'
 import { embed } from './aiClient'
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 describe('indexEntryChunks', () => {
   it('purges old chunks, embeds, and adds one row per chunk with no text', async () => {

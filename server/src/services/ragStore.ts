@@ -24,14 +24,12 @@ function chunkId(userId: string, entryId: string, i: number): string {
   return `${userId}__${entryId}__${i}`
 }
 
-function entryScope(userId: string, entryId: string) {
-  return { where: { $and: [{ userId: { $eq: userId } }, { entryId: { $eq: entryId } }] } }
-}
-
 /** Delete all of an entry's chunk rows (idempotent, userId-scoped). */
 export async function deleteEntryChunks(userId: string, entryId: string): Promise<void> {
   const col = await getJournalsCollection()
-  await col.delete(entryScope(userId, entryId))
+  await col.delete({
+    where: { $and: [{ userId: { $eq: userId } }, { entryId: { $eq: entryId } }] },
+  })
 }
 
 /**
