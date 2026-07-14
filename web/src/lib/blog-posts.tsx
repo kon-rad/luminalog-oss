@@ -1492,7 +1492,202 @@ function QuantumProofBitcoinContent() {
   )
 }
 
+/* ── Post: LLP#016 — David Johnston (Morpheus / decentralized AI) ── */
+function DavidJohnstonMorpheusContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/david-johnston-morpheus-hero.jpg"
+        alt="David Johnston in conversation with Konrad Gnat at Network School"
+        width={1280}
+        height={720}
+        priority
+      />
+      <P>
+        Some people chase trends. David Johnston seems to <em>feel</em> them arriving a few years
+        early and then spend the next decade building at the front of the wave. When we sat down at
+        Network School in Malaysia, his LinkedIn still listed his education as &ldquo;autodidact,
+        self-taught polymath&rdquo; &mdash; and by the end of the hour that felt less like a flex and
+        more like an accurate description of how he&apos;s lived.
+      </P>
+      <P>
+        He started his first multimillion-dollar company at 19. He got into Bitcoin in 2012. In 2013
+        he wrote the paper that coined the term &ldquo;DApps&rdquo; &mdash; decentralized
+        applications &mdash; and helped shape the language Ethereum still uses to describe itself.
+        Now he&apos;s the lead technologist on Morpheus, a permissionless network for decentralized
+        AI. What connects all of it isn&apos;t a technology. It&apos;s a method, and a conviction.
+      </P>
+
+      <H2>The same method, every wave</H2>
+      <P>
+        Ask David how he built any given project and you get the same answer, scaled up or down.
+        &ldquo;With every project, I come up with a thesis first.&rdquo; As a teenager, the thesis
+        was that people would read books on the internet, so he aggregated 300 works of fiction and
+        nonfiction into a subscription site called Wired Fiction &mdash; at 16, incorporating in
+        Delaware to get himself released from a school he was bored by. Later the thesis was that
+        scarcer crude oil would make renewables viable, so he raised $5.9 million to turn poultry fat
+        into biodiesel in Maryland, then grew algae to beat the feedstock bottleneck and sold the
+        biotech to ConocoPhillips.
+      </P>
+      <P>
+        The mechanics never changed. &ldquo;A lot of times I&apos;ll just register a domain name. It
+        gives it a name. And once something has a name, then it exists &mdash; because you can talk
+        to people about it.&rdquo; Then a website, which forces the idea into real words. Then,
+        crucially, building in public. He&apos;s convinced that keeping ideas secret is
+        self-defeating: publishing the DApps paper, he says, is precisely what attracted every
+        serious person thinking about tokens and protocols, and gave him far better conversations
+        than secrecy ever could.
+      </P>
+      <Figure
+        src="/blog/david-johnston-morpheus-1.jpg"
+        alt="David Johnston explaining his four-part framework for a real decentralized application"
+        width={1280}
+        height={720}
+        caption="David&rsquo;s four-part test for a real DApp — peer-to-peer, open source, a blockchain backend, and a token — became the framing Ethereum adopted."
+      />
+
+      <H2>From an uncensorable Linden dollar to &ldquo;DApps&rdquo;</H2>
+      <P>
+        The Bitcoin insight came from an unlikely place: Second Life. David had watched the virtual
+        world&apos;s economy boom on its in-game currency, the Linden dollar &mdash; until, he
+        recalls, regulators moved in around 2007 and shut down its most interesting uses overnight.
+        The lesson stuck: a currency run by a company will inevitably be censored by a government. So
+        when Bitcoin appeared, he understood it instantly. &ldquo;It&apos;s an uncensorable Linden
+        dollar. There&apos;s no founder, no company in California, nobody&apos;s door to knock
+        down.&rdquo;
+      </P>
+      <P>
+        His DApps paper tried to generalize the Bitcoin model into a repeatable framework &mdash;
+        peer-to-peer, open source, a blockchain backend, and a token to reward behavior. Ethereum
+        adopted the framing so completely that &ldquo;a platform for smart contracts and
+        decentralized applications&rdquo; became its subtitle. Some of the best moments in the
+        conversation are the small human ones from that era &mdash; meeting a teenage Vitalik
+        Buterin running the check-in desk at the Atlanta Bitcoin conference, then sneaking him into
+        the bars afterward because he wasn&apos;t 21.
+      </P>
+
+      <H2>What Morpheus actually is</H2>
+      <P>
+        When AI&apos;s transformer breakthrough matured around 2022, David saw the pattern again:
+        everything people had dreamed of doing with AI a decade earlier was suddenly possible &mdash;
+        but it was consolidating into a handful of companies. His response was a 2023 paper coining
+        &ldquo;smart agents&rdquo;: AI connected to a crypto wallet, so it can hold value and
+        complete tasks, not just answer questions. The pseudonymous authors of Morpheus &mdash;
+        named, fittingly, after Matrix characters &mdash; took that idea and added the missing piece:
+        a network where anyone can connect powerful GPUs to those agents.
+      </P>
+      <P>
+        Morpheus itself runs no hardware. It&apos;s a set of smart contracts on Ethereum and Base
+        that coordinate a global marketplace: providers bring GPUs and open-source models (Llama,
+        GLM, and others), users open a session and pay for inference, and the protocol records the
+        work and hands out rewards &mdash; to people providing compute, code, and capital alike, with
+        no pre-mine and no company. For privacy, providers can run inference inside trusted execution
+        environments &mdash; chips like NVIDIA&apos;s H100 that decrypt your prompt only inside the
+        silicon and re-encrypt the output &mdash; so even the person running the GPU can&apos;t read
+        what you sent.
+      </P>
+      <Figure
+        src="/blog/david-johnston-morpheus-2.jpg"
+        alt="David Johnston describing how inference works on the Morpheus network"
+        width={1280}
+        height={720}
+        caption="Morpheus runs no GPUs of its own — it&rsquo;s a marketplace where anyone can provide open-source model inference and get paid on-chain."
+      />
+
+      <H2>Own your AI, or be a serf</H2>
+      <P>
+        The throughline from Bitcoin to Morpheus is ownership, and it&apos;s where David gets most
+        animated. &ldquo;The difference between people who own their AI and people who are owned by AI
+        is going to be 100x over time.&rdquo; His analogy is holding your own Bitcoin keys versus
+        leaving coins on an exchange: none of the exchanges he used in 2012 still exist, and anyone
+        who trusted them lost everything. The equivalent today, he argues, is renting your
+        intelligence from a company that can cancel your subscription, change the model, or hand your
+        data to a government. &ldquo;Are you going to the library and using somebody else&apos;s
+        computer? Or do you really own your own agent? Are you free, or are you a serf?&rdquo;
+      </P>
+      <Figure
+        src="/blog/david-johnston-morpheus-3.jpg"
+        alt="David Johnston delivering the closing argument on owning your own AI"
+        width={1280}
+        height={720}
+        caption="The heart of the episode: David reframes the entire AI moment as a question of ownership."
+      />
+      <P>
+        That question landed for me personally. The product I&apos;m building,{' '}
+        <A href="https://LuminaLog.com">LuminaLog</A>, is a private AI journaling companion &mdash; a
+        space to think through your most personal thoughts, which is exactly the kind of thing you
+        don&apos;t want flowing through someone else&apos;s servers. David&apos;s closing advice for
+        builders was the same one he&apos;d have given in 2013, updated for the moment: get started,
+        build in public, take small steps &mdash; and get an agent you actually own.
+      </P>
+
+      <H2>Key takeaways</H2>
+      <UL
+        items={[
+          <>
+            <strong>A thesis, a domain, and building in public</strong> is a method that scales from
+            a teenage e-book site to a decentralized AI network.
+          </>,
+          <>
+            <strong>Censorship resistance is a design goal, not a slogan</strong> &mdash; Morpheus is
+            built to keep running regardless of any single government&apos;s AI policy.
+          </>,
+          <>
+            <strong>Ownership compounds.</strong> Whether it&apos;s Bitcoin keys or your AI agent,
+            the gap between owning and renting your tools widens over a lifetime.
+          </>,
+          <>
+            <strong>Fair distribution builds durable networks</strong> &mdash; rewarding code,
+            compute, and capital with no pre-mine echoes what gave early Ethereum its developer
+            network effect.
+          </>,
+        ]}
+      />
+
+      <H2>Links &amp; mentions</H2>
+      <UL
+        items={[
+          <>
+            <A href="https://x.com/DJohnstonEC">David Johnston on X</A> &mdash; @DJohnstonEC
+          </>,
+          <>
+            <A href="https://app.mor.org">Morpheus API for developers</A> &mdash; one button to a key
+          </>,
+          <>
+            <A href="https://tech.mor.org">Morpheus privacy &amp; tech walkthrough</A>
+          </>,
+          <>
+            <A href="https://mor.org">Morpheus</A> &mdash; the protocol&apos;s site
+          </>,
+          <>
+            <A href="https://openclaw.xyz">OpenClaw</A> &mdash; one-click agent creation
+          </>,
+          <>Based AI &mdash; David&apos;s project built on open-weight models</>,
+          <>Network School &mdash; Balaji Srinivasan&apos;s community, where this was recorded</>,
+        ]}
+      />
+
+      <H2>Listen to the LuminaLog podcast</H2>
+      <P>
+        Subscribe on{' '}
+        <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
+        <A href="https://open.spotify.com/show/033Mu8Yn2ybRQIis1uKNv2">Spotify</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'david-johnston-morpheus',
+    title: 'LLP#016 — Own Your AI, or Be Owned By It: David Johnston',
+    description:
+      'A conversation at Network School with David Johnston — the man who coined the term “DApps” in 2013 — now lead technologist on Morpheus, a permissionless network for decentralized, private AI. On riding every tech wave from biodiesel to Bitcoin, what Morpheus actually is, and why owning your AI is the new question of freedom.',
+    date: 'July 14, 2026',
+    isoDate: '2026-07-14T18:00',
+    readingTime: '5 min read',
+    Content: DavidJohnstonMorpheusContent,
+  },
   {
     slug: 'quantum-proof-bitcoin-chris-quantus',
     title: 'LLP#015 — Building a Quantum-Proof Bitcoin: Chris of Quantus',
