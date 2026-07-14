@@ -38,13 +38,14 @@ export default function FoundingPage() {
           <span className="eyebrow">✦ Founding Member</span>
           <h1
             className="serif"
-            style={{ marginTop: 16, fontSize: 'clamp(38px,5vw,60px)', lineHeight: 1.05, fontWeight: 600, letterSpacing: '-0.03em', color: 'var(--text)' }}
+            style={{ marginTop: 16, fontSize: 'clamp(36px,4.8vw,58px)', lineHeight: 1.06, fontWeight: 600, letterSpacing: '-0.03em', color: 'var(--text)' }}
           >
-            Be one of the first<br />to merge.
+            Private AI Journaling<br />Companion.
           </h1>
-          <p style={{ marginTop: 22, fontSize: 19, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 560, margin: '22px auto 0' }}>
-            LuminaLog is opening soon. Founding Members reserve their place before launch
-            with a one-time payment — half price for a full three months.
+          <p style={{ marginTop: 22, fontSize: 19, lineHeight: 1.62, color: 'var(--text2)', maxWidth: 600, margin: '22px auto 0' }}>
+            Write 750 words a day and keep your daily streak alive. Each day generates a
+            shareable social card, and every goal you hit is minted as provable proof in your
+            Soulbound NFT — all guided by human-in-the-loop AI that reflects with you, never for you.
           </p>
         </div>
       </section>
