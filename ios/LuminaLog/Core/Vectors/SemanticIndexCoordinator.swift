@@ -30,6 +30,10 @@ protocol SemanticIndexCoordinating: AnyObject {
     func backfill(_ entries: [(id: String, text: String)]) async throws
     /// Top-`k` entry ids by cosine similarity to `query`; `[]` for an empty index.
     func search(query: String, k: Int) async throws -> [String]
+    /// Chunk-granular search for chunk-only RAG context. The default derives one ref
+    /// per entry id from `search` (chunkIndex 0), so on-device conformers need not
+    /// change; the server-backed conformer overrides it with real chunk references.
+    func searchChunks(query: String, k: Int) async throws -> [ChunkRef]
     /// The cached on-device embedding for an indexed entry, or nil if absent
     /// (not yet indexed / index not loaded). Callers must tolerate nil.
     func vector(for id: String) -> EmbeddingVector?
@@ -43,6 +47,11 @@ extension SemanticIndexCoordinating {
     func similarityGraph(neighborsPerNode: Int) async throws -> [(source: String, target: String, score: Double)] { [] }
     /// Default: no cache. Real coordinator overrides; test fakes need not implement it.
     func vector(for id: String) -> EmbeddingVector? { nil }
+    /// Default: one ref per matched entry id (chunkIndex 0). The server-backed
+    /// conformer overrides with real chunk references.
+    func searchChunks(query: String, k: Int) async throws -> [ChunkRef] {
+        try await search(query: query, k: k).map { ChunkRef(entryId: $0, chunkIndex: 0, score: 0) }
+    }
 }
 
 /// Orchestrates the client-side, zero-knowledge semantic-search pipeline
