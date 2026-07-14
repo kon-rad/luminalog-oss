@@ -2,37 +2,29 @@
 
 import { ReactNode } from 'react'
 import { useSession } from '@/lib/session/session-context'
+import { useEntitlement } from '@/lib/billing/useEntitlement'
+import { BILLING_ENABLED } from '@/lib/billing/revenuecat'
 import Splash from '@/components/app/Splash'
 import SignIn from '@/components/app/SignIn'
 
 // The app-entry gate (design §11, B.5): loading -> splash, signedOut -> sign
 // in, signedIn -> the gate's own checking/locked/unlocked states.
 //
-// TODO(paywall): M1 stubs entitlement to always 'unlocked' (real Pro
-// entitlement + fail-open is a later milestone, M7). The three-state shell is
-// kept so M7 only has to swap `entitlement`'s source (e.g. a RevenueCat/Stripe
-// hook) for the hard-coded value below — nothing else here should need to
-// change.
-type Entitlement = 'checking' | 'locked' | 'unlocked'
-
-// TODO(paywall): replace with the real entitlement check (RevenueCat/Stripe,
-// M7). Wrapped in a function (rather than an inline literal) so this is the
-// only place that needs to change — an inline `const x: Entitlement =
-// 'unlocked'` narrows to the literal type and defeats the switch below.
-function currentEntitlement(): Entitlement {
-  return 'unlocked'
-}
-
+// Behind the BILLING_ENABLED kill-switch (server/env-driven, see
+// lib/billing/revenuecat.ts): while billing is off, the app stays open
+// exactly as shipped pre-paywall. When billing is on, the real RevenueCat
+// `pro` entitlement (useEntitlement) gates access.
 export default function PaywallGate({ children }: { children: ReactNode }) {
-  const { phase } = useSession()
+  const { phase, uid } = useSession()
+  const ent = useEntitlement(uid)
 
   if (phase === 'loading') return <Splash />
   if (phase === 'signedOut') return <SignIn />
 
-  // phase === 'signedIn'
-  const entitlement: Entitlement = currentEntitlement()
+  // Kill-switch: until billing launches, keep the app open (matches shipped state).
+  if (!BILLING_ENABLED) return <>{children}</>
 
-  if (entitlement === 'checking') {
+  if (ent.status === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ background: 'var(--bg)' }}>
         <span
@@ -43,9 +35,8 @@ export default function PaywallGate({ children }: { children: ReactNode }) {
     )
   }
 
-  if (entitlement === 'locked') {
-    // Dead code for now — the non-dismissible Pro paywall shell (design B.5).
-    // Kept minimal/unreachable until M7 wires the real entitlement source.
+  if (ent.status === 'inactive') {
+    // Non-dismissible Pro paywall shell (design B.5).
     return (
       <div
         className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center"
@@ -57,12 +48,9 @@ export default function PaywallGate({ children }: { children: ReactNode }) {
         <p className="max-w-sm" style={{ color: 'var(--text2)' }}>
           Unlimited insights, prompts, chat, and voice — your whole journal, always with you.
         </p>
-        <button type="button" className="btn-amber">
-          Continue
-        </button>
-        <button type="button" className="text-sm" style={{ color: 'var(--text3)' }}>
-          Sign out
-        </button>
+        <a href="/founding" className="btn-amber">
+          See plans
+        </a>
       </div>
     )
   }
