@@ -826,11 +826,13 @@ struct SettingsView: View {
                 let index = ServerSemanticIndex(rag: RagService(api: api))
                 var done = 0
                 var failed = 0
+                var firstError: String?
                 for entry in entries {
                     do {
                         try await index.indexEntry(id: entry.id, text: entry.content)
                     } catch {
                         failed += 1
+                        if firstError == nil { firstError = error.localizedDescription }
                     }
                     done += 1
                     reindexStatus = "Re-indexing \(done)/\(entries.count)…"
@@ -839,7 +841,7 @@ struct SettingsView: View {
                 let ok = entries.count - failed
                 reindexStatus = failed == 0
                     ? "Done — re-indexed \(ok) entr\(ok == 1 ? "y" : "ies")"
-                    : "Done — \(ok) ok, \(failed) failed (tap to retry)"
+                    : "\(ok) ok, \(failed) failed — \(firstError ?? "unknown error") (tap to retry)"
             } catch {
                 reindexStatus = "Re-index failed — tap to retry"
             }
