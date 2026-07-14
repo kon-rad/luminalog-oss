@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import FoundingCta from '@/components/app/FoundingCta'
+import ColophonEndpiece from '@/components/ColophonEndpiece'
 
 export const metadata: Metadata = {
   title: 'Founding Member — LuminaLog',
@@ -67,28 +69,9 @@ export default function FoundingPage() {
                   <s>$59.97</s> · 50% off · then $19.99/month · cancel anytime
                 </div>
 
-                {/* Non-clickable Coming Soon state */}
                 <div style={{ marginTop: 30 }}>
-                  <span
-                    aria-disabled="true"
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 9,
-                      background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.4)',
-                      color: '#fff', fontSize: 17, fontWeight: 700, padding: '15px 34px',
-                      borderRadius: 15, cursor: 'default', whiteSpace: 'nowrap',
-                    }}
-                  >
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff', display: 'inline-block' }} />
-                    Coming soon
-                  </span>
+                  <FoundingCta />
                 </div>
-                <p style={{ marginTop: 18, fontSize: 14, color: 'rgba(255,255,255,0.75)' }}>
-                  Founding checkout opens shortly.{' '}
-                  <Link href="/#waitlist" style={{ color: '#fff', fontWeight: 600, textDecoration: 'underline' }}>
-                    Join the waitlist
-                  </Link>{' '}
-                  to be first in line.
-                </p>
               </div>
             </div>
 
@@ -107,6 +90,8 @@ export default function FoundingPage() {
               One price, everywhere — $19.99/month or $199.99/year, the same on the web and in
               the app. Live voice calls run on add-on Voice Credits.
             </p>
+
+            <ColophonEndpiece marginTop={64} />
           </div>
         </div>
       </section>
