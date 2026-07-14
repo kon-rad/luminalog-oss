@@ -8,7 +8,7 @@ vi.mock('../middleware/firebaseAuth', () => ({
   firebaseAuth: vi.fn((_req: any, _res: any, next: any) => next()),
 }))
 
-import { creditsForProduct, proExpiryFromEvent, revenueCatWebhookHandler, computeEntitlement } from './revenuecat'
+import { creditsForProduct, proExpiryFromEvent, revenueCatWebhookHandler, computeEntitlement, entitlementHandler } from './revenuecat'
 
 describe('computeEntitlement', () => {
   const now = 1_000_000
@@ -214,5 +214,43 @@ describe('revenueCatWebhookHandler — subscription entitlement', () => {
     await revenueCatWebhookHandler(req, res, db)
     expect(res.body).toEqual({ ok: true })
     expect(writes.find((w: any) => w.data?.entitlement)).toBeUndefined()
+  })
+})
+
+// Minimal Firestore double for entitlementHandler: users/{uid}.get() resolves to
+// the given snapshot ({ exists, data }).
+function mockUserDb(snap: { exists: boolean; data?: () => any }) {
+  return { collection: () => ({ doc: () => ({ get: async () => snap }) }) } as any
+}
+
+describe('entitlementHandler', () => {
+  it('returns isPro true with source/expiresAt when the user doc has a future proExpiresAtMs', async () => {
+    const snap = {
+      exists: true,
+      data: () => ({ entitlement: { proExpiresAtMs: 4_000_000_000_000, source: 'app_store' } }),
+    }
+    const req: any = { uid: 'user-123' }
+    const res = mockRes()
+    await entitlementHandler(req, res, mockUserDb(snap))
+    expect(res.body).toEqual({
+      isPro: true,
+      source: 'app_store',
+      expiresAt: new Date(4_000_000_000_000).toISOString(),
+    })
+  })
+
+  it('returns isPro false / null fields when the user doc does not exist', async () => {
+    const req: any = { uid: 'user-123' }
+    const res = mockRes()
+    await entitlementHandler(req, res, mockUserDb({ exists: false }))
+    expect(res.body).toEqual({ isPro: false, source: null, expiresAt: null })
+  })
+
+  it('returns 401 unauthenticated when there is no uid on the request', async () => {
+    const req: any = {}
+    const res = mockRes()
+    await entitlementHandler(req, res, mockUserDb({ exists: false }))
+    expect(res.statusCode).toBe(401)
+    expect(res.body).toEqual({ error: 'unauthenticated' })
   })
 })
