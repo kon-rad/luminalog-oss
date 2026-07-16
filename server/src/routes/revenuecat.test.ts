@@ -21,6 +21,10 @@ describe('computeEntitlement', () => {
     expect(computeEntitlement(undefined, now)).toEqual({ isPro: false, source: null, expiresAt: null })
     expect(computeEntitlement({}, now)).toEqual({ isPro: false, source: null, expiresAt: null })
   })
+  it('does not throw on a non-finite proExpiresAtMs (F2)', () => {
+    expect(computeEntitlement({ entitlement: { proExpiresAtMs: NaN } }, now))
+      .toEqual({ isPro: false, source: null, expiresAt: null })
+  })
 })
 
 describe('creditsForProduct', () => {
@@ -46,11 +50,22 @@ function mockRes() {
 }
 
 // Minimal Firestore double: a transaction whose get() reports whether the event
-// was already processed, and records set()/update() calls.
-function mockDb(alreadyProcessed = false) {
+// was already processed, and records set()/update() calls. get() is keyed by
+// ref path so the subscription branch's tx.get(eventRef) / tx.get(userRef) can
+// be distinguished — `storedEntitlement` seeds what the user doc already has
+// (used to test F1's monotonic write).
+function mockDb(alreadyProcessed = false, storedEntitlement: { proExpiresAtMs: number } | null = null) {
   const writes: any[] = []
   const tx = {
-    get: vi.fn().mockResolvedValue({ exists: alreadyProcessed }),
+    get: vi.fn(async (ref: any) => {
+      if (ref.path.startsWith('revenuecatEvents/')) return { exists: alreadyProcessed }
+      if (ref.path.startsWith('users/')) {
+        return storedEntitlement
+          ? { exists: true, data: () => ({ entitlement: storedEntitlement }) }
+          : { exists: false }
+      }
+      return { exists: false }
+    }),
     set: vi.fn((ref: any, data: any, opts: any) => writes.push({ op: 'set', ref, data, opts })),
     update: vi.fn((ref: any, data: any) => writes.push({ op: 'update', ref, data })),
   }
@@ -155,7 +170,7 @@ describe('proExpiryFromEvent', () => {
     expect(proExpiryFromEvent(base)).toEqual({ proExpiresAtMs: 2_000_000_000_000, source: 'rc_billing' })
   })
 
-  it('handles RENEWAL, PRODUCT_CHANGE, UNCANCELLATION, EXPIRATION (past expiry) the same way', () => {
+  it('handles RENEWAL, PRODUCT_CHANGE, UNCANCELLATION, CANCELLATION the same way (EXPIRATION tested separately below)', () => {
     for (const type of ['RENEWAL', 'PRODUCT_CHANGE', 'UNCANCELLATION', 'CANCELLATION']) {
       expect(proExpiryFromEvent({ ...base, type })).toEqual({ proExpiresAtMs: 2_000_000_000_000, source: 'rc_billing' })
     }
@@ -214,6 +229,62 @@ describe('revenueCatWebhookHandler — subscription entitlement', () => {
     await revenueCatWebhookHandler(req, res, db)
     expect(res.body).toEqual({ ok: true })
     expect(writes.find((w: any) => w.data?.entitlement)).toBeUndefined()
+  })
+})
+
+describe('revenueCatWebhookHandler — monotonic entitlement write (F1)', () => {
+  const secret = 'rc_secret_test'
+  function subReq(expirationAtMs: number, id = 'evt_sub_2') {
+    return {
+      query: { secret },
+      headers: {},
+      body: { event: {
+        id, type: 'RENEWAL', app_user_id: 'uid_1',
+        entitlement_ids: ['pro'], expiration_at_ms: expirationAtMs, store: 'RC_BILLING',
+      } },
+    } as any
+  }
+
+  it('does not downgrade entitlement when the incoming event has a smaller proExpiresAtMs than stored', async () => {
+    const { db, writes } = mockDb(false, { proExpiresAtMs: 5_000_000_000_000 })
+    const res = mockRes()
+    await revenueCatWebhookHandler(subReq(1_000_000_000_000), res, db)
+    expect(res.body).toEqual({ ok: true })
+    expect(writes.find((w: any) => w.ref.path.startsWith('users/') && w.data?.entitlement)).toBeUndefined()
+    const eventWrite = writes.find((w: any) => w.ref.path === 'revenuecatEvents/evt_sub_2')
+    expect(eventWrite).toBeTruthy()
+    expect(eventWrite.data.applied).toBe(false)
+    expect(eventWrite.data.proExpiresAtMs).toBe(1_000_000_000_000) // event marker still records what arrived
+  })
+
+  it('updates entitlement when the incoming event has a larger or equal proExpiresAtMs than stored', async () => {
+    const { db, writes } = mockDb(false, { proExpiresAtMs: 1_000_000_000_000 })
+    const res = mockRes()
+    await revenueCatWebhookHandler(subReq(5_000_000_000_000), res, db)
+    expect(res.body).toEqual({ ok: true })
+    const entWrite = writes.find((w: any) => w.data?.entitlement)
+    expect(entWrite).toBeTruthy()
+    expect(entWrite.data.entitlement.proExpiresAtMs).toBe(5_000_000_000_000)
+    const eventWrite = writes.find((w: any) => w.ref.path === 'revenuecatEvents/evt_sub_2')
+    expect(eventWrite.data.applied).toBe(true)
+  })
+
+  it('updates entitlement when the incoming event equals the stored expiry', async () => {
+    const { db, writes } = mockDb(false, { proExpiresAtMs: 3_000_000_000_000 })
+    const res = mockRes()
+    await revenueCatWebhookHandler(subReq(3_000_000_000_000), res, db)
+    const entWrite = writes.find((w: any) => w.data?.entitlement)
+    expect(entWrite).toBeTruthy()
+    expect(entWrite.data.entitlement.proExpiresAtMs).toBe(3_000_000_000_000)
+  })
+
+  it('updates entitlement when there is no stored entitlement yet (first pro event)', async () => {
+    const { db, writes } = mockDb(false, null)
+    const res = mockRes()
+    await revenueCatWebhookHandler(subReq(2_000_000_000_000), res, db)
+    const entWrite = writes.find((w: any) => w.data?.entitlement)
+    expect(entWrite).toBeTruthy()
+    expect(entWrite.data.entitlement.proExpiresAtMs).toBe(2_000_000_000_000)
   })
 })
 

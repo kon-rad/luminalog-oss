@@ -89,24 +89,36 @@ export async function revenueCatWebhookHandler(
     const userRef = database.collection('users').doc(uidAny)
     const eventRef = database.collection('revenuecatEvents').doc(eventIdAny)
     await database.runTransaction(async (tx) => {
-      const seen = await tx.get(eventRef)
+      // Firestore requires ALL reads before ANY writes in a transaction.
+      const [seen, userSnap] = await Promise.all([tx.get(eventRef), tx.get(userRef)])
       if (seen.exists) return
-      tx.set(userRef, {
-        entitlement: {
-          proExpiresAtMs: proUpdate.proExpiresAtMs,
-          source: proUpdate.source,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-      }, { merge: true })
+      // RevenueCat delivers at-least-once with NO ordering guarantee: a delayed/
+      // retried older event (smaller proExpiresAtMs, distinct event id so dedup
+      // misses it) must not clobber a newer expiry already on the user doc.
+      const storedExpiry = userSnap.exists ? (userSnap.data() as any)?.entitlement?.proExpiresAtMs : undefined
+      const isNewer = typeof storedExpiry !== 'number' || proUpdate.proExpiresAtMs >= storedExpiry
+      if (isNewer) {
+        tx.set(userRef, {
+          entitlement: {
+            proExpiresAtMs: proUpdate.proExpiresAtMs,
+            source: proUpdate.source,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+        }, { merge: true })
+      }
       tx.set(eventRef, {
         uid: uidAny, type: event.type, entitlement: PRO_ENTITLEMENT_ID,
         proExpiresAtMs: proUpdate.proExpiresAtMs,
+        applied: isNewer,
         processedAt: admin.firestore.FieldValue.serverTimestamp(),
       })
     })
     console.log('[revenuecat/webhook] entitlement', JSON.stringify({ uid: uidAny, type: event.type, proExpiresAtMs: proUpdate.proExpiresAtMs, eventId: eventIdAny }))
     res.json({ ok: true })
     return
+  }
+  if (proUpdate && (!uidAny || !eventIdAny)) {
+    console.warn('[revenuecat/webhook] pro event missing uid/id', JSON.stringify({ type: event.type, uid: uidAny, eventId: eventIdAny }))
   }
 
   if (event.type !== 'NON_RENEWING_PURCHASE') { res.json({ ok: true }); return }
@@ -150,7 +162,7 @@ export function computeEntitlement(
 ): { isPro: boolean; source: string | null; expiresAt: string | null } {
   const ent = doc?.entitlement
   const exp = ent?.proExpiresAtMs
-  if (typeof exp !== 'number') return { isPro: false, source: null, expiresAt: null }
+  if (typeof exp !== 'number' || !Number.isFinite(exp)) return { isPro: false, source: null, expiresAt: null }
   return {
     isPro: exp > nowMs,
     source: ent?.source ?? null,
