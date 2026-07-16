@@ -1677,7 +1677,467 @@ function DavidJohnstonMorpheusContent() {
   )
 }
 
+/* ── Post: Peter Donaldson — music, crypto, and convenient community ── */
+function PeterDonaldsonContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/llp017-peter-donaldson-hero.jpg"
+        alt="Peter Donaldson in conversation with Konrad Gnat at Network School"
+        width={1280}
+        height={720}
+        priority
+      />
+      <P>
+        Some guests are hard to summarize because they&apos;ve done one thing deeply. Peter Donaldson
+        is hard to summarize because he&apos;s done several things deeply, and they turn out to rhyme.
+        He picked up the cello at three and the piano at six, spent fifteen years in China producing
+        music and throwing festivals, read the Bitcoin white paper, and now leads business
+        development at a company building an exchange for tokenized stocks.
+      </P>
+      <P>
+        We met at Network School &mdash; first at the Muay Thai booth at the NS fair, then hauling
+        mats after a yoga class &mdash; and this conversation is the long version of &ldquo;so,
+        what&apos;s your story?&rdquo;
+      </P>
+
+      <H2>From cassette tapes to a life in music</H2>
+      <P>
+        Peter&apos;s first computer was a Commodore that loaded games from a cassette tape &mdash;
+        flick up the little door on the corner, press play, and wait half an hour for a program to
+        appear. That patience for a slow-loading machine sits oddly well next to the rest of his
+        story, which is mostly about following sound wherever it led.
+      </P>
+      <P>
+        The music came early and from home: a mother who had been a ballet dancer, a grandmother who
+        taught violin, cello at three, piano at six, theory, singing, orchestra. But the turning
+        point, he says, was finding his <em>own</em> taste rather than his mother&apos;s. Hearing
+        Jamiroquai opened a door to Stevie Wonder, then Motown, Roy Ayers, and the whole lineage of
+        funk and soul. His brother, a DJ, filled the house with sound systems, and Peter eventually
+        found his own corner of electronic music in psychedelic trance. He can trace the grooves of a
+        Shpongle or Green Nuns of the Revolution track back to the funk pioneers and their Moog
+        synthesizers &mdash; which is why, he says, he doesn&apos;t really hear genres as separate
+        things. They&apos;re all the same conversation, influencing each other across decades.
+      </P>
+      <Figure
+        src="/blog/llp017-peter-donaldson-2.jpg"
+        alt="Peter Donaldson talking about his musical roots, from cello to funk and psytrance"
+        width={1280}
+        height={720}
+        caption="From cello at three to psychedelic trance — Peter traces every genre he loves back to the same synthesizer lineage."
+      />
+
+      <H2>Fifteen years in China</H2>
+      <P>
+        Peter went to China almost by accident and stayed for fifteen years. It started with tai chi
+        in Manchester &mdash; taken up for health reasons, and specifically Chen style, which led him
+        and his teacher to Chenjiagou, the village in Henan where the style originates, not far from
+        the Shaolin Temple. When two of the record labels he worked for went bust, he went back to
+        university to learn Chinese, &ldquo;the only other thing I was interested in outside of
+        music.&rdquo; An exchange year in Beijing turned into a move, and the move turned into a
+        decade and a half.
+      </P>
+      <P>
+        In Yunnan he built the thing he&apos;s proudest of as a producer: Spirit Tribe, a festival on
+        a patch of land outside Kunming with room for three stages of electronic dance music, run for
+        about four years until COVID made live events impossible. Before the fixed site there were
+        one-off parties in spectacular places &mdash; including one where you walked five kilometres
+        into a valley, across streams and through forest, to reach a cave with a stream running past
+        it. The DJ played from inside the cave; the dancefloor was the sand out front, mountains on
+        either side. It was, understandably, called Forest Magic.
+      </P>
+
+      <H2>The Bitcoin white paper, and a music app that paid artists daily</H2>
+      <P>
+        The pivot into technology came through music, too. A famous Chinese radio-DJ friend launched
+        a tech company in Shenzhen and asked Peter to help build a music-streaming platform to fix the
+        pain points of the recorded-music industry &mdash; using blockchain. Writing the
+        project&apos;s own white paper sent Peter to the Bitcoin white paper, and, as he puts it,
+        &ldquo;the penny dropped.&rdquo; He got blockchain-pilled.
+      </P>
+      <P>
+        The product, Soundario, was genuinely ahead of its time. Artists uploaded directly, cutting
+        out the middlemen, and got paid within 24 hours of a play &mdash; payments calculated on
+        precise measurements of total play time divided by the artists on the platform. It even had a
+        built-in curation reward: build a popular playlist and you&apos;d earn a share of the play
+        time, but never more than the creator. They shipped it to the App Store and Android and were
+        chasing distribution deals. The problem was timing. In 2017 and 2018 the venture money was
+        flowing into layer ones and infrastructure, not consumer apps, and the company ran out of
+        runway despite doing well. &ldquo;We were too early&rdquo; &mdash; the recurring epitaph of
+        good ideas.
+      </P>
+
+      <H2>MEV, and an old human behavior on a new rail</H2>
+      <P>
+        From there Peter moved through the industry &mdash; a small exchange trading exotic options, a
+        bigger one, and then, through a former Soundario advisor who had been CTO of Huobi, a data
+        company called EigenPhi focused on MEV transaction analysis. He caught the MEV wave near its
+        peak, and it taught him the most, in part because it put him in rooms with some of the most
+        influential people in Ethereum.
+      </P>
+      <Pull>
+        &ldquo;It&apos;s not really a new human concept. I have an advantage of knowledge and speed,
+        and that allows me to extract value. It&apos;s a very old pattern of human behavior &mdash;
+        it&apos;s just how that pattern happens on a blockchain.&rdquo;
+      </Pull>
+      <P>
+        His framing of MEV is the sort of thing this show exists for. Technically it began as
+        &ldquo;miner extractable value&rdquo; &mdash; miners reordering transactions in a block &mdash;
+        and grew into &ldquo;maximal extractable value,&rdquo; an edge that lets someone extract value
+        through reordering, front-running, or sandwich attacks. But Peter refuses to treat it as
+        something new. The blockchain is just where this version of a very old game plays out.
+      </P>
+
+      <H2>Tokenized equities: what STOX is building</H2>
+      <P>
+        Today Peter works on{' '}
+        <A href="https://st0x.io">STOX</A>, where he&apos;s known the founding team for years &mdash;
+        he first met one co-founder on a project to tokenize gold, and stayed in touch as they built a
+        higher-level language for the EVM that now underpins their tokenization stack. STOX is a fully
+        intent-based order-book DEX for tokenized equities, live on Base with close to twenty assets.
+      </P>
+      <P>
+        He draws a clear line between this and a typical automated market maker. An AMM is passive
+        liquidity: it sits somewhere and waits to be used. On STOX, every order carries an intention
+        &mdash; a user says &ldquo;I want this at this price, or as close as possible,&rdquo; and other
+        participants compete to solve that order efficiently. The tokens are fully one-to-one backed:
+        each on-chain token has an underlying off-chain share held in custody, and a qualified holder
+        can redeem it back into the real share and exit into the traditional system. Peter&apos;s own
+        role is less about the mechanism and more about connective tissue &mdash; finding lending
+        protocols, exchanges and use cases so the tokens actually get adopted. &ldquo;My job,&rdquo;
+        he says, &ldquo;is creating options.&rdquo;
+      </P>
+      <Figure
+        src="/blog/llp017-peter-donaldson-1.jpg"
+        alt="Peter Donaldson explaining how STOX trades tokenized equities on Base"
+        width={1280}
+        height={720}
+        caption="On STOX, every order carries its own price and intention — the opposite of an AMM's passive liquidity."
+      />
+
+      <H2>Convenience that builds community</H2>
+      <P>
+        The most quietly profound part of the conversation isn&apos;t about crypto at all. Asked what
+        he makes of Network School, Peter offers a small thesis about technology. Most modern
+        technology creates convenience, and convenience tends to create isolation &mdash; you can do
+        everything on your own. What impressed him here was seeing technologists point that same
+        convenience the other way.
+      </P>
+      <P>
+        It&apos;s not convenient to leave your house, get to the gym, or set up a dinner conversation;
+        here, the whole environment &mdash; two gyms, co-working, co-living, workshops, events &mdash;
+        makes community &ldquo;effortless.&rdquo; You can dip in and out, say hi in passing or talk for
+        an hour, as much as you want. That flip, from technology-as-isolation to
+        technology-as-augmented-community, is why he&apos;s decided to stay long-term.
+      </P>
+      <Figure
+        src="/blog/llp017-peter-donaldson-3.jpg"
+        alt="Peter Donaldson reflecting on how Network School points convenience at community"
+        width={1280}
+        height={720}
+        caption="Peter's sharpest observation: technology's convenience usually isolates us — the interesting move is to aim it at community instead."
+      />
+      <P>
+        He rounds the hour out with the practices he&apos;s building into a healthier routine:
+        kettlebells, meditation, and Kalaripayattu, an old martial art from Kerala whose animal-posture
+        conditioning he does as a kind of fluid yoga. And he leaves a piece of advice that fits all
+        three of his lives at once. In a world that bombards us with information of wildly varying
+        quality, the key skill is discernment &mdash; judging not what&apos;s profitable but
+        what&apos;s genuinely beneficial, for you and for others. &ldquo;Think about what you post
+        before you post it.&rdquo;
+      </P>
+
+      <H2>Key takeaways</H2>
+      <UL
+        items={[
+          <>
+            <strong>Good ideas fail on timing, not merit.</strong> Soundario paid artists within 24
+            hours in 2017 &mdash; the tech worked; the market wasn&apos;t ready.
+          </>,
+          <>
+            <strong>MEV is an old human pattern, not a new invention</strong> &mdash; an edge of
+            knowledge and speed, expressed on a blockchain.
+          </>,
+          <>
+            <strong>Intent-based trading vs. an AMM:</strong> every order carries a price and an
+            intention, instead of sitting as passive liquidity.
+          </>,
+          <>
+            <strong>Fully-backed tokenized equities are redeemable</strong> &mdash; each token maps to
+            a real share in custody that a qualified holder can exit into fiat.
+          </>,
+          <>
+            <strong>Convenience usually isolates; the interesting move is to aim it at community.</strong>{' '}
+            That&apos;s Peter&apos;s read on why Network School works.
+          </>,
+        ]}
+      />
+
+      <H2>Links &amp; mentions</H2>
+      <UL
+        items={[
+          <>
+            <A href="https://st0x.io">STOX</A> &mdash; intent-based order-book DEX for tokenized
+            equities on Base
+          </>,
+          <>Soundario &mdash; the blockchain music-streaming app Peter co-founded</>,
+          <>EigenPhi &mdash; the MEV / on-chain analytics company he worked at</>,
+          <>Spirit Tribe &amp; Forest Magic &mdash; his festival and cave party in Yunnan, China</>,
+          <>
+            Jamiroquai, Stevie Wonder, Roy Ayers, Shpongle, Green Nuns of the Revolution &mdash; his
+            musical touchstones
+          </>,
+          <>
+            Chenjiagou (Henan) &amp; Kalaripayattu (Kerala) &mdash; the tai chi village and the martial
+            art he practices
+          </>,
+          <>Network School &mdash; Balaji Srinivasan&apos;s community, where this was recorded</>,
+          <>
+            Peter&apos;s music aliases: Tone Splendor, The Sneaky Tweaker, Mr Snookums &mdash; find him
+            on X (Mr Snookums) and LinkedIn (Peter Donaldson)
+          </>,
+        ]}
+      />
+
+      <H2>Listen to the LuminaLog podcast</H2>
+      <P>
+        Subscribe on{' '}
+        <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
+        <A href="https://open.spotify.com/show/033Mu8Yn2ybRQIis1uKNv2">Spotify</A>.
+      </P>
+    </>
+  )
+}
+
+/* ── Post: Daniel Im (LLP#018) ── */
+function DanielImContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/llp018-daniel-im-hero.jpg"
+        alt="Daniel Im in conversation with Konrad Gnat at Network School"
+        width={1280}
+        height={720}
+        priority
+      />
+      <P>
+        Some founder stories are a straight line. Daniel Jiwoong Im&apos;s is not. When I sat down
+        with him at Network School for this episode of the LuminaLog podcast, the phrase he kept
+        returning to was that almost nothing in his life was planned. And yet the path &mdash; from a
+        deep-learning lab, through crypto market data, to a social app about opinions &mdash; has a
+        logic to it that only becomes visible when you lay the pieces side by side.
+      </P>
+
+      <H2>Taught by the godfather of AI</H2>
+      <P>
+        Daniel studied computer science and mathematics at the University of Toronto, and he happened
+        to be there at an extraordinary moment. He learned machine learning directly from Geoffrey
+        Hinton, the researcher often called the godfather of AI and, more recently, a Nobel laureate
+        in physics. His teaching assistants at the time included Ilya Sutskever and Andrej Karpathy
+        &mdash; names that would go on to define the field.
+      </P>
+      <P>
+        What hooked him wasn&apos;t the math so much as the way Hinton explained it. He described
+        following Hinton to his office hours day after day, then going back to read his papers from
+        the 1980s &mdash; including work that analyzed the weights of a neural network to reason about
+        what &ldquo;brain damage&rdquo; might look like inside it. The lesson underneath the story is a
+        quietly useful one: sometimes a whole career turns on a single teacher who makes an idea feel
+        alive.
+      </P>
+      <Figure
+        src="/blog/llp018-daniel-im-1.jpg"
+        alt="Daniel Im recalling learning from Geoffrey Hinton at the University of Toronto"
+        width={1280}
+        height={720}
+        caption="Daniel learned ML from Geoffrey Hinton at Toronto — where Ilya Sutskever and Andrej Karpathy were his TAs."
+      />
+      <P>
+        From Toronto he did a master&apos;s at Guelph, worked on generative models at MILA in Montreal
+        in Yoshua Bengio&apos;s orbit, and then took a turn into neuroscience at the Janelia Research
+        Campus (part of the Howard Hughes Medical Institute). There he built AI models of fruit flies
+        &mdash; not physically, but simulating how flies of different genotypes move and socially
+        interact, so that a group of simulated flies would reproduce the behavior of the real ones.
+      </P>
+
+      <H2>Why he left research to build</H2>
+      <P>
+        After Janelia came a PhD at NYU focused on causal inference &mdash; the study of telling
+        causation apart from correlation. He gives a clean example in the episode: heat a cup of coffee
+        and a thermometer rises, but a rising thermometer doesn&apos;t make coffee hot. In data, the
+        two look identical; the whole discipline is about recovering the direction of the arrow.
+        It&apos;s the kind of thinking that shows up later in how he reads markets and products.
+      </P>
+      <P>
+        He spent four and a half years on that PhD and then left. Part of the reasoning was
+        refreshingly practical: if he finished the doctorate, he&apos;d be around thirty, likely with
+        more commitments, and a worse position from which to take startup risk. Better, he decided, to
+        try when he had nothing tying him down. His first company, AIFounded, was an AI search engine
+        &mdash; built on the intuition that models, like people, need a way to retrieve information
+        beyond what they already &ldquo;know.&rdquo; An acquisition by Element AI fell through in a way
+        he describes vividly (the deal talks alone were enough to drain the team), but the search IP
+        was ultimately sold to Clearview AI. A small first exit, and a big first lesson.
+      </P>
+
+      <H2>Into crypto, and the wisdom of markets</H2>
+      <P>
+        Crypto found him through people. A former colleague, Ethan Buchman, went from machine-learning
+        research to co-founding Cosmos and Tendermint, and Toronto and nearby Waterloo were a hotbed as
+        Ethereum was taking shape. During the 2017 ICO era he joined Coinscious, a startup mining
+        millisecond-level market data across roughly nineteen exchanges. One of its most interesting
+        jobs: statistically inferring how much of an exchange&apos;s reported volume was fake wash
+        trading &mdash; analysis that helped the hedge fund 3iQ meet compliance requirements for the
+        first Bitcoin ETF.
+      </P>
+      <P>
+        When COVID and &ldquo;DeFi summer&rdquo; hit, he built his own automated market maker (AMM) and
+        pointed it at sports betting, launching UBet. But after three years he&apos;d absorbed two
+        lessons that reshaped everything: don&apos;t improve something that already exists (he prefers
+        &ldquo;all or nothing&rdquo; bets where you create a new category and quickly learn whether it
+        works), and don&apos;t build only for the small web3 audience &mdash; go where the consumers
+        are.
+      </P>
+
+      <H2>A TikTok for opinions</H2>
+      <P>
+        That&apos;s the path that led to{' '}
+        <A href="https://www.belief.market/">Belief Market</A>. He describes it as &ldquo;a TikTok for
+        opinions&rdquo; &mdash; a social app where anyone can create a market on a claim
+        (&ldquo;Donald Trump is an alien,&rdquo; say), pick a side, argue, and stake money that pays out
+        to the winning side when the market closes. Crucially, he insists it&apos;s not a prediction
+        market. It isn&apos;t about forecasting the world; it&apos;s about participation, tribes, and
+        internet drama &mdash; food rivalries, anime-character showdowns, a community member posting her
+        paintings for feedback. He&apos;s even weighing a rebrand, because the word &ldquo;market&rdquo;
+        makes people expect Polymarket-style prediction when the real DNA is closer to social media for
+        Gen Z.
+      </P>
+      <Figure
+        src="/blog/llp018-daniel-im-2.jpg"
+        alt="Daniel Im explaining Belief Market as a TikTok for opinions"
+        width={1280}
+        height={720}
+        caption="Belief Market, in his words: a &ldquo;TikTok for opinions&rdquo; that turns internet debates into two-sided social markets."
+      />
+      <P>
+        The most honest stretch of the conversation is about motivation. Belief Market rewards new users
+        with cash to get them in the door, but Daniel knows money can crowd out intrinsic fun &mdash; and
+        cites the classic study where kids who loved drawing drew <em>less</em> once a reward was
+        introduced and then removed. The real retention, he thinks, has to come from something
+        intangible: identity, the way your Instagram feed becomes a kind of public autobiography. Right
+        now his single north-star metric isn&apos;t user growth but retention rate.
+      </P>
+
+      <H2>Think about what to execute</H2>
+      <P>
+        Near the end, alongside some grounded advice about work-life balance (&ldquo;it&apos;s a
+        marathon, not a sprint; be kind to all parts of yourself&rdquo;), he offered the line I keep
+        thinking about. It&apos;s easy, he said, to just run &mdash; to execute so hard and so busily
+        that you look up and realize you haven&apos;t gone far, because you never stopped to think about{' '}
+        <em>what</em> to execute. His fix is almost algorithmic: a greedy approach that solves the single
+        most important priority rather than juggling many at once.
+      </P>
+      <Figure
+        src="/blog/llp018-daniel-im-3.jpg"
+        alt="Daniel Im giving advice about thinking versus executing"
+        width={1280}
+        height={720}
+        caption="His most useful advice: busyness isn't progress — think about what to execute, then solve the single most important thing."
+      />
+      <P>
+        And then he closed the loop on his whole story. The connective tissue between machine learning and
+        Belief Market, he said, is the wisdom of crowds. In ML, a mixture of experts beats any single
+        model; in life, prediction markets and trading rest on the same premise &mdash; the aggregate is
+        smarter than the individual. Money is just a reward function, and the market, in the end, is what
+        chooses you. It&apos;s a fitting thesis for a founder whose own path looks random up close and
+        coherent from a distance.
+      </P>
+
+      <H2>Key takeaways</H2>
+      <UL
+        items={[
+          <>
+            <strong>A single great teacher can set a trajectory.</strong> Hinton&apos;s classes, not the
+            math itself, pulled Daniel into AI for good.
+          </>,
+          <>
+            <strong>He optimizes for &ldquo;all or nothing&rdquo; bets</strong> &mdash; new categories
+            where you quickly learn whether the thing works &mdash; over incremental improvements.
+          </>,
+          <>
+            <strong>Rewards are double-edged.</strong> Cash gets users in the door, but durable retention
+            comes from identity and intrinsic fun, not payouts.
+          </>,
+          <>
+            <strong>Think before you execute.</strong> Busyness isn&apos;t progress; a greedy focus on the
+            single most important priority beats multitasking.
+          </>,
+          <>
+            <strong>The wisdom of crowds is his through-line</strong> &mdash; from mixture-of-experts
+            models to prediction markets, the aggregate beats the individual.
+          </>,
+        ]}
+      />
+
+      <H2>Links &amp; mentions</H2>
+      <UL
+        items={[
+          <>
+            <A href="https://www.belief.market/">Belief Market</A> &mdash; Daniel&apos;s current company, a
+            social opinion app
+          </>,
+          <>
+            <A href="https://www.miso.care/">MisoCare</A> &mdash; his healthcare venture
+          </>,
+          <>UBet Sports &mdash; his earlier on-chain sports prediction market</>,
+          <>AIFounded &mdash; his first company, an AI search engine (IP sold to Clearview AI)</>,
+          <>Coinscious &mdash; crypto market-data startup that worked with 3iQ</>,
+          <>Cosmos / Tendermint &mdash; blockchain project by his former colleague Ethan Buchman</>,
+          <>
+            Geoffrey Hinton, Ilya Sutskever, Andrej Karpathy, Alex Graves &mdash; University of Toronto AI
+            figures
+          </>,
+          <>Yoshua Bengio (MILA), Yann LeCun &mdash; deep-learning pioneers mentioned</>,
+          <>Janelia Research Campus &mdash; where he did ML for neuroscience</>,
+          <>Polymarket, Augur, Kalshi &mdash; prediction markets discussed</>,
+          <>Network School &mdash; where this conversation was recorded</>,
+          <>
+            Daniel on <A href="https://x.com/daniel_j_im">X</A>,{' '}
+            <A href="https://www.instagram.com/iam_daniel_iam/">Instagram</A>, and{' '}
+            <A href="https://www.linkedin.com/in/daniel-jiwoong-i-69232951/">LinkedIn</A>
+          </>,
+        ]}
+      />
+
+      <H2>Listen to the LuminaLog podcast</H2>
+      <P>
+        Subscribe on{' '}
+        <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
+        <A href="https://open.spotify.com/show/033Mu8Yn2ybRQIis1uKNv2">Spotify</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'llp018-daniel-im',
+    title: 'LLP#018 — From Hinton’s Class to “TikTok for Opinions”: Daniel Im',
+    description:
+      'A conversation at Network School with Daniel Jiwoong Im — who learned ML from Geoffrey Hinton at Toronto (with Sutskever and Karpathy as TAs), trained AI models of fruit-fly brains at Janelia, and left a PhD to build companies. On the arc from an AI search engine and crypto market data to UBet’s betting AMM and Belief Market, a “TikTok for opinions,” and the wisdom of crowds that ties it all together.',
+    date: 'July 16, 2026',
+    isoDate: '2026-07-16T18:00',
+    readingTime: '6 min read',
+    Content: DanielImContent,
+  },
+  {
+    slug: 'llp017-peter-donaldson',
+    title: 'LLP#017 — Psytrance Festivals to Tokenized Stocks: Peter Donaldson',
+    description:
+      'A wide-ranging conversation at Network School with Peter Donaldson — cellist at three, festival producer in China for fifteen years, now business development at STOX, an intent-based exchange for tokenized equities. On a music app that paid artists in 24 hours, MEV as an old human habit, and why convenience should build community instead of isolating us.',
+    date: 'July 15, 2026',
+    isoDate: '2026-07-15T18:00',
+    readingTime: '6 min read',
+    Content: PeterDonaldsonContent,
+  },
   {
     slug: 'david-johnston-morpheus',
     title: 'LLP#016 — Own Your AI, or Be Owned By It: David Johnston',
