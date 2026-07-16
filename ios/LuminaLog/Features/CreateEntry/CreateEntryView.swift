@@ -78,6 +78,12 @@ struct CreateEntryView: View {
         .onChange(of: viewModel.didSave) { _, didSave in
             if didSave { dismiss() }
         }
+        // Save a recording cut short by a call/alarm/backgrounding. Extracted into
+        // its own modifier so the body stays type-checkable (see CreateEntryPickers).
+        .modifier(RecordingInterruptionModifier(recorder: recorder) { saved in
+            viewModel.attachInterruptedAudio(saved)
+            isRecorderPresented = false
+        })
         .interactiveDismissDisabled(false)   // swipe-down keeps the autosaved draft
         .modifier(CreateEntryPickersModifier(
             showPhotoCamera: $showPhotoCamera,
@@ -492,6 +498,35 @@ private struct CreateEntryPickersModifier: ViewModifier {
                 selection: $videoPickerItem,
                 matching: .videos
             )
+    }
+}
+
+/// Saves an in-progress voice recording when a phone call, alarm, or app
+/// backgrounding cuts it short, so the partial isn't silently lost.
+///
+/// A call/alarm/Siri is caught by `AudioRecorderController`'s audio-session
+/// interruption observer; the `scenePhase` watch here is the backstop for a plain
+/// app-switch or lock, which the OS reports without an audio-session interruption.
+/// Both finalize the partial and publish it via `interruptionSavedAudio`, which we
+/// hand back to the entry through `onSavedPartial`.
+private struct RecordingInterruptionModifier: ViewModifier {
+
+    @Environment(\.scenePhase) private var scenePhase
+    @ObservedObject var recorder: AudioRecorderController
+    let onSavedPartial: (AudioAttachment) -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .background && recorder.isRecording {
+                    recorder.finalizeInterrupted()
+                }
+            }
+            .onChange(of: recorder.interruptionSavedAudio) { _, saved in
+                guard let saved else { return }
+                onSavedPartial(saved)
+                recorder.clearInterruptionSavedAudio()
+            }
     }
 }
 

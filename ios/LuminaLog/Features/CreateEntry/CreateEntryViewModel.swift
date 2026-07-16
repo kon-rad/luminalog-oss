@@ -260,6 +260,17 @@ final class CreateEntryViewModel: ObservableObject {
         persistDraftNow()
     }
 
+    /// Attaches a recording finalized because a call / alarm / backgrounding cut
+    /// it short. Same durable persistence as `attachAudio`, plus a confirmation
+    /// notice so the user knows the partial was saved (unless photos/video already
+    /// occupy the entry, in which case `attachAudio` surfaces the priority notice).
+    func attachInterruptedAudio(_ audio: AudioAttachment) {
+        attachAudio(audio)
+        if attachments.audio?.url == audio.url {
+            attachmentNotice = "Recording saved to your entry."
+        }
+    }
+
     func removePhoto(id: UUID) {
         attachments.removePhoto(id: id)
         persistDraftNow()

@@ -13,6 +13,7 @@ final class CreateEntryViewModelTests: XCTestCase {
         func enqueue(_ job: EntryProcessingJob) { enqueued.append(job) }
         func retry(draftId: String) { retried.append(draftId) }
         func resumePendingJobs() async {}
+        func sweepStuckEntries() async {}
     }
 
     // MARK: - Harness
@@ -177,6 +178,40 @@ final class CreateEntryViewModelTests: XCTestCase {
             FileManager.default.fileExists(atPath: url.path),
             "Discarding the draft deletes the recording's backing file"
         )
+    }
+
+    // MARK: - Interruption save (calls / alarms / backgrounding)
+
+    @MainActor
+    func testAttachInterruptedAudioAttachesClipAndShowsSavedNotice() throws {
+        let harness = Harness()
+        let url = tempAudioURL()
+        try Data([0x01]).write(to: url)
+
+        harness.viewModel.attachInterruptedAudio(AudioAttachment(url: url, durationSec: 5))
+
+        XCTAssertEqual(harness.viewModel.attachments.audio?.durationSec, 5,
+                       "The partial recording is attached to the entry")
+        XCTAssertEqual(harness.viewModel.attachmentNotice, "Recording saved to your entry.")
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    @MainActor
+    func testAttachInterruptedAudioSupersededByPhotosKeepsPriorityNotice() throws {
+        let harness = Harness()
+        harness.viewModel.addPhotos([PhotoAttachment(imageData: Data([0x01]))])
+        let url = tempAudioURL()
+        try Data([0x02]).write(to: url)
+
+        harness.viewModel.attachInterruptedAudio(AudioAttachment(url: url, durationSec: 5))
+
+        XCTAssertNil(harness.viewModel.attachments.audio, "Photos take priority; audio isn't kept")
+        XCTAssertNotEqual(harness.viewModel.attachmentNotice, "Recording saved to your entry.",
+                          "The saved-confirmation notice is not shown when the clip was dropped")
+        XCTAssertNotNil(harness.viewModel.attachmentNotice,
+                        "A priority notice explains why the audio wasn't kept")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path),
+                       "The superseded temp file is deleted")
     }
 
     // MARK: - Loading placeholders

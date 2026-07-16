@@ -27,4 +27,15 @@ final class AudioRecorderControllerTests: XCTestCase {
 
         XCTAssertEqual(controller.levels.count, AudioRecorderController.maxLevelSamples)
     }
+
+    /// An interruption (or backgrounding) that arrives when nothing is being
+    /// recorded must be a harmless no-op — no phantom attachment is published.
+    func testFinalizeInterruptedWithNoActiveRecordingIsNoOp() {
+        let controller = AudioRecorderController()
+
+        controller.finalizeInterrupted()
+
+        XCTAssertNil(controller.interruptionSavedAudio)
+        XCTAssertFalse(controller.isRecording)
+    }
 }
