@@ -35,6 +35,11 @@ protocol EntryProcessor: AnyObject {
     /// whose uploads all completed (e.g. via a background-session relaunch), and
     /// restart uploads for the rest.
     func resumePendingJobs() async
+    /// On launch, mark any entry that is stranded in a non-terminal state
+    /// (`.processing`/`.uploading`/`.saving`/`.transcribing`) with no in-flight
+    /// job and no durable record as `.failed`, so it surfaces the Retry button
+    /// instead of showing "Processing…" forever.
+    func sweepStuckEntries() async
 }
 
 // MARK: - Live implementation
@@ -389,6 +394,46 @@ final class BackgroundEntryProcessor: EntryProcessor {
         }
     }
 
+    /// Safety net for entries stranded in a non-terminal state with no work
+    /// backing them. The canonical case: the app was killed while the pre-upload
+    /// transcription ran (before the durable journal record was written), leaving
+    /// the entry stuck at `.processing` forever — `resumePendingJobs()` can't
+    /// recover it (no record) and the Retry button never shows (it's gated on
+    /// `.failed`). We flip such entries to `.failed` so the user can retry/re-record.
+    ///
+    /// Guards against false positives: skips entries with an in-flight in-session
+    /// job, a durable upload record (those resume normally), or that are younger
+    /// than `staleAfter` (a just-created entry whose pipeline hasn't reached
+    /// durability yet).
+    func sweepStuckEntries() async {
+        await sweepStuckEntries(staleAfter: 120, now: Date())
+    }
+
+    /// Testable core of `sweepStuckEntries()` with injectable staleness + clock.
+    func sweepStuckEntries(staleAfter: TimeInterval, now: Date) async {
+        let recent: [JournalEntry]
+        do {
+            recent = try await deps.journals.entries(after: nil, limit: 50)
+        } catch {
+            Self.logger.error("sweepStuckEntries fetch failed: \(error.localizedDescription)")
+            return
+        }
+        for entry in recent {
+            guard let status = entry.processingStatus, status.isNonTerminal else { continue }
+            if hasPendingJob(draftId: entry.id) { continue }
+            if deps.journal.entry(draftId: entry.id) != nil { continue }
+            guard now.timeIntervalSince(entry.updatedAt) >= staleAfter else { continue }
+            var failed = entry
+            failed.processingStatus = .failed
+            do {
+                try await deps.journals.save(failed)
+                Self.logger.error("Swept stranded entry \(entry.id, privacy: .public) (\(status.rawValue, privacy: .public)) → .failed")
+            } catch {
+                Self.logger.error("sweepStuckEntries save failed for \(entry.id, privacy: .public): \(error.localizedDescription)")
+            }
+        }
+    }
+
     /// Write a durable journal record to Firestore as `.failed` (mirrors the
     /// `JournalEntry` shape `EntryFinalizer` builds) so a fail-fast resume
     /// surfaces a re-recordable failed entry instead of retrying forever.
@@ -451,7 +496,8 @@ final class BackgroundEntryProcessor: EntryProcessor {
                     return (typed, typed.isEmpty ? .failed : .ready)
                 }
                 do {
-                    let spoken = try await deps.ai.transcribeClip(audio: audioData, contentType: "audio/m4a")
+                    let contentType = AudioContentType.mime(forPathExtension: audioURL.pathExtension)
+                    let spoken = try await deps.ai.transcribeClip(audio: audioData, contentType: contentType)
                         .trimmingCharacters(in: .whitespacesAndNewlines)
                     let joined = ([typed, spoken].filter { !$0.isEmpty }).joined(separator: "\n\n")
                     // Whatever we got is final — there is no server re-pass to wait on.
