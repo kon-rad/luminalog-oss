@@ -1,5 +1,7 @@
+import AVFoundation
 import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Create Journal Entry (design §5): big serif editor with live dictation,
 /// optional prompt banner, media capture row, and the save pipeline.
@@ -24,6 +26,7 @@ struct CreateEntryView: View {
     @State private var videoPickerItem: PhotosPickerItem?
     @State private var pendingVideo: VideoAttachment?
     @State private var confirmReplaceRecording = false
+    @State private var showUploadPicker = false
     @FocusState private var editorFocused: Bool
 
     init(request: CreateEntryRequest, services: AppServices) {
@@ -94,7 +97,9 @@ struct CreateEntryView: View {
             videoPickerItem: $videoPickerItem,
             remainingPhotoSlots: AttachmentSet.maxPhotos - viewModel.attachments.photos.count,
             onPhotosData: { addPickedPhotos($0) },
-            onVideoURL: { handlePickedVideo(url: $0) }
+            onVideoURL: { handlePickedVideo(url: $0) },
+            showUploadPicker: $showUploadPicker,
+            onPickedFile: { handlePickedFile($0) }
         ))
         .onChange(of: photoPickerItems) { _, items in
             guard !items.isEmpty else { return }
@@ -329,7 +334,8 @@ struct CreateEntryView: View {
                 onMic: handleMicTap,
                 onPhoto: { showPhotoSourceDialog = true },
                 onVideo: { showVideoSourceDialog = true },
-                onDictate: { Task { await viewModel.toggleDictation() } }
+                onDictate: { Task { await viewModel.toggleDictation() } },
+                onUpload: { showUploadPicker = true }
             )
         }
         .background(Color.appBackground.opacity(0.001)) // keep hit-testing sane
@@ -434,6 +440,70 @@ struct CreateEntryView: View {
         }
     }
 
+    /// Handles a file chosen via the Upload importer: copies the
+    /// security-scoped file into our temp dir, then routes it by kind into the
+    /// same attach paths the recorder/camera use. Exclusivity + replace-confirm
+    /// rules are enforced by the attach methods themselves.
+    private func handlePickedFile(_ result: Result<[URL], Error>) {
+        guard case .success(let urls) = result, let url = urls.first else {
+            if case .failure = result {
+                viewModel.attachmentNotice = "Couldn't add that file."
+            }
+            return
+        }
+
+        let type = try? url.resourceValues(forKeys: [.contentTypeKey]).contentType
+        let kind = UploadFileKind.classify(type)
+        guard kind != .unsupported else {
+            viewModel.attachmentNotice = "That file type isn't supported."
+            return
+        }
+
+        // Copy while the security scope is held; async work uses the local copy.
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+
+        switch kind {
+        case .image:
+            guard let data = try? Data(contentsOf: url) else {
+                viewModel.attachmentNotice = "Couldn't read that image."
+                return
+            }
+            addPickedPhotos([data])
+
+        case .audio, .video:
+            let ext = url.pathExtension.isEmpty ? (kind == .audio ? "m4a" : "mov") : url.pathExtension
+            let dest = FileManager.default.temporaryDirectory
+                .appendingPathComponent("upload-\(UUID().uuidString).\(ext)")
+            do {
+                try FileManager.default.copyItem(at: url, to: dest)
+            } catch {
+                viewModel.attachmentNotice = "Couldn't add that file."
+                return
+            }
+            if kind == .audio {
+                handlePickedAudioFile(url: dest)
+            } else {
+                handlePickedVideo(url: dest)   // reuses the replace-confirm flow
+            }
+
+        case .unsupported:
+            break   // handled above
+        }
+    }
+
+    /// Builds an `AudioAttachment` from an uploaded audio file (duration via
+    /// `AVURLAsset`) and stages it as a voice entry. `attachAudio` drops it with
+    /// a notice if photos/video already occupy the entry.
+    private func handlePickedAudioFile(url: URL) {
+        Task {
+            let asset = AVURLAsset(url: url)
+            let duration = (try? await asset.load(.duration).seconds) ?? 0
+            let audio = AudioAttachment(url: url, durationSec: duration.isFinite ? duration : 0)
+            viewModel.attachAudio(audio)
+        }
+    }
+
     // MARK: - Alert bindings & helpers
 
     private var replaceVideoAlertBinding: Binding<Bool> {
@@ -470,6 +540,8 @@ private struct CreateEntryPickersModifier: ViewModifier {
     let remainingPhotoSlots: Int
     let onPhotosData: ([Data]) -> Void
     let onVideoURL: (URL) -> Void
+    @Binding var showUploadPicker: Bool
+    let onPickedFile: (Result<[URL], Error>) -> Void
 
     func body(content: Content) -> some View {
         content
@@ -497,6 +569,12 @@ private struct CreateEntryPickersModifier: ViewModifier {
                 isPresented: $showVideoLibrary,
                 selection: $videoPickerItem,
                 matching: .videos
+            )
+            .fileImporter(
+                isPresented: $showUploadPicker,
+                allowedContentTypes: UploadFileKind.allowedContentTypes,
+                allowsMultipleSelection: false,
+                onCompletion: onPickedFile
             )
     }
 }

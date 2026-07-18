@@ -169,6 +169,7 @@ struct MediaRow: View {
     let onPhoto: () -> Void
     let onVideo: () -> Void
     let onDictate: () -> Void
+    let onUpload: () -> Void
 
     var body: some View {
         HStack(spacing: Spacing.l) {
@@ -221,6 +222,12 @@ struct MediaRow: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(isListening ? "Stop dictation" : "Start dictation")
+
+                Button(action: onUpload) {
+                    mediaIcon("square.and.arrow.up", label: "Upload")
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Upload a file")
             }
         }
         .frame(maxWidth: .infinity)
