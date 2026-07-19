@@ -172,7 +172,7 @@ struct MediaRow: View {
     let onUpload: () -> Void
 
     var body: some View {
-        HStack(spacing: Spacing.l) {
+        HStack(spacing: Spacing.s) {
             // Mic — turns into an elapsed-time + stop control while recording.
             Button(action: onMic) {
                 if isRecording {
@@ -231,6 +231,7 @@ struct MediaRow: View {
             }
         }
         .frame(maxWidth: .infinity)
+        .padding(.horizontal, Spacing.m)
         .padding(.vertical, Spacing.s + 2)
         .background(Color.secondaryBackground)
         .disabled(isDisabled)
