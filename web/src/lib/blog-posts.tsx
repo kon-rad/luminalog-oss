@@ -16,6 +16,182 @@ export type BlogPost = {
   Content: () => React.ReactNode
 }
 
+/* ── Post: The best consumer in the world (Ashish Sood) ── */
+function AshishSoodContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/ashish-sood-network-states-1.jpg"
+        alt="Ashish Sood, in a Curious Ventures 'stay curious' shirt, and Konrad talking by a resort pool at Network School"
+        width={1920}
+        height={1080}
+        priority
+      />
+      <P>
+        Some founders describe their careers as a straight line. Ashish Sood describes his as a
+        series of things he got curious about, built, scaled, and then handed off. When we sat down
+        at Network School in Bataan, with the rain starting up over the open-air hut we ended up
+        moving into, he walked me through four companies in about ninety seconds, then spent the
+        next hour on what he actually learned along the way.
+      </P>
+      <P>
+        This is the twentieth LuminaLog Podcast conversation, and it sits squarely at the
+        intersection the show keeps returning to: how someone builds, and who they become in the
+        process.
+      </P>
+
+      <H2>A fund that follows network states</H2>
+      <P>
+        Ashish now runs{' '}
+        <A href="https://curiousventures.xyz">Curious Ventures</A>, a fund with an unusual mandate.
+        It has no fixed geography. Instead of a home city, it follows network states, the pop-up
+        communities of builders that gather in places like Network School, Edge City, and Bali. His
+        pitch to himself was simple: there is real talent in these rooms, and much of it has never
+        scaled anything. He has, several times, so he can be useful.
+      </P>
+      <P>
+        The word on his shirt, and tattooed on his arm, is <em>curious</em>. It is not decoration.
+        He describes himself, without much irony, as the best consumer in the world. He has spent
+        well over ten thousand hours online across apps, games, social media, crypto, and hardware,
+        and he treats that omnivorous consumption as a professional edge rather than a distraction.
+        For a self-described generalist who once worried he had never given anything ten thousand
+        hours, it is a neat reframe: maybe the ten thousand hours went into pattern-matching across
+        everything at once.
+      </P>
+
+      <H2>Four companies before the fund</H2>
+      <P>
+        The r&eacute;sum&eacute; is worth slowing down for. His first company, Bar Uncle, was a
+        nightlife app he started around age nineteen in Delhi, partly because he could not get into
+        the good clubs and figured a business might be his way in. You could buy a bottle of alcohol
+        virtually, and the price of that bottle would shift depending on which of the 190 onboarded
+        clubs you carried it to. He ran it for three and a half years, raised about fifty thousand
+        dollars from friends, family, and fools, and eventually sold it when he realized he was
+        selling an experience in a market that wanted discounts.
+      </P>
+      <P>
+        Then came PaySense, where he joined a small team doing short-term personal loans in India
+        and helped scale it toward hundreds of people before it was acquired by PayU. He is candid
+        about the machinery of lending, including the recovery buckets that decide how gently or
+        harshly a late borrower is treated, and a more inventive idea: underwriting people by their
+        social nodes, on the theory that if five friends repay on time, you probably will too.
+      </P>
+      <P>
+        During COVID he ran Let&apos;s Binge, aggregating small homegrown food brands into a shared
+        dark-store and shelf-space model that cut their costs. He shut it down when a tokenization
+        project he was building on the side, Polytrade, took off. Polytrade started with invoice
+        factoring and grew into what he calls an Amazon for real-world-asset tokenization. He ran it
+        for three years before stepping away.
+      </P>
+
+      <H2>Living where founders live</H2>
+      <P>
+        The most interesting part of the conversation was about how he now decides whom to back.
+        Having raised money seven times himself, he knows the game from the other side. He calls it
+        founder fraud, and includes himself in the indictment: a founder can learn exactly what an
+        investor wants to hear, and AI makes that easier than ever.
+      </P>
+      <Pull>
+        You can hold a facade for a call, or twenty calls. You cannot hold it for fifteen days while
+        someone watches how you actually work.
+      </Pull>
+      <P>
+        His answer is not a better set of questions. It is proximity. He moves into the same places
+        founders live, so he sees them at 2AM and at noon and at 5PM, not just across three polished
+        calls. You can perform for a call, he says, but you cannot perform for fifteen days while
+        someone watches whether you are loving the problem or just performing it.
+      </P>
+      <Figure
+        src="/blog/ashish-sood-network-states-2.jpg"
+        alt="Ashish and Konrad sitting under an open-air hut by the sea at Network School, mid-conversation"
+        width={1920}
+        height={1080}
+        caption="Ashish's due-diligence method is proximity: he moves into the places founders live and watches how they actually work."
+      />
+      <P>
+        His first check out of Curious Ventures went to Nacho and Sam, whose AI content company is
+        becoming Amplify AI, and he framed the money the way he frames all of it: money is only a
+        multiplier. Give money to a chaotic team and you get more chaos. Give it to people who know
+        what they are doing and it becomes leverage.
+      </P>
+
+      <H2>Calm down on building</H2>
+      <P>
+        For a room full of people shipping apps in fifteen days, his advice this month has been
+        almost contrarian: calm down on building. Falling in love with a solution is easy,
+        especially when generating tokens gives you a small hit of godlike feeling. Falling in love
+        with a problem is harder and more useful. Spend eight hours actually thinking before you
+        spend thirty days building. When you pitch, talk only about the problem, and aim for the
+        listener to see your solution on their own by the three-minute mark. If they get there
+        before you say it, they will believe it more.
+      </P>
+
+      <H2>He sold it before he built it</H2>
+      <P>
+        The story he had not told in a decade was about that first app. He had no money and no idea
+        how to make a prototype, so he bought a pack of black A4 sheets, sat in his room with pens
+        and pencils, and drew the entire app by hand, every view and user flow, over two days. He
+        took the stack to an agency, offered twenty percent of the company for a corner of their
+        office and two engineers, and walked out with a team building it for free.{' '}
+        &ldquo;I sold the product before I built it,&rdquo; he said, &ldquo;and I did not spend a
+        penny.&rdquo; It is a good reminder that the constraint that looks like a wall is often just
+        a prompt to be resourceful.
+      </P>
+      <Figure
+        src="/blog/ashish-sood-network-states-3.jpg"
+        alt="Ashish and Konrad seated cross-legged under the hut with the sea and a pier behind them"
+        width={1920}
+        height={1080}
+        caption="Closing the hour under the hut as the rain passed, on doing good and keeping a clear conscience."
+      />
+      <P>
+        We closed on quieter ground. He keeps a rule: if he spends a hundred days wanting to change
+        something, he changes it. He reads with the audiobook playing in his ears and the physical
+        book open at the same time, a workaround for an attention span he says most of us now share.
+        And his prayer, a Hindu one, comes down to a single instruction he tries to live by: be pure
+        to yourself. Know what you are doing. Keep your conscience clear enough to sleep.
+      </P>
+
+      <H2>Key takeaways</H2>
+      <UL
+        items={[
+          'Treat broad consumption as a skill. Ashish’s edge is having genuinely used almost everything, which lets him pattern-match products fast.',
+          'Proximity beats interrogation. Living alongside founders reveals in fifteen days what no set of calls can.',
+          'Money is a multiplier, not a fix. It amplifies whatever state a team is already in.',
+          'Fall in love with the problem. Give thinking its hours before building takes over.',
+          'Resourcefulness can replace capital. A hand-drawn prototype was enough to get a product built for equity.',
+        ]}
+      />
+
+      <H2>Links &amp; mentions</H2>
+      <UL
+        items={[
+          <>
+            <A href="https://curiousventures.xyz">Curious Ventures</A> &mdash; Ashish&apos;s fund
+            following network states
+          </>,
+          <>
+            <A href="https://house.curiousventures.xyz">house.curiousventures.xyz</A> &mdash; his
+            private tracker of founders he has met in person
+          </>,
+          <>
+            <A href="https://x.com/soodgen">Ashish Sood on X</A> &mdash; @soodgen
+          </>,
+          'Amplify AI — AI content startup (founders Nacho and Sam), Curious Ventures’ first investment',
+          'Courage to be Disliked — book by Ichiro Kishimi and Fumitake Koga',
+        ]}
+      />
+
+      <H2>Listen to the LuminaLog podcast</H2>
+      <P>
+        Subscribe on{' '}
+        <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
+        <A href="https://open.spotify.com/show/033Mu8Yn2ybRQIis1uKNv2">Spotify</A>.
+      </P>
+    </>
+  )
+}
+
 /* ── Post: Build your mind (generative journaling) ── */
 function BuildYourMindContent() {
   return (
@@ -2117,7 +2293,187 @@ function DanielImContent() {
   )
 }
 
+/* ── Post: LLP#019 Tony Lopez ── */
+function TonyLopezContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/tony-lopez-robotics-shenzhen-claude-code-hero.jpg"
+        alt="Tony Lopez in conversation with Konrad Gnat at Network School"
+        width={1920}
+        height={1080}
+        priority
+      />
+      <P>
+        Some people arrive at technology through a job. Tony Lopez arrived through curiosity, and he
+        never really left. In this episode of the LuminaLog podcast, recorded at Network School, we
+        sat down to trace his path from a childhood computer in Spain to the questions he is thinking
+        about now. It is a long, technical life, and he is generous about explaining the parts of it
+        that most of us take for granted.
+      </P>
+
+      <H2>The magic of the first machine</H2>
+      <P>
+        Tony is 48, and his first computer was an MSX his parents brought home when he was around 12.
+        He did not ask for it. He opened the manual, connected it to the television, learned to store
+        programs on a cassette tape, and started writing simple things in BASIC. The first program
+        that excited him drew circles in different colors while the machine made sound.
+      </P>
+      <P>
+        What stayed with him was a specific question: what is actually happening inside. He describes
+        taking a screwdriver to the case, seeing the circuits, and wanting to understand how a chip
+        full of gates could turn moving electrons into something useful. That curiosity became a
+        career. He later took the Nand to Tetris course, which builds a working computer from logic
+        gates up to a running program, because he wanted the whole stack in his head.
+      </P>
+      <Figure
+        src="/blog/tony-lopez-robotics-shenzhen-claude-code-1.jpg"
+        alt="Tony Lopez recalling his first computer, an MSX, at age twelve"
+        width={1920}
+        height={1080}
+        caption="Tony&apos;s first computer was an MSX his parents brought home when he was about twelve."
+      />
+
+      <H2>Learning robotics by teaching it</H2>
+      <P>
+        Tony studied electronics and robotics in Barcelona. He is honest that he was not an easy
+        student and that some teachers doubted he belonged at university. He got in, and in his first
+        year he was already helping teach robotics to students ahead of him, because he had been
+        building since he was twelve.
+      </P>
+      <P>
+        One of the clearest moments in the conversation is when he explains a PID controller, the
+        piece of logic that keeps a line-following robot on its line. He walks through it plainly: the
+        robot reads an array of infrared sensors, and the controller corrects the motors in proportion
+        to how far off the line it is, how fast it is drifting, and how long the error has lasted. It
+        is a small, useful lesson in how a robot stays on course, delivered in about two minutes.
+      </P>
+
+      <H2>Aerospace, sailing, and a turn toward business</H2>
+      <P>
+        After university Tony worked for several years on aerospace projects connected to the European
+        Space Agency, including work on how humans might recycle water and materials to survive on
+        Mars, and a project to extract DNA from blood samples. He describes it as a strange, wide mix
+        of problems, and clearly enjoyed being in over his head.
+      </P>
+      <P>
+        A hobby, weekend sailing races near Barcelona, nudged him toward a different question. He
+        wanted to buy a sailboat, realized how expensive that was, and started reading about business.
+        He read Robert Kiyosaki&apos;s &ldquo;Rich Dad Poor Dad&rdquo; and decided he needed to build
+        something of his own. That thread eventually pulled him toward China.
+      </P>
+
+      <H2>Four years in Shenzhen</H2>
+      <P>
+        Tony ended up in Shenzhen through batteries. Working at an electronics company in Spain, he
+        pushed it into a new line of lithium iron phosphate batteries, and found that nearly every
+        component he needed traced back to one city. So he went. He stayed about four years.
+      </P>
+      <P>
+        He is careful to say he knows Shenzhen, not all of China. What struck him was the speed. He
+        tells the history plainly: a special economic zone next to Hong Kong that grew from a small
+        population to a very large city in about forty years, learning electronics manufacturing as it
+        went. For Tony, it remains the fastest environment he has found for learning hardware, and he
+        compares it, thoughtfully rather than grandly, to what Network School is trying to do for a
+        different kind of work.
+      </P>
+
+      <H2>From the digital world into the physical one</H2>
+      <P>
+        The second half of the conversation is Tony&apos;s read on where things are heading. He sees
+        AI as something that will touch every field, and he is candid that this is his own long view,
+        the kind of thinking he says lives more in the future than the present. His core observation
+        is concrete: the cost of intelligence is falling, and expertise that used to take years is
+        becoming something you can turn on.
+      </P>
+      <Figure
+        src="/blog/tony-lopez-robotics-shenzhen-claude-code-2.jpg"
+        alt="Tony Lopez describing AI moving from the digital world into the physical one"
+        width={1920}
+        height={1080}
+        caption="Tony&apos;s thesis: the cost of intelligence is falling, and robotics will carry that shift into the physical world."
+      />
+      <P>
+        He describes a &ldquo;Claude Code moment&rdquo; late last year, when it began to feel like you
+        could describe what you wanted and get a working program back without reading every line
+        yourself. He is thoughtful about the trade-off, too. When developers stop tracking every line,
+        we build faster, but we also loosen our grip on how the machine works underneath. He thinks
+        robotics is the next step, carrying that same shift from the screen into the physical world.
+      </P>
+      <P>
+        He grounds the idea in a small story rather than a big claim. A 19-year-old at Network School
+        who had barely used a keyboard got a robot moving in two days with Claude Code, connecting to
+        it over Wi-Fi and writing the control scripts. Tony has spent thirty years learning robotics,
+        and he holds that story with a mix of humility and excitement.
+      </P>
+
+      <H2>Where he thinks this goes</H2>
+      <P>
+        We also talked about LuminaLog, my own project, and Tony offered a useful reframing. He is
+        less interested in screens and more in the idea that the data you keep about yourself, your
+        logs and your thoughts, is the valuable part, and that keeping it private matters. He expects
+        the way we interact with computers to move toward voice and prediction over time.
+      </P>
+      <P>
+        His hopes for Network School are modest and specific: that a community can adapt quickly to
+        fast change, and help others do the same. He now spends his days on Transcend Money, a YouTube
+        channel where he studies crypto exchange order books and how automated trading agents behave,
+        using the work as a way to push himself to build with AI every day.
+      </P>
+      <Figure
+        src="/blog/tony-lopez-robotics-shenzhen-claude-code-3.jpg"
+        alt="Tony Lopez and Konrad Gnat closing the conversation at Turi Beach Resort"
+        width={1920}
+        height={1080}
+        caption="A calm end to a grounded hour, with the sun going down over the palm trees."
+      />
+      <P>
+        We finished with the sun going down over the palm trees. It was a calm end to a grounded hour
+        about a life spent trying to understand how machines work, and a genuine curiosity about what
+        they are becoming.
+      </P>
+
+      <H2>Key takeaways</H2>
+      <UL
+        items={[
+          'A PID controller keeps a robot on its line by correcting in proportion to the error, its rate of change, and its accumulation. It is a small idea that shows up everywhere in control systems.',
+          'Tony frames Shenzhen as a learning environment first: its value, in his telling, is the speed at which you can build and iterate on hardware.',
+          'He sees the falling cost of intelligence, and tools like Claude Code, as the throughline from software into robotics, and holds the change with both excitement and caution.',
+          'His advice for a fast-changing field is to lean on creativity and on building things, since narrowing infinite possibilities to a useful one is still a human job.',
+        ]}
+      />
+
+      <H2>Listen to the LuminaLog podcast</H2>
+      <P>
+        Subscribe on{' '}
+        <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
+        <A href="https://open.spotify.com/show/033Mu8Yn2ybRQIis1uKNv2">Spotify</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'ashish-sood-network-states',
+    title: 'LLP#020 — The Best Consumer in the World: Ashish Sood',
+    description:
+      'A conversation at Network School with Ashish Sood — a serial founder (a nightlife app, personal lending in India, an RWA tokenization platform) who now runs Curious Ventures, a fund that follows network states. On &ldquo;founder fraud&rdquo; and living where founders live, why money is only a multiplier, the paper prototype that got his first app built for free, and reading with your ears and eyes at once.',
+    date: 'July 21, 2026',
+    isoDate: '2026-07-21T18:00',
+    readingTime: '6 min read',
+    Content: AshishSoodContent,
+  },
+  {
+    slug: 'tony-lopez-robotics-shenzhen-claude-code',
+    title: 'LLP#019 — 30 Years in Robotics, Shenzhen, and Claude Code: Tony Lopez',
+    description:
+      'A conversation at Network School with Tony Lopez — an electronics and robotics engineer who went from a childhood MSX computer in Spain to aerospace work with the European Space Agency, four years building lithium iron phosphate batteries in Shenzhen, and a nomadic decade through Georgia and Southeast Asia. On how a PID controller works, why he reads Shenzhen as a learning environment, the &ldquo;Claude Code moment,&rdquo; and creativity as the human edge.',
+    date: 'July 20, 2026',
+    isoDate: '2026-07-20T18:00',
+    readingTime: '6 min read',
+    Content: TonyLopezContent,
+  },
   {
     slug: 'llp018-daniel-im',
     title: 'LLP#018 — From Hinton’s Class to “TikTok for Opinions”: Daniel Im',
