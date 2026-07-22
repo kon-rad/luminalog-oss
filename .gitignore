@@ -8,6 +8,8 @@
 !**/.env.sample
 !**/.env.SAMPLE
 
+scratch.md
+
 # Firebase / Google service credentials
 # Wildcards (not exact names) so variants like old-/copy-/.bak can't slip through.
 **/*GoogleService-Info*.plist
