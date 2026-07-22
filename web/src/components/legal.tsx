@@ -10,7 +10,7 @@ import Navbar from '@/components/Navbar'
  * share, a no-training pledge, App Store subscriptions, and Voice Credits.
  * ────────────────────────────────────────────────────────────────────────── */
 
-export const LEGAL_UPDATED = 'July 12, 2026'
+export const LEGAL_UPDATED = 'July 15, 2026'
 
 export function LegalLayout({
   title,
@@ -198,6 +198,25 @@ export function PrivacyContent() {
         Your journal is never used to train AI models — not ours, and not those of our providers.
       </P>
 
+      <H3>Live voice calls — a transient exception</H3>
+      <P>
+        For storage and text features, our servers cannot read your journal: entries are kept
+        encrypted and are only ever decrypted on your device. Live voice calls are the one
+        exception. So that your companion can recall relevant memories from your past entries in
+        real time as you speak, at the start of a call your device sends its encryption key to our
+        server for the duration of that call. The server uses it to decrypt only the specific past
+        entries needed to answer you, holding the key and the decrypted text <strong>in memory
+        only</strong>. Nothing decrypted during a call is written to disk, logged, or retained, and
+        the key and any decrypted content are wiped from memory when the call ends.
+      </P>
+      <P>
+        The AI that reasons over those memories runs inside a hardware secure enclave (Morpheus —
+        see Section 6), so the model&apos;s inference remains confidential. This transient,
+        in-memory decryption happens only during a live voice call; your stored entries, text
+        features, transcription, and search continue to work without our servers reading your
+        journal.
+      </P>
+
       <H2>6. Third-party service providers</H2>
       <P>
         We share only what is necessary with a limited set of processors who help us run the
@@ -208,7 +227,8 @@ export function PrivacyContent() {
         'Cloud hosting and database / authentication providers (for example, Google Firebase / Firestore) to store accounts and encrypted data.',
         'AI model providers (for example, Together AI) to generate insights, summaries, prompts, and conversation.',
         'Speech-to-text providers (for example, Deepgram) to transcribe your voice and video journal entries into text.',
-        'Live voice-conversation providers (for example, Vapi) — which use an Anthropic (Claude) model to power the conversation and Deepgram for speech-to-text — to run real-time spoken conversations with your AI companion; your audio is processed to run the call.',
+        'Live voice-conversation transport (for example, Vapi) — which carries the call audio and uses Deepgram for speech-to-text — to run real-time spoken conversations with your AI companion; your audio is processed to run the call.',
+        'Confidential AI inference for live calls (Morpheus) — a network that runs the conversational model inside a hardware secure enclave (a trusted execution environment). During a live call, the relevant past entries our server transiently decrypts in memory (see Section 5) are sent to this enclave so the model can respond with your memories in context.',
         'Emotion-analysis providers (for example, Hume AI) used to estimate the emotional tone of an entry.',
         'Subscription-management providers (for example, RevenueCat) to process purchases and manage your subscription and entitlement status.',
         'An image provider (for example, Unsplash) used to match a themed photograph to your daily insight card; photographer attribution is shown on the card.',

@@ -51,7 +51,7 @@ export default function WaitlistForm({
       setEmail('')
     } catch (err) {
       console.error('waitlist submit failed', err)
-      setError('Something went wrong — please try again.')
+      setError('Something went wrong. Please try again.')
       setStatus('error')
     }
   }
@@ -76,7 +76,7 @@ export default function WaitlistForm({
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12" />
         </svg>
-        You&apos;re on the list — we&apos;ll email you when LuminaLog opens.
+        You&apos;re on the list. We&apos;ll email you when LuminaLog opens.
       </div>
     )
   }

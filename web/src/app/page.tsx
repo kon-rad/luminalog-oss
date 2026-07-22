@@ -39,12 +39,12 @@ export default function Home() {
                 Merge with AI<br />through daily<br />conversation.
               </h1>
               <p style={{ marginTop: 22, fontSize: 19, lineHeight: 1.65, color: 'var(--text2)', maxWidth: 500 }}>
-                LuminaLog is your AI journaling companion — and the first of a new category we call <b style={{ color: 'var(--text)', fontWeight: 600 }}>The Merge</b>: a daily practice of merging with an AI built entirely from your own life. Capture your days in text, voice, video, or photos, talk to an AI that has read every entry you&apos;ve ever written, and grow more articulate and whole as it comes to know you.
+                LuminaLog is your AI journaling companion, and the first of a new category we call <b style={{ color: 'var(--text)', fontWeight: 600 }}>The Merge</b>: a daily practice of merging with an AI built from your own life. Capture your days in text, voice, video, or photos. Talk to an AI that has read every entry you&apos;ve written. Grow more articulate and whole as it comes to know you.
               </p>
               <div id="waitlist" style={{ marginTop: 34 }}>
                 <WaitlistForm source="hero" />
                 <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
-                  <span style={{ fontSize: 14, color: 'var(--text3)' }}>Not yet on the App Store — join the waitlist for early access.</span>
+                  <span style={{ fontSize: 14, color: 'var(--text3)' }}>Not yet on the App Store. Join the waitlist for early access.</span>
                   <a href="#how" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent)', fontSize: 15, fontWeight: 600 }}>
                     See how it works
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
@@ -83,7 +83,7 @@ export default function Home() {
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5c.5 3.6 1.9 5 5.5 5.5-3.6.5-5 1.9-5.5 5.5-.5-3.6-1.9-5-5.5-5.5 3.6-.5 5-1.9 5.5-5.5z"/></svg>
                         Today&apos;s prompt
                       </div>
-                      <div className="serif" style={{ fontSize: 17, lineHeight: 1.35, fontWeight: 500, position: 'relative' }}>&ldquo;What were you really afraid of last Thursday — and have you felt that before?&rdquo;</div>
+                      <div className="serif" style={{ fontSize: 17, lineHeight: 1.35, fontWeight: 500, position: 'relative' }}>&ldquo;What were you really afraid of last Thursday? Have you felt that before?&rdquo;</div>
                       <div style={{ marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 7, background: '#fff', color: 'var(--accentDeep)', padding: '10px 16px', borderRadius: 12, fontSize: 13, fontWeight: 600, position: 'relative' }}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg>
                         Start journaling
@@ -130,10 +130,10 @@ export default function Home() {
               You cannot see your own patterns. We can.
             </h2>
             <p style={{ marginTop: 24, fontSize: 18, color: 'var(--text2)', lineHeight: 1.75 }}>
-              Most people move through life without ever truly seeing themselves. They repeat the same fears. Ask the wrong questions. Miss the connections between where they are and where they&apos;ve been. Not because they&apos;re not thoughtful — but because no one can see themselves clearly from inside their own head.
+              Most people move through life without ever truly seeing themselves. They repeat the same fears. Ask the wrong questions. Miss the connections between where they are and where they&apos;ve been. Not because they&apos;re not thoughtful, but because no one sees themselves clearly from inside their own head.
             </p>
             <p style={{ marginTop: 16, fontSize: 18, color: 'var(--text2)', lineHeight: 1.75 }}>
-              LuminaLog gives you the outside view. Every entry you write, speak, or film is indexed and remembered. The AI reads across everything — your words, your voice, your history — and shows you what it sees.
+              LuminaLog gives you the outside view. Every entry you write, speak, or film is indexed and remembered. The AI reads across all of it and shows you what it sees.
             </p>
           </div>
           {/* Chat mockup */}
@@ -152,7 +152,7 @@ export default function Home() {
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5c.5 3.6 1.9 5 5.5 5.5-3.6.5-5 1.9-5.5 5.5-.5-3.6-1.9-5-5.5-5.5 3.6-.5 5-1.9 5.5-5.5z"/></svg>
                     Lumina
                   </div>
-                  <div className="serif" style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--text)' }}>&ldquo;You&apos;ve mentioned fear of being misunderstood in seven entries over the past four months — always right before a creative project. You never named it that way. Does that resonate?&rdquo;</div>
+                  <div className="serif" style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--text)' }}>&ldquo;You&apos;ve mentioned fear of being misunderstood in seven entries over the past four months, always right before a creative project. You never named it that way. Does that resonate?&rdquo;</div>
                 </div>
                 <div className="bubble-user">I didn&apos;t realize I was doing that.</div>
                 <div className="bubble-ai">
@@ -177,12 +177,12 @@ export default function Home() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }} className="unlock-grid">
             {[
-              ['Reclaim your attention', 'Every screen you own is built to spend your attention on someone else\'s story. LuminaLog spends it on yours — ten minutes a day pointed inward, the one direction the feed never sends you.'],
-              ['Turn experience into language', 'Most of a day goes unexamined — felt, replayed, never put into words. Ten minutes of saying it, out loud or on the page, turns fog into words you can actually work with.'],
-              ['Sharpen your mental models', 'You can only work with what you can name. As your articulation compounds, so do your models — of your work, your people, your life.'],
-              ['Ask the right questions', "LuminaLog doesn't hand you answers. It asks the question you weren't asking — drawn from your actual history — that makes you say it more truly."],
-              ['A daily ceremony', 'Ten minutes — morning coffee or midnight quiet — where you cross from living your day to understanding it. Write or speak your 750 words; no guilt for missed days, the ceremony waits.'],
-              ['What your soul is made of', 'Every day you cross your goal becomes a star, placed by the meaning of your words — never the words themselves. Together they form your On-Chain Soul: a soulbound token on Base, provably earned, impossible to fake, yours alone.'],
+              ['Reclaim your attention', 'Every screen you own is built to spend your attention on someone else\'s story. LuminaLog spends it on yours: ten minutes a day pointed inward, the one direction the feed never sends you.'],
+              ['Turn experience into language', 'Most of a day goes unexamined: felt, replayed, never put into words. Ten minutes of saying it, aloud or on the page, turns fog into words you can work with.'],
+              ['Sharpen your mental models', 'You can only work with what you can name. As your articulation compounds, so do your models of your work, your people, your life.'],
+              ['Ask the right questions', "LuminaLog doesn't hand you answers. It asks the question you weren't asking, drawn from your history, that makes you say it more truly."],
+              ['A daily ceremony', 'Ten minutes, morning coffee or midnight quiet, where you cross from living your day to understanding it. Write or speak your 750 words. No guilt for missed days; the ceremony waits.'],
+              ['What your soul is made of', 'Every day you cross your goal becomes a star, placed by the meaning of your words, never the words themselves. Together they form your On-Chain Soul: a soulbound token on Base, provably earned, impossible to fake, yours alone.'],
             ].map(([title, desc]) => (
               <div key={title as string} className="card" style={{ padding: 24 }}>
                 <div style={{ color: 'var(--accent)', fontSize: 18, marginBottom: 14 }}>✦</div>
@@ -204,9 +204,9 @@ export default function Home() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="capture-grid">
             {[
-              { pill: 'Text', pillBg: 'rgba(206,127,68,0.12)', pillColor: 'var(--accentDeep)', title: 'Write what\'s on your mind.', desc: 'A clean, distraction-free editor. No formatting toolbars, no pressure. Just you and the page — and an AI that will remember every word.' },
-              { pill: 'Voice', pillBg: 'rgba(193,108,108,0.12)', pillColor: '#C16C6C', title: 'Speak your thoughts.', desc: 'Record as you go — LuminaLog transcribes in real time, on your device, and folds every word into your journal\'s memory. The more you speak, the sharper your language — and your ability to put your inner life into words.' },
-              { pill: 'Video', pillBg: 'rgba(137,123,168,0.12)', pillColor: '#7B6FA0', title: 'Film yourself.', desc: 'Record a moment, a reflection, a conversation with yourself. LuminaLog transcribes what you say and adds it to your journal — remembered alongside everything else you\'ve written.' },
+              { pill: 'Text', pillBg: 'rgba(206,127,68,0.12)', pillColor: 'var(--accentDeep)', title: 'Write what\'s on your mind.', desc: 'A clean, distraction-free editor. No formatting toolbars, no pressure. Just you and the page, plus an AI that remembers every word.' },
+              { pill: 'Voice', pillBg: 'rgba(193,108,108,0.12)', pillColor: '#C16C6C', title: 'Speak your thoughts.', desc: 'Record as you go. LuminaLog transcribes in real time, on your device, and folds every word into your journal\'s memory. The more you speak, the sharper your language and your ability to put your inner life into words.' },
+              { pill: 'Video', pillBg: 'rgba(137,123,168,0.12)', pillColor: '#7B6FA0', title: 'Film yourself.', desc: 'Record a moment, a reflection, a conversation with yourself. LuminaLog transcribes what you say and adds it to your journal, remembered alongside everything else you\'ve written.' },
               { pill: 'Image', pillBg: 'rgba(110,140,119,0.12)', pillColor: '#4E7A5A', title: 'Photograph your notebook.', desc: 'Already journaling on paper? Snap the page. We read your handwriting, make it searchable, and add it to your AI\'s memory.' },
             ].map(({ pill, pillBg, pillColor, title, desc }) => (
               <div key={pill} className="card" style={{ padding: 28 }}>
@@ -226,13 +226,13 @@ export default function Home() {
             <div>
               <span className="eyebrow">Your On-Chain Soul</span>
               <h2 className="serif" style={{ marginTop: 12, fontSize: 'clamp(30px,3.6vw,42px)', fontWeight: 600, color: 'var(--dark-text)', letterSpacing: '-0.025em' }}>Every day you show up<br />becomes a star.</h2>
-              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 20 }}>Cross your 750-word goal and the day is minted as a star in your On-Chain Soul — a soulbound token, live on Base, that grows into a constellation of every day you did the work on yourself. It&apos;s provably earned, impossible to fake, and permanently, un-transferably yours.</p>
-              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 16 }}>You never touch crypto. A secure wallet is created for you the moment you sign in with Apple or Google — no seed phrase, no gas, no jargon. The chain is invisible plumbing; the only promise it makes is that your Soul is yours.</p>
+              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 20 }}>Cross your 750-word goal and the day is minted as a star in your On-Chain Soul: a soulbound token, live on Base, that grows into a constellation of every day you did the work. It&apos;s provably earned, impossible to fake, and permanently, un-transferably yours.</p>
+              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 16 }}>You never touch crypto. A secure wallet is created the moment you sign in with Apple or Google. No seed phrase, no gas, no jargon. The chain is invisible plumbing; its only promise is that your Soul is yours.</p>
               <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
                   'A new star for every day you cross 750 words.',
-                  'Soulbound — it can\'t be sold, transferred, gifted, or faked.',
-                  'A wallet auto-created at sign-in — you\'ll never see the blockchain.',
+                  'Soulbound: it can\'t be sold, transferred, gifted, or faked.',
+                  'A wallet auto-created at sign-in; you\'ll never see the blockchain.',
                 ].map((chip) => (
                   <div key={chip} style={{ background: 'var(--dark-surface)', border: '1px solid var(--dark-hairline)', borderRadius: 14, padding: '13px 16px', fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 14, color: 'var(--dark-text)', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                     <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }}>✦</span>
@@ -297,7 +297,7 @@ export default function Home() {
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5c.5 3.6 1.9 5 5.5 5.5-3.6.5-5 1.9-5.5 5.5-.5-3.6-1.9-5-5.5-5.5 3.6-.5 5-1.9 5.5-5.5z"/></svg>
                         AI analysis
                       </div>
-                      {['"A recurring pattern of self-doubt before creative projects — this is the sixth entry where it surfaces."', '"An undertone of gratitude you don\'t name directly."', '"The fear you described here connects closely to what you wrote in March."'].map((text, i) => (
+                      {['"A recurring pattern of self-doubt before creative projects. This is the sixth entry where it surfaces."', '"An undertone of gratitude you don\'t name directly."', '"The fear you described here connects closely to what you wrote in March."'].map((text, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, padding: '6px 0', borderBottom: i < 2 ? '1px solid var(--hairline)' : 'none' }}>
                           <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 5 }} />
                           <div className="serif" style={{ fontSize: 11.5, lineHeight: 1.45, color: 'var(--text2)', fontStyle: 'italic' }}>{text}</div>
@@ -323,11 +323,11 @@ export default function Home() {
             <div>
               <span className="eyebrow">AI Analysis</span>
               <h2 className="serif" style={{ marginTop: 14, fontSize: 'clamp(30px,3.6vw,42px)', fontWeight: 600, letterSpacing: '-0.025em' }}>Your life,<br />reflected back.</h2>
-              <p style={{ marginTop: 18, fontSize: 17, color: 'var(--text2)', lineHeight: 1.7 }}>Every entry receives an AI-generated summary and a set of insights — not just from what you wrote today, but from everything the AI knows about you. It finds the themes threading through your last six months, the patterns you couldn&apos;t name, and the connections between your current goals and things you recorded and forgot.</p>
+              <p style={{ marginTop: 18, fontSize: 17, color: 'var(--text2)', lineHeight: 1.7 }}>Every entry gets an AI summary and a set of insights, drawn not just from today but from everything the AI knows about you. It finds the themes threading through your last six months, the patterns you couldn&apos;t name, and the connections between your goals and things you recorded and forgot.</p>
               <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {[
                   ['Daily prompt', 'One personalized question each morning, drawn from your recent themes and where you are in your growth.'],
-                  ['Cross-entry patterns', 'The AI reads across your entire journal, not just today\'s entry — finding threads that span months or years.'],
+                  ['Cross-entry patterns', 'The AI reads across your entire journal, not just today\'s entry, finding threads that span months or years.'],
                 ].map(([title, desc]) => (
                   <div key={title as string} style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 18, padding: '18px 20px', boxShadow: 'var(--shadow)', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                     <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }}>
@@ -352,12 +352,12 @@ export default function Home() {
             <div>
               <span className="eyebrow">The daily practice · 750 words</span>
               <h2 className="serif" style={{ marginTop: 14, fontSize: 'clamp(30px,3.6vw,42px)', fontWeight: 600, letterSpacing: '-0.025em' }}>A streak that gives you<br />something back.</h2>
-              <p style={{ marginTop: 18, fontSize: 17, color: 'var(--text2)', lineHeight: 1.7 }}>Three pages a day — about 750 words. Write them, speak them on a walk, or film them before bed; LuminaLog transcribes it all and counts every word toward your day. Cross 750 and the day is yours: your streak grows, and it stays grown. Miss a day and the journal simply waits — no guilt, no pressure. The more days you give it, the more your companion comes to understand you.</p>
+              <p style={{ marginTop: 18, fontSize: 17, color: 'var(--text2)', lineHeight: 1.7 }}>Three pages a day, about 750 words. Write them, speak them on a walk, or film them before bed; LuminaLog transcribes it all and counts every word toward your day. Cross 750 and the day is yours: your streak grows and stays grown. Miss a day and the journal simply waits, no guilt, no pressure. The more days you give it, the better your companion understands you.</p>
               <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {[
-                  ['Three pages, any format', 'Text, voice, or video — it all transcribes and adds up toward your daily 750.'],
+                  ['Three pages, any format', 'Text, voice, or video, it all transcribes and adds up toward your daily 750.'],
                   ['Cross 750, get your card', 'Hit the goal and LuminaLog reads the day back to you as a beautiful, shareable Daily Insights card.'],
-                  ['Your streak grows — and stays grown', 'Days you earn are never taken back. A gap is simply a fresh start, never a loss.'],
+                  ['Your streak grows and stays grown', 'Days you earn are never taken back. A gap is simply a fresh start, never a loss.'],
                 ].map(([title, desc]) => (
                   <div key={title as string} style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 18, padding: '18px 20px', boxShadow: 'var(--shadow)', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                     <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }}>
@@ -370,7 +370,7 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <p style={{ marginTop: 18, fontSize: 13.5, color: 'var(--text3)', lineHeight: 1.55 }}>You choose what to share. Mark any entry private and it stays out — of the card and the insights.</p>
+              <p style={{ marginTop: 18, fontSize: 13.5, color: 'var(--text3)', lineHeight: 1.55 }}>You choose what to share. Mark any entry private and it stays out of the card and the insights.</p>
             </div>
             {/* Daily Insights card mock */}
             <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -384,7 +384,7 @@ export default function Home() {
                     <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 13 }}>
                       {[
                         ['Insights', 'You wrote about the meeting with more calm than the version of you from March would have.'],
-                        ['A new perspective', 'The hesitation you keep noting may be care, not doubt — you slow down for what matters.'],
+                        ['A new perspective', 'The hesitation you keep noting may be care, not doubt. You slow down for what matters.'],
                         ['Reflect on', 'What would change if you trusted that instinct a little sooner?'],
                       ].map(([label, text]) => (
                         <div key={label}>
@@ -446,7 +446,7 @@ export default function Home() {
                   </div>
                   <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <div style={{ maxWidth: '85%', background: 'var(--dark-surface)', border: '1px solid var(--dark-hairline)', borderRadius: '18px 18px 18px 4px', padding: '12px 14px' }}>
-                      <div className="serif" style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--dark-text)' }}>&ldquo;I&apos;ve noticed that the anxiety you described in last Thursday&apos;s entry — it appeared in February too, right before your last career transition. Is that pattern visible to you now?&rdquo;</div>
+                      <div className="serif" style={{ fontSize: 12.5, lineHeight: 1.5, color: 'var(--dark-text)' }}>&ldquo;The anxiety in last Thursday&apos;s entry appeared in February too, right before your last career transition. Is that pattern visible to you now?&rdquo;</div>
                     </div>
                     <div className="bubble-user">I hadn&apos;t connected those two at all.</div>
                     <div style={{ maxWidth: '85%', background: 'var(--dark-surface)', border: '1px solid var(--dark-hairline)', borderRadius: '18px 18px 18px 4px', padding: '12px 14px' }}>
@@ -483,8 +483,8 @@ export default function Home() {
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 48 }} className="converse-copy-row">
             {[
-              ['Text chat', 'Think out loud. Untangle a decision. Ask about a pattern you\'ve noticed. The AI replies in full, drawing on your biography and your entire journal — never generic, always yours.'],
-              ['Voice call', 'A real-time voice conversation with a companion that already knows your story. It listens with context, asks the questions you need, and notices what you leave out. The more you talk it through out loud, the more articulate you become — your thinking and your words grow sharper every conversation. Live calls run on Voice Credits, bought separately — so you only pay for the minutes you use.'],
+              ['Text chat', 'Think out loud. Untangle a decision. Ask about a pattern you\'ve noticed. The AI replies in full, drawing on your biography and your entire journal. Never generic, always yours.'],
+              ['Voice call', 'A real-time voice conversation with a companion that already knows your story. It listens with context, asks the questions you need, and notices what you leave out. The more you talk it through aloud, the more articulate you become; your thinking and words grow sharper every conversation. Live calls run on Voice Credits, bought separately, so you only pay for the minutes you use.'],
             ].map(([title, desc]) => (
               <div key={title as string} style={{ maxWidth: 280, textAlign: 'center' }}>
                 <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark-text)', marginBottom: 10 }}>{title}</h4>
@@ -502,8 +502,8 @@ export default function Home() {
             <div>
               <span className="eyebrow">Private AI</span>
               <h2 className="serif" style={{ marginTop: 12, fontSize: 'clamp(30px,3.6vw,42px)', fontWeight: 600, color: 'var(--dark-text)', letterSpacing: '-0.025em', lineHeight: 1.08 }}>Even the AI reads your<br />journal in a sealed room.</h2>
-              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 20 }}>The reflective AI — every chat, insight, summary, and daily prompt — runs on <b style={{ color: 'var(--dark-text)', fontWeight: 600 }}>Morpheus</b>, a decentralized network where your words are processed inside hardware enclaves, encrypted end to end. Your entries stay unreadable to the machine running the model, to Morpheus, and to us. Not a privacy policy — a locked box no one holds the key to.</p>
-              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 16 }}>Your journal is yours: sealed at rest, sealed in thought, and never used to train anyone&apos;s AI. Own your data — down to the moment a model reasons over it.</p>
+              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 20 }}>The reflective AI (every chat, insight, summary, and daily prompt) runs on <b style={{ color: 'var(--dark-text)', fontWeight: 600 }}>Morpheus</b>, a decentralized network where your words are processed inside hardware enclaves, encrypted end to end. Inside the enclave your words are processed and then discarded, never stored, never used to train anyone&apos;s AI. Your journal at rest stays encrypted and unreadable to us. Not a privacy policy. A locked box no one holds the key to.</p>
+              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 16 }}>Your journal is yours: sealed at rest, sealed in thought, and never used to train anyone&apos;s AI. You own your data, down to the moment a model reasons over it.</p>
               <div style={{ marginTop: 26, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                 {['Runs on Morpheus', 'Hardware enclaves (TEE)', 'End-to-end encrypted'].map((chip) => (
                   <span key={chip} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'var(--dark-surface)', border: '1px solid var(--dark-hairline)', borderRadius: 100, padding: '8px 15px', fontSize: 13, fontWeight: 600, color: 'var(--dark-text)' }}>
@@ -560,7 +560,7 @@ export default function Home() {
                 </svg>
                 <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '20px 22px', background: 'linear-gradient(180deg, transparent, rgba(6,4,10,0.82))' }}>
                   <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.4px', textTransform: 'uppercase', color: '#F0C18A' }}>Confidential inference</div>
-                  <div className="serif" style={{ fontSize: 15, color: 'rgba(255,255,255,0.94)', marginTop: 6, lineHeight: 1.3 }}>Processed inside a hardware enclave — invisible even to us.</div>
+                  <div className="serif" style={{ fontSize: 15, color: 'rgba(255,255,255,0.94)', marginTop: 6, lineHeight: 1.3 }}>Processed inside a hardware enclave, invisible even to us.</div>
                   <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 100, padding: '5px 12px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.85)' }}>
                     <span style={{ color: 'var(--accent)' }}>✦</span>
                     Morpheus · TEE
@@ -578,19 +578,19 @@ export default function Home() {
           <div style={{ maxWidth: 640, marginBottom: 40 }}>
             <span className="eyebrow">Privacy & trust</span>
             <h2 className="serif" style={{ marginTop: 14, fontSize: 'clamp(30px,3.8vw,44px)', fontWeight: 600, letterSpacing: '-0.025em' }}>Zero-knowledge by design.<br />Verifiable by code.</h2>
-            <p style={{ marginTop: 16, fontSize: 18, color: 'var(--text2)', lineHeight: 1.65 }}>Your journal holds the most private data you own. It stays yours — end-to-end encrypted, with the keys derived on your own device, so your entries reach us already sealed. What you share with the AI is always up to you.</p>
+            <p style={{ marginTop: 16, fontSize: 18, color: 'var(--text2)', lineHeight: 1.65 }}>Your journal holds the most private data you own. It stays yours: end-to-end encrypted, with keys derived on your own device, so your entries reach us already sealed. What you share with the AI is always up to you.</p>
           </div>
           <div style={{ background: 'var(--surfaceAlt)', borderRadius: 28, padding: 4, boxShadow: 'var(--shadow)' }}>
             <div style={{ background: 'var(--surface)', borderRadius: 25, padding: '40px 44px' }} className="privacy-inner">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 48px' }} className="privacy-grid">
                 {[
-                  ['🔒', 'Zero-knowledge encryption', "End-to-end encrypted. We can't read your entries — and neither can anyone else. The keys are derived on your device and never leave it, so everything reaches our servers already sealed."],
-                  ['🛡️', 'Private, confidential inference', "The AI that reads your journal runs on Morpheus — a decentralized network where inference happens inside hardware enclaves (TEEs) with end-to-end-encrypted prompts. Even while the AI reasons over your words, no one — not the compute node, not Morpheus, not us — can see them."],
+                  ['🔒', 'Zero-knowledge encryption', "End-to-end encrypted. We can't read your entries, and neither can anyone else. The keys are derived on your device and never leave it, so everything reaches our servers already sealed."],
+                  ['🛡️', 'Private, confidential inference', "The AI that reads your journal runs on Morpheus, a decentralized network where inference happens inside hardware enclaves (TEEs) with end-to-end-encrypted prompts. Even while the AI reasons over your words, no one can see them: not the compute node, not Morpheus, not us."],
                   ['📱', 'On-device dictation & search', "Voice dictation, handwriting recognition (OCR), and the semantic search that finds relevant entries all run on your own device."],
-                  ['🎯', 'You choose what the AI sees', "What you share with the AI is up to you — your journal entries plus the biography and profile details you provide, which can include personal, identifying information. Share as much or as little as you like; anything you keep private stays out entirely."],
+                  ['🎯', 'You choose what the AI sees', "What you share with the AI is up to you: your journal entries plus the biography and profile details you provide, which can include personal, identifying information. Share as much or as little as you like; anything you keep private stays out entirely."],
                   ['🚫', 'Never used to train AI', "Your journal is never used to train AI models. Not ours. Not anyone else's. Full stop."],
-                  ['⭐', 'Open source', 'The iOS app and backend API are publicly available on GitHub. Our privacy claims are not trust — they are code anyone can read and verify.'],
-                  ['🗑️', 'Full deletion, always', 'Delete your account and everything goes with it — every entry, every AI vector, every media file. Permanently. One tap. No retention.'],
+                  ['⭐', 'Open source', 'The iOS app and backend API are public on GitHub. Our privacy claims aren\'t trust; they\'re code anyone can read and verify.'],
+                  ['🗑️', 'Full deletion, always', 'Delete your account and everything goes with it: every entry, every AI vector, every media file. Permanently. One tap. No retention.'],
                 ].map(([icon, title, desc]) => (
                   <div key={title} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
                     <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--accentTint)', color: 'var(--accentDeep)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>{icon}</div>
@@ -619,7 +619,7 @@ export default function Home() {
             {[
               { num: '1', icon: '+', title: 'Capture', desc: 'Write, speak, film, or photograph your handwritten page. One tap, any format, all in one place.' },
               { num: '2', icon: '✦', title: 'Reflect', desc: 'Get AI insights, pattern analysis, and five new questions from each entry. Every morning, one personalized prompt drawn from your recent life.' },
-              { num: '3', icon: '💬', title: 'Converse', desc: 'Open a text or voice conversation with your AI companion. It already knows your whole story — and it uses all of it.' },
+              { num: '3', icon: '💬', title: 'Converse', desc: 'Open a text or voice conversation with your AI companion. It already knows your whole story, and it uses all of it.' },
             ].map(({ num, title, desc }) => (
               <div key={num} style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 22, padding: '30px 26px 28px', boxShadow: 'var(--shadow)', position: 'relative', overflow: 'hidden' }}>
                 <div className="serif" style={{ fontSize: 80, fontWeight: 600, color: 'var(--accentSoft)', position: 'absolute', top: -14, right: 20, lineHeight: 1, userSelect: 'none', pointerEvents: 'none' }}>{num}</div>
@@ -637,14 +637,14 @@ export default function Home() {
         <div className="wrap" style={{ textAlign: 'center' }}>
           <span className="eyebrow">Pricing</span>
           <h2 className="serif" style={{ marginTop: 16, fontSize: 'clamp(30px,3.8vw,44px)', fontWeight: 600, letterSpacing: '-0.025em' }}>Simple, honest pricing.</h2>
-          <p style={{ marginTop: 14, fontSize: 18, color: 'var(--text2)' }}>One price, everywhere — the whole app, no tiers. The same on the web and in the app. Live voice calls run on add-on Voice Credits.</p>
+          <p style={{ marginTop: 14, fontSize: 18, color: 'var(--text2)' }}>One price, everywhere: the whole app, no tiers, the same on web and in the app. Live voice calls run on add-on Voice Credits.</p>
 
           {/* Founding Member preorder */}
           <div style={{ maxWidth: 640, margin: '44px auto 0' }}>
             <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 24, background: 'linear-gradient(150deg, var(--accent), var(--accentDeep))', color: '#fff', padding: '34px 34px 30px', textAlign: 'left', boxShadow: '0 20px 52px rgba(185,107,51,0.28)' }}>
               <div style={{ position: 'absolute', top: -70, right: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', filter: 'blur(10px)', pointerEvents: 'none' }} />
               <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 100, padding: '5px 13px', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>✦ Founding offer · coming soon</div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 100, padding: '5px 13px', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>✦ Founding offer</div>
                 <h3 className="serif" style={{ marginTop: 16, fontSize: 'clamp(26px,3.4vw,36px)', fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.02em' }}>Become a Founding Member.</h3>
                 <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0 12px', marginTop: 14 }}>
                   <span className="serif" style={{ fontSize: 40, fontWeight: 600, letterSpacing: '-0.025em' }}>$29.99</span>
@@ -652,14 +652,14 @@ export default function Home() {
                   <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}><s>$59.97</s> · 50% off · then $19.99/mo</span>
                 </div>
                 <p style={{ marginTop: 16, fontSize: 15.5, lineHeight: 1.62, color: 'rgba(255,255,255,0.9)', maxWidth: 520 }}>
-                  Reserve LuminaLog before launch and lock in half price. Founding Members start the moment we open — on the web today, on iOS at launch — carry a permanent Founding Member mark, and grow their On-Chain Soul from day one. Cancel anytime.
+                  Reserve LuminaLog before launch and lock in half price. Founding Members start today on the web, carry a permanent Founding Member mark, and grow their On-Chain Soul from day one.
                 </p>
                 <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
-                  <span aria-disabled="true" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.4)', color: '#fff', fontSize: 16, fontWeight: 700, padding: '13px 26px', borderRadius: 14, whiteSpace: 'nowrap', cursor: 'default' }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff', display: 'inline-block' }} />
-                    Coming soon
-                  </span>
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>Founding preorder opens soon — join the waitlist to be first.</span>
+                  <a href="/founding" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: '#fff', color: 'var(--accentDeep)', fontSize: 16, fontWeight: 700, padding: '13px 26px', borderRadius: 14, whiteSpace: 'nowrap' }}>
+                    Become a Founding Member
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </a>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>Half price, locked in before launch.</span>
                 </div>
               </div>
             </div>
@@ -673,7 +673,7 @@ export default function Home() {
               <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$19.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ month</span></div>
               <div style={{ fontSize: 14, color: 'var(--text3)' }}>Cancel anytime</div>
               <ul style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {['Unlimited text, voice, video & photo entries', 'End-to-end encrypted — zero-knowledge by design', 'Private AI inference on Morpheus (TEE)', 'Unlimited AI insights & patterns', 'Unlimited chat with your companion', 'Daily 750-word streak + shareable insights card', 'Daily personalized prompt', 'Your On-Chain Soul — a soulbound token'].map(f => (
+                {['Unlimited text, voice, video & photo entries', 'End-to-end encrypted, zero-knowledge by design', 'Private AI inference on Morpheus (TEE)', 'Unlimited AI insights & patterns', 'Unlimited chat with your companion', 'Daily 750-word streak + shareable insights card', 'Daily personalized prompt', 'Your On-Chain Soul, a soulbound token'].map(f => (
                   <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15, textAlign: 'left' }}>
                     <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -718,7 +718,7 @@ export default function Home() {
                 <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Live voice calls run on Voice Credits</h3>
               </div>
               <p style={{ fontSize: 15, color: 'var(--text2)', lineHeight: 1.6 }}>
-                Everything in LuminaLog is included in your subscription — writing, voice, video &amp; photo entries, AI insights, chat, and your Journal Constellation. <b style={{ color: 'var(--text)', fontWeight: 600 }}>Real-time voice calls</b> with your companion are the one exception: they&apos;re powered by Voice Credits you buy as you go, so you only ever pay for the minutes you actually talk.
+                Everything in LuminaLog is included in your subscription: writing, voice, video &amp; photo entries, AI insights, chat, and your Journal Constellation. <b style={{ color: 'var(--text)', fontWeight: 600 }}>Real-time voice calls</b> are the one exception: they&apos;re powered by Voice Credits you buy as you go, so you only pay for the minutes you actually talk.
               </p>
               <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--accentDeep)' }}>
                 <span style={{ background: 'var(--accentSoft)', padding: '5px 12px', borderRadius: 100 }}>1 credit = $1 = 6 minutes</span>
@@ -732,7 +732,7 @@ export default function Home() {
                 ))}
               </div>
               <p style={{ fontSize: 12.5, color: 'var(--text3)', marginTop: 14, lineHeight: 1.5 }}>
-                Same rate at every pack size — bigger packs just mean fewer interruptions. Voice journaling (recording entries) is always included; credits are only for live calls.
+                Same rate at every pack size; bigger packs just mean fewer interruptions. Voice journaling (recording entries) is always included; credits are only for live calls.
               </p>
             </div>
           </div>
