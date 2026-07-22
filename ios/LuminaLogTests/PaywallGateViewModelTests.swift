@@ -57,14 +57,37 @@ final class PaywallGateViewModelTests: XCTestCase {
         XCTAssertEqual(vm.state, .locked)
     }
 
-    func testLapseFlipsUnlockedToLocked() async {
+    func testSustainedLapseLocksAfterGrace() async {
         let spy = Spy(Entitlement(isPro: true))
         let vm = PaywallGateViewModel(subscriptions: spy)
+        vm.relockGrace = .milliseconds(50)
         vm.start()
         await waitUntil { vm.state == .unlocked }
         spy.push(Entitlement(isPro: false))
+        // A lapse that persists past the grace window still locks.
         await waitUntil { vm.state == .locked }
         XCTAssertEqual(vm.state, .locked)
+    }
+
+    /// Regression for the paywall-gate remount bug: RevenueCat briefly reports
+    /// non-pro during a renewal (old period expires moments before the renewal
+    /// receipt validates), then pro again. The gate must NOT lock on that blip —
+    /// locking structurally remounts `RootView` and cancels in-flight view work
+    /// (e.g. Journal Detail's entry-AI generation, which then fails `cancelled`).
+    func testTransientLapseDoesNotLock() async {
+        let spy = Spy(Entitlement(isPro: true))
+        let vm = PaywallGateViewModel(subscriptions: spy)
+        vm.relockGrace = .milliseconds(300)
+        vm.start()
+        await waitUntil { vm.state == .unlocked }
+
+        // Momentary non-pro, then pro again well within the grace window.
+        spy.push(Entitlement(isPro: false))
+        spy.push(Entitlement(isPro: true))
+
+        // Wait past the grace window: the debounced re-lock must have been cancelled.
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertEqual(vm.state, .unlocked, "A transient non-pro blip must not lock the app")
     }
 
     func testFailOpenWhenLastKnownProAndNoEmission() async {

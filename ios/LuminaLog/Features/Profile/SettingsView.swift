@@ -47,9 +47,6 @@ struct SettingsView: View {
     @Environment(\.openURL) private var openURL
 
     private let reminders: ReminderCoordinator
-    @AppStorage(ReminderPrefs.enabledKey) private var reminderEnabled: Bool = false
-    @AppStorage(ReminderPrefs.hourKey) private var reminderHour: Int = ReminderPrefs.defaultHour
-    @AppStorage(ReminderPrefs.minuteKey) private var reminderMinute: Int = ReminderPrefs.defaultMinute
     @State private var reminderPermissionDenied = false
 
     init(
@@ -470,39 +467,19 @@ struct SettingsView: View {
 
     private var reminderCard: some View {
         VStack(alignment: .leading, spacing: Spacing.s) {
-            Text("Daily Reminder")
+            Text("Daily Reminders")
                 .font(.sectionHeader)
                 .foregroundStyle(Color.textPrimary)
 
             VStack(spacing: 0) {
-                HStack(spacing: Spacing.m) {
-                    settingsIcon("bell.badge", tint: .accentWarm)
-                    Text("Daily reminder")
-                        .font(.uiBody)
-                        .foregroundStyle(Color.textPrimary)
-                    Spacer()
-                    Toggle("Daily reminder", isOn: reminderToggleBinding)
-                        .tint(Color.accentWarm)
-                        .labelsHidden()
-                }
-                .padding(Spacing.m)
-
-                if reminderEnabled {
-                    rowDivider
-                    HStack(spacing: Spacing.m) {
-                        settingsIcon("clock", tint: .textSecondary)
-                        Text("Time")
-                            .font(.uiBody)
-                            .foregroundStyle(Color.textPrimary)
-                        Spacer()
-                        DatePicker(
-                            "Reminder time",
-                            selection: reminderTimeBinding,
-                            displayedComponents: .hourAndMinute
-                        )
-                        .labelsHidden()
-                    }
-                    .padding(Spacing.m)
+                ForEach(Array(ReminderSlot.all.enumerated()), id: \.element.id) { index, slot in
+                    if index > 0 { rowDivider }
+                    ReminderRowView(
+                        slot: slot,
+                        reminders: reminders,
+                        profile: { viewModel.profile },
+                        permissionDenied: $reminderPermissionDenied
+                    )
                 }
             }
             .background(
@@ -512,44 +489,10 @@ struct SettingsView: View {
 
             Text(reminderPermissionDenied
                  ? "Enable notifications for LuminaLog in Settings to get reminders."
-                 : "Goal: \(DailyGoal.wordTarget) words ≈ 3 handwritten pages.")
+                 : "Reminders only fire on days you haven't reached \(DailyGoal.wordTarget) words yet.")
                 .font(.captionText)
                 .foregroundStyle(reminderPermissionDenied ? Color.danger : Color.textSecondary)
         }
-    }
-
-    private var reminderToggleBinding: Binding<Bool> {
-        Binding(
-            get: { reminderEnabled },
-            set: { newValue in
-                if newValue {
-                    Task {
-                        let granted = await reminders.enableReminders(profile: viewModel.profile)
-                        reminderPermissionDenied = !granted
-                        reminderEnabled = granted
-                    }
-                } else {
-                    reminderPermissionDenied = false
-                    Task { await reminders.disableReminders() }
-                }
-            }
-        )
-    }
-
-    private var reminderTimeBinding: Binding<Date> {
-        Binding(
-            get: {
-                Calendar.current.date(
-                    bySettingHour: reminderHour, minute: reminderMinute, second: 0, of: Date()
-                ) ?? Date()
-            },
-            set: { newDate in
-                let comps = Calendar.current.dateComponents([.hour, .minute], from: newDate)
-                reminderHour = comps.hour ?? ReminderPrefs.defaultHour
-                reminderMinute = comps.minute ?? ReminderPrefs.defaultMinute
-                Task { await reminders.refresh(profile: viewModel.profile) }
-            }
-        )
     }
 
     // MARK: - Settings

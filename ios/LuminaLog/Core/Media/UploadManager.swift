@@ -49,7 +49,7 @@ final class UploadManager {
     private let transport: UploadTransport
     private let presign: (PendingUpload) async throws -> URL
     private let onFinalize: (PendingEntry) async -> Void
-    private let onPermanentFailure: (String) -> Void
+    private let onPermanentFailure: (String) async -> Void
     private let maxAttempts: Int
     private let backoff: (Int) -> Double
     private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "upload")
@@ -58,7 +58,7 @@ final class UploadManager {
          transport: UploadTransport,
          presign: @escaping (PendingUpload) async throws -> URL,
          onFinalize: @escaping (PendingEntry) async -> Void,
-         onPermanentFailure: @escaping (String) -> Void = { _ in },
+         onPermanentFailure: @escaping (String) async -> Void = { _ in },
          maxAttempts: Int = 5,
          backoff: @escaping (Int) -> Double = { attempt in min(60, pow(2.0, Double(attempt))) }) {
         self.journal = journal; self.transport = transport; self.presign = presign
@@ -144,7 +144,7 @@ final class UploadManager {
                 e.uploads[i].nextEarliestAttemptEpoch = Date().timeIntervalSince1970 + delay
             }
         }
-        if hitCap { onPermanentFailure(draftId); return true }
+        if hitCap { await onPermanentFailure(draftId); return true }
         if delay > 0 { try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000)) }
         return false
     }

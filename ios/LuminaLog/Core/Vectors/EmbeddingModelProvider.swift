@@ -38,21 +38,35 @@ enum EmbeddingModelProviderError: LocalizedError, Equatable {
     }
 }
 
-/// Fetches raw bytes for a URL. Abstracted so `EmbeddingModelProvider` can be unit
-/// tested with a fake (no network) — the production conformer is
+/// Downloads a URL to a **local temp file** and returns its URL — the caller takes
+/// ownership (moves or deletes it). Streaming to disk (rather than returning `Data`)
+/// keeps the ~258 MB model off the heap. Abstracted so `EmbeddingModelProvider` can be
+/// unit tested with a fake (no network) — the production conformer is
 /// `URLSessionFileDownloader`.
 protocol EmbeddingFileDownloader {
-    func download(from url: URL) async throws -> Data
+    func download(from url: URL) async throws -> URL
 }
 
-/// `URLSession`-backed downloader for release/dev builds.
+/// `URLSession`-backed downloader for release/dev builds. Uses the async
+/// `download(from:)` so bytes stream to a temp file on disk instead of buffering the
+/// whole (258 MB) model into RAM.
 struct URLSessionFileDownloader: EmbeddingFileDownloader {
     let session: URLSession
-    init(session: URLSession = .shared) { self.session = session }
+    private let fileManager: FileManager
+    init(session: URLSession = .shared, fileManager: FileManager = .default) {
+        self.session = session
+        self.fileManager = fileManager
+    }
 
-    func download(from url: URL) async throws -> Data {
-        let (data, _) = try await session.data(from: url)
-        return data
+    func download(from url: URL) async throws -> URL {
+        let (tempURL, _) = try await session.download(from: url)
+        // `URLSession`'s managed temp file is not guaranteed to outlive this call, so
+        // move it into a temp path we own before handing it back.
+        let owned = fileManager.temporaryDirectory
+            .appendingPathComponent("emb-download-\(UUID().uuidString).tmp")
+        try? fileManager.removeItem(at: owned)
+        try fileManager.moveItem(at: tempURL, to: owned)
+        return owned
     }
 }
 
@@ -116,33 +130,91 @@ struct EmbeddingModelProvider {
         let destination = localURL(for: asset)
 
         // Reuse a good cached copy without touching the network.
-        if let cached = try? Data(contentsOf: destination),
-           Self.sha256Hex(of: cached) == asset.sha256Hex {
-            return destination
+        if fileManager.fileExists(atPath: destination.path) {
+            // Fast path: a sidecar marker recording the verified hash + byte size lets
+            // us skip re-hashing the whole (258 MB) file on every resolve/cold start.
+            if verifiedMarkerMatches(asset, at: destination) {
+                return destination
+            }
+            // No/stale marker (e.g. a legacy cache written before markers existed) —
+            // fall back to a full STREAMED verify (constant memory), and adopt the
+            // marker on a match so the next resolve takes the fast path.
+            if (try? Self.sha256Hex(ofFileAt: destination)) == asset.sha256Hex {
+                writeVerifiedMarker(asset, at: destination)
+                return destination
+            }
         }
 
-        let data = try await downloader.download(from: asset.url)
-        let actual = Self.sha256Hex(of: data)
+        // Streams to a temp file on disk (the caller owns it — clean it up regardless).
+        let tempURL = try await downloader.download(from: asset.url)
+        defer { try? fileManager.removeItem(at: tempURL) }
+
+        let actual = try Self.sha256Hex(ofFileAt: tempURL)
         guard actual == asset.sha256Hex else {
             throw EmbeddingModelProviderError.integrityCheckFailed(
                 expected: asset.sha256Hex, actual: actual
             )
         }
 
-        // Only verified bytes reach the cache — write to a temp file, then move it
-        // into place atomically so a partial/failed write can never be observed.
+        // Only verified bytes reach the cache — move the temp file into place
+        // atomically so a partial/failed write can never be observed.
         try fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
-        let temp = cacheDirectory.appendingPathComponent("\(asset.filename).\(UUID().uuidString).tmp")
-        try data.write(to: temp, options: .atomic)
         if fileManager.fileExists(atPath: destination.path) {
             try fileManager.removeItem(at: destination)
         }
-        try fileManager.moveItem(at: temp, to: destination)
+        try fileManager.moveItem(at: tempURL, to: destination)
+        writeVerifiedMarker(asset, at: destination)
         return destination
+    }
+
+    // MARK: - Verified marker (skip cold-start re-hash)
+
+    /// Sidecar path recording that `destination`'s bytes were verified.
+    private func markerURL(for destination: URL) -> URL {
+        destination.appendingPathExtension("verified")
+    }
+
+    /// Current byte size of the file at `url`, or nil if it can't be read.
+    private func byteSize(at url: URL) -> Int? {
+        guard let attrs = try? fileManager.attributesOfItem(atPath: url.path) else { return nil }
+        return (attrs[.size] as? NSNumber)?.intValue
+    }
+
+    /// True iff a sidecar records this asset's expected hash AND the current file's byte
+    /// size still matches — a cheap check (no full re-hash) that still catches a
+    /// truncated/replaced file. A hash mismatch (expected artifact changed) or a size
+    /// mismatch both fail, forcing a full verify.
+    private func verifiedMarkerMatches(_ asset: EmbeddingModelAsset, at destination: URL) -> Bool {
+        guard let contents = try? String(contentsOf: markerURL(for: destination), encoding: .utf8) else {
+            return false
+        }
+        let parts = contents.split(separator: " ")
+        guard parts.count == 2, String(parts[0]) == asset.sha256Hex else { return false }
+        return byteSize(at: destination).map(String.init) == String(parts[1])
+    }
+
+    /// Record "these bytes were verified to `sha256Hex`, `size` bytes" beside the file.
+    /// Best-effort — a missing marker just means the next resolve does a full verify.
+    private func writeVerifiedMarker(_ asset: EmbeddingModelAsset, at destination: URL) {
+        let size = byteSize(at: destination) ?? 0
+        try? "\(asset.sha256Hex) \(size)".write(
+            to: markerURL(for: destination), atomically: true, encoding: .utf8)
     }
 
     /// Lowercase hex SHA-256 of `data`.
     static func sha256Hex(of data: Data) -> String {
         SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Lowercase hex SHA-256 of the file at `url`, streamed in 1 MB chunks so a large
+    /// (258 MB) model is never loaded whole into memory.
+    static func sha256Hex(ofFileAt url: URL) throws -> String {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        var hasher = SHA256()
+        while let chunk = try handle.read(upToCount: 1 << 20), !chunk.isEmpty {
+            hasher.update(data: chunk)
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 }

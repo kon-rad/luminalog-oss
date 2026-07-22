@@ -86,19 +86,67 @@ struct ONNXTextEmbedder: TextEmbedder {
         guard fileManager.fileExists(atPath: modelURL.path) else {
             throw TextEmbedderError.modelUnavailable
         }
+        let tokenizer = try makeTokenizer()
+        let ids = try tokenIds(for: text, tokenizer: tokenizer)
+        do {
+            guard let vector = try runBatched([ids]).first else {
+                throw TextEmbedderError.inferenceFailed("empty batch result")
+            }
+            return vector
+        } catch let error as TextEmbedderError {
+            throw error
+        } catch {
+            throw TextEmbedderError.inferenceFailed(error.localizedDescription)
+        }
+    }
 
-        // 1. Tokenize via swift-transformers. We build the tokenizer from the two JSON
-        //    files directly instead of `AutoTokenizer.from(modelFolder:)`, because that
-        //    API *requires* a `config.json` (the model config) in the folder and we host
-        //    only tokenizer.json + tokenizer_config.json. distiluse's
-        //    `DistilBertTokenizerFast` routes correctly to swift-transformers'
-        //    (WordPiece) `BertTokenizer` on its own, so `tokenizerClassOverride` is nil.
-        //    NOTE: swift-transformers' `PrecompiledNormalizer` is a stub, so SentencePiece
-        //    tokenizers (XLM-RoBERTa / Unigram) tokenize INCORRECTLY on-device — hence a
-        //    WordPiece model (distiluse), whose `BertNormalizer` is fully implemented.
-        //    For a model whose `tokenizer_class` is a generic `PreTrainedTokenizerFast`,
-        //    set `tokenizerClassOverride` to the right class (e.g. "BertTokenizer").
-        let tokenizer: Tokenizer
+    /// Batched embed: tokenize every text, pad to the batch's longest sequence, and run
+    /// ONE ORT session over a `[N, maxLen]` input — far fewer session invocations than N
+    /// single-item runs, which is what backfill leans on. Falls back to the per-item
+    /// path if the batched run throws or the model ignores the batch axis (e.g. a graph
+    /// exported with a fixed `batch=1`), so batching is a throughput bonus and never a
+    /// correctness regression.
+    func embed(batch texts: [String]) async throws -> [EmbeddingVector] {
+        guard !texts.isEmpty else { return [] }
+        guard fileManager.fileExists(atPath: modelURL.path) else {
+            throw TextEmbedderError.modelUnavailable
+        }
+        let tokenizer = try makeTokenizer()
+        let rows = try texts.map { try tokenIds(for: $0, tokenizer: tokenizer) }
+        do {
+            return try runBatched(rows)
+        } catch {
+            // Batched run failed or produced an unexpected batch axis — degrade to safe
+            // per-item runs (each a batch of one, which every graph supports).
+            var out = [EmbeddingVector]()
+            out.reserveCapacity(rows.count)
+            for row in rows {
+                guard let vector = try runBatched([row]).first else {
+                    throw TextEmbedderError.inferenceFailed("empty result")
+                }
+                out.append(vector)
+            }
+            return out
+        }
+    }
+
+    // MARK: - Tokenization
+
+    /// Build the swift-transformers tokenizer from the two hosted JSON files.
+    ///
+    /// We build it from the two JSON files directly instead of
+    /// `AutoTokenizer.from(modelFolder:)`, because that API *requires* a `config.json`
+    /// (the model config) in the folder and we host only tokenizer.json +
+    /// tokenizer_config.json. distiluse's `DistilBertTokenizerFast` routes correctly to
+    /// swift-transformers' (WordPiece) `BertTokenizer` on its own, so
+    /// `tokenizerClassOverride` is nil.
+    ///
+    /// NOTE: swift-transformers' `PrecompiledNormalizer` is a stub, so SentencePiece
+    /// tokenizers (XLM-RoBERTa / Unigram) tokenize INCORRECTLY on-device — hence a
+    /// WordPiece model (distiluse), whose `BertNormalizer` is fully implemented. For a
+    /// model whose `tokenizer_class` is a generic `PreTrainedTokenizerFast`, set
+    /// `tokenizerClassOverride` to the right class (e.g. "BertTokenizer").
+    private func makeTokenizer() throws -> Tokenizer {
         do {
             let dataURL = tokenizerDirectory.appendingPathComponent("tokenizer.json")
             let configURL = tokenizerDirectory.appendingPathComponent("tokenizer_config.json")
@@ -111,7 +159,7 @@ struct ONNXTextEmbedder: TextEmbedder {
             if let tokenizerClassOverride {
                 configDict["tokenizer_class"] = tokenizerClassOverride
             }
-            tokenizer = try AutoTokenizer.from(
+            return try AutoTokenizer.from(
                 tokenizerConfig: Config(configDict),
                 tokenizerData: Config(tokenizerData)
             )
@@ -120,86 +168,83 @@ struct ONNXTextEmbedder: TextEmbedder {
         } catch {
             throw TextEmbedderError.tokenizationFailed
         }
+    }
+
+    /// Tokenize + truncate to the model's max sequence length (distiluse: 128). Long
+    /// entries otherwise overflow the position embeddings and the ONNX run FAILS. Keep
+    /// the final special token ([SEP]) so the wrapped sequence stays well-formed,
+    /// matching the reference tokenizer's max_length=128 truncation.
+    private func tokenIds(for text: String, tokenizer: Tokenizer) throws -> [Int] {
         let rawIds = tokenizer.encode(text: text)
         guard !rawIds.isEmpty else { throw TextEmbedderError.tokenizationFailed }
-        // Truncate to the model's max sequence length (distiluse: 128). Long entries
-        // otherwise overflow the position embeddings and the ONNX run FAILS (this broke
-        // indexing + Related for multi-hundred-word entries). Keep the final special
-        // token ([SEP]) so the wrapped sequence stays well-formed, matching the
-        // reference tokenizer's max_length=128 truncation.
         let maxLen = 128
-        let inputIds: [Int] = rawIds.count > maxLen
+        let ids: [Int] = rawIds.count > maxLen
             ? Array(rawIds.prefix(maxLen - 1)) + [rawIds[rawIds.count - 1]]
             : rawIds
-        guard !inputIds.isEmpty else { throw TextEmbedderError.tokenizationFailed }
-        let attentionMask = [Int](repeating: 1, count: inputIds.count)
-        let seqLen = inputIds.count
+        guard !ids.isEmpty else { throw TextEmbedderError.tokenizationFailed }
+        return ids
+    }
 
-        // 2. Run ORT. The env + session are cached (loads the ~258 MB model once); the
-        //    previous per-call build reloaded the model on EVERY embed, which made
-        //    on-device backfill/search churn the model for each entry.
-        do {
-            let session = try sessionBox.resolve {
-                let env = try ORTEnv(loggingLevel: .warning)
-                let options = try ORTSessionOptions()
-                // Prefer the Core ML execution provider when the device supports it.
-                if ORTIsCoreMLExecutionProviderAvailable() {
-                    let coreML = ORTCoreMLExecutionProviderOptions()
-                    try? options.appendCoreMLExecutionProvider(with: coreML)
-                }
-                let s = try ORTSession(env: env, modelPath: modelURL.path, sessionOptions: options)
-                return (env, s)
+    // MARK: - ORT session run
+
+    /// The cached ORT session (loads the ~258 MB model once), built on first use with
+    /// the Core ML execution provider when the device supports it.
+    private func resolveSession() throws -> ORTSession {
+        try sessionBox.resolve {
+            let env = try ORTEnv(loggingLevel: .warning)
+            let options = try ORTSessionOptions()
+            if ORTIsCoreMLExecutionProviderAvailable() {
+                let coreML = ORTCoreMLExecutionProviderOptions()
+                try? options.appendCoreMLExecutionProvider(with: coreML)
             }
-
-            let shape: [NSNumber] = [1, NSNumber(value: seqLen)]
-            let idsTensor = try ORTValue(
-                tensorData: NSMutableData(data: Self.int64Data(inputIds)),
-                elementType: .int64,
-                shape: shape
-            )
-            let maskTensor = try ORTValue(
-                tensorData: NSMutableData(data: Self.int64Data(attentionMask)),
-                elementType: .int64,
-                shape: shape
-            )
-
-            var inputs = [inputIdsName: idsTensor, attentionMaskName: maskTensor]
-            // Some BERT graphs require token_type_ids; feed all-zeros for a
-            // single sequence. Only added when the graph declares it, so DistilBERT/RoBERTa/Gemma
-            // graphs (which don't) are unaffected.
-            if (try? session.inputNames())?.contains(tokenTypeIdsName) == true {
-                inputs[tokenTypeIdsName] = try ORTValue(
-                    tensorData: NSMutableData(data: Self.int64Data([Int](repeating: 0, count: seqLen))),
-                    elementType: .int64,
-                    shape: shape
-                )
-            }
-
-            let outputNames = try session.outputNames()
-            let wanted = outputNames.contains(tokenEmbeddingsOutputName)
-                ? tokenEmbeddingsOutputName
-                : (outputNames.first ?? tokenEmbeddingsOutputName)
-
-            let outputs = try session.run(
-                withInputs: inputs,
-                outputNames: Set([wanted]),
-                runOptions: nil
-            )
-            guard let output = outputs[wanted] else {
-                throw TextEmbedderError.inferenceFailed("missing output \(wanted)")
-            }
-
-            let info = try output.tensorTypeAndShapeInfo()
-            let outShape = info.shape.map { $0.intValue }
-            let raw = Data(referencing: try output.tensorData())
-            let floats = Self.floats(from: raw)
-
-            return try Self.pool(floats: floats, shape: outShape, attentionMask: attentionMask)
-        } catch let error as TextEmbedderError {
-            throw error
-        } catch {
-            throw TextEmbedderError.inferenceFailed(error.localizedDescription)
+            let s = try ORTSession(env: env, modelPath: modelURL.path, sessionOptions: options)
+            return (env, s)
         }
+    }
+
+    /// Run one ORT session over a batch of token-id rows, mean-pooling each row's output
+    /// with its own attention mask. `rows` must be non-empty. A batch of one is the
+    /// single-item path.
+    private func runBatched(_ rows: [[Int]]) throws -> [EmbeddingVector] {
+        let n = rows.count
+        let maxLen = rows.map(\.count).max() ?? 0
+        guard n > 0, maxLen > 0 else { throw TextEmbedderError.tokenizationFailed }
+
+        let (flatIds, flatMask) = Self.padded(rows, maxLen: maxLen)
+        let session = try resolveSession()
+        let shape: [NSNumber] = [NSNumber(value: n), NSNumber(value: maxLen)]
+        let idsTensor = try ORTValue(
+            tensorData: NSMutableData(data: Self.int64Data(flatIds)),
+            elementType: .int64, shape: shape)
+        let maskTensor = try ORTValue(
+            tensorData: NSMutableData(data: Self.int64Data(flatMask)),
+            elementType: .int64, shape: shape)
+
+        var inputs = [inputIdsName: idsTensor, attentionMaskName: maskTensor]
+        // Some BERT graphs require token_type_ids; feed all-zeros. Only added when the
+        // graph declares it (DistilBERT/RoBERTa/Gemma graphs don't).
+        if (try? session.inputNames())?.contains(tokenTypeIdsName) == true {
+            inputs[tokenTypeIdsName] = try ORTValue(
+                tensorData: NSMutableData(data: Self.int64Data([Int](repeating: 0, count: n * maxLen))),
+                elementType: .int64, shape: shape)
+        }
+
+        let outputNames = try session.outputNames()
+        let wanted = outputNames.contains(tokenEmbeddingsOutputName)
+            ? tokenEmbeddingsOutputName
+            : (outputNames.first ?? tokenEmbeddingsOutputName)
+
+        let outputs = try session.run(withInputs: inputs, outputNames: Set([wanted]), runOptions: nil)
+        guard let output = outputs[wanted] else {
+            throw TextEmbedderError.inferenceFailed("missing output \(wanted)")
+        }
+        let info = try output.tensorTypeAndShapeInfo()
+        let outShape = info.shape.map { $0.intValue }
+        let raw = Data(referencing: try output.tensorData())
+        let floats = Self.floats(from: raw)
+
+        let masks = rows.map { row in (0..<maxLen).map { $0 < row.count ? 1 : 0 } }
+        return try Self.poolBatch(floats: floats, shape: outShape, batch: n, masks: masks)
     }
 
     // MARK: - Output pooling
@@ -223,6 +268,70 @@ struct ONNXTextEmbedder: TextEmbedder {
         } else {
             throw TextEmbedderError.inferenceFailed("unexpected output rank \(shape.count)")
         }
+    }
+
+    /// Batched counterpart of `pool`: split a `[batch, seq, hidden]` (or `[batch,
+    /// hidden]`) ORT output into one normalized vector per row, mean-pooling each row
+    /// with its own mask. **Throws** (so the caller can fall back to per-item) if the
+    /// batch axis is missing/mismatched or the float count doesn't match the shape —
+    /// i.e. a model that ignored the batch dimension.
+    static func poolBatch(floats: [Float], shape: [Int], batch: Int, masks: [[Int]]) throws -> [EmbeddingVector] {
+        guard batch > 0, masks.count == batch else {
+            throw TextEmbedderError.inferenceFailed("batch \(batch) vs masks \(masks.count)")
+        }
+        if shape.count == 3 {
+            guard shape[0] == batch else {
+                throw TextEmbedderError.inferenceFailed("batch axis \(shape[0]) != \(batch)")
+            }
+            let seq = shape[1], hidden = shape[2]
+            let per = seq * hidden
+            guard per > 0, floats.count == batch * per else {
+                throw TextEmbedderError.inferenceFailed("float count \(floats.count) != \(batch * per)")
+            }
+            var out = [EmbeddingVector]()
+            out.reserveCapacity(batch)
+            for i in 0..<batch {
+                let slice = Array(floats[(i * per)..<((i + 1) * per)])
+                guard let pooled = EmbeddingPooling.meanPool(
+                    flat: slice, tokenCount: seq, hiddenDim: hidden, attentionMask: masks[i]
+                ) else { throw TextEmbedderError.poolingFailed }
+                out.append(pooled)
+            }
+            return out
+        } else if shape.count == 2 {
+            guard shape[0] == batch else {
+                throw TextEmbedderError.inferenceFailed("batch axis \(shape[0]) != \(batch)")
+            }
+            let hidden = shape[1]
+            guard hidden > 0, floats.count == batch * hidden else {
+                throw TextEmbedderError.inferenceFailed("float count \(floats.count) != \(batch * hidden)")
+            }
+            var out = [EmbeddingVector]()
+            out.reserveCapacity(batch)
+            for i in 0..<batch {
+                let slice = Array(floats[(i * hidden)..<((i + 1) * hidden)])
+                let vector = EmbeddingVector(slice).l2normalized
+                guard vector.magnitude > 0 else { throw TextEmbedderError.poolingFailed }
+                out.append(vector)
+            }
+            return out
+        } else {
+            throw TextEmbedderError.inferenceFailed("unexpected output rank \(shape.count)")
+        }
+    }
+
+    /// Pad token-id `rows` to `maxLen` (pad id 0) and produce the flat row-major
+    /// `[N*maxLen]` id + attention-mask buffers ORT wants (mask 1 = real, 0 = pad).
+    static func padded(_ rows: [[Int]], maxLen: Int) -> (ids: [Int], mask: [Int]) {
+        var ids = [Int](); ids.reserveCapacity(rows.count * maxLen)
+        var mask = [Int](); mask.reserveCapacity(rows.count * maxLen)
+        for row in rows {
+            for j in 0..<maxLen {
+                if j < row.count { ids.append(row[j]); mask.append(1) }
+                else { ids.append(0); mask.append(0) }
+            }
+        }
+        return (ids, mask)
     }
 
     // MARK: - Tensor byte helpers

@@ -1,4 +1,5 @@
 import Combine
+import CryptoKit
 import Foundation
 import OSLog
 import Vapi
@@ -13,10 +14,29 @@ final class VapiVoiceCallService: VoiceCallService {
     private let broadcaster = VoiceCallEventBroadcaster()
     private var vapiClient: Vapi?
     private var cancellables = Set<AnyCancellable>()
+    /// Whether the assistant produced ANY spoken turn this call. Used to tell an
+    /// error-ended call apart from a normal end: Vapi's SDK `.callDidEnd` carries no
+    /// reason, so when the call ends and the assistant never said a word (e.g. the
+    /// custom-LLM/model turn failed → Vapi drops the call as `custom-llm-llm-failed`)
+    /// we surface `.failed` ("Call failed") instead of the benign `.ended` screen.
+    /// User-initiated hang-ups don't reach `.callDidEnd` here (`endCall()` unsubscribes
+    /// first), so this only classifies natural/error ends. See ADR-0093.
+    private var assistantDidSpeak = false
+    /// Vends the currently-loaded per-user DEK (`UserKeyStore.currentDataKey`).
+    /// Injected as a closure (mirrors the `SemanticIndexCoordinator` wiring in
+    /// `AppServices`) so this service stays decoupled from `UserKeyStore` and is
+    /// testable without a loaded key. On the Model-1/ZK path the DEK is base64'd
+    /// into `CallConfigRequest.dek` so the server can do per-turn RAG mid-call.
+    private let currentDEK: @MainActor () -> SymmetricKey?
 
-    init(api: ProxyAPIClient, ai: AIService) {
+    init(
+        api: ProxyAPIClient,
+        ai: AIService,
+        currentDEK: @escaping @MainActor () -> SymmetricKey? = { nil }
+    ) {
         self.api = api
         self.ai = ai
+        self.currentDEK = currentDEK
     }
 
     // MARK: - DTOs
@@ -39,6 +59,13 @@ final class VapiVoiceCallService: VoiceCallService {
         /// can anchor the assistant's sense of "today"/"now" — the RAG blocks carry
         /// local timestamps, but the model needs a reference point to resolve them.
         var now: String?
+        /// Base64 of the raw 32-byte per-user DEK, sent ONLY on the Model-1/ZK path
+        /// (`DevFlags.aiModel1` + a loaded key). Its presence routes the call to our
+        /// server-hosted custom-LLM proxy, which holds the DEK in RAM for the call's
+        /// lifetime to run per-turn semantic RAG over the user's past entries and
+        /// evicts it at end-of-call. Omitted (nil → not encoded) otherwise, keeping
+        /// the legacy baked-prompt path unchanged. See the 2026-07-15 custom-LLM spec.
+        var dek: String?
     }
 
     struct CallConfigResponse: Decodable {
@@ -92,6 +119,7 @@ final class VapiVoiceCallService: VoiceCallService {
     }
 
     func startCall(chatId: String, journalId: String?, journalTitle: String?) async throws {
+        assistantDidSpeak = false
         broadcaster.send(.connecting)
 
         // Zero-knowledge (Model-1): build the RAG context ON DEVICE from plaintext and
@@ -110,6 +138,17 @@ final class VapiVoiceCallService: VoiceCallService {
             request.todayContext = context.todayContext
             request.ragContext = context.ragContext
             request.focalEntry = context.focalEntry
+        }
+
+        // Model-1/ZK path: hand the server the DEK so it can run per-turn RAG over PAST
+        // entries mid-call (server-hosted custom-LLM proxy). When a DEK is sent, drop the
+        // on-device PAST-RAG payload (`ragContext`) — the server owns that retrieval now
+        // and would ignore it. We still send `todayContext`/`focalEntry`/`name`/`bio`/
+        // `profile`/`now` (per-call, plaintext, not recomputed per turn). Nil-DEK calls
+        // (aiModel1 off / key not loaded) keep the legacy baked-prompt behavior untouched.
+        if let dek = Self.encodedDEK(aiModel1: DevFlags.aiModel1, key: currentDEK()) {
+            request.dek = dek
+            request.ragContext = nil
         }
 
         let callConfig: CallConfigResponse
@@ -173,10 +212,19 @@ final class VapiVoiceCallService: VoiceCallService {
         case .callDidStart:
             broadcaster.send(.connected)
         case .callDidEnd:
-            // The authoritative end reason is persisted by the webhook and read
-            // from chat.endedReason on the detail page (the SDK carries none here).
-            Self.logger.log("call ended")
-            broadcaster.send(.ended(reason: nil))
+            // The SDK's `.callDidEnd` carries no end reason. A normal end always has
+            // the assistant speaking at least a greeting; if it ends here without the
+            // assistant ever producing a turn, the call errored (e.g. the custom-LLM
+            // turn failed and Vapi dropped the call as `custom-llm-llm-failed`) — so
+            // surface `.failed` instead of the benign "Call ended" screen. User hang-ups
+            // don't reach here (`endCall()` unsubscribes first). ADR-0093.
+            let endEvent = Self.endEvent(assistantDidSpeak: assistantDidSpeak)
+            if case .failed = endEvent {
+                Self.logger.error("call ended before the assistant spoke — surfacing as failed")
+            } else {
+                Self.logger.log("call ended")
+            }
+            broadcaster.send(endEvent)
             vapiClient = nil
             cancellables.removeAll()
         case .speechUpdate(let update):
@@ -185,6 +233,7 @@ final class VapiVoiceCallService: VoiceCallService {
             }
         case .transcript(let transcript):
             if transcript.role == .assistant {
+                assistantDidSpeak = true
                 broadcaster.send(.assistantSpeaking(partial: transcript.transcript))
             }
             if transcript.transcriptType == .final {
@@ -233,6 +282,27 @@ final class VapiVoiceCallService: VoiceCallService {
         formatter.timeZone = timeZone
         formatter.dateFormat = "yyyy-MM-dd HH:mm zzz"
         return formatter.string(from: date)
+    }
+
+    /// Base64 of the raw 32 bytes of `key`, but ONLY on the Model-1/ZK path with a
+    /// loaded key — otherwise nil so `CallConfigRequest.dek` is omitted and the legacy
+    /// baked-prompt voice path is preserved. `nonisolated static` (pure) so it is
+    /// unit-testable without a live call or a real `UserKeyStore`.
+    nonisolated static func encodedDEK(aiModel1: Bool, key: SymmetricKey?) -> String? {
+        guard aiModel1, let key else { return nil }
+        return key.withUnsafeBytes { Data($0) }.base64EncodedString()
+    }
+
+    /// Classifies an SDK `.callDidEnd` into the event the UI should show. Vapi's SDK
+    /// carries no end reason, so we infer it: a call that ends without the assistant
+    /// ever speaking a turn errored (e.g. the custom-LLM turn failed and Vapi dropped
+    /// the call) and must surface as `.failed` ("Call failed"), not the benign "Call
+    /// ended" screen. `nonisolated static` (pure) so it is unit-testable without the
+    /// Vapi SDK or a live call. See ADR-0093.
+    nonisolated static func endEvent(assistantDidSpeak: Bool) -> VoiceCallEvent {
+        assistantDidSpeak
+            ? .ended(reason: nil)
+            : .failed(message: "The call couldn't connect. Please try again.")
     }
 
     /// Maps the server's `assistantOverrides` into the dict the Vapi SDK expects.

@@ -64,6 +64,16 @@ enum ProcessingStatus: String, Codable, Sendable {
     case transcribing   // handed off to server-side Whisper (voice/video)
     case ready          // pipeline complete
     case failed         // a step failed; retry available in-session
+
+    /// In-flight states the pipeline is expected to eventually leave. `.ready`
+    /// and `.failed` are terminal; a non-terminal status with no backing work
+    /// (no in-flight job, no durable record) is "stranded" and swept to `.failed`.
+    var isNonTerminal: Bool {
+        switch self {
+        case .processing, .uploading, .saving, .transcribing: return true
+        case .ready, .failed: return false
+        }
+    }
 }
 
 /// A timestamped record of a user edit to an entry's title/content.

@@ -13,6 +13,13 @@ extension Color {
             : UIColor(red: 0.808, green: 0.498, blue: 0.267, alpha: 1.0) // #CE7F44
     })
 
+    /// Medium-darkness gold used as a solid card surface (e.g. Daily Reflections
+    /// cards) so white top/bottom text stays legible. Derived from the brand
+    /// "Warm gold" #F5C842 darkened to a mid-tone antique gold; solid in both modes.
+    static let goldSurface = Color(
+        uiColor: UIColor(red: 0.612, green: 0.486, blue: 0.165, alpha: 1.0) // #9C7C2A
+    )
+
     /// Primary screen background — warm paper in light, deep warm-black in dark.
     /// Light: #F4F0E9, Dark: #16130E (core.jsx design tokens).
     static let appBackground = Color(uiColor: UIColor { traits in

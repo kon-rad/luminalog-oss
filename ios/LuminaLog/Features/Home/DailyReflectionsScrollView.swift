@@ -220,15 +220,12 @@ private struct GenerateInsightsCard: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color.accentWarm.opacity(0.35), .black],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            Color.accentWarm
+
             VStack(spacing: Spacing.xs) {
                 Image(systemName: systemImage)
                     .font(.title2)
-                    .foregroundStyle(Color.accentWarm)
+                    .foregroundStyle(.white)
                 Text(title)
                     .font(.captionText.weight(.semibold))
                     .foregroundStyle(.white)

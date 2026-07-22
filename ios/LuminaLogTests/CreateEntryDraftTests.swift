@@ -89,4 +89,5 @@ final class NoopEntryProcessor: EntryProcessor {
     func enqueue(_ job: EntryProcessingJob) {}
     func retry(draftId: String) {}
     func resumePendingJobs() async {}
+    func sweepStuckEntries() async {}
 }

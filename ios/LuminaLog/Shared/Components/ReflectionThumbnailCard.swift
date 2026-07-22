@@ -16,16 +16,20 @@ struct ReflectionThumbnailCard: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            LinearGradient(
-                colors: [Color.accentWarm.opacity(0.35), .black],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            Color.goldSurface
+
+            Image("CrosshatchInk")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 84, height: 84)
+                .opacity(0.9)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                     Text(displayDate)
                         .font(.captionText.weight(.semibold))
-                        .foregroundStyle(Color.accentWarm)
+                        .foregroundStyle(.white)
                     if let badge {
                         Text(badge)
                             .font(.system(size: 7, weight: .bold))

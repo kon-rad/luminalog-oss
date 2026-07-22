@@ -39,7 +39,13 @@ final class EntryProcessorTests: XCTestCase {
         func requestIndex(journalId: String) async { indexedJournalIds.append(journalId) }
         func deleteEntry(journalId: String) async throws {}
         func transcribeJournal(journalId: String) async { transcribedJournalIds.append(journalId) }
-        func transcribeClip(audio: Data, contentType: String) async throws -> String { "" }
+        /// Scripted so tests can simulate a recovered transcript on the auto-retry path.
+        var scriptedClipTranscript = ""
+        private(set) var transcribeClipCalls = 0
+        func transcribeClip(audio: Data, contentType: String) async throws -> String {
+            transcribeClipCalls += 1
+            return scriptedClipTranscript
+        }
         func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] { [] }
         func searchKeyword(query: String) async throws -> [SearchResult] { [] }
         func searchSemantic(query: String) async throws -> [SearchResult] { [] }
@@ -175,7 +181,12 @@ final class EntryProcessorTests: XCTestCase {
             let dir = FileManager.default.temporaryDirectory
                 .appendingPathComponent(UUID().uuidString)
             journal = UploadJournal(directory: dir)
-            let finalizer = EntryFinalizer(journals: journals, profiles: profiles, ai: ai)
+            // Mirror live() wiring: the finalizer carries a recoverer so the ZK
+            // auto-retry path is exercised. (No-op with aiModel1 == false, which
+            // most tests in this suite pin.)
+            let finalizer = EntryFinalizer(
+                journals: journals, profiles: profiles, ai: ai,
+                recoverer: TranscriptRecoverer(journals: journals, profiles: profiles, ai: ai, media: media))
             let failures = PermanentFailureBox()
             permanentFailures = failures
             let uploadManager = UploadManager(
@@ -183,7 +194,13 @@ final class EntryProcessorTests: XCTestCase {
                 transport: transport,
                 presign: { _ in URL(string: "https://signed/put")! },
                 onFinalize: { pending in await finalizer.finalize(pending) },
-                onPermanentFailure: { failures.draftIds.append($0) },
+                // Mirror live() wiring: a permanent upload failure flips the entry
+                // to `.failed` (via the finalizer) as well as recording the draftId.
+                onPermanentFailure: { [journal] draftId in
+                    failures.draftIds.append(draftId)
+                    guard let pending = journal.entry(draftId: draftId) else { return }
+                    await finalizer.markFailed(pending)
+                },
                 maxAttempts: 5,
                 backoff: { _ in 0 }
             )
@@ -416,6 +433,111 @@ final class EntryProcessorTests: XCTestCase {
         XCTAssertEqual(entry.content, "Page one.\n\nPage two.")
         XCTAssertEqual(harness.media.uploadCalls, 3, "Only the failed photo is re-uploaded")
         XCTAssertEqual(harness.ocr.recognizeCalls, 2, "OCR is cached across retries")
+    }
+
+    /// A voice/video entry whose UPLOAD permanently fails (attempt cap hit) must
+    /// flip to `.failed` — not stay stuck at "Uploading…". Exercises the live
+    /// `onPermanentFailure → finalizer.markFailed` wiring through UploadManager.
+    @MainActor
+    func testAudioVisualPermanentUploadFailureMarksEntryFailed() async throws {
+        // Transport always returns 500 → every upload attempt fails → cap hit.
+        let harness = Harness(transport: FakeTransport([500]))
+        let job = voiceJob(durationSec: 5)
+        await harness.run(job)
+
+        let entry = try harness.savedEntry()
+        XCTAssertEqual(entry.processingStatus, .failed,
+                       "Permanent upload failure must surface as .failed (with a Retry button)")
+        XCTAssertEqual(harness.permanentFailures.draftIds, [job.draftId],
+                       "onPermanentFailure fired for the draft")
+        XCTAssertTrue(harness.ai.transcribedJournalIds.isEmpty, "finalize must NOT run on a failed upload")
+    }
+
+    /// Zero-knowledge auto-recovery: when the pre-upload on-device transcription
+    /// fails (here the staged audio temp file is absent, so `deriveContent` yields
+    /// a `.failed`/empty transcript), the finalizer must re-transcribe from the
+    /// now-uploaded S3 audio and settle the entry `.ready` — with no user action.
+    @MainActor
+    func testZKFailedTranscriptAutoRecoversFromS3AfterUpload() async throws {
+        DevFlags.aiModel1 = true // ZK path (restored by tearDown)
+        let harness = Harness(transport: FakeTransport([200])) // uploads succeed
+        harness.ai.scriptedClipTranscript = "recovered transcript"
+
+        await harness.run(voiceJob(durationSec: 5))
+
+        let entry = try harness.savedEntry()
+        XCTAssertEqual(entry.transcriptStatus, .ready, "auto-recovery settles the transcript")
+        XCTAssertEqual(entry.content, "recovered transcript")
+        XCTAssertEqual(entry.processingStatus, .ready)
+        XCTAssertGreaterThan(harness.ai.transcribeClipCalls, 0, "recover() re-transcribed from S3")
+    }
+
+    // MARK: - Stuck-entry sweep
+
+    /// A voice entry stranded at `.processing` with no in-flight job and no
+    /// durable upload record (the app-killed-mid-transcription case) must be
+    /// swept to `.failed` so it stops showing "Processing…" forever.
+    @MainActor
+    func testSweepMarksStrandedProcessingEntryFailed() async throws {
+        let harness = Harness()
+        let stranded = JournalEntry(
+            id: "stuck-1", userId: "user-1", type: .voice, title: "t",
+            createdAt: Date(timeIntervalSinceNow: -3600),
+            updatedAt: Date(timeIntervalSinceNow: -3600),
+            content: "", transcriptStatus: .processing, processingStatus: .processing)
+        try await harness.journals.save(stranded)
+
+        await harness.processor.sweepStuckEntries(staleAfter: 120, now: Date())
+
+        let entry = try XCTUnwrap(harness.journals.store.first { $0.id == "stuck-1" })
+        XCTAssertEqual(entry.processingStatus, .failed)
+    }
+
+    /// The sweep must NOT touch a just-created entry (younger than the staleness
+    /// window) — its pipeline may simply not have reached durability yet.
+    @MainActor
+    func testSweepLeavesFreshNonTerminalEntryAlone() async throws {
+        let harness = Harness()
+        let fresh = JournalEntry(
+            id: "fresh-1", userId: "user-1", type: .voice, title: "t",
+            createdAt: Date(), updatedAt: Date(),
+            content: "", transcriptStatus: .processing, processingStatus: .processing)
+        try await harness.journals.save(fresh)
+
+        await harness.processor.sweepStuckEntries(staleAfter: 120, now: Date())
+
+        let entry = try XCTUnwrap(harness.journals.store.first { $0.id == "fresh-1" })
+        XCTAssertEqual(entry.processingStatus, .processing, "Fresh entries are left for the pipeline")
+    }
+
+    /// The sweep must NOT touch an entry that still has a durable upload record —
+    /// `resumePendingJobs()` will drive it. (Old timestamp, but recoverable.)
+    @MainActor
+    func testSweepSkipsEntryWithDurableRecord() async throws {
+        let harness = Harness()
+        let draftId = "durable-1"
+        let strandedButRecoverable = JournalEntry(
+            id: draftId, userId: "user-1", type: .voice, title: "t",
+            createdAt: Date(timeIntervalSinceNow: -3600),
+            updatedAt: Date(timeIntervalSinceNow: -3600),
+            content: "", transcriptStatus: .processing, processingStatus: .uploading)
+        try await harness.journals.save(strandedButRecoverable)
+        // Seed a durable upload record for the same draft.
+        let ciphertext = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try Data([0, 1, 2]).write(to: ciphertext)
+        try harness.journal.upsert(PendingEntry(
+            draftId: draftId, userId: "user-1", type: .voice, title: "t",
+            content: "", wordCount: 0, transcriptStatus: .processing,
+            createdAtEpoch: Date().timeIntervalSince1970, promptText: nil,
+            uploads: [PendingUpload(
+                attachmentId: UUID(), kind: .audio, journalId: draftId,
+                s3Key: "k", encryptedPath: ciphertext.path,
+                durationSec: 5, width: nil, height: nil, thumbnailS3Key: nil, state: .pending)]))
+
+        await harness.processor.sweepStuckEntries(staleAfter: 120, now: Date())
+
+        let entry = try XCTUnwrap(harness.journals.store.first { $0.id == draftId })
+        XCTAssertEqual(entry.processingStatus, .uploading, "Recoverable entries are left for resume")
     }
 
     @MainActor

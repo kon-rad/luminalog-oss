@@ -2,21 +2,23 @@ import Foundation
 import OSLog
 import UserNotifications
 
-/// Schedules the single next daily-reminder local notification.
+/// Schedules the next local notification for a single reminder slot, keyed by
+/// its notification identifier so each slot is scheduled independently.
 @MainActor
 protocol ReminderScheduling: AnyObject {
     /// Ask the OS for notification permission. Returns whether it is granted.
     func requestAuthorization() async -> Bool
-    /// Cancel the pending reminder; if `fireDate` is non-nil, schedule one
-    /// non-repeating notification at that date.
-    func reschedule(to fireDate: Date?) async
+    /// The current OS notification-authorization status (drives the
+    /// request-on-first-foreground behavior).
+    func authorizationStatus() async -> UNAuthorizationStatus
+    /// Cancel the pending notification for `identifier`; if `fireDate` is
+    /// non-nil, schedule one non-repeating notification at that date.
+    func reschedule(identifier: String, title: String, body: String, to fireDate: Date?) async
 }
 
 @MainActor
 final class ReminderScheduler: ReminderScheduling {
 
-    /// Fixed identifier so each reschedule replaces the previous reminder.
-    private static let identifier = "ll-daily-reminder"
     private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "reminder")
 
     nonisolated(unsafe) private let center: UNUserNotificationCenter
@@ -36,13 +38,17 @@ final class ReminderScheduler: ReminderScheduling {
         }
     }
 
-    func reschedule(to fireDate: Date?) async {
-        center.removePendingNotificationRequests(withIdentifiers: [Self.identifier])
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        await center.notificationSettings().authorizationStatus
+    }
+
+    func reschedule(identifier: String, title: String, body: String, to fireDate: Date?) async {
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
         guard let fireDate else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "Time for your pages"
-        content.body = "A few minutes of journaling keeps your streak alive."
+        content.title = title
+        content.body = body
         content.sound = .default
 
         var calendar = Calendar(identifier: .gregorian)
@@ -52,7 +58,7 @@ final class ReminderScheduler: ReminderScheduling {
         )
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         let request = UNNotificationRequest(
-            identifier: Self.identifier, content: content, trigger: trigger
+            identifier: identifier, content: content, trigger: trigger
         )
         do {
             try await center.add(request)

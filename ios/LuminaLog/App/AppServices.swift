@@ -180,27 +180,41 @@ final class AppServices: ObservableObject {
         // NOTE: this only changes WHICH embedder is constructed — usage stays gated by
         // `DevFlags.aiModel1` (OFF in production), so hosting the model alone changes
         // no behavior.
+        // `DevFlags.serverRag` ON → retrieval + embeddings run SERVER-side (Morpheus
+        // BGE-M3 via `/v1/rag/*`); no on-device model is built. OFF → the on-device
+        // ONNX/stub path below, unchanged. Chunking stays on-device (`JournalChunker`).
+        // Both conform to `SemanticIndexCoordinating`, so downstream wiring is identical.
+        // `embedder` is still needed by the on-device constellation builder below, so
+        // it is always defined; under `serverRag` it is an unused stub (the on-device
+        // constellation degrades to a stub embedder + nil cached vectors — server-side
+        // constellation is a follow-up).
+        let coordinator: SemanticIndexCoordinating
         let embedder: TextEmbedder
-        let embedderModel: String
-        if let modelAsset = AppConfig.embeddingModelAsset,
-           let tokenizerAsset = AppConfig.embeddingTokenizerAsset,
-           let tokenizerConfigAsset = AppConfig.embeddingTokenizerConfigAsset {
-            embedder = LazyONNXTextEmbedder(
-                modelAsset: modelAsset,
-                tokenizerAsset: tokenizerAsset,
-                tokenizerConfigAsset: tokenizerConfigAsset
-            )
-            embedderModel = "distiluse-multilingual-v1"
-        } else {
+        if DevFlags.serverRag {
+            coordinator = ServerSemanticIndex(rag: RagService(api: api))
             embedder = StubTextEmbedder()
-            embedderModel = "stub-embedder-v1"
+        } else {
+            let embedderModel: String
+            if let modelAsset = AppConfig.embeddingModelAsset,
+               let tokenizerAsset = AppConfig.embeddingTokenizerAsset,
+               let tokenizerConfigAsset = AppConfig.embeddingTokenizerConfigAsset {
+                embedder = LazyONNXTextEmbedder(
+                    modelAsset: modelAsset,
+                    tokenizerAsset: tokenizerAsset,
+                    tokenizerConfigAsset: tokenizerConfigAsset
+                )
+                embedderModel = "distiluse-multilingual-v1"
+            } else {
+                embedder = StubTextEmbedder()
+                embedderModel = "stub-embedder-v1"
+            }
+            coordinator = SemanticIndexCoordinator(
+                embedder: embedder,
+                service: ProxyVectorService(api: api),
+                model: embedderModel,
+                dek: { [weak keys] in keys?.currentDataKey }
+            )
         }
-        let coordinator = SemanticIndexCoordinator(
-            embedder: embedder,
-            service: ProxyVectorService(api: api),
-            model: embedderModel,
-            dek: { [weak keys] in keys?.currentDataKey }
-        )
         // Lifecycle hooks: create/edit → index, delete → remove (flag-gated,
         // fire-and-forget). Pure pass-through with the flag OFF.
         let journals = IndexingJournalRepository(base: baseJournals, coordinator: coordinator)
@@ -220,7 +234,12 @@ final class AppServices: ObservableObject {
         // Durable upload journal + background-session UploadManager (Tasks 3–5).
         // The AppDelegate/background-events + relaunch-resume hookup is Task 6.
         let uploadJournal = UploadJournal(directory: UploadJournal.defaultDirectory())
-        let finalizer = EntryFinalizer(journals: journals, profiles: profiles, ai: ai)
+        // Auto-recovers a failed/empty voice transcript from the uploaded S3 audio
+        // (the same fetch→decrypt→transcribe path the manual Retry button uses).
+        let transcriptRecoverer = TranscriptRecoverer(
+            journals: journals, profiles: profiles, ai: ai, media: media)
+        let finalizer = EntryFinalizer(
+            journals: journals, profiles: profiles, ai: ai, recoverer: transcriptRecoverer)
         let transport = BackgroundUploadTransport()
         // Instantiate the background session at launch so it can receive delegate
         // events (incl. the relaunch-delivered completion handler) right away.
@@ -240,7 +259,15 @@ final class AppServices: ObservableObject {
                     bytes: 0, journalId: upload.journalId)
                 return url
             },
-            onFinalize: { pending in await finalizer.finalize(pending) }
+            onFinalize: { pending in await finalizer.finalize(pending) },
+            // When an upload permanently fails (attempt cap hit), flip the entry to
+            // `.failed` so it stops lying "Uploading…" and surfaces the Retry button.
+            // The durable journal record is retained by UploadManager on this path,
+            // so we can rebuild the entry shape from it.
+            onPermanentFailure: { [uploadJournal] draftId in
+                guard let pending = uploadJournal.entry(draftId: draftId) else { return }
+                await finalizer.markFailed(pending)
+            }
         )
 
         // One-time ZK migration collaborators (phase 1d). Reuses `migrationTransport`
@@ -284,7 +311,7 @@ final class AppServices: ObservableObject {
             credits: credits,
             speech: AppleSpeechTranscriber(),
             ocr: ocr,
-            voice: VapiVoiceCallService(api: api, ai: ai),
+            voice: VapiVoiceCallService(api: api, ai: ai, currentDEK: { [weak keys] in keys?.currentDataKey }),
             leaderboard: ProxyLeaderboardService(api: api),
             soul: ProxySoulService(api: api),
             consentStore: consentStore,
@@ -302,6 +329,43 @@ final class AppServices: ObservableObject {
             keyMigrationTransport: migrationTransport,
             constellationCoordinator: constellationCoordinator
         )
+    }
+
+    /// Proactively download the on-device embedding assets on an unmetered network so
+    /// the user's first AI request (daily report / chat / voice) isn't blocked behind a
+    /// ~258 MB download. Fired once per signed-in user from `LuminaLogApp`. A no-op
+    /// unless the Model-1 path is on and the model is configured; it needs neither auth
+    /// nor the DEK (the bytes are public + unencrypted). Best-effort and Wi-Fi-gated —
+    /// the lazy on-demand path (any network) remains the fallback. See
+    /// `EmbeddingModelPrefetcher`. Returns `true` iff the model is now fully cached
+    /// locally (safe to embed without any further download).
+    @discardableResult
+    func prefetchEmbeddingModel() async -> Bool {
+        guard DevFlags.aiModel1,
+              let model = AppConfig.embeddingModelAsset,
+              let tokenizer = AppConfig.embeddingTokenizerAsset,
+              let tokenizerConfig = AppConfig.embeddingTokenizerConfigAsset else { return false }
+        let provider = EmbeddingModelProvider(
+            downloader: URLSessionFileDownloader(session: .embeddingPrefetch))
+        return await EmbeddingModelPrefetcher(
+            assets: [model, tokenizer, tokenizerConfig], provider: provider
+        ).prefetch()
+    }
+
+    /// Get the on-device semantic index **primed off the request path**: first prefetch
+    /// the model (Wi-Fi only), then — ONLY once it is fully cached — background-load the
+    /// synced vectors and backfill un-indexed entries, so the user's first AI request is
+    /// already primed instead of blocking on load + embed.
+    ///
+    /// The "only once cached" gate is load-bearing: the semantic index's embedder is the
+    /// *any-network* lazy embedder, so backfilling before the model is present would
+    /// silently pull 258 MB over cellular. By waiting for the Wi-Fi prefetch to confirm
+    /// the model is local, background backfill never spends metered data; a user on
+    /// cellular who actively invokes AI still triggers the lazy download (their choice).
+    /// Best-effort and idempotent — priming is single-flight and latches only on success.
+    func warmSemanticIndexIfModelReady() async {
+        guard await prefetchEmbeddingModel() else { return }
+        await ai.warmSemanticIndex()
     }
 
     /// All-mock wiring — previews and unit tests only.

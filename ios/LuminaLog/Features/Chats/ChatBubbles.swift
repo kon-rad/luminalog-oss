@@ -16,13 +16,16 @@ struct MessageBubble: View {
 
     private var isUser: Bool { role == .user }
 
+    /// Assistant replies render the LLM's Markdown; user messages and the live
+    /// streaming bubble stay plain text (users type prose, and half-streamed
+    /// Markdown would flicker until the reply completes).
+    private var rendersMarkdown: Bool { !isUser && !isStreaming }
+
     var body: some View {
         HStack {
             if isUser { Spacer(minLength: 48) }
 
-            Text(text + (isStreaming ? " …" : ""))
-                .font(.uiBody)
-                .foregroundStyle(isUser ? Color.white : Color.textPrimary)
+            bubbleContent
                 .padding(.horizontal, Spacing.m)
                 .padding(.vertical, Spacing.s + Spacing.xs)
                 .background(bubbleShape.fill(fillColor))
@@ -37,6 +40,17 @@ struct MessageBubble: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(isUser ? "You" : "Companion"): \(text)")
+    }
+
+    @ViewBuilder
+    private var bubbleContent: some View {
+        if rendersMarkdown {
+            MarkdownText(text, style: .chatBubble)
+        } else {
+            Text(text + (isStreaming ? " …" : ""))
+                .font(.uiBody)
+                .foregroundStyle(isUser ? Color.white : Color.textPrimary)
+        }
     }
 
     private var fillColor: Color {

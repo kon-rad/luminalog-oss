@@ -125,6 +125,10 @@ struct LuminaLogApp: App {
                         // per signed-in user via the stable id.
                         .task(id: uid) {
                             await services.entryProcessor.resumePendingJobs()
+                            // Safety net: flip any entry stranded in a non-terminal
+                            // state (no in-flight job, no durable record) to `.failed`
+                            // so it surfaces Retry instead of "Processing…" forever.
+                            await services.entryProcessor.sweepStuckEntries()
                         }
                         .task(id: uid) {
                             await services.voiceRecordingImporter?.sweep()
@@ -140,6 +144,15 @@ struct LuminaLogApp: App {
                         // `DevFlags.zkMigration` is ON; see `checkZKMigration`.
                         .task(id: uid) {
                             await checkZKMigration(uid: uid)
+                        }
+                        // Prime the on-device semantic index off the request path:
+                        // prefetch the ~258 MB model on Wi-Fi, then — only once it's
+                        // cached — background-load + backfill so the first AI request
+                        // isn't blocked on the download OR the backfill embed. Best-
+                        // effort, off the render path; no-op unless the Model-1 path is
+                        // on and the model is configured. Once per signed-in user.
+                        .task(id: uid) {
+                            await services.warmSemanticIndexIfModelReady()
                         }
                         .fullScreenCover(item: $migrationPresentation) { presentation in
                             if let migrator = services.keyMigrator {

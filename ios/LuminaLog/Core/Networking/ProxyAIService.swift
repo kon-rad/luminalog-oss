@@ -21,9 +21,17 @@ final class ProxyAIService: AIService {
     /// similarity, with a keyword fallback. Nil in mock wiring and unused with the
     /// flag OFF, so retrieval is unchanged.
     private let coordinator: SemanticIndexCoordinating?
-    /// One-shot guard so the index is primed (loaded + backfilled) at most once per
-    /// session, and only when the Model-1 path first needs it.
-    private var semanticIndexPrimed = false
+    /// Priming latches — each flips true only after its step *succeeds*, so a transient
+    /// failure (e.g. the 258 MB model download dropping, or the DEK not being ready
+    /// yet) doesn't poison the session: the next Model-1 call retries. Tracked
+    /// separately so a load that already succeeded isn't repeated when only the
+    /// backfill needs another attempt. `@MainActor` isolation keeps this consistent
+    /// without a lock.
+    private var didLoadIndex = false
+    private var didBackfill = false
+    /// Single-flight guard: concurrent first calls join one priming pass instead of
+    /// each kicking off their own load + backfill.
+    private var primeTask: Task<Void, Never>?
     /// Injected clock so Model-1 recency scoring / day bounds are testable.
     private let now: () -> Date
 
@@ -570,18 +578,49 @@ final class ProxyAIService: AIService {
         )
     }
 
-    /// Prime the semantic index at most once per session: load any server-synced
-    /// vectors, then backfill entries that aren't indexed yet. Best-effort — every
-    /// step swallows its error because retrieval falls back to keyword when the
-    /// index is empty, so priming can never make the result worse than today. A
-    /// no-op unless the Model-1 flag is on and a coordinator was injected (nil in
-    /// mocks / flag-off), and only runs when there is something to index.
+    /// Prime the semantic index at most once *successfully* per session: load any
+    /// server-synced vectors, then backfill entries that aren't indexed yet.
+    ///
+    /// Best-effort — retrieval falls back to keyword when the index is empty, so
+    /// priming can never make the result worse than today. But unlike a naive
+    /// one-shot, a *failed* step does not latch: because the latches (`didLoadIndex` /
+    /// `didBackfill`) flip only on success, a transient failure (download drop, DEK not
+    /// ready) is retried on the next Model-1 call instead of degrading the whole
+    /// session to keyword search. Concurrent first calls are single-flighted via
+    /// `primeTask`. A no-op unless the Model-1 flag is on and a coordinator was injected
+    /// (nil in mocks / flag-off).
     private func primeSemanticIndexIfNeeded(entries: [JournalEntry]) async {
-        guard DevFlags.aiModel1, let coordinator, !semanticIndexPrimed else { return }
-        semanticIndexPrimed = true
-        try? await coordinator.loadIndex()
-        guard !entries.isEmpty else { return }
-        try? await coordinator.backfill(entries.map { (id: $0.id, text: $0.content) })
+        guard DevFlags.aiModel1, let coordinator else { return }
+        if didLoadIndex && didBackfill { return }
+        if let primeTask { await primeTask.value; return }   // join an in-flight prime
+
+        let task = Task { @MainActor in
+            if !didLoadIndex {
+                do { try await coordinator.loadIndex(); didLoadIndex = true }
+                catch { /* transient — retry on the next Model-1 call */ }
+            }
+            if !didBackfill, !entries.isEmpty {
+                do {
+                    try await coordinator.backfill(entries.map { (id: $0.id, text: $0.content) })
+                    didBackfill = true
+                } catch { /* transient — retry on the next Model-1 call */ }
+            }
+        }
+        primeTask = task
+        await task.value
+        primeTask = nil
+    }
+
+    /// Background-prime the semantic index off the request path: fetch the corpus and
+    /// run the same load + backfill the first AI call would, so that call is already
+    /// primed. Shares `primeSemanticIndexIfNeeded`'s single-flight + success-latch
+    /// state, so it composes safely with (and de-dupes against) the on-demand path.
+    /// The caller (`AppServices.warmSemanticIndexIfModelReady`) only invokes this once
+    /// the model is cached locally, so backfill never triggers a metered download.
+    func warmSemanticIndex() async {
+        guard DevFlags.aiModel1, coordinator != nil, let journals else { return }
+        let entries = (try? await journals.fetchAllEntries()) ?? []
+        await primeSemanticIndexIfNeeded(entries: entries)
     }
 
     /// First emission of the injected profile stream, or nil when there is no

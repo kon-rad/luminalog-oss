@@ -16,10 +16,23 @@ final class PaywallGateViewModel: ObservableObject {
     /// How long to wait for a first emission before applying the fail-open backstop.
     var resolveTimeout: Duration = .seconds(4)
 
+    /// Grace period before re-locking after a *transient* non-pro emission while
+    /// already unlocked. RevenueCat briefly reports non-pro during a renewal — the
+    /// old period expires moments before the renewal receipt validates (seen in the
+    /// logs as an entitlement `expiresDate` earlier than the receipt's `signedDate`).
+    /// Locking on that blip is catastrophic: `PaywallGate` structurally swaps
+    /// `RootView` out, tearing down the whole app — cancelling in-flight view work
+    /// like Journal Detail's entry-AI generation (which then fails with `cancelled`
+    /// and never completes). Debounce so a momentary lapse doesn't lock; a genuinely
+    /// lapsed subscriber stays non-pro past this window and then locks as before.
+    var relockGrace: Duration = .seconds(10)
+
     private let subscriptions: SubscriptionService
     private let lastKnownProKey = "ll-last-known-pro"
     private var entitlementTask: Task<Void, Never>?
     private var timeoutTask: Task<Void, Never>?
+    /// Pending debounced re-lock (see `relockGrace`); cancelled if pro returns first.
+    private var relockTask: Task<Void, Never>?
     private var resolved = false
     private var hasStarted = false
 
@@ -30,6 +43,7 @@ final class PaywallGateViewModel: ObservableObject {
     deinit {
         entitlementTask?.cancel()
         timeoutTask?.cancel()
+        relockTask?.cancel()
     }
 
     /// Starts the entitlement stream and the fail-open timeout. Idempotent.
@@ -58,7 +72,36 @@ final class PaywallGateViewModel: ObservableObject {
     private func apply(_ entitlement: Entitlement) {
         resolved = true
         timeoutTask?.cancel()
-        UserDefaults.standard.set(entitlement.isPro, forKey: lastKnownProKey)
-        state = entitlement.isPro ? .unlocked : .locked
+
+        if entitlement.isPro {
+            // Pro (re)confirmed — cancel any pending re-lock and unlock.
+            relockTask?.cancel()
+            relockTask = nil
+            UserDefaults.standard.set(true, forKey: lastKnownProKey)
+            state = .unlocked
+            return
+        }
+
+        // Non-pro emission.
+        if state == .unlocked {
+            // Debounce (see `relockGrace`): don't tear down a live session on a
+            // transient renewal blip. Only lock if non-pro persists past the window.
+            // Keep the first pending timer — repeated non-pro emissions don't restart
+            // it (so the grace can't be extended indefinitely by a chatty stream).
+            guard relockTask == nil else { return }
+            relockTask = Task { [weak self] in
+                guard let self else { return }
+                try? await Task.sleep(for: self.relockGrace)
+                guard !Task.isCancelled else { return }
+                self.relockTask = nil
+                UserDefaults.standard.set(false, forKey: self.lastKnownProKey)
+                self.state = .locked
+            }
+        } else {
+            // First resolution (or already locked): lock immediately, no grace —
+            // a never-pro user should see the paywall at once.
+            UserDefaults.standard.set(false, forKey: lastKnownProKey)
+            state = .locked
+        }
     }
 }

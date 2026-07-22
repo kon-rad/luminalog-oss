@@ -64,6 +64,51 @@ final class ONNXTextEmbedderTests: XCTestCase {
         XCTAssertThrowsError(try ONNXTextEmbedder.pool(floats: [1, 2, 3, 4], shape: [2, 2, 2, 2], attentionMask: [1, 1]))
     }
 
+    // MARK: - Batched pooling / padding (testable without a model)
+
+    func testPaddedBuildsFlatIdsAndMask() {
+        let (ids, mask) = ONNXTextEmbedder.padded([[1, 2, 3], [4]], maxLen: 3)
+        XCTAssertEqual(ids, [1, 2, 3, 4, 0, 0])
+        XCTAssertEqual(mask, [1, 1, 1, 1, 0, 0])
+    }
+
+    func testPoolBatchRank3PoolsEachRowWithItsOwnMask() throws {
+        // batch=2, seq=2, hidden=2. Row 0: both tokens attended. Row 1: 2nd token is
+        // padding, so only the first token counts.
+        // Row 0 flat: t0=[2,0], t1=[0,0]  → mean [1,0]   → normalize [1,0]
+        // Row 1 flat: t0=[0,5], t1=[9,9]  → masked to [0,5] → normalize [0,1]
+        let floats: [Float] = [2, 0, 0, 0,  0, 5, 9, 9]
+        let out = try ONNXTextEmbedder.poolBatch(
+            floats: floats, shape: [2, 2, 2], batch: 2, masks: [[1, 1], [1, 0]])
+        XCTAssertEqual(out.count, 2)
+        XCTAssertEqual(out[0].values[0], 1, accuracy: 1e-6)
+        XCTAssertEqual(out[0].values[1], 0, accuracy: 1e-6)
+        XCTAssertEqual(out[1].values[0], 0, accuracy: 1e-6)
+        XCTAssertEqual(out[1].values[1], 1, accuracy: 1e-6)
+    }
+
+    func testPoolBatchRank2NormalizesEachRow() throws {
+        // batch=2, hidden=2, already-pooled sentence embeddings.
+        let out = try ONNXTextEmbedder.poolBatch(
+            floats: [3, 4, 0, 2], shape: [2, 2], batch: 2, masks: [[1], [1]])
+        XCTAssertEqual(out[0].values[0], 0.6, accuracy: 1e-6)
+        XCTAssertEqual(out[0].values[1], 0.8, accuracy: 1e-6)
+        XCTAssertEqual(out[1].values[0], 0, accuracy: 1e-6)
+        XCTAssertEqual(out[1].values[1], 1, accuracy: 1e-6)
+    }
+
+    func testPoolBatchThrowsOnBatchAxisMismatch() {
+        // Model ignored the batch axis (returned batch=1 for a 2-item batch) → throw so
+        // `embed(batch:)` falls back to per-item runs.
+        XCTAssertThrowsError(try ONNXTextEmbedder.poolBatch(
+            floats: [1, 2, 3, 4], shape: [1, 2, 2], batch: 2, masks: [[1, 1], [1, 1]]))
+    }
+
+    func testPoolBatchThrowsOnFloatCountMismatch() {
+        XCTAssertThrowsError(try ONNXTextEmbedder.poolBatch(
+            floats: [1, 2, 3], shape: [2, 2, 2], batch: 2, masks: [[1, 1], [1, 1]]))
+    }
+
     func testInt64DataIsLittleEndian() {
         // 1 → 8 bytes, 01 00 00 00 00 00 00 00.
         XCTAssertEqual([UInt8](ONNXTextEmbedder.int64Data([1])),

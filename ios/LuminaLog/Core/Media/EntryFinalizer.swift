@@ -14,6 +14,10 @@ struct EntryFinalizer {
     let journals: JournalRepository
     let profiles: ProfileRepository
     let ai: AIService
+    /// Auto-recovers a failed/empty voice transcript from the now-uploaded S3
+    /// audio (see `TranscriptRecoverer`). Optional so mock/test wiring can omit it
+    /// (auto-recovery is simply skipped); `live()` always provides one.
+    var recoverer: TranscriptRecoverer? = nil
     private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "finalizer")
 
     func finalize(_ pending: PendingEntry) async {
@@ -37,12 +41,40 @@ struct EntryFinalizer {
                 do { try await profiles.recordPromptAnswered() }
                 catch { Self.logger.error("recordPromptAnswered failed: \(error.localizedDescription)") }
             }
-            if awaitsServerTranscription { try? await ai.transcribeJournal(journalId: entry.id) }
-            else { await ai.requestIndex(journalId: entry.id) }
+            if awaitsServerTranscription {
+                try? await ai.transcribeJournal(journalId: entry.id)
+            } else {
+                // Zero-knowledge path: the audio is now durably on S3. If the
+                // pre-upload on-device transcription failed or came back empty
+                // (a transient network blip during recording), auto-recover it
+                // from S3 now — no user action, resumable across launches. Index
+                // AFTER recovery so the entry is searchable with its transcript.
+                if let recoverer, TranscriptRecoverer.needsTranscript(entry),
+                   let recovered = await recoverer.recover(entry) {
+                    entry = recovered
+                }
+                await ai.requestIndex(journalId: entry.id)
+            }
         } catch {
             Self.logger.error("finalize failed for \(pending.draftId): \(error.localizedDescription)")
             entry.processingStatus = .failed
             try? await journals.save(entry)
         }
+    }
+
+    /// Flip a media entry to `.failed` in Firestore — used when its uploads
+    /// permanently fail (`UploadManager.onPermanentFailure`). Without this the
+    /// entry stays stuck at "Uploading…" forever; marking it `.failed` surfaces
+    /// the in-app Retry affordance (which is gated on `.failed`). Mirrors the
+    /// entry shape `finalize` builds so the list/detail views render it correctly.
+    func markFailed(_ pending: PendingEntry) async {
+        let entry = JournalEntry(
+            id: pending.draftId, userId: pending.userId, type: pending.type,
+            title: pending.title, createdAt: pending.createdAt, content: pending.content,
+            media: pending.mediaItems, transcriptStatus: pending.transcriptStatus,
+            processingStatus: .failed, wordCount: pending.wordCount,
+            promptText: pending.promptText)
+        do { try await journals.save(entry) }
+        catch { Self.logger.error("markFailed save failed for \(pending.draftId): \(error.localizedDescription)") }
     }
 }

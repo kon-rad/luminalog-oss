@@ -18,10 +18,13 @@ final class LazyONNXTextEmbedderTests: XCTestCase {
         var payloads: [URL: Data]
         private(set) var downloadedURLs: [URL] = []
         init(payloads: [URL: Data]) { self.payloads = payloads }
-        func download(from url: URL) async throws -> Data {
+        func download(from url: URL) async throws -> URL {
             downloadedURLs.append(url)
             guard let data = payloads[url] else { throw URLError(.fileDoesNotExist) }
-            return data
+            let temp = FileManager.default.temporaryDirectory
+                .appendingPathComponent("fake-dl-\(UUID().uuidString).tmp")
+            try data.write(to: temp)
+            return temp
         }
     }
 

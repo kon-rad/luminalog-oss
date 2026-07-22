@@ -26,6 +26,23 @@ enum ProxyAPIError: LocalizedError {
     }
 }
 
+/// Bounded exponential-backoff retry for transient failures on the raw-bytes
+/// (audio transcription) path. Injectable so tests run with zero delay.
+struct TransientRetryPolicy {
+    /// Total attempts including the first (so `3` = 1 try + 2 retries).
+    var attempts: Int
+    /// Backoff before the retry that FOLLOWS the given 1-based attempt, in nanoseconds.
+    var backoff: (Int) -> UInt64
+    /// Suspends for the given nanoseconds (real `Task.sleep` in production).
+    var sleep: (UInt64) async -> Void
+
+    static let `default` = TransientRetryPolicy(
+        attempts: 3,
+        backoff: { attempt in UInt64(250_000_000) << (attempt - 1) }, // 250ms, 500ms
+        sleep: { ns in try? await Task.sleep(nanoseconds: ns) }
+    )
+}
+
 /// Thin JSON/SSE client for the LuminaLog proxy API (spec §4).
 /// Attaches `Authorization: Bearer <Firebase ID token>` to every call and
 /// retries exactly once with a force-refreshed token on HTTP 401.
@@ -34,6 +51,7 @@ final class ProxyAPIClient {
     private let baseURL: URL
     private let tokenProvider: TokenProvider
     private let session: URLSession
+    private let transientRetry: TransientRetryPolicy
 
     /// DRY client-side backstop for AI routes: when the server 403s with a
     /// consent error (Task 8 gates AI routes on server-recorded consent),
@@ -56,10 +74,16 @@ final class ProxyAPIClient {
         return decoder
     }()
 
-    init(baseURL: URL, tokenProvider: TokenProvider, session: URLSession = .shared) {
+    init(
+        baseURL: URL,
+        tokenProvider: TokenProvider,
+        session: URLSession = .shared,
+        transientRetry: TransientRetryPolicy = .default
+    ) {
         self.baseURL = baseURL
         self.tokenProvider = tokenProvider
         self.session = session
+        self.transientRetry = transientRetry
     }
 
     // MARK: - Request / response
@@ -119,6 +143,40 @@ final class ProxyAPIClient {
     }
 
     private func postRawData(path: String, body: Data, contentType: String) async throws -> Data {
+        // Transcription is a slow, network-heavy call that intermittently fails
+        // transiently (mobile-network drops, upstream 429/5xx). Retry the whole
+        // request with backoff so one blip doesn't strand a voice entry. The 401
+        // token-refresh and 403 consent-resync sub-retries live inside a single
+        // attempt and don't consume the transient budget.
+        let attempts = max(1, transientRetry.attempts)
+        for attempt in 1...attempts {
+            let isLast = attempt == attempts
+            do {
+                let (data, response) = try await rawRequestWithAuthRecovery(
+                    path: path, body: body, contentType: contentType
+                )
+                if !isLast, Self.isTransientStatus(response) {
+                    // Drain nothing (buffered Data), back off, and retry.
+                    await transientRetry.sleep(transientRetry.backoff(attempt))
+                    continue
+                }
+                try Self.validate(response: response, data: data)
+                return data
+            } catch let error where !isLast && Self.isTransientError(error) {
+                await transientRetry.sleep(transientRetry.backoff(attempt))
+                continue
+            }
+        }
+        // Unreachable: the final attempt either returns or throws above.
+        throw ProxyAPIError.emptyResponse
+    }
+
+    /// One raw POST with the existing single-shot 401 (token refresh) and 403
+    /// (consent re-sync) recovery. Returns the final `(data, response)` without
+    /// validating — the transient-retry loop decides whether to retry or surface it.
+    private func rawRequestWithAuthRecovery(
+        path: String, body: Data, contentType: String
+    ) async throws -> (Data, URLResponse) {
         let request = try await makeRawRequest(path: path, body: body, contentType: contentType)
         var (data, response) = try await session.data(for: request)
 
@@ -137,8 +195,7 @@ final class ProxyAPIClient {
             (data, response) = try await session.data(for: retry)
         }
 
-        try Self.validate(response: response, data: data)
-        return data
+        return (data, response)
     }
 
     private func makeRawRequest(
@@ -152,6 +209,10 @@ final class ProxyAPIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        // Transcribing a whole recording can legitimately take longer than the 60s
+        // URLRequest default; bound it generously so a slow-but-working request
+        // isn't cut short into a spurious timeout.
+        request.timeoutInterval = 120
         let token = try await tokenProvider.idToken(forceRefresh: forceRefresh)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.httpBody = body
@@ -314,6 +375,30 @@ final class ProxyAPIClient {
     private static func isConsentDenied(response: URLResponse, data: Data) -> Bool {
         (response as? HTTPURLResponse)?.statusCode == 403
             && String(data: data, encoding: .utf8)?.contains("consent") == true
+    }
+
+    /// HTTP statuses that are "busy, try again" — safe to retry. 4xx (e.g. 400)
+    /// is a request problem and must NOT be retried; 401/403 have their own
+    /// dedicated single-shot recovery and are handled before we get here.
+    private static let transientStatuses: Set<Int> = [429, 500, 502, 503, 504]
+
+    private static func isTransientStatus(_ response: URLResponse) -> Bool {
+        guard let code = (response as? HTTPURLResponse)?.statusCode else { return false }
+        return transientStatuses.contains(code)
+    }
+
+    /// Network-level failures worth retrying (timeouts, dropped/unreachable
+    /// connections) — as opposed to programming errors or cancellation.
+    private static func isTransientError(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+        switch urlError.code {
+        case .timedOut, .networkConnectionLost, .cannotConnectToHost,
+             .cannotFindHost, .dnsLookupFailed, .notConnectedToInternet,
+             .secureConnectionFailed:
+            return true
+        default:
+            return false
+        }
     }
 
     private static func validate(response: URLResponse, data: Data) throws {

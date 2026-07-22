@@ -108,6 +108,11 @@ protocol AIService: AnyObject {
 
     /// Generates (or returns the cached) daily insights report for `date` ("yyyy-MM-dd", default today).
     func generateDailyReport(date: String?, force: Bool) async throws -> DailyInsightsReport
+
+    /// Background-prime the on-device semantic index off the request path (load synced
+    /// vectors + backfill un-indexed entries), so the first AI request is already
+    /// primed. Best-effort; only the zero-knowledge `ProxyAIService` does real work.
+    func warmSemanticIndex() async
 }
 
 extension AIService {
@@ -124,4 +129,8 @@ extension AIService {
     /// Default: no client-built voice context (non-ZK paths and mocks). Only the
     /// zero-knowledge `ProxyAIService` overrides this.
     func voiceCallContext(journalId: String?) async throws -> VoiceCallContext? { nil }
+
+    /// Default: no on-device index to warm (non-ZK paths and mocks). Only the
+    /// zero-knowledge `ProxyAIService` overrides this.
+    func warmSemanticIndex() async {}
 }

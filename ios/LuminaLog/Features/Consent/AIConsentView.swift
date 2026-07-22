@@ -21,13 +21,17 @@ struct AIConsentView: View {
                     VStack(alignment: .leading, spacing: Spacing.s) {
                         providerRow("Together AI", "summaries, reflections, chat, and prompts")
                         providerRow("Deepgram", "transcribing your voice & video entries")
-                        providerRow("Vapi & Anthropic", "live voice conversations")
+                        providerRow("Vapi & Morpheus", "live voice calls — Vapi carries the call audio; Morpheus runs the AI privately inside a secure hardware enclave")
                         providerRow("Hume AI", "optional emotion insights")
                     }
                     .padding(Spacing.m)
                     .background(RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous).fill(Color.cardBackground))
 
                     Text("Your journal is encrypted at rest and we can't read your stored entries — but text or audio you use with an AI feature is shared with these providers to generate your results. They process it only to provide these features — never to train their models or for advertising.")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+
+                    Text("**Live voice calls work a little differently.** So your companion can recall relevant past entries in real time as you talk, during a call — and only for the length of the call — your device sends its encryption key to our server. The server uses it to decrypt just the entries needed to answer you **in memory only** — never written to disk and never saved — and feeds them to the AI running in the secure hardware enclave (Morpheus). The key and any decrypted text are wiped the moment the call ends. This applies only to live voice calls; your stored journal, text features, transcription, and search stay encrypted and unreadable to us, as always.")
                         .font(.captionText)
                         .foregroundStyle(Color.textSecondary)
 

@@ -17,6 +17,9 @@ final class JournalDetailViewModelTests: XCTestCase {
 
         var delayNanos: UInt64 = 0
         var shouldFail = false
+        /// A specific error to throw from the summary/entry-AI path (e.g. a
+        /// cancellation) — takes precedence over `shouldFail`'s generic error.
+        var errorToThrow: Error?
         var shouldFailTranscribe = false
 
         func generateSummary(journalId: String) async throws -> AIGeneration {
@@ -91,6 +94,9 @@ final class JournalDetailViewModelTests: XCTestCase {
         private func waitAndMaybeFail() async throws {
             if delayNanos > 0 {
                 try await Task.sleep(nanoseconds: delayNanos)
+            }
+            if let errorToThrow {
+                throw errorToThrow
             }
             if shouldFail {
                 throw SpyError()
@@ -275,6 +281,65 @@ final class JournalDetailViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.entry?.summary?.text, "spy summary", "Racing save must not clobber the summary")
         XCTAssertEqual(ai.summaryCalls, 1, "No second, wasteful LLM call")
+    }
+
+    // MARK: - Cancellation resilience (paywall-gate remount)
+
+    /// A cancellation — e.g. the paywall gate tearing down the app on a transient
+    /// entitlement blip — is NOT a terminal failure: the state stays quiet/retryable
+    /// instead of latching `.failed` (which surfaced as an empty/stuck card), and the
+    /// auto-generation latch is released so a later attempt still runs.
+    @MainActor
+    func testCancellationIsNotTreatedAsFailure() async {
+        let saved = DevFlags.aiModel1
+        DevFlags.aiModel1 = false   // exercise the generateSummary path deterministically
+        defer { DevFlags.aiModel1 = saved }
+
+        let repo = MockJournalRepository(entries: [makeEntry()])
+        let ai = SpyAIService()
+        ai.errorToThrow = URLError(.cancelled)
+
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
+        await viewModel.start()
+
+        XCTAssertEqual(viewModel.summaryState, .idle, "Cancellation must not surface as a failure")
+
+        // The latch was released, so a subsequent successful generation still runs.
+        ai.errorToThrow = nil
+        await viewModel.generateSummary()
+        XCTAssertEqual(viewModel.summaryState, .idle)
+        XCTAssertEqual(viewModel.entry?.summary?.text, "spy summary")
+    }
+
+    /// Generation runs OFF the SwiftUI view task, so tearing down the enclosing task
+    /// (as a paywall-gate remount does) does NOT cancel the in-flight LLM call — it
+    /// completes and persists, so the entry's AI is never stranded empty.
+    @MainActor
+    func testGenerationSurvivesEnclosingTaskCancellation() async throws {
+        let savedFlag = DevFlags.aiModel1
+        DevFlags.aiModel1 = false   // assert against the generateSummary counter
+        defer { DevFlags.aiModel1 = savedFlag }
+
+        let repo = MockJournalRepository(entries: [makeEntry()])
+        let ai = SpyAIService()
+        ai.delayNanos = 200_000_000   // in flight long enough to cancel mid-call
+
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
+
+        // Mimic SwiftUI's `.task { start() }` being cancelled on view teardown.
+        let task = Task { await viewModel.start() }
+        try await Task.sleep(nanoseconds: 50_000_000)   // let generation begin
+        task.cancel()
+        await task.value
+
+        // The detached generation finishes after the enclosing task was cancelled.
+        try await Task.sleep(nanoseconds: 400_000_000)
+
+        XCTAssertEqual(ai.summaryCalls, 1)
+        XCTAssertEqual(viewModel.summaryState, .idle, "Generation completed, not cancelled")
+        XCTAssertEqual(viewModel.entry?.summary?.text, "spy summary")
+        let saved = try await storedEntry(id: "entry-1", in: repo)
+        XCTAssertEqual(saved?.summary?.text, "spy summary", "It persists despite the teardown")
     }
 
     // MARK: - Regenerate visibility rule

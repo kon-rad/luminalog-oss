@@ -107,16 +107,6 @@ struct JournalDetailView: View {
 
     // MARK: - Layout
 
-    /// Bottom padding for the scrolling tab content. Main, Insights, and Prompts
-    /// get a generous margin (≥300pt) so the floating root tab bar never covers
-    /// their last card; the Related tab keeps the standard screen-level inset.
-    private static func tabContentBottomInset(for tab: JournalDetailTab) -> CGFloat {
-        switch tab {
-        case .main, .insights, .prompts: return 300
-        case .related: return Spacing.xl
-        }
-    }
-
     private func loadedBody(_ entry: JournalEntry) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             titleHeader(entry)
@@ -128,23 +118,29 @@ struct JournalDetailView: View {
             DetailTabBar(selection: $selectedTab)
 
             ScrollView {
-                Group {
-                    switch selectedTab {
-                    case .main:
-                        mainTab(entry)
-                    case .insights:
-                        insightsTab(entry)
-                    case .prompts:
-                        promptsTab(entry)
-                    case .related:
-                        RelatedTabView(entryId: entry.id, ai: ai)
+                VStack(spacing: 0) {
+                    Group {
+                        switch selectedTab {
+                        case .main:
+                            mainTab(entry)
+                        case .insights:
+                            insightsTab(entry)
+                        case .prompts:
+                            promptsTab(entry)
+                        case .related:
+                            RelatedTabView(entryId: entry.id, ai: ai)
+                        }
                     }
+                    .padding(Spacing.m)
+
+                    // Colophon endpiece: a quiet decorative mark that greets the
+                    // reader at the bottom of every tab once they scroll to the end.
+                    ColophonEndpiece()
+                        .padding(.top, Spacing.l)
                 }
-                .padding(Spacing.m)
-                // Insights and Prompts tabs need extra bottom clearance so the
-                // root tab bar (and its raised "+") never overlaps their last
-                // rows when scrolled to the end.
-                .padding(.bottom, Self.tabContentBottomInset(for: selectedTab))
+                // Standard clearance so the root tab bar (and its raised "+")
+                // never overlaps the colophon when scrolled to the end.
+                .padding(.bottom, AppTabBar.scrollBottomPadding)
             }
         }
         .sheet(isPresented: $isEditingTranscript) {
@@ -534,9 +530,7 @@ struct JournalDetailView: View {
                     CopyButton(text: insights.text, accessibilityText: "Copy insights")
                 }
 
-                ForEach(Array(Self.insightBlocks(of: insights.text).enumerated()), id: \.offset) { _, block in
-                    insightBlockView(block)
-                }
+                MarkdownText(insights.text, style: .insights)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } else if aiIsPending(entry) {
@@ -569,87 +563,6 @@ struct JournalDetailView: View {
                 .fill(Color.secondaryBackground)
         )
         .accessibilityLabel(label)
-    }
-
-    /// A parsed block of the Markdown-formatted insights text.
-    private enum InsightBlock {
-        case heading(String, level: Int)
-        case bullet(String)
-        case paragraph(String)
-    }
-
-    /// Renders a single parsed insights block with theme typography.
-    @ViewBuilder
-    private func insightBlockView(_ block: InsightBlock) -> some View {
-        switch block {
-        case let .heading(text, level):
-            Text(Self.inlineMarkdown(text))
-                .font(level <= 2 ? .sectionHeader : .entryTitle)
-                .foregroundStyle(Color.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, Spacing.s)
-        case let .bullet(text):
-            HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
-                Text("•")
-                    .font(.journalBody)
-                    .foregroundStyle(Color.textSecondary)
-                Text(Self.inlineMarkdown(text))
-                    .font(.journalBody)
-                    .foregroundStyle(Color.textPrimary)
-                    .lineSpacing(6)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        case let .paragraph(text):
-            Text(Self.inlineMarkdown(text))
-                .font(.journalBody)
-                .foregroundStyle(Color.textPrimary)
-                .lineSpacing(6)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    /// Parses inline Markdown (bold, italic, links) into an `AttributedString`,
-    /// falling back to plain text if parsing fails.
-    private static func inlineMarkdown(_ text: String) -> AttributedString {
-        (try? AttributedString(
-            markdown: text,
-            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        )) ?? AttributedString(text)
-    }
-
-    /// Splits Markdown-formatted insights text into renderable blocks. Headings
-    /// (`#`), bullet lists (`-`/`*`) are single lines; consecutive plain lines
-    /// are merged into a paragraph, and blank lines separate paragraphs.
-    private static func insightBlocks(of text: String) -> [InsightBlock] {
-        var blocks: [InsightBlock] = []
-        var paragraphLines: [String] = []
-
-        func flushParagraph() {
-            let joined = paragraphLines
-                .joined(separator: " ")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            if !joined.isEmpty { blocks.append(.paragraph(joined)) }
-            paragraphLines.removeAll()
-        }
-
-        for rawLine in text.components(separatedBy: .newlines) {
-            let line = rawLine.trimmingCharacters(in: .whitespaces)
-            if line.isEmpty {
-                flushParagraph()
-            } else if line.hasPrefix("#") {
-                flushParagraph()
-                let hashes = line.prefix { $0 == "#" }
-                let content = line.dropFirst(hashes.count).trimmingCharacters(in: .whitespaces)
-                if !content.isEmpty { blocks.append(.heading(content, level: hashes.count)) }
-            } else if line.hasPrefix("- ") || line.hasPrefix("* ") {
-                flushParagraph()
-                blocks.append(.bullet(String(line.dropFirst(2)).trimmingCharacters(in: .whitespaces)))
-            } else {
-                paragraphLines.append(line)
-            }
-        }
-        flushParagraph()
-        return blocks
     }
 
     // MARK: - Prompts tab
