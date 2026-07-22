@@ -6,9 +6,11 @@ import type { ProfileFields } from './profileContext'
 
 /** Default system prompt for per-entry summary generation ({type} → entry kind). */
 export const DEFAULT_SUMMARY_SYSTEM_PROMPT =
-  `You are summarizing a {type} journal entry. ` +
-  `Capture the key themes and emotional tone. Write in second person ` +
-  `("you felt…", "you noticed…"). Be reflective and personal, not clinical.`
+  `You are summarizing a {type} journal entry in ONE short sentence. ` +
+  `Capture only the single most important theme or feeling — do not list ` +
+  `multiple points or use more than one sentence. Write in second person ` +
+  `("you felt…", "you noticed…"), reflective and personal, not clinical. ` +
+  `Output exactly one short sentence, nothing more.`
 
 /** Renders the "USER'S NAME:" block, or '' when no name is set. */
 function nameBlock(name: string): string {
@@ -47,7 +49,9 @@ ${bio || 'No biography provided.'}
 ${focalEntry ? `FOCAL JOURNAL ENTRY (the specific entry the user wants to discuss):\n${focalEntry}\n\n` : ''}RELEVANT JOURNAL ENTRIES:
 ${journalContext || 'No relevant journal entries found.'}
 
-Use the journal context to provide deeply personalized responses. Address the user by name when it feels natural. Reference specific entries when relevant. Be warm, thoughtful, and reflective — like a trusted companion who has read every page of the user's journal. Never mention that you searched a database.`,
+Use the journal context to provide deeply personalized responses. Address the user by name when it feels natural. Reference specific entries when relevant. Be warm, thoughtful, and reflective — like a trusted companion who has read every page of the user's journal. Never mention that you searched a database.
+
+Your replies render as Markdown, so use light formatting to aid readability: **bold** for the occasional key phrase, *italics* for gentle emphasis, and short "- " bullet or "1." numbered lists only when you're genuinely enumerating a few things. Keep the tone conversational and the prose flowing — don't over-format. Avoid headings and tables; most replies should read as plain, warm paragraphs.`,
 
   voiceChat: (name: string, bio: string, profile: ProfileFields, journalContext: string, focalEntry?: string, currentDateTime?: string, todayEntries?: string): string => `You are a personal AI journal companion having a voice conversation.
 

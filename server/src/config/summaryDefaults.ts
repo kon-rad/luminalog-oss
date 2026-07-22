@@ -1,6 +1,6 @@
 import { DEFAULT_SUMMARY_SYSTEM_PROMPT } from '../services/prompts'
 
-export const DEFAULT_SUMMARY_WORD_LENGTH = 50
+export const DEFAULT_SUMMARY_WORD_LENGTH = 20
 
 // Prompt text is owned by services/prompts.ts (the single home for LLM prompts).
 export { DEFAULT_SUMMARY_SYSTEM_PROMPT }

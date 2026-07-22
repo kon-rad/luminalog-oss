@@ -22,6 +22,13 @@ const schema = z.object({
   // journaling (empathetic writing + reliable instruction-following). Alternatives:
   // gemini-3.1-pro-preview, GPT-5.5, glm-5.2, deepseek-v4-pro, llama-3.3-70b (cheapest).
   MORPHEUS_CHAT_MODEL: z.string().default('claude-opus-4.8'),
+  // The chat model for LIVE VOICE calls only (Vapi custom-LLM proxy). Voice is
+  // latency-critical: Vapi ends the call with `custom-llm-llm-failed` if a turn is
+  // too slow, so voice needs a fast, LOW-TAIL-LATENCY model even at some quality
+  // cost — unlike the global `MORPHEUS_CHAT_MODEL`, which optimizes summaries/text
+  // chat for quality. `Gemini 3.5 Flash` had the tightest measured p95 on Morpheus
+  // (~3.6s vs claude-opus-4.8's 13.8s spikes). Optional/defaulted → no crash-loop.
+  VOICE_CHAT_MODEL: z.string().default('Gemini 3.5 Flash'),
   MORPHEUS_EMBEDDING_MODEL: z.string().default('text-embedding-bge-m3'),
   AWS_ACCESS_KEY_ID: z.string(),
   AWS_SECRET_ACCESS_KEY: z.string(),
