@@ -33,12 +33,15 @@ final class DraftStoreRecordingTests: XCTestCase {
     }
 
     func testUpdateRecordingPreservesExistingTextAndAttachments() {
+        let att = DraftAttachment(id: UUID(), kind: .photo, fileName: "p.jpg",
+                                  durationSec: nil, pixelWidth: 100, pixelHeight: 200, order: 0)
         store.upsert(DraftEntry(draftId: "d1", text: "hello", promptText: nil,
-                                createdAtEpoch: 1, updatedAtEpoch: 1, attachments: []))
+                                createdAtEpoch: 1, updatedAtEpoch: 1, attachments: [att]))
         store.updateRecording(draftId: "d1",
                               DraftRecording(segmentFileNames: ["rec-0.caf"], isFinalized: false))
         let loaded = store.load("d1")
         XCTAssertEqual(loaded?.text, "hello")
+        XCTAssertEqual(loaded?.attachments, [att])
         XCTAssertEqual(loaded?.recording?.segmentFileNames, ["rec-0.caf"])
     }
 
@@ -71,6 +74,11 @@ final class DraftStoreRecordingTests: XCTestCase {
         XCTAssertEqual(audio?.durationSec ?? 0, 3.0, accuracy: 0.5)
         // Merged file exists in the media dir.
         XCTAssertNotNil(store.mediaURL(draftId: "d1", fileName: audio!.fileName))
+        // Merged segments must be deleted from disk (not left orphaned).
+        XCTAssertFalse(FileManager.default.fileExists(
+            atPath: mediaDir.appendingPathComponent("rec-0.caf").path))
+        XCTAssertFalse(FileManager.default.fileExists(
+            atPath: mediaDir.appendingPathComponent("rec-1.caf").path))
     }
 
     func testRecoverySweepIgnoresFinalizedManifests() async {
