@@ -55,16 +55,7 @@ struct RecordingMerger: RecordingMerging {
             asset: composition,
             presetName: AVAssetExportPresetAppleM4A
         ) else { throw RecordingMergeError.exportInit }
-        export.outputURL = out
-        export.outputFileType = .m4a
 
-        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            export.exportAsynchronously {
-                switch export.status {
-                case .completed: cont.resume()
-                default: cont.resume(throwing: export.error ?? RecordingMergeError.exportFailed)
-                }
-            }
-        }
+        try await export.export(to: out, as: .m4a)
     }
 }
