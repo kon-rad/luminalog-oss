@@ -2453,20 +2453,20 @@ function TonyLopezContent() {
   )
 }
 
-/* ── Post: Anton Vecherkin (ContentDAO) ── */
-function AntonVecherkinContent() {
+/* ── Post: Anton Pecherkin (ContentDAO) ── */
+function AntonPecherkinContent() {
   return (
     <>
       <Figure
         src="/blog/llp021-anton-contentdao-1.jpg"
-        alt="Anton Vecherkin gesturing mid-story across a table from Konrad at Network School, a whiteboard behind them"
+        alt="Anton Pecherkin gesturing mid-story across a table from Konrad at Network School, a whiteboard behind them"
         width={1920}
         height={1080}
         caption="Anton walking through the green-energy certificate pilot at Network School."
         priority
       />
       <P>
-        Some people find their craft in a classroom. Anton Vecherkin found his in a hackathon he
+        Some people find their craft in a classroom. Anton Pecherkin found his in a hackathon he
         almost didn&apos;t attend. In this episode of the LuminaLog Podcast we trace a fifteen-year
         arc from a Tetris-only family computer in Russia to founding ContentDAO, and along the way
         we talk about the parts of a builder&apos;s life that don&apos;t show up on a pitch deck:
@@ -2617,6 +2617,13 @@ function AntonVecherkinContent() {
       <UL
         items={[
           <>
+            <A href="https://www.linkedin.com/in/antony-peech/">Anton Pecherkin on LinkedIn</A>
+            {' '}— connect with the guest
+          </>,
+          <>
+            <A href="https://x.com/ContentDAOapp">ContentDAO on X</A> — follow the company
+          </>,
+          <>
             <A href="https://contentdao.app">ContentDAO</A> — Anton&apos;s current company, a
             distribution channel for small content creators
           </>,
@@ -2624,7 +2631,7 @@ function AntonVecherkinContent() {
             <A href="https://b4b.app">B4B.app</A> — his earlier influencer / KOL marketplace
           </>,
           <>
-            <A href="https://startblog.online">StartBlock</A> — his blockchain agency; past work is
+            <A href="https://startblock.online">StartBlock</A> — his blockchain agency; past work is
             under /cases
           </>,
           'Semakau Island / REIDS — Renewable Energy Integration Demonstrator, Singapore',
@@ -2649,13 +2656,13 @@ function AntonVecherkinContent() {
 export const posts: BlogPost[] = [
   {
     slug: 'llp021-anton-contentdao',
-    title: 'LLP#021 — Anton Vecherkin: from 40+ hackathons to ContentDAO',
+    title: 'LLP#021 — Anton Pecherkin: from 40+ hackathons to ContentDAO',
     description:
-      'A conversation at Network School with Anton Vecherkin, a Web3 engineer who won something like forty to fifty hackathons across Europe, then built a blockchain agency (green-energy NFT certificates piloted on Semakau Island in Singapore) before founding ContentDAO. On treating judges as the spec, hating dependency hell, and building &ldquo;Google Ads for small content creators&rdquo; with pay held in escrow until the post ships.',
+      'A conversation at Network School with Anton Pecherkin, a Web3 engineer who won something like forty to fifty hackathons across Europe, then built a blockchain agency (green-energy NFT certificates piloted on Semakau Island in Singapore) before founding ContentDAO. On treating judges as the spec, hating dependency hell, and building &ldquo;Google Ads for small content creators&rdquo; with pay held in escrow until the post ships.',
     date: 'July 25, 2026',
     isoDate: '2026-07-25T18:00',
     readingTime: '6 min read',
-    Content: AntonVecherkinContent,
+    Content: AntonPecherkinContent,
   },
   {
     slug: 'ashish-sood-network-states',
