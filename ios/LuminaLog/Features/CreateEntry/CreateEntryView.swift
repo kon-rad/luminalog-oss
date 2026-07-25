@@ -10,7 +10,7 @@ struct CreateEntryView: View {
     @Environment(\.dismiss) private var dismiss
 
     @StateObject private var viewModel: CreateEntryViewModel
-    @StateObject private var recorder = AudioRecorderController()
+    @StateObject private var recorder = RecordingSession()
 
     // Local presentation state.
     @State private var isRecorderPresented = false
@@ -72,21 +72,22 @@ struct CreateEntryView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomBar
         }
-        .task { viewModel.loadResumedDraftIfNeeded() }
+        .task {
+            viewModel.configureRecording(recorder)
+            viewModel.loadResumedDraftIfNeeded()
+        }
         .onDisappear {
-            if !isDiscarding { viewModel.persistDraftNow() }
+            if isDiscarding {
+                recorder.cancel()                 // explicit discard → drop segments
+            } else {
+                if recorder.isActive { recorder.pause(reason: .manual) }  // keep for recovery
+                viewModel.persistDraftNow()
+            }
             viewModel.stopDictation()
-            recorder.cancel()
         }
         .onChange(of: viewModel.didSave) { _, didSave in
             if didSave { dismiss() }
         }
-        // Save a recording cut short by a call/alarm/backgrounding. Extracted into
-        // its own modifier so the body stays type-checkable (see CreateEntryPickers).
-        .modifier(RecordingInterruptionModifier(recorder: recorder) { saved in
-            viewModel.attachInterruptedAudio(saved)
-            isRecorderPresented = false
-        })
         .interactiveDismissDisabled(false)   // swipe-down keeps the autosaved draft
         .modifier(CreateEntryPickersModifier(
             showPhotoCamera: $showPhotoCamera,
@@ -344,10 +345,8 @@ struct CreateEntryView: View {
     // MARK: - Capture handlers
 
     private func handleMicTap() {
-        if recorder.isRecording {
-            if let audio = recorder.stop() {
-                viewModel.attachAudio(audio)
-            }
+        if recorder.isActive {
+            stopAndAttach()
             return
         }
         guard viewModel.attachments.canRecordAudio else {
@@ -379,10 +378,12 @@ struct CreateEntryView: View {
     /// Finalizes the in-flight recording, attaches the clip, and dismisses the
     /// full-screen recorder. Shared by the overlay's X and Stop buttons.
     private func stopAndAttach() {
-        if let audio = recorder.stop() {
-            viewModel.attachAudio(audio)
+        Task {
+            if let audio = await recorder.stop() {
+                viewModel.attachAudio(audio)
+            }
+            isRecorderPresented = false
         }
-        isRecorderPresented = false
     }
 
     /// Stages a spinner per item, then decodes each and resolves it in place.
@@ -576,35 +577,6 @@ private struct CreateEntryPickersModifier: ViewModifier {
                 allowsMultipleSelection: false,
                 onCompletion: onPickedFile
             )
-    }
-}
-
-/// Saves an in-progress voice recording when a phone call, alarm, or app
-/// backgrounding cuts it short, so the partial isn't silently lost.
-///
-/// A call/alarm/Siri is caught by `AudioRecorderController`'s audio-session
-/// interruption observer; the `scenePhase` watch here is the backstop for a plain
-/// app-switch or lock, which the OS reports without an audio-session interruption.
-/// Both finalize the partial and publish it via `interruptionSavedAudio`, which we
-/// hand back to the entry through `onSavedPartial`.
-private struct RecordingInterruptionModifier: ViewModifier {
-
-    @Environment(\.scenePhase) private var scenePhase
-    @ObservedObject var recorder: AudioRecorderController
-    let onSavedPartial: (AudioAttachment) -> Void
-
-    func body(content: Content) -> some View {
-        content
-            .onChange(of: scenePhase) { _, newPhase in
-                if newPhase == .background && recorder.isRecording {
-                    recorder.finalizeInterrupted()
-                }
-            }
-            .onChange(of: recorder.interruptionSavedAudio) { _, saved in
-                guard let saved else { return }
-                onSavedPartial(saved)
-                recorder.clearInterruptionSavedAudio()
-            }
     }
 }
 

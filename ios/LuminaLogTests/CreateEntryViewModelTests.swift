@@ -384,4 +384,32 @@ final class CreateEntryViewModelTests: XCTestCase {
         XCTAssertEqual(harness.viewModel.dictationState, .idle)
         XCTAssertEqual(harness.viewModel.text, "Hello there", "Partials delivered before stop are kept")
     }
+
+    // MARK: - In-progress recording keeps the draft alive
+
+    @MainActor
+    func testDraftWithInProgressRecordingIsNotPrunedWhenTextEmpty() {
+        // A recording manifest on disk (no text, no attachments) must keep the draft.
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cevm-\(UUID().uuidString)", isDirectory: true)
+        let drafts = DraftStore(directory: dir)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let vm = CreateEntryViewModel(
+            request: CreateEntryRequest(),
+            dependencies: CreateEntryDependencies(
+                auth: MockAuthService(signedIn: true),
+                speech: MockSpeechTranscriber(),
+                entryProcessor: SpyEntryProcessor(),
+                drafts: drafts
+            )
+        )
+        drafts.updateRecording(draftId: vm.draftId,
+                               DraftRecording(segmentFileNames: ["rec-0.caf"], isFinalized: false))
+
+        vm.persistDraftNow()
+
+        XCTAssertNotNil(drafts.load(vm.draftId), "recording-only draft must survive persist")
+        XCTAssertEqual(drafts.load(vm.draftId)?.recording?.segmentFileNames, ["rec-0.caf"])
+    }
 }

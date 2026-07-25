@@ -7,7 +7,7 @@ import UIKit
 /// via `onStop`. There is no discard path.
 struct RecordingOverlayView: View {
 
-    @ObservedObject var recorder: AudioRecorderController
+    @ObservedObject var recorder: RecordingSession
     /// If non-nil, the answered prompt is shown at the top of the panel so the
     /// user can read it while speaking.
     let promptText: String?

@@ -70,7 +70,7 @@ final class CreateEntryViewModel: ObservableObject {
 
     private let deps: CreateEntryDependencies
     /// Stable id shared by the draft and its saved entry. Reused when resuming.
-    private let draftId: String
+    let draftId: String
     /// When resuming, the originating draft's createdAt (preserves list order).
     private var resumedCreatedAt: Date?
     /// Attachment ids already copied into the durable draft media dir.
@@ -102,8 +102,14 @@ final class CreateEntryViewModel: ObservableObject {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// True while an in-progress recording manifest is on disk for this draft
+    /// (segments captured but not yet merged/attached).
+    private var hasInProgressRecording: Bool {
+        deps.drafts.load(draftId)?.recording?.segmentFileNames.isEmpty == false
+    }
+
     var hasUnsavedContent: Bool {
-        !trimmedText.isEmpty || !attachments.isEmpty
+        !trimmedText.isEmpty || !attachments.isEmpty || hasInProgressRecording
     }
 
     /// True while any picked media is still being fetched/decoded.
@@ -352,6 +358,11 @@ final class CreateEntryViewModel: ObservableObject {
         if !photos.isEmpty { _ = attachments.addPhotos(photos) }
     }
 
+    /// Binds a view-owned `RecordingSession` to this draft's id + store.
+    func configureRecording(_ session: RecordingSession) {
+        session.configure(draftId: draftId, drafts: deps.drafts)
+    }
+
     private func copyToTemp(_ source: URL, ext: String) throws -> URL {
         let dest = FileManager.default.temporaryDirectory
             .appendingPathComponent("\(UUID().uuidString).\(ext.isEmpty ? "dat" : ext)")
@@ -408,13 +419,15 @@ final class CreateEntryViewModel: ObservableObject {
         }
 
         let now = Date()
+        let existingRecording = deps.drafts.load(draftId)?.recording
         let draft = DraftEntry(
             draftId: draftId,
             text: text,
             promptText: promptText,
             createdAtEpoch: (resumedCreatedAt ?? now).timeIntervalSince1970,
             updatedAtEpoch: now.timeIntervalSince1970,
-            attachments: descriptors
+            attachments: descriptors,
+            recording: existingRecording
         )
         deps.drafts.upsert(draft)
     }
