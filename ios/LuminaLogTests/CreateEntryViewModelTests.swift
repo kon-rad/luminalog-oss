@@ -412,4 +412,30 @@ final class CreateEntryViewModelTests: XCTestCase {
         XCTAssertNotNil(drafts.load(vm.draftId), "recording-only draft must survive persist")
         XCTAssertEqual(drafts.load(vm.draftId)?.recording?.segmentFileNames, ["rec-0.caf"])
     }
+
+    @MainActor
+    func testDraftWithActiveFirstSegmentRecordingIsNotPrunedWhenTextEmpty() {
+        // Manifest present but NO segment finalized yet (first segment still recording).
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cevm-\(UUID().uuidString)", isDirectory: true)
+        let drafts = DraftStore(directory: dir)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let vm = CreateEntryViewModel(
+            request: CreateEntryRequest(),
+            dependencies: CreateEntryDependencies(
+                auth: MockAuthService(signedIn: true),
+                speech: MockSpeechTranscriber(),
+                entryProcessor: SpyEntryProcessor(),
+                drafts: drafts
+            )
+        )
+        drafts.updateRecording(draftId: vm.draftId,
+                               DraftRecording(segmentFileNames: [], isFinalized: false))
+
+        vm.persistDraftNow()
+
+        XCTAssertNotNil(drafts.load(vm.draftId),
+                        "an active first-segment recording (empty finalized list) must not be pruned")
+    }
 }

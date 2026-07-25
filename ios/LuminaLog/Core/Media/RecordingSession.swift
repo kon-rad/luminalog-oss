@@ -14,7 +14,9 @@ final class RecordingSession: ObservableObject {
     enum PauseReason: Equatable { case interruption, manual }
     enum State: Equatable { case idle, recording, paused(PauseReason), finalizing }
 
-    @Published private(set) var state: State = .idle
+    @Published private(set) var state: State = .idle {
+        didSet { RecordingState.shared.setRecording(state != .idle) }
+    }
     @Published private(set) var cumulativeElapsed: TimeInterval = 0
     @Published private(set) var levels: [CGFloat] = []
     /// Set when mic permission is denied (view shows the Settings alert).
@@ -116,18 +118,24 @@ final class RecordingSession: ObservableObject {
         state = .finalizing
 
         let urls = segmentFileNames.compactMap { drafts?.mediaURL(draftId: draftId, fileName: $0) }
-        defer { clearManifestAndSegments() }
-        guard !urls.isEmpty else { state = .idle; return nil }
+        guard !urls.isEmpty else {
+            clearManifestAndSegments()
+            state = .idle
+            return nil
+        }
 
         let out = FileManager.default.temporaryDirectory
             .appendingPathComponent("\(UUID().uuidString).m4a")
         do {
             try await merger.merge(urls, to: out)
             let duration = await merger.duration(of: out)
+            clearManifestAndSegments()   // only on success
             state = .idle
             return AudioAttachment(url: out, durationSec: duration)
         } catch {
-            state = .idle
+            // Preserve segments + manifest (isFinalized:false) so the launch
+            // recovery sweep can retry the merge; do NOT destroy audio here.
+            state = .paused(.manual)
             return nil
         }
     }

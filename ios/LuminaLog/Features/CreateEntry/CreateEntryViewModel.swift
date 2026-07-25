@@ -103,9 +103,10 @@ final class CreateEntryViewModel: ObservableObject {
     }
 
     /// True while an in-progress recording manifest is on disk for this draft
-    /// (segments captured but not yet merged/attached).
+    /// (recording started but not yet merged/attached — includes the active
+    /// first segment, before any segment has been finalized).
     private var hasInProgressRecording: Bool {
-        deps.drafts.load(draftId)?.recording?.segmentFileNames.isEmpty == false
+        deps.drafts.load(draftId)?.recording != nil
     }
 
     var hasUnsavedContent: Bool {
