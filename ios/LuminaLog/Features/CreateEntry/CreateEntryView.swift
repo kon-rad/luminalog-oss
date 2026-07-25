@@ -235,7 +235,10 @@ struct CreateEntryView: View {
     }
 
     private var saveDisabled: Bool {
-        !viewModel.canSave || recorder.isRecording
+        // `isActive` (recording OR paused), not just `isRecording`: a paused
+        // recording still has unmerged segments on disk. Saving would delete the
+        // draft media dir and lose them — the user must Stop (merge) first.
+        !viewModel.canSave || recorder.isActive
     }
 
     // MARK: - Banners
