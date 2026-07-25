@@ -122,4 +122,67 @@ final class DraftStore: ObservableObject {
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
+
+    // MARK: In-progress recording
+
+    /// URL for segment `index` inside the draft's media dir (`rec-<index>.caf`),
+    /// ensuring the dir exists. `nil` for an unsafe id or if the dir can't be made.
+    func recordingSegmentURL(draftId: String, index: Int) -> URL? {
+        guard let dir = try? ensureMediaDir(draftId) else { return nil }
+        return dir.appendingPathComponent("rec-\(index).caf")
+    }
+
+    /// Read-modify-write of only the draft's `recording` field, preserving text
+    /// and attachments written by the Create view model. Creates a minimal draft
+    /// if none exists yet (recording started before any text was typed).
+    func updateRecording(draftId: String, _ recording: DraftRecording?) {
+        guard isSafe(draftId) else { return }
+        let now = Date().timeIntervalSince1970
+        var draft = load(draftId) ?? DraftEntry(
+            draftId: draftId, text: "", promptText: nil,
+            createdAtEpoch: now, updatedAtEpoch: now, attachments: []
+        )
+        draft.recording = recording
+        draft.updatedAtEpoch = now
+        upsert(draft)
+    }
+
+    /// Launch recovery: for every draft holding a non-finalized recording
+    /// manifest (a crash or a sheet-dismiss-mid-recording left segments on disk),
+    /// merge its segments into a single `.m4a` in the media dir, register that as
+    /// a normal audio `DraftAttachment`, and clear the manifest — so Home renders
+    /// it as an ordinary voice draft.
+    func recoverDanglingRecordings(using merger: RecordingMerging) async {
+        for draft in all() {
+            guard let manifest = draft.recording, manifest.isFinalized == false else { continue }
+            let segURLs = manifest.segmentFileNames.compactMap {
+                mediaURL(draftId: draft.draftId, fileName: $0)
+            }
+            let mergedName = "\(UUID().uuidString).m4a"
+            guard let mediaDir = mediaDirectory(for: draft.draftId) else { continue }
+            let mergedURL = mediaDir.appendingPathComponent(mergedName)
+
+            var repaired = draft
+            if !segURLs.isEmpty, (try? await merger.merge(segURLs, to: mergedURL)) != nil {
+                let duration = await merger.duration(of: mergedURL)
+                let nextOrder = (draft.attachments.map(\.order).max() ?? -1) + 1
+                repaired.attachments.append(DraftAttachment(
+                    id: UUID(), kind: .audio, fileName: mergedName,
+                    durationSec: duration, pixelWidth: nil, pixelHeight: nil, order: nextOrder
+                ))
+            }
+            // Delete now-merged segment files; drop the manifest either way.
+            for name in manifest.segmentFileNames {
+                if let u = mediaURL(draftId: draft.draftId, fileName: name) {
+                    try? fm.removeItem(at: u)
+                }
+            }
+            repaired.recording = nil
+            if repaired.isEmpty {
+                delete(draft.draftId)
+            } else {
+                upsert(repaired)
+            }
+        }
+    }
 }
