@@ -5,7 +5,9 @@ import Foundation
 /// Owns an in-progress, multi-segment voice recording: drives the segment
 /// recorder, handles forced interruptions (pause + wait for user), keeps a
 /// durable manifest on the draft, reports true cumulative duration, and merges
-/// segments into one `.m4a` on stop. Replaces `AudioRecorderController`.
+/// segments into one `.m4a` on stop. Replaces `AudioRecorderController` for the
+/// Create-entry flow (that class still backs the JournalDetail transcript
+/// re-record flow in `TranscriptEditorView`).
 @MainActor
 final class RecordingSession: ObservableObject {
 
