@@ -29,6 +29,8 @@ struct HomeView: View {
     private let onRetryProcessing: ((String) -> Void)?
     private let onStartJournalChat: ((String, String, ChatKind) -> Void)?
     private let activity: AppActivityMonitor
+    /// Used on launch to sweep up crash/dismiss-mid-recording drafts.
+    private let drafts: DraftStore
     /// Reopens a draft in the Create flow.
     let onResumeDraft: (String) -> Void
 
@@ -61,6 +63,7 @@ struct HomeView: View {
         self.media = media
         self.dailyReports = dailyReports
         self.failedReports = failedReports
+        self.drafts = drafts
         self.onStartJournaling = onStartJournaling
         self.onShowMore = onShowMore
         self.onPrompt = onPrompt
@@ -124,6 +127,7 @@ struct HomeView: View {
             }
         }
         .task {
+            await drafts.recoverDanglingRecordings(using: RecordingMerger())
             viewModel.start()
         }
     }

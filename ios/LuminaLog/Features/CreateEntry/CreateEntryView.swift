@@ -62,7 +62,8 @@ struct CreateEntryView: View {
                 RecordingOverlayView(
                     recorder: recorder,
                     promptText: viewModel.promptText,
-                    onStop: stopAndAttach
+                    onStop: stopAndAttach,
+                    onResume: { Task { _ = await recorder.resume() } }
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .zIndex(1)

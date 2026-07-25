@@ -12,6 +12,7 @@ struct RecordingOverlayView: View {
     /// user can read it while speaking.
     let promptText: String?
     let onStop: () -> Void
+    let onResume: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,6 +39,13 @@ struct RecordingOverlayView: View {
                 .padding(.bottom, Spacing.s)
             }
 
+            if case .paused = recorder.state {
+                Text("Paused — tap the mic to resume")
+                    .font(.captionText)
+                    .foregroundStyle(Color.textSecondary)
+                    .padding(.bottom, Spacing.xs)
+            }
+
             // Waveform + timer row
             HStack(spacing: Spacing.m) {
                 WaveformView(levels: recorder.levels)
@@ -56,18 +64,27 @@ struct RecordingOverlayView: View {
             HStack {
                 Spacer()
 
-                Button(action: onStop) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 64, height: 64)
-                        Image(systemName: "stop.fill")
-                            .font(.system(size: 22))
-                            .foregroundStyle(.white)
+                if case .paused = recorder.state {
+                    Button(action: onResume) {
+                        ZStack {
+                            Circle().fill(Color.accentWarm).frame(width: 64, height: 64)
+                            Image(systemName: "mic.fill")
+                                .font(.system(size: 22)).foregroundStyle(.white)
+                        }
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Resume recording")
+                } else {
+                    Button(action: onStop) {
+                        ZStack {
+                            Circle().fill(Color.red).frame(width: 64, height: 64)
+                            Image(systemName: "stop.fill")
+                                .font(.system(size: 22)).foregroundStyle(.white)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Stop recording")
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Stop recording")
 
                 Spacer()
             }
