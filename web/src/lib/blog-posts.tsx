@@ -2453,7 +2453,210 @@ function TonyLopezContent() {
   )
 }
 
+/* ── Post: Anton Vecherkin (ContentDAO) ── */
+function AntonVecherkinContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/llp021-anton-contentdao-1.jpg"
+        alt="Anton Vecherkin gesturing mid-story across a table from Konrad at Network School, a whiteboard behind them"
+        width={1920}
+        height={1080}
+        caption="Anton walking through the green-energy certificate pilot at Network School."
+        priority
+      />
+      <P>
+        Some people find their craft in a classroom. Anton Vecherkin found his in a hackathon he
+        almost didn&apos;t attend. In this episode of the LuminaLog Podcast we trace a fifteen-year
+        arc from a Tetris-only family computer in Russia to founding ContentDAO, and along the way
+        we talk about the parts of a builder&apos;s life that don&apos;t show up on a pitch deck:
+        the dependency errors, the unit-test arguments at 3am, and what actually changes when you
+        build surrounded by other builders.
+      </P>
+
+      <H2>The accidental hackathon habit</H2>
+      <P>
+        Anton&apos;s first hackathon was a solo act. His friends bailed, so he showed up alone to a
+        &ldquo;Blockchain Founder Hackathon&rdquo; knowing nothing about blockchain, a little
+        afraid, mostly planning to watch. A two-person team needed a third who could code. He knew
+        JavaScript, they handed him the Solidity docs, and two days later they took first place.
+      </P>
+      <P>
+        That win set a pattern. He went back to university, pulled in friends, and started
+        traveling. Between 2018 and 2020 the team competed across Spain, Germany, France and
+        beyond, and by Anton&apos;s count they won something like forty to fifty hackathons. The
+        win rate, when they were focused, sat around 80 to 90 percent. He is refreshingly
+        unmysterious about how: the trick was to treat the judges as the spec. Ask them what they
+        wanted, prototype it, show it, ask again, and iterate until the demo landed. On that same
+        circuit he crossed paths with teams that later became names, like <A href="https://1inch.io">1inch</A>,
+        sometimes finishing first while they finished second, sometimes the other way around.
+      </P>
+
+      <H2>Green energy on a Singapore island</H2>
+      <P>
+        The hackathon circuit turned into a company. From 2020 to 2023 Anton&apos;s team ran a
+        blockchain software agency that shipped around twenty products for clients, most of them
+        private-chain systems. The one he keeps coming back to is a green-energy certificate
+        platform: NFT certificates issued for each megawatt of renewable energy, built on
+        Hyperledger Besu and Hyperledger Fabric, and run as a government-level pilot.
+      </P>
+      <P>
+        The most vivid piece of it reached Singapore. The system was tested around Semakau Island,
+        tied to work on renewable-energy microgrids, where solar panels and other sources produce
+        and consume energy and a blockchain layer balances and settles the flows. Anton has since
+        given a workshop on it at Network School. It is a good reminder that
+        &ldquo;blockchain for X&rdquo; is not always vaporware; sometimes it is a metering problem
+        with real panels and real megawatts behind it.
+      </P>
+
+      <H2>Loving algorithms, hating dependency hell</H2>
+      <P>
+        One of the most relatable stretches of the conversation has nothing to do with crypto.
+        Anton studied physics at Moscow State University, and he is candid that he drifted toward
+        physics partly because he loved the algorithmic thinking of programming but disliked
+        everything around it. The idea was the fun part. Then came the packages, the dependencies,
+        the errors you paste into Google and stare at without understanding.
+        &ldquo;You have to sacrifice a lot&rdquo; of time, he says, just to make the idea run.
+      </P>
+      <P>
+        Anyone who has coded will nod. It also sets up one of the throughlines of the episode: the
+        tools have finally started to absorb that grind. Which is where the more recent chapter of
+        his story begins.
+      </P>
+
+      <H2>Building in a community of builders</H2>
+      <P>
+        Anton found Network School the way a lot of people do, through a Balaji talk he
+        half-remembered and an application he almost forgot about. What made him extend a planned
+        one-month stay into something longer was not the beach. It was the density of builders.
+        When the people around you are shipping and sharing what they ship, he says, it adds energy
+        to build yourself.
+      </P>
+      <P>
+        It also accelerated his own tooling. He describes moving from writing code by hand with an
+        assistant resolving packages, to a fuller agentic flow with Claude Code, and credits the
+        community and its events for how fast he picked it up. His honest read: if he had stayed
+        outside a community like this, he would probably still use coding agents, just much less,
+        and learn them much more slowly.
+      </P>
+
+      <H2>An honest test of the journaling pitch</H2>
+      <P>
+        Because this is the LuminaLog Podcast, Konrad pitched Anton on LuminaLog itself, a private
+        AI journaling companion, and asked the harder question: would you actually use it?
+        Anton&apos;s answer is the useful kind, because it is not a yes. He can see the value of
+        accumulating structured personal data you can later search and brainstorm against. What he
+        is honest about is the habit. He doesn&apos;t keep a daily reflective journal today; his
+        notes are mostly work to-dos, morning planning and evening review. The real obstacle, he
+        says, isn&apos;t the product, it&apos;s forming and keeping the habit.
+      </P>
+      <Figure
+        src="/blog/llp021-anton-contentdao-2.jpg"
+        alt="Konrad and Anton in conversation during the LuminaLog product discussion"
+        width={1920}
+        height={1080}
+        caption="Honest feedback on the journaling pitch: the obstacle isn't the app, it's the habit."
+      />
+      <P>
+        That is exactly the feedback a founder needs, and the conversation turns it into a small
+        thesis: maybe the practice has to be marketed as a practice, something closer to a cultural
+        habit like a martial art, with a community and a story around it, rather than just an app
+        with a streak counter.
+      </P>
+
+      <H2>ContentDAO in the wild</H2>
+      <P>
+        The last third of the episode is Anton&apos;s current company. ContentDAO grew out of an
+        earlier product, B4B.app, a marketplace that scored around a thousand influencers and let
+        brands hire them with escrow-backed guarantees. It worked, but it didn&apos;t scale;
+        matching one creator to one brief by hand is slow. So they sold that tech into their agency
+        and rebuilt around a bigger idea.
+      </P>
+      <P>
+        The framing is the clearest part. Think of Google Ads: you set a budget and some targeting,
+        and traffic comes back with metrics you can measure. ContentDAO wants to be that, except
+        the &ldquo;inventory&rdquo; is a long tail of small, trusted content creators instead of a
+        single ad network. A brand sets a budget and a goal, an algorithm allocates personalized
+        tasks only to creators whose audience and topics fit, and each creator is asked for one
+        piece of quality content. Payment is held in escrow and released when the post ships, which
+        removes the incentive to flood the system with spam or bots. The bet underneath it: small
+        creators, roughly 10,000 to 100,000 followers, are underserved by a monetization market
+        that overpays a handful of large accounts, and connecting them to products at scale is a
+        very large opportunity.
+      </P>
+      <Figure
+        src="/blog/llp021-anton-contentdao-3.jpg"
+        alt="Anton describing how a founder used ContentDAO for his prediction-market startup"
+        width={1920}
+        height={1080}
+        caption="The proof point: $100 produced about 20 pieces of content in three days."
+      />
+      <P>
+        The proof point he shares is concrete. A founder friend, Daniel, used ContentDAO for his
+        prediction-market startup, Belief Market. A first run of about $100 produced roughly 20
+        pieces of content in three days, mostly from creators across Vietnam, Indonesia and
+        Malaysia, at a customer-acquisition cost he measured at about three times better than his
+        other channels. Daniel moved to a weekly cadence, and Anton&apos;s read is that each run
+        gets better as the algorithm learns. ContentDAO has raised early grant funding from the
+        Stellar ecosystem and is now preparing to raise again to scale.
+      </P>
+
+      <H2>Key takeaways</H2>
+      <UL
+        items={[
+          'Learning by building beats learning in theory: Anton’s whole career grew out of showing up to hackathons and treating the judges’ feedback as the spec.',
+          '“Blockchain for X” can be real. A green-energy certificate pilot tied to Semakau Island is a metering-and-settlement problem, not a slogan.',
+          'The grind most builders hate is the tooling around the idea, and agentic coding is finally eating that grind.',
+          'Community changes your pace. Proximity to other builders accelerated both Anton’s shipping and his adoption of new tools.',
+          'Honest user feedback is a gift. The obstacle to a journaling product isn’t the features, it’s helping people form the habit.',
+          'ContentDAO’s wedge is fairness and fit: pay small, trusted creators through escrow for one quality post, and match by audience instead of blasting the biggest accounts.',
+        ]}
+      />
+
+      <H2>Links &amp; mentions</H2>
+      <UL
+        items={[
+          <>
+            <A href="https://contentdao.app">ContentDAO</A> — Anton&apos;s current company, a
+            distribution channel for small content creators
+          </>,
+          <>
+            <A href="https://b4b.app">B4B.app</A> — his earlier influencer / KOL marketplace
+          </>,
+          <>
+            <A href="https://startblog.online">StartBlock</A> — his blockchain agency; past work is
+            under /cases
+          </>,
+          'Semakau Island / REIDS — Renewable Energy Integration Demonstrator, Singapore',
+          'Hyperledger Besu and Hyperledger Fabric — private blockchain frameworks used in the green-energy pilot',
+          'Skoltech / Yuri Yanovich — his master’s advisor in blockchain research',
+          'Stellar — the ecosystem that gave ContentDAO its first grant',
+          'Belief Market — Daniel’s prediction-market startup',
+          'Claude Code — the tool behind his shift to agentic coding',
+        ]}
+      />
+
+      <H2>Listen to the LuminaLog podcast</H2>
+      <P>
+        Subscribe on{' '}
+        <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
+        <A href="https://open.spotify.com/show/033Mu8Yn2ybRQIis1uKNv2">Spotify</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'llp021-anton-contentdao',
+    title: 'LLP#021 — Anton Vecherkin: from 40+ hackathons to ContentDAO',
+    description:
+      'A conversation at Network School with Anton Vecherkin, a Web3 engineer who won something like forty to fifty hackathons across Europe, then built a blockchain agency (green-energy NFT certificates piloted on Semakau Island in Singapore) before founding ContentDAO. On treating judges as the spec, hating dependency hell, and building &ldquo;Google Ads for small content creators&rdquo; with pay held in escrow until the post ships.',
+    date: 'July 25, 2026',
+    isoDate: '2026-07-25T18:00',
+    readingTime: '6 min read',
+    Content: AntonVecherkinContent,
+  },
   {
     slug: 'ashish-sood-network-states',
     title: 'LLP#020 — The Best Consumer in the World: Ashish Sood',
