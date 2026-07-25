@@ -85,11 +85,20 @@ final class SegmentRecorder: NSObject, SegmentRecording {
         }
 
         input.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak self] buffer, _ in
-            guard let self else { return }
-            try? audioFile.write(from: buffer)
-            MainActor.assumeIsolated {
-                self.framesWritten += buffer.frameLength
-                self.appendLevel(from: buffer)
+            // Runs on AVAudioEngine's real-time audio thread — NOT the main actor.
+            // Write synchronously here (the buffer is only valid during this call),
+            // then hop the scalar bookkeeping to the main actor.
+            do {
+                try audioFile.write(from: buffer)
+            } catch {
+                Self.logger.error("segment write failed: \(error.localizedDescription, privacy: .public)")
+            }
+            let frames = buffer.frameLength
+            let sample = Self.level(from: buffer)
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.framesWritten += frames
+                self.appendLevelSample(sample)
             }
         }
 
@@ -118,15 +127,21 @@ final class SegmentRecorder: NSObject, SegmentRecording {
             .setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    /// Computes an RMS level from the buffer and appends a normalized sample.
-    private func appendLevel(from buffer: AVAudioPCMBuffer) {
-        guard let ch = buffer.floatChannelData?[0], buffer.frameLength > 0 else { return }
+    /// Pure RMS→normalized level; safe on the audio thread (reads the live
+    /// buffer and returns a scalar, so nothing retains the buffer past the tap).
+    private static func level(from buffer: AVAudioPCMBuffer) -> CGFloat {
+        guard let ch = buffer.floatChannelData?[0], buffer.frameLength > 0 else { return 0 }
         let n = Int(buffer.frameLength)
         var sum: Float = 0
         for i in 0..<n { sum += ch[i] * ch[i] }
         let rms = sqrtf(sum / Float(n))
-        let db = rms > 0 ? 20 * log10f(rms) : Self.meterFloorDB
-        levels.append(Self.normalize(power: db))
+        let db = rms > 0 ? 20 * log10f(rms) : meterFloorDB
+        return normalize(power: db)
+    }
+
+    /// Appends a precomputed level sample (main actor).
+    private func appendLevelSample(_ sample: CGFloat) {
+        levels.append(sample)
         if levels.count > Self.maxLevelSamples {
             levels.removeFirst(levels.count - Self.maxLevelSamples)
         }
