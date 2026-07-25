@@ -56,7 +56,7 @@ final class SegmentRecorder: NSObject, SegmentRecording {
         }
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, options: [.defaultToSpeaker, .allowBluetooth])
+            try session.setCategory(.playAndRecord, options: [.defaultToSpeaker])
             try session.setActive(true)
         } catch {
             throw SegmentRecorderError.sessionFailed
