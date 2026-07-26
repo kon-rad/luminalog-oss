@@ -50,7 +50,8 @@ struct JournalDetailView: View {
                 journals: journals,
                 ai: ai,
                 media: media,
-                profiles: profiles
+                profiles: profiles,
+                backgroundActivity: UIKitBackgroundActivity()
             )
         )
         self.journals = journals

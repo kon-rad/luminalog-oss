@@ -7,6 +7,10 @@ final class MockJournalRepository: JournalRepository {
 
     private var store: [JournalEntry]
 
+    /// Test hook: when > 0, `updateAIFields` suspends this long before writing, so
+    /// a stalled persist (Firestore server-ack that never lands) can be simulated.
+    var updateAIFieldsDelayNanos: UInt64 = 0
+
     private var listContinuations: [UUID: (limit: Int, continuation: AsyncStream<[JournalEntry]>.Continuation)] = [:]
     private var todayContinuations: [UUID: (timezone: TimeZone, continuation: AsyncStream<[JournalEntry]>.Continuation)] = [:]
     private var entryContinuations: [UUID: (id: String, continuation: AsyncStream<JournalEntry?>.Continuation)] = [:]
@@ -109,6 +113,9 @@ final class MockJournalRepository: JournalRepository {
         insights: AIGeneration?,
         prompts: AIPrompts?
     ) async throws {
+        if updateAIFieldsDelayNanos > 0 {
+            try await Task.sleep(nanoseconds: updateAIFieldsDelayNanos)
+        }
         guard let index = store.firstIndex(where: { $0.id == id }) else {
             throw JournalRepositoryError.entryNotFound(id: id)
         }

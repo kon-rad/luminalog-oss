@@ -104,6 +104,16 @@ final class JournalDetailViewModelTests: XCTestCase {
         }
     }
 
+    /// Records that generation ran inside a background-activity grant.
+    @MainActor
+    private final class SpyBackgroundActivity: BackgroundActivityGranting {
+        var runCount = 0
+        func run<T>(_ name: String, _ body: () async throws -> T) async rethrows -> T {
+            runCount += 1
+            return try await body()
+        }
+    }
+
     // MARK: - Helpers
 
     @MainActor
@@ -155,6 +165,62 @@ final class JournalDetailViewModelTests: XCTestCase {
         await second.start()
         XCTAssertEqual(ai.summaryCalls, 1, "Persisted summary suppresses re-generation on revisit")
         XCTAssertEqual(second.entry?.summary?.text, "spy summary")
+    }
+
+    // MARK: - Generation resilience (timeout + background activity)
+
+    /// A stalled GENERATION (dead network) must resolve to `.failed` (the retry
+    /// row) instead of spinning "Summarizing this entry…" forever.
+    @MainActor
+    func testGenerationTimeoutResolvesToFailed() async {
+        // Exercise the production zero-knowledge path (generateEntryAI).
+        let savedFlag = DevFlags.aiModel1
+        DevFlags.aiModel1 = true
+        defer { DevFlags.aiModel1 = savedFlag }
+
+        let repo = MockJournalRepository(entries: [makeEntry()])
+        let ai = SpyAIService()
+        ai.delayNanos = 400_000_000              // 0.4s — longer than the test timeout
+        let vm = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
+        vm.generationTimeout = .milliseconds(50) // fire fast
+
+        await vm.start()
+        try? await Task.sleep(nanoseconds: 800_000_000)  // let any abandoned work settle
+
+        XCTAssertEqual(vm.summaryState, .failed, "A stalled generation must time out, not spin forever")
+        XCTAssertLessThanOrEqual(ai.entryAICalls, 1, "A timed-out generation must not storm-retry")
+        XCTAssertNil(vm.entry?.summary, "A timed-out generation leaves the entry unchanged")
+    }
+
+    /// A hung PERSIST (a Firestore write whose server-ack never lands) is also
+    /// bounded by the timeout, so the spinner can't be stranded after the LLM call.
+    @MainActor
+    func testPersistHangIsBoundedByTimeout() async {
+        let repo = MockJournalRepository(entries: [makeEntry()])
+        repo.updateAIFieldsDelayNanos = 2_000_000_000   // persist never returns in time
+        let ai = SpyAIService()
+        let vm = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai)
+        vm.generationTimeout = .milliseconds(50)
+
+        await vm.start()
+
+        XCTAssertEqual(vm.summaryState, .failed, "A hung persist must not strand the spinner")
+    }
+
+    /// Generation runs inside a background-activity grant so a brief app
+    /// backgrounding can't suspend (and abort) the in-flight request.
+    @MainActor
+    func testGenerationRunsUnderBackgroundActivity() async {
+        let repo = MockJournalRepository(entries: [makeEntry()])
+        let ai = SpyAIService()
+        let bg = SpyBackgroundActivity()
+        let vm = JournalDetailViewModel(entryId: "entry-1", journals: repo, ai: ai, backgroundActivity: bg)
+
+        await vm.start()
+
+        XCTAssertEqual(bg.runCount, 1, "Generation runs inside a background-activity grant")
+        XCTAssertEqual(vm.summaryState, .idle)
+        XCTAssertEqual(vm.entry?.summary?.text, "spy summary")
     }
 
     @MainActor

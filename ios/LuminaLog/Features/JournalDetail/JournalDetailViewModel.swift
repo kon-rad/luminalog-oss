@@ -39,6 +39,16 @@ final class JournalDetailViewModel: ObservableObject {
     private let profiles: ProfileRepository
     private let ai: AIService
     private let media: MediaUploader
+    private let backgroundActivity: BackgroundActivityGranting
+
+    /// Overall bound on one generate+persist cycle. 75s sits well above the ~40s
+    /// worst case (a long voice transcript + opus + a retry pass), so it only fires
+    /// on a genuine stall — a hung network call OR a Firestore write that never acks
+    /// — guaranteeing the summary/insights/prompts spinner always resolves. Injectable
+    /// so tests can drive it small.
+    var generationTimeout: Duration = .seconds(75)
+
+    private struct GenerationTimeoutError: Error {}
 
     private var liveTask: Task<Void, Never>?
     private var hasStarted = false
@@ -54,16 +64,20 @@ final class JournalDetailViewModel: ObservableObject {
         journals: JournalRepository,
         ai: AIService,
         media: MediaUploader? = nil,
-        profiles: ProfileRepository? = nil
+        profiles: ProfileRepository? = nil,
+        backgroundActivity: BackgroundActivityGranting? = nil
     ) {
         self.entryId = entryId
         self.journals = journals
         self.ai = ai
         // Fallbacks are constructed inside this @MainActor init (legal), so the
-        // media/profiles arguments stay optional for tests that don't exercise
-        // those paths. Production (`JournalDetailView`) passes both explicitly.
+        // media/profiles/backgroundActivity arguments stay optional for tests that
+        // don't exercise those paths. Production (`JournalDetailView`) passes them
+        // explicitly. Constructing the default here (not as a default argument)
+        // avoids evaluating a @MainActor initializer in a nonisolated default context.
         self.media = media ?? MockMediaUploader()
         self.profiles = profiles ?? MockProfileRepository()
+        self.backgroundActivity = backgroundActivity ?? ImmediateBackgroundActivity()
     }
 
     deinit {
@@ -151,24 +165,42 @@ final class JournalDetailViewModel: ObservableObject {
         guard summaryState != .loading, entry != nil else { return }
         summaryState = .loading
         do {
-            // Run the LLM call in an UNSTRUCTURED task so a view teardown can't cancel
-            // it mid-flight. The paywall gate structurally remounts `RootView` on a
+            // Keep the app alive across a brief backgrounding (so an in-flight request
+            // isn't suspended → aborted — the entry-AI 499s), and bound the whole cycle
+            // with a timeout so the spinner ALWAYS resolves (a hung network call or a
+            // Firestore write that never acks would otherwise spin forever).
+            //
+            // Run the work in an UNSTRUCTURED task so a view teardown can't cancel it
+            // mid-flight. The paywall gate structurally remounts `RootView` on a
             // transient entitlement blip during a renewal, cancelling this view's
             // `.task`; without the detachment the call died with `URLError.cancelled`
             // and the entry's AI was stranded empty. An unstructured task doesn't inherit
             // the caller's cancellation, and awaiting its value doesn't propagate ours
             // into it — so the call completes; `persist` then runs inline as before.
-            if DevFlags.aiModel1 {
-                // Zero-knowledge: the server can't index migrated entries, so generate
-                // summary + insights + prompts client-side in one call and persist all
-                // three (client-encrypted). This lights up the Insights/Prompts tabs.
-                let bundle = try await Task { try await self.ai.generateEntryAI(journalId: self.entryId) }.value
-                try await persist(bundle: bundle)
-            } else {
-                let generation = try await Task { try await self.ai.generateSummary(journalId: self.entryId) }.value
-                try await persist(summary: generation)
+            try await backgroundActivity.run("entry-ai-generation") {
+                try await Task {
+                    try await self.withTimeout(self.generationTimeout) {
+                        if DevFlags.aiModel1 {
+                            // Zero-knowledge: the server can't index migrated entries, so
+                            // generate summary + insights + prompts client-side in one call
+                            // and persist all three (client-encrypted). This lights up the
+                            // Insights/Prompts tabs.
+                            let bundle = try await self.ai.generateEntryAI(journalId: self.entryId)
+                            try await self.persist(bundle: bundle)
+                        } else {
+                            let generation = try await self.ai.generateSummary(journalId: self.entryId)
+                            try await self.persist(summary: generation)
+                        }
+                    }
+                }.value
             }
             summaryState = .idle
+        } catch is GenerationTimeoutError {
+            // A genuine stall (dead network, or a Firestore write that can't reach the
+            // backend): surface the retry row instead of spinning forever. The next open
+            // regenerates cleanly.
+            Self.logger.error("generateSummary timed out after \(self.generationTimeout, privacy: .public); showing retry")
+            summaryState = .failed
         } catch {
             if Self.isCancellation(error) {
                 // The enclosing view task was torn down mid-flight (e.g. the paywall
@@ -183,6 +215,24 @@ final class JournalDetailViewModel: ObservableObject {
                 Self.logger.error("generateSummary failed: \(error.localizedDescription, privacy: .public)")
                 summaryState = .failed
             }
+        }
+    }
+
+    /// Races `body` against `duration`; whichever loses is cancelled. A timeout
+    /// throws `GenerationTimeoutError`. `body` returns Void (it generates + persists).
+    /// Mirrors `AppleSpeechTranscriber`'s file-recognition timeout pattern.
+    private func withTimeout(
+        _ duration: Duration,
+        _ body: @escaping @MainActor () async throws -> Void
+    ) async throws {
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask { @MainActor in try await body() }
+            group.addTask {
+                try await Task.sleep(for: duration)
+                throw GenerationTimeoutError()
+            }
+            defer { group.cancelAll() }
+            try await group.next()
         }
     }
 
