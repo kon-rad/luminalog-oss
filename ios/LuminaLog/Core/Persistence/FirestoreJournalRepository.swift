@@ -186,14 +186,25 @@ final class FirestoreJournalRepository: JournalRepository {
         if let insights { payload["insights"] = try insights.firestoreData(cipher: cipher, context: "journals.insights") }
         if let prompts { payload["prompts"] = try prompts.firestoreData(cipher: cipher) }
         guard !payload.isEmpty else { return }
-        do {
-            // `updateData` fails on a missing document — unlike `setData`,
-            // it can never resurrect a deleted entry.
-            try await journals.document(id).updateData(payload)
-        } catch let error as NSError
-            where error.domain == FirestoreErrorDomain
-                && error.code == FirestoreErrorCode.notFound.rawValue {
-            throw JournalRepositoryError.entryNotFound(id: id)
+        // Apply the write locally and return WITHOUT awaiting the backend ack.
+        // Firestore applies the mutation to the local cache synchronously and fires
+        // local snapshot listeners immediately; only durability is asynchronous.
+        // Awaiting the ack here (the async `updateData`) hangs the caller — and the
+        // summary/insights/prompts spinner, which gates on this write completing —
+        // whenever `firestore.googleapis.com` is unreachable while our own API is
+        // reachable, even though the local write already succeeded. Durability
+        // flushes in the background; a genuine failure (including `notFound` if the
+        // entry was deleted mid-generation — benign, the live stream nulls it out)
+        // is logged, not surfaced. `updateData` (unlike `setData`) never resurrects
+        // a deleted document. This scoping is deliberate: AI fields are the only
+        // write whose UI gates on the ack.
+        journals.document(id).updateData(payload) { error in
+            if let error {
+                Self.logger.error("""
+                updateAIFields background flush failed (journals/\(id, privacy: .private)): \
+                \(error.localizedDescription, privacy: .public)
+                """)
+            }
         }
     }
 
