@@ -2653,7 +2653,407 @@ function AntonPecherkinContent() {
   )
 }
 
+/* ── Post: Velveteen (Miriam Reza) — the artist who paints to bring people joy ── */
+function VelveteenArtistFounderStoriesContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/velveteen-artist-founder-stories-hero.jpg"
+        alt="Velveteen (Miriam Reza) talking with her hands mid-gesture, and Konrad, during the podcast at a table in Forest City"
+        width={1920}
+        height={1080}
+        priority
+      />
+      <P>
+        I sat down with Velveteen, whose real name is Miriam Reza, on a quiet Monday evening near
+        Singapore, at the tail end of a Network School cohort. She introduces herself with two names
+        for a reason. Velveteen is the artist. Miriam is the founder of{' '}
+        <A href="https://www.chymira.com/">Chymira</A>, where she helps deep tech founders turn
+        dense research into a clear story. The whole conversation lives in the space between those
+        two identities.
+      </P>
+
+      <H2>Knowing early, and a car crash</H2>
+      <P>
+        Some people search for their calling. Velveteen says she never had to. She has known since
+        she was a small child that she would be an artist, and that certainty has never wavered. She
+        went on to study at North Carolina State University, mixing industrial design, a background
+        in 3D, graphic design, and business administration, which is a more practical, applied blend
+        than most people expect from an &ldquo;art degree.&rdquo;
+      </P>
+      <P>
+        Getting there was not smooth. In her senior year of high school, the exact year you assemble
+        a portfolio for art school, she was in a bad car crash. There was nothing left of the car,
+        and she broke both hands. Doctors, parents, everyone around her told her to reconsider. She
+        could not imagine any other life, so she learned to draw with her left hand and put the
+        portfolio together anyway. She missed the deadline to apply to half the schools she wanted,
+        including RISD, which sat at the top of her list. She still got in on nearly full grants that
+        covered almost all of her tuition. Years later she got the word <em>resilience</em> tattooed
+        on her hand, in a gothic font, to mark the 10-year anniversary of the crash. As she put it,
+        it sits right where she can see it when she needs to see it most.
+      </P>
+      <Figure
+        src="/blog/velveteen-artist-founder-stories-1.jpg"
+        alt="Velveteen showing the resilience tattoo on her hand during the conversation"
+        width={1920}
+        height={1080}
+        caption="The word she chose to carry with her: resilience, marking ten years since the crash."
+      />
+
+      <H2>From dark charcoal to bright color</H2>
+      <P>
+        The work that got her into college looked nothing like what she makes now. Her early
+        portfolio was heavy charcoal, dark and eerie, a reflection of the state of mind she had been
+        in for a long time. She described one piece, all black and white: a flamingo in the water
+        with a hand reaching in to drown it. It reads as a graceful thing being pulled down by its
+        own beauty, an external force blocking flight.
+      </P>
+      <P>
+        Her art today is the deliberate opposite. Since graduating she has decided that her mission
+        is to bring people happiness, so the work turned colorful and vibrant, with animals as a
+        recurring motif. She is clear-eyed that this is a choice about what to amplify. She has taken
+        criticism for making things that read as cute or bubbly, but she keeps going because of the
+        people who tell her the work brought them joy.
+      </P>
+      <Figure
+        src="/blog/velveteen-artist-founder-stories-2.jpg"
+        alt="Velveteen with her hands over her heart, talking about making art that brings people happiness"
+        width={1920}
+        height={1080}
+        caption="On why the work turned colorful: a deliberate choice to bring people happiness."
+      />
+      <P>
+        When she makes a community piece, she researches the place first, its colors and its stories,
+        then hides meaning inside the composition. For a painting she made for Island DAO in Koh
+        Samui, she chose a monitor lizard native to the region, drinking from a coconut with an
+        island floating inside it, a shrine in the background, and a hidden Solana logo tucked into
+        the scene. It is storytelling as much as painting: signs, symbols, and small rewards for
+        anyone who looks closely. She also works velvet into some pieces, gluing it onto canvas, a
+        physical signature that ties back to the Velveteen Bubble, the 30-page velvet coloring book
+        where the name first took shape.
+      </P>
+
+      <H2>The craft, and the crypto years</H2>
+      <P>
+        She is honest about the parts that were hard. Design school treated drawing like a muscle you
+        train by not sleeping, and after breaking her hand at 17 she lacked dexterity well into
+        college. Professors told her not to paint. What saved her was that her program valued process
+        and design thinking as much as raw precision, though she is candid that the top studios she
+        wanted, the Fisher-Prices of the world, treated clean linework as non-negotiable.
+      </P>
+      <P>
+        After school, around COVID, she moved to Miami and landed in the middle of the 2021 crypto
+        wave, when it felt like every stranger on the street was talking about NFTs. She got into the
+        NFT and film world, worked on NFT the Movie, and spoke on stage at NFT NYC. She told a great
+        story from ETHDenver, where a group she was part of ran a coordinated flash mob that opened
+        for Deadmau5, and security chased her around the venue because they thought she was just some
+        woman dancing on a table.
+      </P>
+
+      <H2>Chymira, and putting soul into the work</H2>
+      <P>
+        After walking away from a five-year project and a co-founder, she took a one-way ticket
+        toward Asia and a nomadic run of pop-up communities: Network School, Island DAO in Koh Samui,
+        a Girl Scouts camp in the Japanese Alps, Forma Bristol with the video agency Little Unusual.
+        Along the way she has been rebuilding Chymira, named after the mythical Chimera, a blend of
+        different animals, which she sees as a fitting symbol for founders. Her pitch is simple and
+        self-aware: founders should focus on building the best product, and she is the one who
+        distills what they do into a story the right audience can find. She does not claim to be the
+        most technical person in the room. Her edge is translation.
+      </P>
+
+      <H2>Turning grief into a painting</H2>
+      <P>
+        Near the end, she showed the painting she made when Network School announced it was winding
+        down. She did not know how to process it, so she did what she always does and turned it into
+        art. A turtle carries a city on its back, a nod to the Hindu myth of the world-bearing turtle
+        and to a new society being built. Nodes float in the sky, a ship flies a flag, and small
+        icons hide throughout, including a stairway to nowhere she spotted on the local beach. It
+        became a shared object of grief and celebration for the whole cohort.
+      </P>
+      <Figure
+        src="/blog/velveteen-artist-founder-stories-3.jpg"
+        alt="Velveteen and Konrad looking at the Network School turtle painting she made"
+        width={1920}
+        height={1080}
+        caption="The painting she made as Network School wound down: a turtle carrying a city, nodes in the sky."
+      />
+      <P>
+        We ended on creativity itself. She thinks of it as a trainable muscle, and of good art as
+        something that evokes emotion, even out of anxiety, pointing to Edvard Munch&apos;s The
+        Scream. The thread she kept returning to: what separates human work from AI art is that you
+        put a piece of your soul into it, and other people can relate to that. She wants to be a
+        famous artist, on her own terms, partly because growing up she rarely saw a woman of color she
+        could point to as a role model, and she wants to be that for someone else.
+      </P>
+
+      <H2>Key takeaways</H2>
+      <UL
+        items={[
+          'A setback can harden a calling instead of ending it. Breaking both hands sent her to learn her left hand, not to quit.',
+          'Choosing what to amplify is an artistic decision. She moved from dark charcoal to color on purpose, to bring people joy.',
+          'Hidden symbolism turns a painting into a story, and rewards the viewer who looks closely.',
+          'You do not have to be the most technical person to add value to founders. Translation and narrative are their own craft.',
+          'What makes art human is soul. That is the line she draws between her work and AI-generated images.',
+        ]}
+      />
+
+      <H2>Links &amp; mentions</H2>
+      <UL
+        items={[
+          <>
+            <A href="https://www.instagram.com/velveteengallery/">Velveteen on Instagram</A> — her art
+          </>,
+          <>
+            <A href="https://x.com/Velveteen0x">Velveteen on X</A>
+          </>,
+          <>
+            <A href="https://www.linkedin.com/in/miriam-reza-95455a106/">Miriam Reza on LinkedIn</A>
+          </>,
+          <>
+            <A href="https://www.chymira.com/">Chymira</A> — branding and pitch for deep tech founders
+          </>,
+          <>
+            <A href="https://www.miriamreza.com/">Miriam Reza Design</A> — graphic design portfolio
+          </>,
+          'North Carolina State University, and RISD — where she studied and where she had hoped to go',
+          'NFT the Movie, and NFT NYC — her work in the NFT and film world',
+          'Island DAO, Forma Bristol, and Little Unusual — the communities and video agency along the way',
+          'Scott Page (Pink Floyd) — the LA Oscars art collection',
+          'The Artist’s Way, and The War of Art — books that shaped how she takes her art seriously',
+        ]}
+      />
+
+      <H2>Listen to the LuminaLog podcast</H2>
+      <P>
+        Subscribe on{' '}
+        <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
+        <A href="https://open.spotify.com/show/033Mu8Yn2ybRQIis1uKNv2">Spotify</A>.
+      </P>
+    </>
+  )
+}
+
+/* ── Post: Daria Chernozub — going global by going local ── */
+function Llp022DariaChernozubContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/llp022-daria-chernozub-hero.jpg"
+        alt="Daria Chernozub, in a Dash t-shirt and pink cap, laughing with Konrad during the podcast, a whiteboard reading $DASH behind them"
+        width={1920}
+        height={1080}
+        priority
+      />
+      <P>
+        Some people collect job titles. Daria Chernozub, who everyone calls Dasha, has collected
+        worlds: corporate banking, government innovation labs, Web3 startups, hackathon circuits,
+        spiritual communities on a Thai island, and the crypto scene now forming in Vietnam. She
+        currently leads global adoption for Dash. When we sat down at Network School, what came
+        through was not a resume but a way of moving through all of these places, and a stubborn
+        belief that the future can be good if enough of the right people decide to build it.
+      </P>
+
+      <H2>A coin with her name</H2>
+      <P>
+        Dasha&apos;s crypto story starts about nine years ago, inside a Russian central bank&apos;s
+        digital sandbox. She was surrounded by young engineers who told her to put money into
+        Bitcoin and Dash. Her reasoning for the second one was refreshingly human: &ldquo;I&apos;m
+        Dasha. Of course I will buy Dash.&rdquo; It became her first coin.
+      </P>
+      <P>
+        That sandbox was a serious place, though. She mentions, almost in passing, that Vitalik
+        Buterin once came to lecture there around 2016, and that the Russian Central Bank
+        Association later built Masterchain, a blockchain on top of Ethereum. She spent years inside
+        big banks building innovation departments, connecting startups to corporations, and moving
+        capital from large institutions down to early-stage teams. She also learned what she did not
+        want: the nine-to-five rules and slow committees that made real innovation nearly
+        impossible.
+      </P>
+
+      <H2>Looking for the real thing</H2>
+      <P>
+        When Dasha left corporate life for Cyprus and Web3, she went looking for the most
+        decentralized project she could find. She worked across the Polygon ecosystem, the Internet
+        Computer, and Solana startups, and kept hitting the same wall. Most projects had a CEO, a
+        foundation, someone at the center deciding everything. Nodes might be spread around the
+        world, but governance was not.
+      </P>
+      <P>
+        Dash was different in a way she could point to: masternode owners who actually vote each
+        month on proposals, roughly 2,500 of them, deciding how the network spends and where it
+        goes. Her test for decentralization is not the map of the nodes but the question of who
+        holds the vote. That distinction is the reason she now stands on stages telling people about
+        Dash instead of a network she felt was decentralized in name only.
+      </P>
+      <Pull>
+        Her test for decentralization is not the map of the nodes but the question of who holds the
+        vote.
+      </Pull>
+
+      <H2>The person before the technologist</H2>
+      <P>
+        One of my favorite parts of these conversations is asking about someone&apos;s first
+        computer. Dasha&apos;s answer went somewhere I did not expect. She first used one at four
+        years old, at her grandmother&apos;s kindergarten, printing outlines to color in. But she
+        also does not have binocular vision, so as a child she spent hours in front of a computer
+        running exercises that trained both of her eyes to work together instead of letting one go
+        lazy.
+      </P>
+      <P>
+        Then she said something surprising for someone in her field: &ldquo;I hate
+        computers.&rdquo; She is not an engineer, and she has always leaned on friends who are. What
+        excites her about this moment in AI is exactly that friction disappearing, the ability to
+        just talk to a machine and have it understand. Her whole career has been about making
+        technology usable for people, so an interface that finally meets normal people where they
+        are feels like a dream she has had for a long time.
+      </P>
+
+      <H2>Super Protocol, hackathons, and a backpack in Switzerland</H2>
+      <P>
+        In Cyprus she did DevRel for Super Protocol, which combines Polygon with Intel SGX to let
+        companies compute on each other&apos;s data without exposing it. &ldquo;Data is the new
+        gold,&rdquo; she said, and her job was the specific craft of selling to developers rather
+        than to a general crowd: developers to developers, their own conferences, their own
+        language. She ran more than twenty hackathons across banks, ICP, and Solana, including a
+        Solana finals during Apex in Cape Town and the first Dash hackathon in Malaysia with
+        Nottingham University.
+      </P>
+      <Figure
+        src="/blog/llp022-daria-chernozub-1.jpg"
+        alt="Daria Chernozub gesturing as she tells the story of joining the Internet Computer team"
+        width={1920}
+        height={1080}
+        caption="Telling the story of how a Rainbow Infinity backpack got her onto the Internet Computer team."
+      />
+      <P>
+        The way she joined the Internet Computer team is the most Dasha story in the episode. In
+        Switzerland for a founders&apos; meetup, she spotted a backpack with the Rainbow Infinity
+        logo, recognized it as ICP, hunted down its owner, pitched him, and handed over the CV she
+        happened to be carrying for a visa. He connected her to the global adoption team, and she
+        spent two years there learning how big organizations attract startups and build local hubs.
+      </P>
+
+      <H2>A year to reset</H2>
+      <Figure
+        src="/blog/llp022-daria-chernozub-2.jpg"
+        alt="Daria Chernozub smiling during the conversation"
+        width={1920}
+        height={1080}
+        caption="On the year she spent on Koh Phangan between Web3 roles."
+      />
+      <P>
+        After a hard return to Moscow, Dasha moved to Koh Phangan and spent about a year on what she
+        calls the most spiritual island in the world. She meditated, did ecstatic dance, learned
+        about human design, and ran swap parties built on a sharing-economy instinct she picked up
+        as a child in Denmark. It is not a detour she apologizes for. Meeting artists,
+        mathematicians, and people who think in completely different systems is, for her, part of
+        understanding how to work with anyone.
+      </P>
+
+      <H2>Going global by going local</H2>
+      <P>
+        The clearest idea in the conversation is her model for scale. To become truly global, you
+        build on the local level. You arrive somewhere as a newbie, you will break rules you did not
+        know existed, so first you learn the place: its channels, its influencers, its laws and
+        taxes, even its memes. Then you hand local leaders a clear guidebook of your values so they
+        can build your unit without losing the plot. She now applies this to Dash, whose focus is
+        payments after twelve years, and to its new Dash Platform, a layer two for developers with
+        decentralized storage and usernames and, soon, smart contracts.
+      </P>
+
+      <H2>The bright future</H2>
+      <Figure
+        src="/blog/llp022-daria-chernozub-3.jpg"
+        alt="Daria Chernozub speaking animatedly with both hands raised"
+        width={1920}
+        height={1080}
+        caption="Closing on why she builds communities: to gather people who believe in a bright future."
+      />
+      <P>
+        We closed on why she does all of this. Dasha wants to gather people who believe in a bright
+        future, because she thinks the outcome is genuinely up for grabs. &ldquo;If they will win,
+        we lose, and we will live in the sad, sad world. I don&apos;t believe in this sad
+        world.&rdquo; It is an optimism that has been tested by banks, by burnout, by a lot of
+        countries, and it is still standing. That is the kind of person this show exists to sit with
+        for an hour.
+      </P>
+
+      <H2>Key takeaways</H2>
+      <UL
+        items={[
+          'Real decentralization is about who votes, not just where the nodes are. Dash’s masternode governance is what won her over.',
+          'To go global, go local first: learn a place’s rules, channels, and culture before you try to build there.',
+          'The friction between people and computers is the thing worth removing. Natural-language AI is exciting precisely because it does that.',
+          'A career can braid many worlds, banking, Web3, hackathons, spirituality, and still keep a single thread: helping people connect and build.',
+        ]}
+      />
+
+      <H2>Links and mentions</H2>
+      <UL
+        items={[
+          <>
+            <A href="https://dariachernozub.com">Daria Chernozub (Dasha)</A>, her personal site and
+            social links
+          </>,
+          <>
+            <A href="https://www.dash.org">Dash</A>, the payments-focused blockchain she leads
+            adoption for
+          </>,
+          <>
+            <A href="https://internetcomputer.org">Internet Computer Protocol (ICP)</A>, where she
+            spent two years on global adoption
+          </>,
+          <>
+            <A href="https://superprotocol.com">Super Protocol</A>, the confidential-compute project
+            where she did DevRel
+          </>,
+          <>
+            <A href="https://polygon.technology">Polygon</A> and{' '}
+            <A href="https://solana.com">Solana</A>, ecosystems she worked across
+          </>,
+          <>
+            <A href="https://unicornembassy.com">Unicorn Embassy</A>, the founder community where a
+            Random Coffee match led her to Dash
+          </>,
+          <>
+            <A href="https://luminalog.com">LuminaLog</A>, the AI journaling app discussed near the
+            end
+          </>,
+        ]}
+      />
+
+      <H2>Listen to the LuminaLog podcast</H2>
+      <P>
+        Subscribe on{' '}
+        <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
+        <A href="https://open.spotify.com/show/033Mu8Yn2ybRQIis1uKNv2">Spotify</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'velveteen-artist-founder-stories',
+    title: 'LLP#023 — Velveteen: the artist who helps founders tell their story',
+    description:
+      'A Network School conversation with the artist Velveteen (Miriam Reza): a senior-year car crash that broke both hands, learning to draw left-handed to finish her art-school portfolio, studying design at NC State, moving from dark charcoal to bright animal-filled paintings meant to bring people joy, hidden symbols in her community pieces, her years in NFTs and film, and founding Chymira to turn deep tech research into a clear story. On what separates human art from AI: you put a piece of your soul into it.',
+    date: 'July 28, 2026',
+    isoDate: '2026-07-28T18:00',
+    readingTime: '6 min read',
+    Content: VelveteenArtistFounderStoriesContent,
+  },
+  {
+    slug: 'llp022-daria-chernozub',
+    title: 'LLP#022 — Daria Chernozub: going global by going local',
+    description:
+      'A Network School conversation with Daria Chernozub (Dasha), who leads global adoption for Dash. From a Russian central-bank sandbox and a first coin bought because it shared her name, to DevRel in Cyprus, local hubs for the Internet Computer, a year on Koh Phangan, and her rule for scaling anything: go global by going local.',
+    date: 'July 26, 2026',
+    isoDate: '2026-07-26T18:00',
+    readingTime: '6 min read',
+    Content: Llp022DariaChernozubContent,
+  },
   {
     slug: 'llp021-anton-contentdao',
     title: 'LLP#021 — Anton Pecherkin: from 40+ hackathons to ContentDAO',
