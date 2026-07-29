@@ -8,7 +8,6 @@ import Foundation
 struct DailyInsightsReport: Codable, Equatable, Sendable, Identifiable {
     var id: String = ""
     var date: String
-    var insights: String
     var findings: String
     /// The day's "Gem" — a short, memorable line. Stored over the wire and in
     /// Firestore under the legacy key `question` (see CodingKeys / ADR-0038).
@@ -32,7 +31,7 @@ struct DailyInsightsReport: Codable, Equatable, Sendable, Identifiable {
     /// Wire/Firestore keys. `gem` is persisted under the legacy `question` key so
     /// existing encrypted reports keep decrypting (AAD `dailyReports.question`).
     enum CodingKeys: String, CodingKey {
-        case date, insights, findings
+        case date, findings
         case gem = "question"
         case emotionSummary, totalWords, wordsToday, streakCount, emotions
         case imageUrl, imageThumbUrl, imageQuery
@@ -41,14 +40,14 @@ struct DailyInsightsReport: Codable, Equatable, Sendable, Identifiable {
 
     init(
         id: String = "",
-        date: String, insights: String, findings: String, gem: String,
+        date: String, findings: String, gem: String,
         emotionSummary: String, totalWords: Int, wordsToday: Int = 0, streakCount: Int,
         emotions: [EmotionScore.Pick], imageUrl: URL? = nil, imageThumbUrl: URL? = nil,
         imageQuery: String? = nil, photographerName: String? = nil, photographerUrl: URL? = nil,
         sourceEntryIds: [String] = [], model: String = "", generatedAt: Date? = nil
     ) {
         self.id = id
-        self.date = date; self.insights = insights; self.findings = findings
+        self.date = date; self.findings = findings
         self.gem = gem; self.emotionSummary = emotionSummary
         self.totalWords = totalWords; self.wordsToday = wordsToday
         self.streakCount = streakCount; self.emotions = emotions

@@ -241,7 +241,7 @@ final class AppServices: ObservableObject {
         // unused and behavior is unchanged.
         let ai = ProxyAIService(
             api: api, journals: journals, profiles: profiles, chats: chats,
-            coordinator: coordinator
+            dailyReports: dailyReports, coordinator: coordinator
         )
         let media = ProxyMediaUploader(api: api, keys: keys)
         let ocr = VisionOCRService()

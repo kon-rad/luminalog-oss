@@ -107,7 +107,6 @@ final class MockAIService: AIService {
     func generateDailyReport(date: String?, force: Bool) async throws -> DailyInsightsReport {
         DailyInsightsReport(
             date: date ?? "2026-06-22",
-            insights: "A recurring thread today was choosing rest without guilt.",
             findings: "You frame slowing down as falling behind, yet your steadiest progress follows quiet days.",
             gem: "Rest, treated as part of the work, is where the steady progress hides.",
             emotionSummary: "Your day read as calm and quietly hopeful.",

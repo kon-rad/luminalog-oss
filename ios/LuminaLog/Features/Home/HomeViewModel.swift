@@ -265,16 +265,6 @@ final class HomeViewModel: ObservableObject {
             .map(String.init)
     }
 
-    // MARK: - Stats
-
-    var streakText: String {
-        "\(profile?.stats.streakCount ?? 0)-day"
-    }
-
-    var totalWordsText: String {
-        (profile?.stats.totalWords ?? 0).formatted()
-    }
-
     // MARK: - Daily goal progress
 
     var goalTarget: Int { DailyGoal.wordTarget }

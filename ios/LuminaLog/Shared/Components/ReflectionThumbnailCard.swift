@@ -76,7 +76,7 @@ struct ReflectionThumbnailCard: View {
 #Preview {
     ReflectionThumbnailCard(report: .init(
         date: "2026-06-22",
-        insights: "", findings: "", gem: "", emotionSummary: "",
+        findings: "", gem: "", emotionSummary: "",
         totalWords: 847, streakCount: 14,
         emotions: [.init(name: "Calm", score: 0.72)]
     ))

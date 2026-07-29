@@ -8,6 +8,11 @@ protocol DailyReportRepository: AnyObject {
     /// Up to `limit` reports across all days, most recent first. Pass the id of
     /// the last report already loaded to page further back; nil loads the first page.
     func recentReports(limit: Int, after lastId: String?) async throws -> [DailyInsightsReport]
+    /// Persists a freshly generated report under its `id` (`{date}_{millis}`). On
+    /// the zero-knowledge path the server returns the card but never stores it (it
+    /// has no DEK), so the client owns persistence — this writes the encrypted doc
+    /// so the Home feed can read it back. Overwrites if `id` already exists.
+    func save(_ report: DailyInsightsReport) async throws
     /// Permanently deletes the report with Firestore document `id`.
     func deleteReport(id: String) async throws
 }
@@ -61,6 +66,13 @@ final class FirestoreDailyReportRepository: DailyReportRepository {
         return snap.documents.compactMap { doc in
             try? DailyInsightsReport(firestore: doc.data(), id: doc.documentID, cipher: cipher)
         }
+    }
+
+    func save(_ report: DailyInsightsReport) async throws {
+        guard let uid = auth.currentUserId else { return }
+        guard let cipher = keys.currentCipher else { return }
+        let data = try report.firestoreData(cipher: cipher)
+        try await daysCollection(uid).document(report.id).setData(data)
     }
 
     func deleteReport(id: String) async throws {

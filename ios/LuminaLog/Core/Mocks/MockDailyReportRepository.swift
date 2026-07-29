@@ -29,6 +29,14 @@ final class MockDailyReportRepository: DailyReportRepository {
         return Array(feed[min(start, feed.count)...].prefix(limit))
     }
 
+    func save(_ report: DailyInsightsReport) async throws {
+        // Newest first: a freshly generated report becomes the current `stored`,
+        // and any previous one drops into history.
+        if let previous = stored { storedHistory.insert(previous, at: 0) }
+        storedHistory.removeAll { $0.id == report.id }
+        stored = report
+    }
+
     func deleteReport(id: String) async throws {
         storedHistory.removeAll { $0.id == id }
         if stored?.id == id { stored = nil }

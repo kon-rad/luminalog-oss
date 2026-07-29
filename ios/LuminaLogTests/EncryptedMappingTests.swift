@@ -131,6 +131,40 @@ final class EncryptedMappingTests: XCTestCase {
         XCTAssertEqual(decoded.title, "Chat Title")
     }
 
+    func testDailyReportEncryptsTextFieldsAndRoundTrips() throws {
+        // Guards the client-side persistence added for the zero-knowledge path:
+        // the server returns the card but never stores it, so the client must be
+        // able to encrypt it and read it back (otherwise a freshly generated card
+        // never appears in Home's feed).
+        let report = DailyInsightsReport(
+            id: "2026-06-22_1717",
+            date: "2026-06-22",
+            findings: "Private finding.",
+            gem: "Rest is\nwhere the steady\nprogress hides.",
+            emotionSummary: "Calm and hopeful.",
+            totalWords: 12_480, wordsToday: 812, streakCount: 7,
+            emotions: [.init(name: "Calmness", score: 0.82)],
+            imageQuery: "calm water",
+            sourceEntryIds: ["e1"], model: "m",
+            generatedAt: created
+        )
+        let data = try report.firestoreData(cipher: cipher)
+
+        // Sensitive text fields are envelopes, not plaintext. `gem` seals under the
+        // legacy `question` key so it decodes with the existing read path.
+        XCTAssertNil(data["question"] as? String)
+        XCTAssertNotNil(EncryptedField(data: data["question"]))
+        XCTAssertNotNil(EncryptedField(data: data["findings"]))
+        XCTAssertNotNil(EncryptedField(data: data["emotionSummary"]))
+        // Stats/metadata stay plaintext.
+        XCTAssertEqual(data["streakCount"] as? Int, 7)
+        XCTAssertEqual(data["date"] as? String, "2026-06-22")
+
+        // `id` is the document id (not part of the body), so pass it on read.
+        let decoded = try DailyInsightsReport(firestore: data, id: report.id, cipher: cipher)
+        XCTAssertEqual(decoded, report)
+    }
+
     func testProfileEncryptsBiographyAndDailyPrompt() throws {
         let profile = UserProfile(
             id: "u1", displayName: "Demo", email: "d@e.com", photoURL: nil,

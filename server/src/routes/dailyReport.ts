@@ -20,7 +20,7 @@ export function dayBounds(date: Date, timeZone: string): { start: Date; end: Dat
   return { start, end }
 }
 
-function parseReportJson(raw: string): { insights: string; findings: string; gem: string; emotionSummary: string; imageQuery: string } | null {
+function parseReportJson(raw: string): { findings: string; gem: string; emotionSummary: string; imageQuery: string } | null {
   try {
     const match = raw.match(/\{[\s\S]*\}/)
     return match ? JSON.parse(match[0]) : null
@@ -96,7 +96,7 @@ export async function dailyReportHandler(req: Request, res: Response): Promise<v
     const report = {
       date: dateKey,
       // The LLM emits `gem`; the stored field name `question` is kept for compat (ADR-0038).
-      insights: parsed.insights, findings: parsed.findings, question: parsed.gem,
+      findings: parsed.findings, question: parsed.gem,
       emotionSummary: parsed.emotionSummary,
       totalWords: stats.totalWords ?? 0,
       wordsToday,

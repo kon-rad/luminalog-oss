@@ -1,8 +1,11 @@
 import Foundation
+import os
 
 /// `AIService` backed by the proxy API (routes per spec §4.1).
 @MainActor
 final class ProxyAIService: AIService {
+
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "ai")
 
     private let api: ProxyAPIClient
 
@@ -15,6 +18,12 @@ final class ProxyAIService: AIService {
     private let journals: JournalRepository?
     private let profiles: ProfileRepository?
     private let chats: ChatRepository?
+    /// Client-side store for generated daily reports. Injected only by
+    /// `AppServices.live()`. On the zero-knowledge path (`DevFlags.aiModel1` ON)
+    /// the server returns the card but never persists it (no DEK), so
+    /// `generateDailyReport` writes it here so the Home feed can read it back.
+    /// Nil in mock wiring.
+    private let dailyReports: DailyReportRepository?
     /// Client-side semantic-search index (increment 1c-D / 19b). Optional and
     /// injected only by `AppServices.live()`. Used ONLY on the Model-1 path
     /// (`DevFlags.aiModel1` ON) to rank RAG context by on-device embedding
@@ -49,6 +58,7 @@ final class ProxyAIService: AIService {
         journals: JournalRepository? = nil,
         profiles: ProfileRepository? = nil,
         chats: ChatRepository? = nil,
+        dailyReports: DailyReportRepository? = nil,
         coordinator: SemanticIndexCoordinating? = nil,
         now: @escaping () -> Date = Date.init
     ) {
@@ -56,6 +66,7 @@ final class ProxyAIService: AIService {
         self.journals = journals
         self.profiles = profiles
         self.chats = chats
+        self.dailyReports = dailyReports
         self.coordinator = coordinator
         self.now = now
     }
@@ -476,7 +487,26 @@ final class ProxyAIService: AIService {
                 sourceEntryIds: todaysEntries.map(\.id)
             )
         }
-        return try await api.post(path: "/v1/ai/daily-report", body: body)
+        var report: DailyInsightsReport = try await api.post(path: "/v1/ai/daily-report", body: body)
+        // `id` is the Firestore document id and is intentionally NOT part of the
+        // wire body, so it decodes as "". A day can hold several reports, so mint a
+        // unique `{date}_{millis}` id (mirrors the server's doc-id format) before
+        // persisting — otherwise `save` writes `document("")`, which Firestore
+        // rejects and the card silently never lands in Home's feed.
+        if report.id.isEmpty {
+            report.id = "\(report.date)_\(Int(now().timeIntervalSince1970 * 1000))"
+        }
+        // Zero-knowledge path: the server returned the card but did NOT persist it
+        // (no DEK), so the client owns persistence — write it so Home's feed reads
+        // it back. Best-effort: a save failure must not surface as a generation
+        // failure (the card still displays in the report view). Legacy path is
+        // dead here (the server route requires `todayText`), but the flag guard
+        // keeps this a no-op if it were ever reintroduced.
+        if DevFlags.aiModel1, let dailyReports {
+            do { try await dailyReports.save(report) }
+            catch { Self.logger.error("daily report persist failed: \(error.localizedDescription, privacy: .public)") }
+        }
+        return report
     }
 
     // MARK: - Model 1 helpers

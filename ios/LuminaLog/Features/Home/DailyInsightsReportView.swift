@@ -203,7 +203,6 @@ struct InsightsCardView: View {
                 Text(formattedDate).font(.uiBody.weight(.semibold))
                     .foregroundStyle(.white)
             }
-            section("Insights", report.insights)
             section("A Gem", report.gem)
             emotionBars
             statsRow

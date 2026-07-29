@@ -164,13 +164,10 @@ This card will be shared publicly. It is CRITICAL that it is safe to post:
 - Write only abstracted, universal reflections the user would be proud to share publicly.
 - Be warm, second-person ("you"), and genuinely insightful — not generic.
 
-"insights" must be a short, declarative STATEMENT — NOT a question. Never end it with a question mark. No compound sentences, no "and how would…" tails, no stacked clauses. Favor a single clear, punchy line over anything long.
-
 "gem" must be a HAIKU — exactly three lines — expressing a key insight or learning drawn DIRECTLY from what the user actually wrote in TODAY'S journaling above (or across several entries today). Format it as three separate lines, each line separated by a single newline character (\n), following the spirit of a haiku (three short lines, roughly a 5-7-5 syllable cadence — natural over strictly counted). It must be genuinely sourced from the substance of today's writing — not a generic platitude — yet COMPLETELY ABSTRACTED so it is safe to post publicly: render it as a universal truth anyone could relate to, never tied to the user's specific situation. Absolutely never quote the text, and never reference or even hint at any person, place, employer, health, financial, or otherwise identifying or potentially embarrassing detail — nothing that could damage the user's public image. Warm and quietly profound, not a question, no quotation marks.
 
 Return STRICT JSON ONLY (no markdown, no preamble) with exactly these keys:
 {
-  "insights": "ONE short, declarative statement (under 18 words) naming the key insight from today's writing and how it relates to past reflections. A statement, not a question.",
   "findings": "1-2 sentences naming an unsurprising-but-unnoticed observation about the user from another perspective",
   "gem": "A haiku of exactly three lines (separated by \\n) expressing a key insight or learning from TODAY'S entries — genuinely grounded in what the user wrote yet fully abstracted into a universal truth, with no quotes and no identifying or sensitive details. Three short lines, roughly 5-7-5 cadence. Not a question.",
   "emotionSummary": "one warm sentence interpreting the top emotions above",

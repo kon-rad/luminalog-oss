@@ -560,7 +560,6 @@ extension DailyInsightsReport {
         self.init(
             id: id,
             date: data["date"] as? String ?? "",
-            insights: try dec("insights"),
             findings: try dec("findings"),
             gem: try dec("question"),   // legacy field name; AAD stays dailyReports.question
             emotionSummary: try dec("emotionSummary"),
@@ -581,5 +580,32 @@ extension DailyInsightsReport {
             model: data["model"] as? String ?? "",
             generatedAt: timestamp(data["generatedAt"])
         )
+    }
+
+    /// Encrypt the text fields (AAD `dailyReports.<key>`) and pass the rest
+    /// through as plaintext, producing the Firestore document body written under
+    /// `dailyReports/{uid}/days/{id}`. Mirrors `init(firestore:)`. `gem` is sealed
+    /// under the legacy key `question` (AAD `dailyReports.question`) so it decodes
+    /// with the read path above.
+    func firestoreData(cipher: FieldCipher) throws -> [String: Any] {
+        var data: [String: Any] = [
+            "date": date,
+            "findings": try cipher.sealed(findings, "dailyReports.findings"),
+            "question": try cipher.sealed(gem, "dailyReports.question"),
+            "emotionSummary": try cipher.sealed(emotionSummary, "dailyReports.emotionSummary"),
+            "totalWords": totalWords,
+            "wordsToday": wordsToday,
+            "streakCount": streakCount,
+            "emotions": emotions.map { ["name": $0.name, "score": $0.score] },
+            "sourceEntryIds": sourceEntryIds,
+            "model": model,
+        ]
+        if let imageUrl { data["imageUrl"] = imageUrl.absoluteString }
+        if let imageThumbUrl { data["imageThumbUrl"] = imageThumbUrl.absoluteString }
+        if let imageQuery { data["imageQuery"] = imageQuery }
+        if let photographerName { data["photographerName"] = photographerName }
+        if let photographerUrl { data["photographerUrl"] = photographerUrl.absoluteString }
+        if let generatedAt { data["generatedAt"] = Timestamp(date: generatedAt) }
+        return data
     }
 }
