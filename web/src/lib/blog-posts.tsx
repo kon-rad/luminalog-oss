@@ -3033,7 +3033,200 @@ function Llp022DariaChernozubContent() {
   )
 }
 
+/* ── Post: A life given to a meditation community (Anna Sokol) ── */
+function Llp024AnnaSokolContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/llp024-anna-sokol-1.jpg"
+        alt="Anna Sokol and Konrad in conversation at Network School, a whiteboard behind them reading 'Perception determines reality'"
+        width={1920}
+        height={1080}
+        priority
+      />
+      <P>
+        I met Anna Sokol in early July at Network School in Malaysia. We connected over yoga and
+        long conversations about meditation and community, so it felt natural to sit down and record
+        one. Anna is a meditation and awareness instructor and retreat facilitator.
+      </P>
+      <P>
+        Her life has an unusual arc. She grew up between Gorlovka and Kiev, moved to Australia at
+        sixteen when her mother remarried, and then gave much of her twenties to a meditation
+        community called Giving School, living and running retreats across Latvia and other
+        countries. This conversation is about that arc, and what she took from it that the rest of us
+        can use.
+      </P>
+
+      <H2>Perception, and the one tool we have</H2>
+      <P>
+        When I handed Anna the whiteboard and asked her to write anything she liked, she wrote{' '}
+        &ldquo;Perception determines reality.&rdquo; It turned out to be the thread of the whole
+        hour. Her framing is simple and practical: attention is the one tool we really have, and
+        wherever attention goes, that is where our power goes.
+      </P>
+      <P>
+        She told a small, concrete story to make the point. Working an early job in Australia selling
+        activewear, she started noticing every single person wearing that brand&apos;s leggings,
+        everywhere, because it was already in her head. From there she made the obvious but
+        easy-to-forget leap: if I can be primed to see leggings, I can learn to guide attention on
+        purpose, toward what I actually want, and away from the fears and blockages that clutter the
+        path. She is careful to say this was not a trick she read about but something she noticed in
+        herself and then trained.
+      </P>
+
+      <H2>The mother, the change, and the first retreat</H2>
+      <P>
+        What actually pulled Anna toward this work was not an idea but a person. Her mother found the
+        school first, and Anna, in her own words, assumed she had joined a cult and told her to keep
+        her ideas to herself. Then she watched her mother change. One night Anna snapped at her, the
+        kind of exchange that used to trigger a harsh response, and instead her mother stayed calm
+        and kind. Anna says she looked at her mother&apos;s eyes and felt, immediately, that her
+        mother had found something real, and that she wanted it too.
+      </P>
+      <Figure
+        src="/blog/llp024-anna-sokol-2.jpg"
+        alt="Anna Sokol speaking during the interview at Network School"
+        width={1920}
+        height={1080}
+        caption="Anna traces the turning point: watching her mother respond to a jab with calm instead of the usual harshness."
+      />
+      <P>
+        That led to her first retreat: fourteen days in Latvia, in minus twenty, with partial fasting
+        and practices held outdoors. She describes walking and praying after a fasting day, an
+        intensity of inner work she had never done, and coming out of it with what she calls huge
+        openings. It is worth noting how physical her spirituality is. The cold, the fasting, the
+        body: these are not incidental to the practice, they are part of it.
+      </P>
+
+      <H2>What makes a community last</H2>
+      <P>
+        This is the part I keep thinking about. I am drawn to communities, network states, and
+        organizations that hold people together, so I asked Anna directly what makes a community
+        last. Her answer had three parts, and none of them were about infrastructure.
+      </P>
+      <P>
+        First, a shared goal that everyone has consciously chosen and believes in with their whole
+        heart. Without that, she says, a community cannot hold through hard times. Second, ongoing
+        education of the people in it, learning how to build connections and handle conflict, because
+        when groups pour everything into building infrastructure and skip the inner work, ego
+        eventually shows up and someone wants a bigger piece. Third, everyone treating the shared
+        project as if it were their own, as if they had created it.
+      </P>
+      <Figure
+        src="/blog/llp024-anna-sokol-3.jpg"
+        alt="Konrad gesturing mid-conversation with Anna Sokol at Network School"
+        width={1920}
+        height={1080}
+        caption="Anna names the community's three values: live to your full potential, treat others as your continuation, and pass on what you learn."
+      />
+      <P>
+        She named those alongside the school&apos;s three stated values: live to your full potential,
+        treat the people around you as your continuation, and pass on whatever you learn rather than
+        hoarding it. A community, in her telling, is not built out of infrastructure first. It is
+        built out of the people, and the work they do on themselves.
+      </P>
+
+      <H2>Fear mostly lives in the head</H2>
+      <P>
+        Anna&apos;s teachers, she says, deliberately push people out of their comfort zone. Again and
+        again she was told the next course starts in two weeks, on another continent, and asked how
+        she would arrange her life to get there. Each time the fears were the same: not enough money,
+        work in Australia, no way to explain another absence. And each time she stepped through them
+        anyway. Once she came back to find public holidays waiting, better pay, extra shifts, and no
+        problem taking the leave. Her conclusion is understated: the scariest thing was simply
+        choosing to step into the unknown, and the fears turned out to live mostly in her head.
+      </P>
+      <Pull>
+        Knowledge sits in the head. Wisdom is something you practice. If you do not do it, it is not
+        wisdom yet.
+      </Pull>
+
+      <H2>Intention, impact, and the work you can only do with others</H2>
+      <P>
+        Later we got into the gap between intention and impact. Anna&apos;s view is that when the
+        impact is bad, the intention was often quietly coming from what she calls a victim position,
+        wanting something in return. She used the old line about giving a fishing rod instead of a
+        fish, and added a second layer: sometimes a good deed carries a hidden condition, now you owe
+        me, now you will respect me.
+      </P>
+      <P>
+        Becoming aware of those subconscious layers, she says, takes two things. One is regular
+        practice, meditation that trains you to notice a reaction before you fall into it, what she
+        calls a bigger depth of presence. The other is conscious interaction with other people who
+        are doing the same work, in a space safe enough to see your own ego and step past it without
+        it turning into ego-poking. It reminded me of the early Apple teams, brilliant people
+        clashing, and how Steve Jobs later credited meditation with making him a better manager.
+      </P>
+
+      <H2>Carrying it into an ordinary life</H2>
+      <P>
+        What struck me most is how ordinary Anna wants all of this to be. She is not arguing for
+        escaping into retreats forever. The real spirituality, she says, is integration: bringing
+        energy from the deep work back into ordinary, creative life and actually building things.
+        Along the way she developed skills she once only dreamed of as a child who wanted to perform,
+        hosting events, project management, design, marketing, running a channel, all in service of
+        the same thing.
+      </P>
+      <P>
+        We compared notes on this, my own path through a coding school and Silicon Valley, the pull
+        between a stable career and a creative, nomadic life, and landed in the same place: it is
+        about people, and about using whatever talents you have to make something with a real impact.
+        Her closing note is one I will keep: whatever pure impulse you have inside, even if it seems
+        unprofitable or out of reach, give it a shot, do it for fun, and see what happens.
+      </P>
+
+      <H2>Key takeaways</H2>
+      <UL
+        items={[
+          'Attention is the one tool we have; you can learn to notice where it goes and guide it on purpose.',
+          'A community lasts on three things: a whole-hearted shared goal, ongoing education of its people, and everyone treating the project as their own.',
+          'Most fear lives in the head. The way through is choosing to step into the unknown, repeatedly.',
+          'Knowledge sits in the head; wisdom is something you practice.',
+          'When an intention lands badly, it often came from wanting something in return. Awareness of that comes from practice plus honest work alongside others.',
+          'The goal is not to escape into retreats but to integrate the inner work into an ordinary, creative life.',
+        ]}
+      />
+
+      <H2>Links &amp; mentions</H2>
+      <UL
+        items={[
+          <>
+            <A href="https://www.instagram.com/anna_paradanta/">Anna Sokol on Instagram</A> &mdash;
+            @anna_paradanta, where she shares about community and practice
+          </>,
+          <>
+            <A href="https://giving-school.eu/">Giving School</A> &mdash; the meditation school and
+            community she works with
+          </>,
+          'Network School — where this was recorded, in Malaysia',
+          'Lorna Jane — the Australian activewear brand from her attention story',
+          'Psycho-Cybernetics by Maxwell Maltz — the book on self-image she references',
+          'Jane Addams and Hull House — the Chicago settlement house Konrad brought up on social activism',
+          '42 — the tuition-free coding school from Konrad’s own story',
+        ]}
+      />
+
+      <H2>Listen to the LuminaLog podcast</H2>
+      <P>
+        Subscribe on{' '}
+        <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
+        <A href="https://open.spotify.com/show/033Mu8Yn2ybRQIis1uKNv2">Spotify</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'llp024-anna-sokol',
+    title: 'LLP#024 — Anna Sokol: a life given to a meditation community',
+    description:
+      'A Network School conversation with Anna Sokol, a meditation and awareness instructor who left Ukraine for Australia at sixteen and gave much of her twenties to Giving School, a meditation community with retreat centers in Latvia. On attention as the one tool we have, why most fear lives in the head, and what actually makes a community last: a whole-hearted shared goal, ongoing education, and everyone treating the project as their own.',
+    date: 'July 29, 2026',
+    isoDate: '2026-07-29T18:00',
+    readingTime: '6 min read',
+    Content: Llp024AnnaSokolContent,
+  },
   {
     slug: 'velveteen-artist-founder-stories',
     title: 'LLP#023 — Velveteen: the artist who helps founders tell their story',
