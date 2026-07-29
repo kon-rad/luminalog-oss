@@ -108,7 +108,18 @@ final class EntryProcessorTests: XCTestCase {
         }
 
         func viewURL(for s3Key: String) async throws -> URL { URL(fileURLWithPath: "/dev/null") }
-        func localFileURL(for s3Key: String) async throws -> URL { URL(fileURLWithPath: "/dev/null") }
+        // A REAL readable temp file: `TranscriptRecoverer.recover` does
+        // `Data(contentsOf:)` on this URL, which throws for `/dev/null` (so recover
+        // would bail before ever transcribing). Back it with actual bytes so the
+        // recover path is genuinely exercised.
+        func localFileURL(for s3Key: String) async throws -> URL {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("spy-clip-\(s3Key.replacingOccurrences(of: "/", with: "_"))")
+            if !FileManager.default.fileExists(atPath: url.path) {
+                try Data([0x00, 0x01, 0x02, 0x03]).write(to: url)
+            }
+            return url
+        }
     }
 
     // MARK: - Fake transport (mirrors UploadManagerTests)
@@ -208,7 +219,8 @@ final class EntryProcessorTests: XCTestCase {
                 dependencies: BackgroundEntryProcessor.Dependencies(
                     journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr,
                     transcoder: VideoTranscoder(), journal: journal,
-                    uploadManager: uploadManager, finalizer: finalizer
+                    uploadManager: uploadManager, finalizer: finalizer,
+                    drafts: DraftStore(directory: dir.appendingPathComponent("drafts"))
                 )
             )
         }
@@ -470,6 +482,54 @@ final class EntryProcessorTests: XCTestCase {
         XCTAssertEqual(entry.content, "recovered transcript")
         XCTAssertEqual(entry.processingStatus, .ready)
         XCTAssertGreaterThan(harness.ai.transcribeClipCalls, 0, "recover() re-transcribed from S3")
+    }
+
+    /// A re-transcription that comes back degenerate (a word or two for a
+    /// multi-minute clip — the "one character" incidents) must NOT be saved as a
+    /// successful `.ready` transcript. The entry stays `.failed` so the Retry
+    /// affordance and future recovery remain available.
+    @MainActor
+    func testZKDegenerateReTranscriptionStaysFailedNotReady() async throws {
+        DevFlags.aiModel1 = true // ZK path (restored by tearDown)
+        let harness = Harness(transport: FakeTransport([200])) // uploads succeed
+        // Staged temp file is absent → inline derive yields empty/`.failed`, so the
+        // finalizer recovers from S3 — where the provider returns a lone word for a
+        // 200 s recording.
+        harness.ai.scriptedClipTranscript = "So"
+
+        await harness.run(voiceJob(durationSec: 200))
+
+        let entry = try harness.savedEntry()
+        XCTAssertEqual(entry.transcriptStatus, .failed,
+                       "a 1-word transcript for a 200 s clip is not a success")
+        XCTAssertNotEqual(entry.content, "So", "degenerate result must not overwrite as ready content")
+        XCTAssertGreaterThan(harness.ai.transcribeClipCalls, 0, "recover() was attempted")
+    }
+
+    /// The inline (pre-upload) ZK transcription path: when the provider returns a
+    /// degenerate result for a long recording, the entry must settle `.failed`,
+    /// not `.ready` — even though the transcript is non-empty.
+    @MainActor
+    func testZKInlineDegenerateTranscriptionMarksFailed() async throws {
+        DevFlags.aiModel1 = true // ZK path (restored by tearDown)
+        let harness = Harness(transport: FakeTransport([200]))
+        harness.ai.scriptedClipTranscript = "So" // 1 word for a 200 s clip
+
+        // Real on-disk audio so the inline transcription actually runs.
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).m4a")
+        try Data([0x00, 0x01, 0x02, 0x03]).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        var set = AttachmentSet()
+        _ = set.setAudio(AudioAttachment(url: url, durationSec: 200))
+        let job = EntryProcessingJob(
+            draftId: UUID().uuidString, userId: "user-1", promptText: nil,
+            attachments: set, text: "", createdAt: Date())
+
+        await harness.run(job)
+
+        let entry = try harness.savedEntry()
+        XCTAssertEqual(entry.transcriptStatus, .failed,
+                       "degenerate inline transcript must not settle as ready")
     }
 
     // MARK: - Stuck-entry sweep

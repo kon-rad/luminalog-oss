@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import OSLog
 
 /// Measures and concatenates recorded audio segments. Segments are AAC-in-CAF
 /// files; the merged output is a single `.m4a` (AAC) so the existing upload /
@@ -16,6 +17,8 @@ protocol RecordingMerging: Sendable {
 enum RecordingMergeError: Error { case noReadableSegments, exportInit, exportFailed }
 
 struct RecordingMerger: RecordingMerging {
+
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "recording-merge")
 
     init() {}
 
@@ -40,7 +43,13 @@ struct RecordingMerger: RecordingMerging {
                 let sourceTrack = try? await asset.loadTracks(withMediaType: .audio).first,
                 let duration = try? await asset.load(.duration),
                 duration.isNumeric, duration > .zero
-            else { continue }   // skip unreadable / empty (crash-truncated) segment
+            else {
+                // Skip an unreadable / empty (crash-truncated) segment, but LOG it:
+                // silently dropping audio here means the transcript is missing words
+                // with no other signal. A run of these explains a short transcript.
+                Self.logger.error("Skipped unreadable audio segment during merge: \(url.lastPathComponent, privacy: .public)")
+                continue
+            }
             try track.insertTimeRange(
                 CMTimeRange(start: .zero, duration: duration),
                 of: sourceTrack,

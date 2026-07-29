@@ -73,11 +73,17 @@ final class TranscriptEditorViewModel: ObservableObject {
             let data = try Data(contentsOf: clip.url)
             let result = try await ai.transcribeClip(audio: data, contentType: "audio/m4a")
             let trimmed = result.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty {
-                text = [text.trimmingCharacters(in: .whitespacesAndNewlines), trimmed]
-                    .filter { !$0.isEmpty }
-                    .joined(separator: "\n\n")
+            // A transcript too short to be plausible for the clip's length (a word
+            // or two for a multi-minute recording) is a provider failure — surface
+            // it as a retryable failure rather than appending garbage to the text.
+            guard TranscriptPlausibility.isPlausible(trimmed, forDurationSec: clip.durationSec) else {
+                setFailed(true, for: clipID)
+                transcribeState = .failed
+                return
             }
+            text = [text.trimmingCharacters(in: .whitespacesAndNewlines), trimmed]
+                .filter { !$0.isEmpty }
+                .joined(separator: "\n\n")
             setFailed(false, for: clipID)
             transcribeState = .idle
         } catch {

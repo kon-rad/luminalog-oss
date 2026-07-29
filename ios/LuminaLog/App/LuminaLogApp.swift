@@ -129,6 +129,11 @@ struct LuminaLogApp: App {
                             // state (no in-flight job, no durable record) to `.failed`
                             // so it surfaces Retry instead of "Processing…" forever.
                             await services.entryProcessor.sweepStuckEntries()
+                            // Re-transcribe any voice/video entry whose transcript
+                            // failed or came back degenerate (from the durable S3
+                            // audio) and refresh its derived AI. Runs after the sweep
+                            // so freshly-stranded entries are eligible too.
+                            await services.transcriptBackfiller.backfill()
                         }
                         .task(id: uid) {
                             await services.voiceRecordingImporter?.sweep()

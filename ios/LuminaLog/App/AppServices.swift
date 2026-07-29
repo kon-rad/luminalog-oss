@@ -34,8 +34,10 @@ final class AppServices: ObservableObject {
     let entryProcessor: EntryProcessor
     /// Shared "safe to interrupt the user" state (milestone gating).
     let activity = AppActivityMonitor()
-    /// Durable local store of in-progress drafts (recovered on Home).
-    let drafts = DraftStore()
+    /// Durable local store of in-progress drafts (recovered on Home). Injected so
+    /// the Create flow, Home, the `EntryProcessor`, and the `EntryFinalizer` all
+    /// share ONE instance (retry-rebuild reads what Save retained).
+    let drafts: DraftStore
     /// Live background-upload transport, exposed so the app can forward the
     /// system's background-URLSession completion handler to it (Task 6). Nil for
     /// `mocks()` (the mock transport isn't a `BackgroundUploadTransport`).
@@ -58,6 +60,10 @@ final class AppServices: ObservableObject {
     /// from the entries created today (self-healing across transcript retries,
     /// edits, and deletes). Started per signed-in user from `LuminaLogApp`.
     let dailyGoalReconciler: DailyGoalReconciler
+    /// Re-transcribes voice/video entries whose transcript failed or came back
+    /// degenerate, from the durable S3 audio, and refreshes their derived AI.
+    /// Run once per signed-in user at launch from `LuminaLogApp`.
+    let transcriptBackfiller: TranscriptBackfiller
     /// Encrypts + re-uploads webhook-staged voice recordings on next foreground.
     /// Nil when `api` is nil (`mocks()`), like other network-backed helpers.
     let voiceRecordingImporter: VoiceRecordingImporter?
@@ -82,6 +88,7 @@ final class AppServices: ObservableObject {
         consentStore: ConsentStore,
         consentService: ConsentService,
         entryProcessor: EntryProcessor,
+        drafts: DraftStore,
         api: ProxyAPIClient? = nil,
         uploadTransport: BackgroundUploadTransport? = nil,
         keyMigrator: KeyMigrator? = nil,
@@ -107,12 +114,20 @@ final class AppServices: ObservableObject {
         self.consentStore = consentStore
         self.consentService = consentService
         self.entryProcessor = entryProcessor
+        self.drafts = drafts
         self.api = api
         self.uploadTransport = uploadTransport
         self.keyMigrator = keyMigrator
         self.keyMigrationTransport = keyMigrationTransport
         self.constellationCoordinator = constellationCoordinator
         self.dailyGoalReconciler = DailyGoalReconciler(journals: journals, profiles: profiles)
+        // Built here (not in the factories) from the injected repositories, mirroring
+        // `dailyGoalReconciler`. The recoverer is the same fetch→decrypt→transcribe
+        // path the manual Retry uses; `recover`'s `save` handles re-embedding/goal.
+        let transcriptRecoverer = TranscriptRecoverer(
+            journals: journals, profiles: profiles, ai: ai, media: media)
+        self.transcriptBackfiller = TranscriptBackfiller(
+            journals: journals, ai: ai, recover: { await transcriptRecoverer.recover($0) })
         self.voiceRecordingImporter = api.map {
             VoiceRecordingImporter(api: $0, media: media, keys: keys, repository: chats)
         }
@@ -238,8 +253,12 @@ final class AppServices: ObservableObject {
         // (the same fetch→decrypt→transcribe path the manual Retry button uses).
         let transcriptRecoverer = TranscriptRecoverer(
             journals: journals, profiles: profiles, ai: ai, media: media)
+        // ONE shared draft store across Create/Home/processor/finalizer (retry
+        // rebuild reads what Save retained).
+        let drafts = DraftStore()
         let finalizer = EntryFinalizer(
-            journals: journals, profiles: profiles, ai: ai, recoverer: transcriptRecoverer)
+            journals: journals, profiles: profiles, ai: ai,
+            recoverer: transcriptRecoverer, drafts: drafts)
         let transport = BackgroundUploadTransport()
         // Instantiate the background session at launch so it can receive delegate
         // events (incl. the relaunch-delivered completion handler) right away.
@@ -320,9 +339,10 @@ final class AppServices: ObservableObject {
                 dependencies: BackgroundEntryProcessor.Dependencies(
                     journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr,
                     transcoder: VideoTranscoder(), journal: uploadJournal,
-                    uploadManager: uploadManager, finalizer: finalizer
+                    uploadManager: uploadManager, finalizer: finalizer, drafts: drafts
                 )
             ),
+            drafts: drafts,
             api: api,
             uploadTransport: transport,
             keyMigrator: keyMigrator,
@@ -391,7 +411,8 @@ final class AppServices: ObservableObject {
         let uploadJournal = UploadJournal(
             directory: FileManager.default.temporaryDirectory
                 .appendingPathComponent("MockUploads", isDirectory: true))
-        let finalizer = EntryFinalizer(journals: journals, profiles: profiles, ai: ai)
+        let drafts = DraftStore()
+        let finalizer = EntryFinalizer(journals: journals, profiles: profiles, ai: ai, drafts: drafts)
         let uploadManager = UploadManager(
             journal: uploadJournal,
             transport: AlwaysOKTransport(),
@@ -438,9 +459,10 @@ final class AppServices: ObservableObject {
                 dependencies: BackgroundEntryProcessor.Dependencies(
                     journals: journals, profiles: profiles, ai: ai, media: media, ocr: ocr,
                     transcoder: VideoTranscoder(), journal: uploadJournal,
-                    uploadManager: uploadManager, finalizer: finalizer
+                    uploadManager: uploadManager, finalizer: finalizer, drafts: drafts
                 )
             ),
+            drafts: drafts,
             constellationCoordinator: constellationCoordinator
         )
     }

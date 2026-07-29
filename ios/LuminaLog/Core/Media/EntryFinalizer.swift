@@ -18,6 +18,10 @@ struct EntryFinalizer {
     /// audio (see `TranscriptRecoverer`). Optional so mock/test wiring can omit it
     /// (auto-recovery is simply skipped); `live()` always provides one.
     var recoverer: TranscriptRecoverer? = nil
+    /// The durable draft store, so a media entry's retained (handed-off) draft is
+    /// deleted once its uploads finalize successfully. Optional for mock/test
+    /// wiring that doesn't exercise draft retention.
+    var drafts: DraftStore? = nil
     private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "finalizer")
 
     func finalize(_ pending: PendingEntry) async {
@@ -55,6 +59,10 @@ struct EntryFinalizer {
                 }
                 await ai.requestIndex(journalId: entry.id)
             }
+            // The entry is now durable (Firestore + S3), so its retained handed-off
+            // draft — kept only as the cross-launch retry source — is no longer
+            // needed. On the catch path we deliberately KEEP it so Retry can rebuild.
+            drafts?.delete(pending.draftId)
         } catch {
             Self.logger.error("finalize failed for \(pending.draftId): \(error.localizedDescription)")
             entry.processingStatus = .failed

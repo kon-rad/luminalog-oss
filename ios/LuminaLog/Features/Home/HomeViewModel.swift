@@ -226,7 +226,11 @@ final class HomeViewModel: ObservableObject {
 
     /// Merges entries and drafts into one list, newest first.
     static func mergeListItems(entries: [JournalEntry], drafts: [DraftEntry]) -> [HomeListItem] {
-        let items = entries.map(HomeListItem.entry) + drafts.map(HomeListItem.draft)
+        // Handed-off drafts are retained only as the cross-launch retry source for
+        // their saved entry — the entry already represents them in the list, so
+        // hide them here to avoid a duplicate row.
+        let items = entries.map(HomeListItem.entry)
+            + drafts.filter { !$0.handedOff }.map(HomeListItem.draft)
         return items.sorted { $0.sortDate > $1.sortDate }
     }
 

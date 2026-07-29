@@ -52,6 +52,34 @@ describe('transcribeClipHandler', () => {
     expect(res.body).toEqual({ text: 'deepgram text' })
   })
 
+  it('falls back to Whisper when Deepgram returns an empty transcript', async () => {
+    // Deepgram can return HTTP 200 with an empty transcript on real recordings
+    // (observed in prod: words=0). That is a silent failure — Whisper should get a
+    // shot rather than the client receiving an empty transcript.
+    ;(deepgramEnabled as any).mockReturnValue(true)
+    ;(transcribeWithDeepgram as any).mockResolvedValue('   ')
+    ;(transcribeAudio as any).mockResolvedValue('whisper recovered text')
+    const req: any = { body: Buffer.from('audio'), headers: { 'content-type': 'audio/m4a' } }
+    const res = mockRes()
+    await transcribeClipHandler(req, res)
+    expect(transcribeWithDeepgram).toHaveBeenCalledOnce()
+    expect(transcribeAudio).toHaveBeenCalledOnce()
+    expect(res.body).toEqual({ text: 'whisper recovered text' })
+  })
+
+  it('keeps the Deepgram transcript when Whisper also comes back empty', async () => {
+    // If both are empty we still return (empty) rather than throwing — the client
+    // marks the entry .failed and offers Retry.
+    ;(deepgramEnabled as any).mockReturnValue(true)
+    ;(transcribeWithDeepgram as any).mockResolvedValue('')
+    ;(transcribeAudio as any).mockResolvedValue('')
+    const req: any = { body: Buffer.from('audio'), headers: { 'content-type': 'audio/m4a' } }
+    const res = mockRes()
+    await transcribeClipHandler(req, res)
+    expect(transcribeAudio).toHaveBeenCalledOnce()
+    expect(res.body).toEqual({ text: '' })
+  })
+
   it('falls back to Whisper when Deepgram errors', async () => {
     ;(deepgramEnabled as any).mockReturnValue(true)
     ;(transcribeWithDeepgram as any).mockRejectedValue(new Error('deepgram down'))

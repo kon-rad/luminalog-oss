@@ -334,42 +334,16 @@ final class CreateEntryViewModel: ObservableObject {
         if let p = draft.promptText { promptText = p }
         resumedCreatedAt = draft.createdAt
 
-        var photos: [PhotoAttachment] = []
-        for desc in draft.attachments.sorted(by: { $0.order < $1.order }) {
-            guard let durable = deps.drafts.mediaURL(draftId: draftId, fileName: desc.fileName) else { continue }
-            switch desc.kind {
-            case .photo:
-                if let data = try? Data(contentsOf: durable) {
-                    photos.append(PhotoAttachment(imageData: data,
-                                                  thumbnail: UIImage(data: data),
-                                                  pixelWidth: desc.pixelWidth,
-                                                  pixelHeight: desc.pixelHeight))
-                }
-            case .audio:
-                if let temp = try? copyToTemp(durable, ext: "m4a") {
-                    _ = attachments.setAudio(AudioAttachment(url: temp, durationSec: desc.durationSec ?? 0))
-                }
-            case .video:
-                if let temp = try? copyToTemp(durable, ext: durable.pathExtension) {
-                    attachments.setVideo(VideoAttachment(url: temp, thumbnail: nil, durationSec: desc.durationSec))
-                }
-            }
-            persistedAttachmentIDs.insert(desc.id)
-        }
-        if !photos.isEmpty { _ = attachments.addPhotos(photos) }
+        // Rebuild attachments via the shared hydrator so this path and the
+        // `EntryProcessor` retry-rebuild never drift (temp-copy invariant + all).
+        let hydrated = DraftMediaHydrator.hydrate(draft: draft, store: deps.drafts)
+        attachments = hydrated.attachments
+        persistedAttachmentIDs.formUnion(hydrated.hydratedDescriptorIds)
     }
 
     /// Binds a view-owned `RecordingSession` to this draft's id + store.
     func configureRecording(_ session: RecordingSession) {
         session.configure(draftId: draftId, drafts: deps.drafts)
-    }
-
-    private func copyToTemp(_ source: URL, ext: String) throws -> URL {
-        let dest = FileManager.default.temporaryDirectory
-            .appendingPathComponent("\(UUID().uuidString).\(ext.isEmpty ? "dat" : ext)")
-        try? FileManager.default.removeItem(at: dest)
-        try FileManager.default.copyItem(at: source, to: dest)
-        return dest
     }
 
     /// Persists the current composition to the durable draft store. Copies any
@@ -461,7 +435,15 @@ final class CreateEntryViewModel: ObservableObject {
             createdAt: resumedCreatedAt ?? Date()
         )
         deps.entryProcessor.enqueue(job)
-        deps.drafts.delete(draftId)   // entry is now durable via Firestore + UploadJournal
+        // Retain the draft as the durable cross-launch retry source (so "Try again"
+        // works after a relaunch) instead of deleting it here. Persist current state
+        // first, then mark it handed-off — that hides it from Home and the processor
+        // deletes it once the entry settles `.ready`.
+        persistDraftNow()
+        if var draft = deps.drafts.load(draftId) {
+            draft.handedOff = true
+            deps.drafts.upsert(draft)
+        }
         didSave = true
     }
 }

@@ -61,6 +61,10 @@ final class BackgroundEntryProcessor: EntryProcessor {
         let journal: UploadJournal
         let uploadManager: UploadManager
         let finalizer: EntryFinalizer
+        /// Durable draft store — the cross-launch retry source. `retry` rebuilds a
+        /// whole job from the retained (handed-off) draft when the in-memory job and
+        /// any upload-journal record are gone (the "Try again after relaunch" fix).
+        let drafts: DraftStore
     }
 
     private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "processor")
@@ -106,9 +110,38 @@ final class BackgroundEntryProcessor: EntryProcessor {
             tasks[draftId] = Task { [weak self] in
                 await self?.deps.uploadManager.startAll(for: pending)
             }
+            return
         }
-        // Text/image entries have no durable record; cross-launch retry of those
-        // is unsupported (their staged bytes are gone). They remain `.failed`.
+        // Cross-launch with no upload record (text/image, or a voice/video whose
+        // record was already cleaned up): rebuild the whole job from the retained
+        // handed-off draft — the "Try again does nothing after relaunch" fix.
+        if let draft = deps.drafts.load(draftId) {
+            tasks[draftId] = Task { [weak self] in
+                await self?.rebuildFromDraft(draftId: draftId, draft: draft)
+            }
+        }
+        // No in-session job, no upload record, no draft → nothing to retry (no-op).
+    }
+
+    /// Rebuilds a full `EntryProcessingJob` from a retained draft and runs it.
+    /// The draft has no `userId`/`createdAt`, so those are recovered from the
+    /// already-saved (failed) entry; attachments are re-materialized to temp copies
+    /// by `DraftMediaHydrator` (never referencing durable draft media in place).
+    private func rebuildFromDraft(draftId: String, draft: DraftEntry) async {
+        var failedEntry: JournalEntry?
+        for await entry in deps.journals.entry(id: draftId) { failedEntry = entry; break }
+        guard let failedEntry else { return }   // nothing to rebuild identity from
+        let hydrated = DraftMediaHydrator.hydrate(draft: draft, store: deps.drafts)
+        let job = EntryProcessingJob(
+            draftId: draftId,
+            userId: failedEntry.userId,
+            promptText: draft.promptText,
+            attachments: hydrated.attachments,
+            text: draft.text,
+            createdAt: failedEntry.createdAt
+        )
+        jobs[draftId] = job
+        await process(job)
     }
 
     /// The running task for a draft (test hook).
@@ -204,6 +237,10 @@ final class BackgroundEntryProcessor: EntryProcessor {
             // Text/image just trigger a Chroma index of existing content.
             await deps.ai.requestIndex(journalId: entry.id)
 
+            // The entry is durable now, so its retained handed-off draft (kept only
+            // as the cross-launch retry source) is no longer needed. On the failure
+            // path below we deliberately keep it so Retry can rebuild.
+            deps.drafts.delete(job.draftId)
             finish(job, cleanup: true)
         } catch {
             Self.logger.error("Background processing failed for \(job.draftId): \(error)")
@@ -500,8 +537,15 @@ final class BackgroundEntryProcessor: EntryProcessor {
                     let spoken = try await deps.ai.transcribeClip(audio: audioData, contentType: contentType)
                         .trimmingCharacters(in: .whitespacesAndNewlines)
                     let joined = ([typed, spoken].filter { !$0.isEmpty }).joined(separator: "\n\n")
-                    // Whatever we got is final — there is no server re-pass to wait on.
-                    return (joined, joined.isEmpty ? .failed : .ready)
+                    if joined.isEmpty { return (joined, .failed) }
+                    // A transcript too short to be plausible for this much audio (a
+                    // word or two for a multi-minute clip) is a provider failure, not
+                    // a result. Keep the text we got, but mark `.failed` so the
+                    // finalizer's auto-recovery and the Retry affordance engage
+                    // instead of the entry looking like a successful one-word note.
+                    let plausible = TranscriptPlausibility.isPlausible(
+                        spoken, forDurationSec: job.attachments.audio?.durationSec)
+                    return (joined, plausible ? .ready : .failed)
                 } catch {
                     Self.logger.error("clip transcription failed: \(error.localizedDescription)")
                     // Keep any typed text; the user can re-transcribe from the transcript editor.

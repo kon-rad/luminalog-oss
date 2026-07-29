@@ -41,6 +41,11 @@ struct DraftEntry: Codable, Equatable {
     var attachments: [DraftAttachment]
     /// In-progress voice recording manifest (nil for text/photo/finished drafts).
     var recording: DraftRecording?
+    /// True once the draft has been handed off to the background save pipeline.
+    /// A handed-off draft is RETAINED (not deleted) as the durable cross-launch
+    /// retry source for its entry, but is hidden from the Home list (the saved
+    /// entry represents it there) and deleted once that entry settles `.ready`.
+    var handedOff: Bool = false
 
     var createdAt: Date { Date(timeIntervalSince1970: createdAtEpoch) }
     var updatedAt: Date { Date(timeIntervalSince1970: updatedAtEpoch) }
@@ -48,5 +53,27 @@ struct DraftEntry: Codable, Equatable {
     /// True when the draft has nothing worth keeping (used to prune empties).
     var isEmpty: Bool {
         text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && attachments.isEmpty
+    }
+}
+
+// Custom `init(from:)` (in an extension so the memberwise init is preserved) so
+// that drafts written before `handedOff` existed still decode: synthesized
+// `Codable` would throw on the missing key and `DraftStore`'s `try?` would then
+// silently drop the draft. `decodeIfPresent ?? false` migrates them cleanly.
+extension DraftEntry {
+    private enum CodingKeys: String, CodingKey {
+        case draftId, text, promptText, createdAtEpoch, updatedAtEpoch, attachments, recording, handedOff
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        draftId = try c.decode(String.self, forKey: .draftId)
+        text = try c.decode(String.self, forKey: .text)
+        promptText = try c.decodeIfPresent(String.self, forKey: .promptText)
+        createdAtEpoch = try c.decode(Double.self, forKey: .createdAtEpoch)
+        updatedAtEpoch = try c.decode(Double.self, forKey: .updatedAtEpoch)
+        attachments = try c.decode([DraftAttachment].self, forKey: .attachments)
+        recording = try c.decodeIfPresent(DraftRecording.self, forKey: .recording)
+        handedOff = try c.decodeIfPresent(Bool.self, forKey: .handedOff) ?? false
     }
 }

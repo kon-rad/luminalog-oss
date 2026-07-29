@@ -122,6 +122,25 @@ final class TranscriptEditorViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testDegenerateTranscriptForLongClipIsTreatedAsFailure() async throws {
+        // A 200 s recording that comes back as one word is a provider failure, not
+        // a transcript — it must NOT be appended, and the clip is marked failed so
+        // the user gets the Retry affordance instead of a garbage word in the text.
+        let ai = SpyAI()
+        ai.transcriptToReturn = "So"
+        let vm = TranscriptEditorViewModel(
+            entryId: "e1", entryCreatedAt: Date(), initialText: "Original",
+            journals: MockJournalRepository(entries: [.init(userId: "u", type: .image, title: "t")]),
+            profiles: MockProfileRepository(), ai: ai, media: SpyMedia()
+        )
+
+        await vm.addRecordedClip(try makeClip(duration: 200))
+
+        XCTAssertEqual(vm.text, "Original", "a degenerate transcript must not be appended")
+        XCTAssertTrue(vm.pendingClips[0].transcribeFailed)
+    }
+
+    @MainActor
     func testClearEmptiesText() {
         let vm = TranscriptEditorViewModel(
             entryId: "e1", entryCreatedAt: Date(), initialText: "Some text",

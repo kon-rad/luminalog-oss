@@ -24,11 +24,15 @@ struct TranscriptRecoverer {
     private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "transcript-recover")
 
     /// True when `entry` is a voice/video entry whose transcript still needs to be
-    /// produced — the on-device pass failed or returned nothing usable.
+    /// produced — the on-device pass failed, returned nothing usable, or returned
+    /// a result too short to be plausible for the recording's length (a word or
+    /// two for a multi-minute clip, which used to be saved as a successful
+    /// `.ready` transcript and never re-tried).
     static func needsTranscript(_ entry: JournalEntry) -> Bool {
         guard entry.type == .voice || entry.type == .video else { return false }
-        return entry.transcriptStatus == .failed
-            || entry.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if entry.transcriptStatus == .failed { return true }
+        let duration = entry.media.compactMap(\.durationSec).max()
+        return !TranscriptPlausibility.isPlausible(entry.content, forDurationSec: duration)
     }
 
     /// Fetch → decrypt → transcribe the entry's audio and write the transcript +
@@ -49,7 +53,15 @@ struct TranscriptRecoverer {
             let contentType = AudioContentType.mime(forPathExtension: (clip.s3Key as NSString).pathExtension)
             let transcript = try await ai.transcribeClip(audio: data, contentType: contentType)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !transcript.isEmpty else { return nil }
+            // Reject a result too short to be a plausible transcript of this clip
+            // (a lone word for a multi-minute recording is a provider failure, not
+            // a transcript). Leaving the entry untouched keeps its `.failed` state
+            // + Retry affordance rather than saving the garbage as `.ready`.
+            guard TranscriptPlausibility.isPlausible(transcript, forDurationSec: clip.durationSec) else { return nil }
+            // Non-destructive: never overwrite existing content with a SHORTER
+            // result (a re-transcription that came back worse than what we have).
+            let existing = entry.content.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard WordCount.of(transcript) >= WordCount.of(existing) else { return nil }
 
             var updated = entry
             let oldWordCount = entry.wordCount

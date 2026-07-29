@@ -139,7 +139,7 @@ final class EntryProcessorRetryTests: XCTestCase {
                 media: SpyMedia(), ocr: MockOCRService(),
                 transcoder: VideoTranscoder(),
                 journal: uploadJournal, uploadManager: uploadManager,
-                finalizer: finalizer
+                finalizer: finalizer, drafts: DraftStore(directory: tempDir())
             )
         )
 
@@ -203,7 +203,7 @@ final class EntryProcessorRetryTests: XCTestCase {
                 media: SpyMedia(), ocr: MockOCRService(),
                 transcoder: VideoTranscoder(),
                 journal: uploadJournal, uploadManager: uploadManager,
-                finalizer: finalizer
+                finalizer: finalizer, drafts: DraftStore(directory: tempDir())
             )
         )
 

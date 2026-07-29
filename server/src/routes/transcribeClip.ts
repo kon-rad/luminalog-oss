@@ -15,12 +15,18 @@ export async function transcribeClipHandler(req: Request, res: Response): Promis
   }
   const contentType = (req.headers?.['content-type'] as string | undefined) || 'audio/m4a'
   try {
-    let text: string
+    let text = ''
     if (deepgramEnabled()) {
       try {
         text = await transcribeWithDeepgram(body, contentType)
       } catch (dgErr) {
         console.error('[ai/transcribe-clip] Deepgram failed — falling back to Whisper:', dgErr)
+      }
+      // Fall back to Whisper when Deepgram errored OR returned an empty transcript.
+      // Deepgram can return HTTP 200 with words=0 on a real recording (observed in
+      // prod) — a silent failure that must not reach the client as an empty result.
+      if (!text.trim()) {
+        if (deepgramEnabled()) console.warn('[ai/transcribe-clip] Deepgram returned empty — trying Whisper')
         text = await transcribeAudio(body, 'clip.m4a')
       }
     } else {
