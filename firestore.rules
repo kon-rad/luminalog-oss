@@ -50,6 +50,33 @@ service cloud.firestore {
         && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$');
     }
 
+    // Public essay-contest submissions (MYBW 2026 landing page). Anyone may create
+    // an entry (auto id), but the collection is never publicly readable/updatable/
+    // deletable — it holds PII. Field constraints mirror the client-side validator.
+    match /contestSubmissions/{id} {
+      allow read, update, delete: if false;
+      allow create: if request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() < 200
+        && request.resource.data.email is string
+        && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$')
+        && request.resource.data.company is string
+        && request.resource.data.company.size() > 0
+        && request.resource.data.company.size() < 200
+        && request.resource.data.role is string
+        && request.resource.data.role.size() > 0
+        && request.resource.data.role.size() < 200
+        && request.resource.data.xAccount is string
+        && request.resource.data.xAccount.size() > 0
+        && request.resource.data.xAccount.size() < 200
+        && request.resource.data.essayUrl is string
+        && request.resource.data.essayUrl.matches('^https?://.*')
+        && request.resource.data.essayUrl.size() < 2000
+        && request.resource.data.ethAddress is string
+        && request.resource.data.ethAddress.matches('^0x[0-9a-fA-F]{40}$')
+        && request.resource.data.agreedToTerms == true;
+    }
+
     // Chats: top-level collection keyed by a userId field.
     match /chats/{chatId} {
       allow read, update, delete: if request.auth != null
