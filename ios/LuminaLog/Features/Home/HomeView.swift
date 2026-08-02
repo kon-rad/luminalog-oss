@@ -136,7 +136,7 @@ struct HomeView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("LuminaLog")
+            Text("Argo")
                 .font(.captionText.weight(.semibold))
                 .foregroundStyle(Color.accentWarm)
                 .textCase(.uppercase)

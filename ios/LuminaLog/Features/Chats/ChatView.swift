@@ -76,7 +76,7 @@ struct ChatView: View {
         .alert("Microphone access needed", isPresented: $viewModel.showDictationDeniedAlert) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Enable microphone and speech recognition for LuminaLog in Settings to dictate messages.")
+            Text("Enable microphone and speech recognition for Argo in Settings to dictate messages.")
         }
     }
 

@@ -19,10 +19,10 @@ export default function Splash() {
             animation: 'orb-breathe 3.2s ease-in-out infinite',
           }}
         />
-        <Image src="/logo.svg" alt="LuminaLog" width={64} height={64} className="relative" priority />
+        <Image src="/logo.svg" alt="Argo" width={64} height={64} className="relative" priority />
       </div>
       <p className="serif text-xl font-semibold" style={{ color: 'var(--text)' }}>
-        LuminaLog
+        Argo
       </p>
     </div>
   )

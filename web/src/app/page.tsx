@@ -34,12 +34,12 @@ export default function Home() {
         <div className="wrap" style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 48, alignItems: 'center', padding: '88px 0 80px' }} className="hero-grid">
             <div>
-              <span className="eyebrow">Your AI journaling companion</span>
+              <span className="eyebrow">Your private AI journaling companion</span>
               <h1 className="serif" style={{ marginTop: 16, fontSize: 'clamp(40px, 5vw, 64px)', lineHeight: 1.04, fontWeight: 600, letterSpacing: '-0.03em', color: 'var(--text)' }}>
-                Merge with AI<br />through daily<br />conversation.
+                Record, reflect,<br />and grow.
               </h1>
               <p style={{ marginTop: 22, fontSize: 19, lineHeight: 1.65, color: 'var(--text2)', maxWidth: 500 }}>
-                LuminaLog is your AI journaling companion, and the first of a new category we call <b style={{ color: 'var(--text)', fontWeight: 600 }}>The Merge</b>: a daily practice of merging with an AI built from your own life. Capture your days in text, voice, video, or photos. Talk to an AI that has read every entry you&apos;ve written. Grow more articulate and whole as it comes to know you.
+                Argo is a private AI journaling companion. Capture your days in voice, text, video, or handwriting, and talk to an AI that has read every entry you&apos;ve written. Hit your daily 750-word goal, keep your streak alive, and grow more articulate and whole as it comes to know you.
               </p>
               <div id="waitlist" style={{ marginTop: 34 }}>
                 <WaitlistForm source="hero" />
@@ -72,7 +72,7 @@ export default function Home() {
                     <div style={{ padding: '8px 16px 0' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--accent)' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 6.5C10.5 5 8 4.5 4 5v13c4-.5 6.5 0 8 1.5 1.5-1.5 4-2 8-1.5V5c-4-.5-6.5 0-8 1.5zM12 6.5v13"/></svg>
-                        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase' }}>LuminaLog</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase' }}>Argo</span>
                       </div>
                       <div className="serif" style={{ fontSize: 24, fontWeight: 600, color: 'var(--text)', lineHeight: 1.15, marginTop: 8 }}>Good morning,<br />Alex</div>
                     </div>
@@ -133,7 +133,7 @@ export default function Home() {
               Most people move through life without ever truly seeing themselves. They repeat the same fears. Ask the wrong questions. Miss the connections between where they are and where they&apos;ve been. Not because they&apos;re not thoughtful, but because no one sees themselves clearly from inside their own head.
             </p>
             <p style={{ marginTop: 16, fontSize: 18, color: 'var(--text2)', lineHeight: 1.75 }}>
-              LuminaLog gives you the outside view. Every entry you write, speak, or film is indexed and remembered. The AI reads across all of it and shows you what it sees.
+              Argo gives you the outside view. Every entry you write, speak, or film is indexed and remembered. The AI reads across all of it and shows you what it sees.
             </p>
           </div>
           {/* Chat mockup */}
@@ -142,7 +142,7 @@ export default function Home() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--hairline)' }}>
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent), var(--accentDeep))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 14 }}>✦</div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>LuminaLog AI</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Argo AI</div>
                   <div style={{ fontSize: 11, color: 'var(--text3)' }}>Your personal companion</div>
                 </div>
               </div>
@@ -177,10 +177,10 @@ export default function Home() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }} className="unlock-grid">
             {[
-              ['Reclaim your attention', 'Every screen you own is built to spend your attention on someone else\'s story. LuminaLog spends it on yours: ten minutes a day pointed inward, the one direction the feed never sends you.'],
+              ['Reclaim your attention', 'Every screen you own is built to spend your attention on someone else\'s story. Argo spends it on yours: ten minutes a day pointed inward, the one direction the feed never sends you.'],
               ['Turn experience into language', 'Most of a day goes unexamined: felt, replayed, never put into words. Ten minutes of saying it, aloud or on the page, turns fog into words you can work with.'],
               ['Sharpen your mental models', 'You can only work with what you can name. As your articulation compounds, so do your models of your work, your people, your life.'],
-              ['Ask the right questions', "LuminaLog doesn't hand you answers. It asks the question you weren't asking, drawn from your history, that makes you say it more truly."],
+              ['Ask the right questions', "Argo doesn't hand you answers. It asks the question you weren't asking, drawn from your history, that makes you say it more truly."],
               ['A daily ceremony', 'Ten minutes, morning coffee or midnight quiet, where you cross from living your day to understanding it. Write or speak your 750 words. No guilt for missed days; the ceremony waits.'],
               ['What your soul is made of', 'Every day you cross your goal becomes a star, placed by the meaning of your words, never the words themselves. Together they form your On-Chain Soul: a soulbound token on Base, provably earned, impossible to fake, yours alone.'],
             ].map(([title, desc]) => (
@@ -205,8 +205,8 @@ export default function Home() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="capture-grid">
             {[
               { pill: 'Text', pillBg: 'rgba(206,127,68,0.12)', pillColor: 'var(--accentDeep)', title: 'Write what\'s on your mind.', desc: 'A clean, distraction-free editor. No formatting toolbars, no pressure. Just you and the page, plus an AI that remembers every word.' },
-              { pill: 'Voice', pillBg: 'rgba(193,108,108,0.12)', pillColor: '#C16C6C', title: 'Speak your thoughts.', desc: 'Record as you go. LuminaLog transcribes in real time, on your device, and folds every word into your journal\'s memory. The more you speak, the sharper your language and your ability to put your inner life into words.' },
-              { pill: 'Video', pillBg: 'rgba(137,123,168,0.12)', pillColor: '#7B6FA0', title: 'Film yourself.', desc: 'Record a moment, a reflection, a conversation with yourself. LuminaLog transcribes what you say and adds it to your journal, remembered alongside everything else you\'ve written.' },
+              { pill: 'Voice', pillBg: 'rgba(193,108,108,0.12)', pillColor: '#C16C6C', title: 'Speak your thoughts.', desc: 'Record as you go. Argo transcribes in real time, on your device, and folds every word into your journal\'s memory. The more you speak, the sharper your language and your ability to put your inner life into words.' },
+              { pill: 'Video', pillBg: 'rgba(137,123,168,0.12)', pillColor: '#7B6FA0', title: 'Film yourself.', desc: 'Record a moment, a reflection, a conversation with yourself. Argo transcribes what you say and adds it to your journal, remembered alongside everything else you\'ve written.' },
               { pill: 'Image', pillBg: 'rgba(110,140,119,0.12)', pillColor: '#4E7A5A', title: 'Photograph your notebook.', desc: 'Already journaling on paper? Snap the page. We read your handwriting, make it searchable, and add it to your AI\'s memory.' },
             ].map(({ pill, pillBg, pillColor, title, desc }) => (
               <div key={pill} className="card" style={{ padding: 28 }}>
@@ -352,11 +352,11 @@ export default function Home() {
             <div>
               <span className="eyebrow">The daily practice · 750 words</span>
               <h2 className="serif" style={{ marginTop: 14, fontSize: 'clamp(30px,3.6vw,42px)', fontWeight: 600, letterSpacing: '-0.025em' }}>A streak that gives you<br />something back.</h2>
-              <p style={{ marginTop: 18, fontSize: 17, color: 'var(--text2)', lineHeight: 1.7 }}>Three pages a day, about 750 words. Write them, speak them on a walk, or film them before bed; LuminaLog transcribes it all and counts every word toward your day. Cross 750 and the day is yours: your streak grows and stays grown. Miss a day and the journal simply waits, no guilt, no pressure. The more days you give it, the better your companion understands you.</p>
+              <p style={{ marginTop: 18, fontSize: 17, color: 'var(--text2)', lineHeight: 1.7 }}>Three pages a day, about 750 words. Write them, speak them on a walk, or film them before bed; Argo transcribes it all and counts every word toward your day. Cross 750 and the day is yours: your streak grows and stays grown. Miss a day and the journal simply waits, no guilt, no pressure. The more days you give it, the better your companion understands you.</p>
               <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {[
                   ['Three pages, any format', 'Text, voice, or video, it all transcribes and adds up toward your daily 750.'],
-                  ['Cross 750, get your card', 'Hit the goal and LuminaLog reads the day back to you as a beautiful, shareable Daily Insights card.'],
+                  ['Cross 750, get your card', 'Hit the goal and Argo reads the day back to you as a beautiful, shareable Daily Insights card.'],
                   ['Your streak grows and stays grown', 'Days you earn are never taken back. A gap is simply a fresh start, never a loss.'],
                 ].map(([title, desc]) => (
                   <div key={title as string} style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 18, padding: '18px 20px', boxShadow: 'var(--shadow)', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
@@ -652,7 +652,7 @@ export default function Home() {
                   <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}><s>$59.97</s> · 50% off · then $19.99/mo</span>
                 </div>
                 <p style={{ marginTop: 16, fontSize: 15.5, lineHeight: 1.62, color: 'rgba(255,255,255,0.9)', maxWidth: 520 }}>
-                  Reserve LuminaLog before launch and lock in half price. Founding Members start today on the web, carry a permanent Founding Member mark, and grow their On-Chain Soul from day one.
+                  Reserve Argo before launch and lock in half price. Founding Members start today on the web, carry a permanent Founding Member mark, and grow their On-Chain Soul from day one.
                 </p>
                 <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
                   <a href="/founding" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: '#fff', color: 'var(--accentDeep)', fontSize: 16, fontWeight: 700, padding: '13px 26px', borderRadius: 14, whiteSpace: 'nowrap' }}>
@@ -718,7 +718,7 @@ export default function Home() {
                 <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Live voice calls run on Voice Credits</h3>
               </div>
               <p style={{ fontSize: 15, color: 'var(--text2)', lineHeight: 1.6 }}>
-                Everything in LuminaLog is included in your subscription: writing, voice, video &amp; photo entries, AI insights, chat, and your Journal Constellation. <b style={{ color: 'var(--text)', fontWeight: 600 }}>Real-time voice calls</b> are the one exception: they&apos;re powered by Voice Credits you buy as you go, so you only pay for the minutes you actually talk.
+                Everything in Argo is included in your subscription: writing, voice, video &amp; photo entries, AI insights, chat, and your Journal Constellation. <b style={{ color: 'var(--text)', fontWeight: 600 }}>Real-time voice calls</b> are the one exception: they&apos;re powered by Voice Credits you buy as you go, so you only pay for the minutes you actually talk.
               </p>
               <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--accentDeep)' }}>
                 <span style={{ background: 'var(--accentSoft)', padding: '5px 12px', borderRadius: 100 }}>1 credit = $1 = 6 minutes</span>
@@ -766,9 +766,9 @@ export default function Home() {
                 <span style={{ width: 32, height: 32, borderRadius: 10, overflow: 'hidden', boxShadow: '0 2px 10px rgba(185,107,51,0.4)', flexShrink: 0, display: 'block' }}>
                   <Image src="/logo.svg" width={32} height={32} alt="" />
                 </span>
-                LuminaLog
+                Argo
               </a>
-              <p className="serif" style={{ fontStyle: 'italic', fontSize: 16, color: 'var(--text2)', marginTop: 14, maxWidth: 280 }}>Merge with AI through daily conversation with your journaling companion.</p>
+              <p className="serif" style={{ fontStyle: 'italic', fontSize: 16, color: 'var(--text2)', marginTop: 14, maxWidth: 280 }}>Record, reflect, and grow with your private AI journaling companion.</p>
             </div>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', paddingTop: 6 }}>
               {[['Blog', '/blog'], ['Privacy Policy', '/privacy'], ['Terms', '/terms'], ['Send me a tweet', 'https://x.com/konrad_gnat'], ['Support', 'mailto:konradmgnat@gmail.com'], ['GitHub', 'https://github.com/konradgnat/luminalog']].map(([label, href]) => (
@@ -781,7 +781,7 @@ export default function Home() {
             </div>
           </div>
           <p style={{ marginTop: 36, fontSize: 13, color: 'var(--text3)' }}>
-            © 2026 LuminaLog · Built by{' '}
+            © 2026 Argo · Built by{' '}
             <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accentDeep)', fontWeight: 600 }}>Konrad Gnat</a>
           </p>
         </div>

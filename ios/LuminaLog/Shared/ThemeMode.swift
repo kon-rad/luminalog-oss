@@ -12,7 +12,7 @@ enum ThemeMode: String, CaseIterable, Identifiable {
     case dark
     case system
 
-    /// `@AppStorage` key. The `ll-` prefix matches every other LuminaLog default.
+    /// `@AppStorage` key. The `ll-` prefix matches every other Argo default.
     static let storageKey = "ll-theme-mode"
 
     /// Legacy boolean key this setting replaces (`true` == forced dark).

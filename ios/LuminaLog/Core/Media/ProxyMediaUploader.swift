@@ -174,14 +174,36 @@ final class ProxyMediaUploader: MediaUploader {
         return (presigned.s3Key, presigned.uploadUrl)
     }
 
+    /// Durable directory for staged upload ciphertext — `Application Support/
+    /// PendingUploads`, a SIBLING of the upload journal's `Uploads` dir. Deliberately
+    /// NOT the temporary directory: iOS purges `tmp/` across relaunches and under
+    /// storage pressure, so a bad-connection upload that hadn't finished would lose
+    /// its bytes and become unrecoverable (the journal's fail-fast then drops the
+    /// record → "Upload didn't finish" with a Retry that can't do anything). Staging
+    /// here keeps the ciphertext alive until the upload SUCCEEDS (UploadManager
+    /// cleans it up) or is explicitly abandoned, so cross-launch retry actually works.
+    /// Excluded from iCloud backup (transient artifact, re-derivable in principle).
+    /// `nonisolated` — touches only `FileManager`, so it needs no main-actor hop.
+    nonisolated static func stagingDirectory() -> URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        var dir = base.appendingPathComponent("PendingUploads", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? dir.setResourceValues(values)
+        return dir
+    }
+
     func prepareUpload(fileURL: URL, kind: MediaKind, journalId: String) async throws -> PreparedUpload {
         guard let dek = keys.currentDataKey else { throw CryptoUnavailableError.keyNotLoaded }
         let cipher = MediaCipher(key: dek)
 
-        // Encrypt to a STABLE temp file (NOT deleted here — the caller/UploadManager
-        // owns its lifecycle once it is staged in the journal). Metadata is still
-        // probed from the ORIGINAL plaintext so dimensions/duration are accurate.
-        let encryptedURL = FileManager.default.temporaryDirectory
+        // Encrypt to a STABLE, DURABLE file (NOT deleted here — the caller/UploadManager
+        // owns its lifecycle once it is staged in the journal). Durable (Application
+        // Support), not tmp, so a not-yet-uploaded ciphertext survives relaunch/purge
+        // and stays retryable. Metadata is still probed from the ORIGINAL plaintext so
+        // dimensions/duration are accurate.
+        let encryptedURL = Self.stagingDirectory()
             .appendingPathComponent(UUID().uuidString)
         try cipher.encryptFile(at: fileURL, to: encryptedURL)
 

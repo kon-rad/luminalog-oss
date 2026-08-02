@@ -5,9 +5,9 @@ import Navbar from '@/components/Navbar'
 import ColophonEndpiece from '@/components/ColophonEndpiece'
 
 export const metadata: Metadata = {
-  title: 'Thanks for your order — LuminaLog',
+  title: 'Thanks for your order — Argo',
   description:
-    'Thank you for becoming a LuminaLog Founding Member. We’ll email you the moment we launch, with your access.',
+    'Thank you for becoming an Argo Founding Member. We’ll email you the moment we launch, with your access.',
   robots: { index: false, follow: false },
 }
 
@@ -35,7 +35,7 @@ export default function FoundingThanksPage() {
             Thanks for your order.
           </h1>
           <p style={{ marginTop: 22, fontSize: 19, lineHeight: 1.65, color: 'var(--text2)', maxWidth: 540, margin: '22px auto 0' }}>
-            You’re a LuminaLog Founding Member. We’ll email you the moment we launch,
+            You’re an Argo Founding Member. We’ll email you the moment we launch,
             with your access — keep an eye on your inbox.
           </p>
 
@@ -48,7 +48,7 @@ export default function FoundingThanksPage() {
                 padding: '14px 30px', borderRadius: 14, textDecoration: 'none', whiteSpace: 'nowrap',
               }}
             >
-              Back to LuminaLog
+              Back to Argo
             </Link>
           </div>
 
@@ -64,7 +64,7 @@ export default function FoundingThanksPage() {
               <span style={{ width: 28, height: 28, borderRadius: 9, overflow: 'hidden', boxShadow: '0 2px 10px rgba(185,107,51,0.4)', flexShrink: 0, display: 'block' }}>
                 <Image src="/logo.svg" width={28} height={28} alt="" />
               </span>
-              LuminaLog
+              Argo
             </Link>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', fontSize: 14 }}>
               <Link href="/privacy" style={{ color: 'var(--text2)' }}>Privacy Policy</Link>
@@ -75,7 +75,7 @@ export default function FoundingThanksPage() {
             </div>
           </div>
           <p style={{ marginTop: 28, fontSize: 13, color: 'var(--text3)' }}>
-            © 2026 LuminaLog · Built by{' '}
+            © 2026 Argo · Built by{' '}
             <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accentDeep)', fontWeight: 600 }}>Konrad Gnat</a>
           </p>
         </div>

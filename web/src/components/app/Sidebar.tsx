@@ -1,7 +1,7 @@
 'use client'
 
 // Desktop left rail (design §11 "left rail — later polish"; mirrors the
-// LuminaLog Web App mockups #5/#6). Fixed, ~260px, shown only at lg+ (the
+// Argo Web App mockups #5/#6). Fixed, ~260px, shown only at lg+ (the
 // AppShell keeps the bottom nav for < lg). Holds: wordmark, a primary "New
 // entry" CTA, the four destinations, a dark-mode switch, and the signed-in
 // profile. The mobile BottomNav stays the source of truth for < lg; the two
@@ -40,10 +40,10 @@ export default function Sidebar() {
       {/* Wordmark */}
       <Link href="/home" className="flex items-center gap-2.5 px-6 pt-7">
         <span style={{ width: 30, height: 30, borderRadius: 9, overflow: 'hidden', display: 'block' }}>
-          <Image src="/logo.svg" width={30} height={30} alt="LuminaLog" />
+          <Image src="/logo.svg" width={30} height={30} alt="Argo" />
         </span>
         <span className="serif text-lg font-semibold" style={{ color: 'var(--text)', letterSpacing: '-0.02em' }}>
-          LuminaLog
+          Argo
         </span>
       </Link>
 

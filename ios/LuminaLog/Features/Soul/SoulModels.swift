@@ -45,7 +45,7 @@ struct SoulPayload: Codable, Equatable {
     }
 }
 
-/// The custodial wallet backing the user's LuminaSoul, surfaced as soon as it is
+/// The custodial wallet backing the user's ArgoSoul, surfaced as soon as it is
 /// provisioned (independent of whether the soulbound token has minted yet).
 struct SoulWallet: Codable, Equatable {
     let address: String

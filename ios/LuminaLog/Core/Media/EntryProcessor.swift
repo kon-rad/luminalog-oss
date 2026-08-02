@@ -100,27 +100,63 @@ final class BackgroundEntryProcessor: EntryProcessor {
 
     func retry(draftId: String) {
         // In-session failed job: rerun the full pipeline (cached successes skip).
+        // `process`/`processAudioVisual` re-mark the entry `.uploading`, so the
+        // banner already reflects progress.
         if let job = jobs[draftId] {
             start(job)
             return
         }
-        // Cross-launch: the in-memory job is gone, but a durable voice/video
-        // upload record may survive. Restart its uploads from the journal.
+        // Cross-launch: the in-memory job is gone, but a durable voice/video upload
+        // record may survive. Its not-yet-uploaded attachments were CAPPED at
+        // `maxAttempts` when they failed, so a bare `startAll` would re-attempt each
+        // once and instantly re-cap — the "Retry does nothing" symptom. Give them a
+        // FRESH attempt budget (reset attemptCount/backoff/state) and flip the entry
+        // back to `.uploading` for visible progress, then restart.
         if let pending = deps.journal.entry(draftId: draftId) {
+            try? deps.journal.mutate(draftId: draftId) { e in
+                for i in e.uploads.indices where e.uploads[i].state != .uploaded {
+                    e.uploads[i].state = .pending
+                    e.uploads[i].attemptCount = 0
+                    e.uploads[i].nextEarliestAttemptEpoch = 0
+                }
+            }
             tasks[draftId] = Task { [weak self] in
-                await self?.deps.uploadManager.startAll(for: pending)
+                guard let self else { return }
+                await self.markUploading(pending)
+                guard let refreshed = self.deps.journal.entry(draftId: draftId) else { return }
+                await self.deps.uploadManager.startAll(for: refreshed)
             }
             return
         }
         // Cross-launch with no upload record (text/image, or a voice/video whose
         // record was already cleaned up): rebuild the whole job from the retained
-        // handed-off draft — the "Try again does nothing after relaunch" fix.
+        // handed-off draft — `process` re-marks `.uploading` for feedback.
         if let draft = deps.drafts.load(draftId) {
             tasks[draftId] = Task { [weak self] in
                 await self?.rebuildFromDraft(draftId: draftId, draft: draft)
             }
+            return
         }
-        // No in-session job, no upload record, no draft → nothing to retry (no-op).
+        // Nothing to retry: no in-session job, no durable upload record, no retained
+        // draft. The media is genuinely unrecoverable — e.g. a pre-durable-staging
+        // entry whose ciphertext was purged before it ever reached S3. There is
+        // nothing to re-upload; log it so this is diagnosable rather than a silent
+        // no-op. The entry stays `.failed` and the user's recourse is to re-record.
+        // (Durable ciphertext staging prevents new entries from reaching this state.)
+        Self.logger.error("retry \(draftId, privacy: .public): no job/record/draft — media unrecoverable; user must re-record")
+    }
+
+    /// Flip a media entry back to `.uploading` in Firestore (mirrors the shape the
+    /// finalizer builds) so a cross-launch Retry shows progress instead of leaving
+    /// the "Upload didn't finish" banner up while the restarted uploads run.
+    private func markUploading(_ pending: PendingEntry) async {
+        let entry = JournalEntry(
+            id: pending.draftId, userId: pending.userId, type: pending.type,
+            title: pending.title, createdAt: pending.createdAt, content: pending.content,
+            media: pending.mediaItems, transcriptStatus: pending.transcriptStatus,
+            processingStatus: .uploading, wordCount: pending.wordCount,
+            promptText: pending.promptText)
+        try? await deps.journals.save(entry)
     }
 
     /// Rebuilds a full `EntryProcessingJob` from a retained draft and runs it.

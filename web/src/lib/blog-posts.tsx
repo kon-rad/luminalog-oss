@@ -35,7 +35,7 @@ function AshishSoodContent() {
         next hour on what he actually learned along the way.
       </P>
       <P>
-        This is the twentieth LuminaLog Podcast conversation, and it sits squarely at the
+        This is the twentieth Argo Podcast conversation, and it sits squarely at the
         intersection the show keeps returning to: how someone builds, and who they become in the
         process.
       </P>
@@ -182,7 +182,7 @@ function AshishSoodContent() {
         ]}
       />
 
-      <H2>Listen to the LuminaLog podcast</H2>
+      <H2>Listen to the Argo podcast</H2>
       <P>
         Subscribe on{' '}
         <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
@@ -368,7 +368,7 @@ function BuildYourMindContent() {
         <strong>Same honest caveat as last time.</strong> For people at high risk of depression,
         even distanced reflection can worsen mood. None of these techniques is universally safe. If
         writing consistently leaves you worse, stop — and if you&apos;re struggling, talk to someone
-        qualified. LuminaLog is a tool for reflection, not treatment.
+        qualified. Argo is a tool for reflection, not treatment.
       </Note>
 
       <H2>The finding that unites both halves</H2>
@@ -405,7 +405,7 @@ function BuildYourMindContent() {
       <P>
         That&apos;s the half of the practice we care about most. Emptying your mind is a good place
         to start your day. Building your mind is how you change your life — and it&apos;s exactly
-        what LuminaLog is designed to help you do: a daily entry in text, voice, or video, kept
+        what Argo is designed to help you do: a daily entry in text, voice, or video, kept
         private and encrypted, and you choose what you share with the AI to help you see the ideas,
         patterns, and progress you&apos;d never catch alone. Not a drain. A workbench.
       </P>
@@ -566,7 +566,7 @@ function SevenFiftyHabitContent() {
         discharges it. But for people prone to depression, the same act can give negative thoughts
         more power and feed circular rumination. The rule is simple: if the practice consistently
         leaves you feeling worse, it isn&apos;t working — stop, or switch to structured or
-        gratitude prompts. LuminaLog is a tool for reflection, not treatment; if you&apos;re
+        gratitude prompts. Argo is a tool for reflection, not treatment; if you&apos;re
         struggling, talk to someone qualified.
       </Note>
 
@@ -607,7 +607,7 @@ function SevenFiftyHabitContent() {
         has turned out to be enough.
       </P>
       <P>
-        That&apos;s exactly what LuminaLog is built for — a substantial daily entry, in text,
+        That&apos;s exactly what Argo is built for — a substantial daily entry, in text,
         voice, or video, kept private and encrypted, and you choose what you share with the AI so
         the honest version always stays yours.
       </P>
@@ -757,15 +757,15 @@ function SevenFiftyWordsContent() {
         <strong>An honest note.</strong> The effects above are real but modest, and they show
         up most for people under genuine strain. Journaling is a low-cost daily edge that
         compounds — not a cure, and not a substitute for professional care. If you&apos;re
-        struggling, talk to someone qualified. LuminaLog is a tool for reflection, not
+        struggling, talk to someone qualified. Argo is a tool for reflection, not
         treatment.
       </Note>
 
-      <H2>Why LuminaLog is built around 750 words</H2>
+      <H2>Why Argo is built around 750 words</H2>
       <P>
         Everything above points to the same practice: a substantial daily entry, done
         consistently, in whatever format gets you past the surface. That&apos;s exactly what
-        LuminaLog is designed for.
+        Argo is designed for.
       </P>
       <UL items={[
         <>A daily 750-word goal that&apos;s enough to reach real depth — framed as an invitation, never guilt.</>,
@@ -818,7 +818,7 @@ function SoulConstellationContent() {
         whole journey, start to finish:
       </P>
       <UL items={[
-        <><strong>You journal.</strong> Write in LuminaLog the way you already do — typed, spoken, or filmed.</>,
+        <><strong>You journal.</strong> Write in Argo the way you already do — typed, spoken, or filmed.</>,
         <><strong>You earn a star.</strong> Cross 750 words in a day (the amount the science says gets you past the surface — <A href="/blog/the-science-of-750-words-a-day">more on that here</A>) and a new star is born.</>,
         <><strong>The star is placed by meaning.</strong> Everything you wrote that day is distilled into a single mathematical fingerprint of its meaning. We then lay out the whole galaxy along the directions your days differ most — so <strong>similar days cluster, and distinct days spread apart.</strong></>,
         <><strong>It updates itself.</strong> Every new star reshapes the picture a little, sharpening the map of who you are as the months accumulate.</>,
@@ -864,7 +864,7 @@ function SoulConstellationContent() {
 
       <H2>Why we&apos;re doing this</H2>
       <P>
-        We started LuminaLog on a simple belief: in a world engineered to pull your attention
+        We started Argo on a simple belief: in a world engineered to pull your attention
         outward, the most valuable thing we can build is a way back to yourself. Journaling is
         that way back. The Soul Constellation is us asking the next question — <em>if you do
         this quiet, difficult, meaningful work every day, what should you have to show for it?</em>
@@ -1126,14 +1126,14 @@ function RuminationContent() {
       <Note>
         <strong>An honest caveat.</strong> None of these techniques is universally safe. For people at
         high risk of depression, even distanced reflection can worsen mood. If writing consistently
-        leaves you worse, stop — and if you&apos;re struggling, talk to someone qualified. LuminaLog
+        leaves you worse, stop — and if you&apos;re struggling, talk to someone qualified. Argo
         is a tool for reflection, not treatment.
       </Note>
       <P>
         The same 1 a.m. thoughts that keep you circling can become the raw material of actually
         growing — if you change what you do with them. Move from re-feeling to making sense, from up
         close to a step back, from the problem to the next step. That&apos;s the whole difference
-        between the loop and the page, and it&apos;s exactly what LuminaLog is built to help you do: a
+        between the loop and the page, and it&apos;s exactly what Argo is built to help you do: a
         daily entry in text, voice, or video — private and encrypted — and you choose what you
         share with the AI to help you see the patterns, insights, and progress you&apos;d never catch
         while circling. Not a drain. A way out.
@@ -1487,7 +1487,7 @@ function ChongIngKaiContent() {
         @stickem.sg.
       </P>
 
-      <H2>Listen to the LuminaLog podcast</H2>
+      <H2>Listen to the Argo podcast</H2>
       <P>
         Subscribe on{' '}
         <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
@@ -1573,7 +1573,7 @@ function QuantumProofBitcoinContent() {
         agree on that ledger without trusting a single point of failure.
       </P>
       <Pull>
-        There&apos;s a LuminaLog lesson buried in there. The things we treat as impossibly complex
+        There&apos;s an Argo lesson buried in there. The things we treat as impossibly complex
         often turn out to have a simple core we&apos;ve buried under jargon. Naming that core &mdash;
         putting it into plain words &mdash; is most of the work.
       </Pull>
@@ -1603,7 +1603,7 @@ function QuantumProofBitcoinContent() {
 
       <H2>Local AI and the exocortex</H2>
       <P>
-        When the conversation turned to LuminaLog &mdash; the private, AI-assisted journaling
+        When the conversation turned to Argo &mdash; the private, AI-assisted journaling
         practice this podcast is part of &mdash; Chris was thoughtfully cautious, and that&apos;s
         exactly why it&apos;s worth hearing. He&apos;s protective of his inner life; he doesn&apos;t
         want a model on his phone reporting his mind-state back to the network. But he lit up at the
@@ -1621,7 +1621,7 @@ function QuantumProofBitcoinContent() {
       />
       <P>
         His condition is sovereignty: run it locally, keep the key, don&apos;t trade self-knowledge
-        for surveillance. That maps almost exactly onto why LuminaLog is end-to-end encrypted. The
+        for surveillance. That maps almost exactly onto why Argo is end-to-end encrypted. The
         tool should serve the human, not the other way around.
       </P>
 
@@ -1658,7 +1658,7 @@ function QuantumProofBitcoinContent() {
         Substack at weaponizedschizophrenia.com.
       </P>
 
-      <H2>Listen to the LuminaLog podcast</H2>
+      <H2>Listen to the Argo podcast</H2>
       <P>
         Subscribe on{' '}
         <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
@@ -1790,7 +1790,7 @@ function DavidJohnstonMorpheusContent() {
       />
       <P>
         That question landed for me personally. The product I&apos;m building,{' '}
-        <A href="https://LuminaLog.com">LuminaLog</A>, is a private AI journaling companion &mdash; a
+        <A href="https://Argo.com">Argo</A>, is a private AI journaling companion &mdash; a
         space to think through your most personal thoughts, which is exactly the kind of thing you
         don&apos;t want flowing through someone else&apos;s servers. David&apos;s closing advice for
         builders was the same one he&apos;d have given in 2013, updated for the moment: get started,
@@ -1843,7 +1843,7 @@ function DavidJohnstonMorpheusContent() {
         ]}
       />
 
-      <H2>Listen to the LuminaLog podcast</H2>
+      <H2>Listen to the Argo podcast</H2>
       <P>
         Subscribe on{' '}
         <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
@@ -2075,7 +2075,7 @@ function PeterDonaldsonContent() {
         ]}
       />
 
-      <H2>Listen to the LuminaLog podcast</H2>
+      <H2>Listen to the Argo podcast</H2>
       <P>
         Subscribe on{' '}
         <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
@@ -2098,7 +2098,7 @@ function DanielImContent() {
       />
       <P>
         Some founder stories are a straight line. Daniel Jiwoong Im&apos;s is not. When I sat down
-        with him at Network School for this episode of the LuminaLog podcast, the phrase he kept
+        with him at Network School for this episode of the Argo podcast, the phrase he kept
         returning to was that almost nothing in his life was planned. And yet the path &mdash; from a
         deep-learning lab, through crypto market data, to a social app about opinions &mdash; has a
         logic to it that only becomes visible when you lay the pieces side by side.
@@ -2283,7 +2283,7 @@ function DanielImContent() {
         ]}
       />
 
-      <H2>Listen to the LuminaLog podcast</H2>
+      <H2>Listen to the Argo podcast</H2>
       <P>
         Subscribe on{' '}
         <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
@@ -2306,7 +2306,7 @@ function TonyLopezContent() {
       />
       <P>
         Some people arrive at technology through a job. Tony Lopez arrived through curiosity, and he
-        never really left. In this episode of the LuminaLog podcast, recorded at Network School, we
+        never really left. In this episode of the Argo podcast, recorded at Network School, we
         sat down to trace his path from a childhood computer in Spain to the questions he is thinking
         about now. It is a long, technical life, and he is generous about explaining the parts of it
         that most of us take for granted.
@@ -2409,7 +2409,7 @@ function TonyLopezContent() {
 
       <H2>Where he thinks this goes</H2>
       <P>
-        We also talked about LuminaLog, my own project, and Tony offered a useful reframing. He is
+        We also talked about Argo, my own project, and Tony offered a useful reframing. He is
         less interested in screens and more in the idea that the data you keep about yourself, your
         logs and your thoughts, is the valuable part, and that keeping it private matters. He expects
         the way we interact with computers to move toward voice and prediction over time.
@@ -2443,7 +2443,7 @@ function TonyLopezContent() {
         ]}
       />
 
-      <H2>Listen to the LuminaLog podcast</H2>
+      <H2>Listen to the Argo podcast</H2>
       <P>
         Subscribe on{' '}
         <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
@@ -2467,7 +2467,7 @@ function AntonPecherkinContent() {
       />
       <P>
         Some people find their craft in a classroom. Anton Pecherkin found his in a hackathon he
-        almost didn&apos;t attend. In this episode of the LuminaLog Podcast we trace a fifteen-year
+        almost didn&apos;t attend. In this episode of the Argo Podcast we trace a fifteen-year
         arc from a Tetris-only family computer in Russia to founding ContentDAO, and along the way
         we talk about the parts of a builder&apos;s life that don&apos;t show up on a pitch deck:
         the dependency errors, the unit-test arguments at 3am, and what actually changes when you
@@ -2542,7 +2542,7 @@ function AntonPecherkinContent() {
 
       <H2>An honest test of the journaling pitch</H2>
       <P>
-        Because this is the LuminaLog Podcast, Konrad pitched Anton on LuminaLog itself, a private
+        Because this is the Argo Podcast, Konrad pitched Anton on Argo itself, a private
         AI journaling companion, and asked the harder question: would you actually use it?
         Anton&apos;s answer is the useful kind, because it is not a yes. He can see the value of
         accumulating structured personal data you can later search and brainstorm against. What he
@@ -2552,7 +2552,7 @@ function AntonPecherkinContent() {
       </P>
       <Figure
         src="/blog/llp021-anton-contentdao-2.jpg"
-        alt="Konrad and Anton in conversation during the LuminaLog product discussion"
+        alt="Konrad and Anton in conversation during the Argo product discussion"
         width={1920}
         height={1080}
         caption="Honest feedback on the journaling pitch: the obstacle isn't the app, it's the habit."
@@ -2643,7 +2643,7 @@ function AntonPecherkinContent() {
         ]}
       />
 
-      <H2>Listen to the LuminaLog podcast</H2>
+      <H2>Listen to the Argo podcast</H2>
       <P>
         Subscribe on{' '}
         <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
@@ -2824,7 +2824,7 @@ function VelveteenArtistFounderStoriesContent() {
         ]}
       />
 
-      <H2>Listen to the LuminaLog podcast</H2>
+      <H2>Listen to the Argo podcast</H2>
       <P>
         Subscribe on{' '}
         <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
@@ -3017,13 +3017,13 @@ function Llp022DariaChernozubContent() {
             Random Coffee match led her to Dash
           </>,
           <>
-            <A href="https://luminalog.com">LuminaLog</A>, the AI journaling app discussed near the
+            <A href="https://myargoquest.com">Argo</A>, the AI journaling app discussed near the
             end
           </>,
         ]}
       />
 
-      <H2>Listen to the LuminaLog podcast</H2>
+      <H2>Listen to the Argo podcast</H2>
       <P>
         Subscribe on{' '}
         <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
@@ -3206,7 +3206,168 @@ function Llp024AnnaSokolContent() {
         ]}
       />
 
-      <H2>Listen to the LuminaLog podcast</H2>
+      <H2>Listen to the Argo podcast</H2>
+      <P>
+        Subscribe on{' '}
+        <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
+        <A href="https://open.spotify.com/show/033Mu8Yn2ybRQIis1uKNv2">Spotify</A>.
+      </P>
+    </>
+  )
+}
+
+/* ── Post: The Translator (Francis Goon) ── */
+function FrancisGoonLosingTheFearOfAiContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/francis-goon-losing-the-fear-of-ai-hero.jpg"
+        alt="Francis Goon and Konrad talking across a table at the Ultra Web3 festival"
+        width={1280}
+        height={720}
+        priority
+      />
+      <P>
+        I met Francis Goon by chance. My friend Daryl and I had found a table with some power
+        outlets at the Ultra Web3 festival, started talking with one person, and Francis walked
+        over. Within a few minutes the whole arc of his story was on the table, and it was
+        interesting enough that we sat down to record it. This is his first time doing an interview
+        like this, and I&apos;m glad we caught it.
+      </P>
+
+      <H2>Two careers, one skill</H2>
+      <P>
+        Francis started as an engineer. He studied electrical and electronics, then spent about
+        seven years as an R&amp;D engineer at semiconductor and electronics multinationals, the kind
+        of names that anchor Penang&apos;s industry. After that came fourteen years at MIMOS,
+        Malaysia&apos;s national applied research center, a government agency under the Ministry of
+        Science, Technology and Innovation whose job is to create technology platforms &mdash; in
+        software, hardware, semiconductors, and services &mdash; and then &ldquo;seed&rdquo; them to
+        industry so companies can take them up and mature them into products.
+      </P>
+      <P>
+        His role there was one most people never think about. MIMOS builds the technology; someone
+        has to make it usable to the outside world. That someone was Francis. He wrote the technical
+        literature: the manuals, the specifications, the setup guides, the partner materials.{' '}
+        <em>
+          &ldquo;I work with lab owners that have the technology, so I need to translate that into
+          product specifications, into instructional materials, into setup guides.&rdquo;
+        </em>{' '}
+        He estimates that at one point nearly all of MIMOS&apos;s technology platforms passed under
+        his purview.
+      </P>
+
+      <H2>The work of translation</H2>
+      <P>
+        What makes this concrete is the example he reached for: a handheld biosensor. Instead of
+        going to a hospital and having blood drawn to check your parameters, MIMOS built a device you
+        can hold in your palm that uses photonics &mdash; light &mdash; to triangulate and map your
+        blood and physiological parameters, closely correlated to an actual lab result. No needle,
+        no sample.
+      </P>
+      <P>
+        To write about a device like that, you have to understand it. You talk to the engineers, you
+        grasp how the light technology actually maps to a blood panel, and then you put it into words
+        a partner or a customer can follow. That is the quiet skill underneath both halves of
+        Francis&apos;s career: taking something dense and specialized and making it clear. It is the
+        same muscle he now uses to teach.
+      </P>
+      <Figure
+        src="/blog/francis-goon-losing-the-fear-of-ai-1.jpg"
+        alt="Francis Goon explaining the handheld biosensor"
+        width={1280}
+        height={720}
+        caption="Francis’s example of the work: a handheld biosensor that maps your blood with light, no needle."
+      />
+
+      <H2>Why he started teaching</H2>
+      <P>
+        The pivot was not a grand plan. After fourteen years, Francis stopped, moved back to Penang,
+        and gave himself time to reset. Then he looked for a job, and ran into the &ldquo;harsh
+        reality&rdquo; of Penang: the jobs there are overwhelmingly manufacturing and semiconductor
+        roles, and they want engineers. Technical communication was a sliver of the market. After a
+        year of interviews, fairs, and HR conversations, &ldquo;nothing is coming about.&rdquo; Then
+        a friend asked him to teach his daughter some Malay. That was the seed. Malay classes led to
+        English classes for the international community, and AI teaching happened almost by accident,
+        when another friend pointed out that Francis was already using AI to design websites, posters,
+        slides, and long documents, and told him to package that as a class.
+      </P>
+
+      <H2>The fear, then and now</H2>
+      <P>
+        The thread I keep coming back to is fear. Francis is direct about it: he can help someone
+        lose their fear of AI within the first ninety minutes of contact. And when I asked about his
+        own first computer, the story rhymed.
+      </P>
+      <P>
+        He had a computer at home before he was ten, late 1980s or early 1990s, a little tower with a
+        floppy disk and a very early version of Windows. And he was scared of it.{' '}
+        <em>&ldquo;It was the blue screen, then everything you had to type, type, type.&rdquo;</em>{' '}
+        No interactivity, commands you had to memorize, a floppy disk to wrestle with. He avoided it
+        for years, until college in the early 2000s forced him to use it. That childhood friction is
+        exactly the fear he now sees in adult beginners. The difference, he points out, is that the
+        screen has changed: it is fluid now, and there is &ldquo;always the same box in the
+        middle&rdquo; waiting for a prompt.
+      </P>
+      <Figure
+        src="/blog/francis-goon-losing-the-fear-of-ai-2.jpg"
+        alt="Francis Goon recalling his first computer"
+        width={1280}
+        height={720}
+        caption="On his first computer, late 1980s: the same fear he now helps adult beginners overcome with AI."
+      />
+
+      <H2>Losing the fear</H2>
+      <P>
+        His closing advice is almost disarmingly simple, and it is the line I&apos;ll remember.
+      </P>
+      <Pull>
+        AI is not going to eat you. It&apos;s just a screen with a box in the middle for you to put
+        your prompts. If you do wrong, it won&apos;t penalize you. It won&apos;t crash your system.
+      </Pull>
+      <P>
+        So try one tool a day, Gemini today, ChatGPT tomorrow, and if you get stuck, tap the little
+        microphone and ask the AI how to do the thing you are stuck on. It is a small idea with a
+        large reach. Francis&apos;s larger project, which he calls the AI Language Hub, pairs AI
+        skills with English and Malay so people across Southeast Asia can both use the tools and
+        communicate well enough to belong to the community using them. Underneath the crypto talk,
+        the hackathon ideas, and the plans to run technology roadshows across Malaysia&apos;s
+        technical universities, that is the through-line: technology is only useful once a person
+        stops being afraid of it, and someone has to translate it down to the point where they can
+        begin.
+      </P>
+      <Figure
+        src="/blog/francis-goon-losing-the-fear-of-ai-3.jpg"
+        alt="Francis Goon making the point that AI is just a box waiting for a prompt"
+        width={1280}
+        height={720}
+        caption="“It’s just a screen with a box in the middle.” The reframe at the heart of his teaching."
+      />
+
+      <H2>Key takeaways</H2>
+      <UL
+        items={[
+          'The same skill runs through both halves of Francis’s career: translating dense technology into something people can actually use.',
+          'He starts with the person, not the tool. Help them lose the fear first, then the capability follows.',
+          'Adult fear of AI mirrors an older fear of the computer. The interface changed; the human response did not.',
+          'A practical on-ramp: try one AI tool a day, and when you’re stuck, just talk to it.',
+          'Language and AI belong together. To use the tools in a region, you also have to communicate in it.',
+        ]}
+      />
+
+      <H2>Links &amp; mentions</H2>
+      <P>
+        <A href="https://www.linkedin.com/in/francisgoon/">Ts. Francis Goon on LinkedIn</A> &mdash;
+        technical writer, former R&amp;D engineer, AI trainer.{' '}
+        <A href="https://theailanguagehub.lovable.app/">The AI Language Hub</A> &mdash; his venture
+        pairing AI skills with English and Malay coaching.{' '}
+        <A href="https://www.mimos.my/">MIMOS</A> &mdash; Malaysia&apos;s national applied R&amp;D
+        center, where Francis spent fourteen years. Also mentioned: Crypto CSR, a friend&apos;s
+        crypto education program; Horizon, an AI conference in Penang; and MTUN, the Malaysia
+        Technical University Network.
+      </P>
+
+      <H2>Listen to the Argo podcast</H2>
       <P>
         Subscribe on{' '}
         <A href="https://www.youtube.com/@luminalogpodcast">YouTube</A>{' '}and{' '}
@@ -3217,6 +3378,16 @@ function Llp024AnnaSokolContent() {
 }
 
 export const posts: BlogPost[] = [
+  {
+    slug: 'francis-goon-losing-the-fear-of-ai',
+    title: 'LLP#025 — Francis Goon: losing the fear of AI',
+    description:
+      'A conversation at the Ultra Web3 festival with Ts. Francis Goon, a technical writer and former R&D engineer who spent seven years in semiconductors and fourteen years translating dense technology at MIMOS, Malaysia’s national research center. On the handheld biosensor that reads blood with light, why a year of job hunting in Penang pushed him into teaching, how a childhood fear of the computer mirrors the fear beginners feel about AI, and his simplest advice: try one tool a day, because it is just a screen with a box in the middle.',
+    date: 'July 31, 2026',
+    isoDate: '2026-07-31T18:00',
+    readingTime: '6 min read',
+    Content: FrancisGoonLosingTheFearOfAiContent,
+  },
   {
     slug: 'llp024-anna-sokol',
     title: 'LLP#024 — Anna Sokol: a life given to a meditation community',

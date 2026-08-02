@@ -82,7 +82,7 @@ struct HostedPaywall: View {
     }
 }
 
-/// LuminaLog Pro paywall — RevenueCat's hosted (dashboard-designed) paywall for
+/// Argo Pro paywall — RevenueCat's hosted (dashboard-designed) paywall for
 /// the current offering. Used as the dismissible Profile sheet and as the hard
 /// app-entry gate (non-dismissible, with a Sign out escape the hosted paywall
 /// doesn't provide). Unlock is observed via the entitlement stream upstream

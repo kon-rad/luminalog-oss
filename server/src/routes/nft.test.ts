@@ -19,7 +19,7 @@ describe('buildNftMetadata', () => {
   it('builds standard ERC-721 metadata with count attributes', () => {
     const m = buildNftMetadata('12', { stars: 41, streak: 5, maxStreak: 12, totalWords: 61234, imageUrl: 'https://s3/hero.png' })
     expect(m).toEqual({
-      name: 'LuminaLog Soul #12',
+      name: 'Argo Soul #12',
       description: 'A constellation grown from 41 days of journaling.',
       image: 'https://s3/hero.png',
       animation_url: 'https://luminalog.com/soul/12',
@@ -78,7 +78,7 @@ describe('getNftMetadata', () => {
     }
     const m = await getNftMetadata('2')
     expect(m).not.toBeNull()
-    expect(m!.name).toBe('LuminaLog Soul #2')
+    expect(m!.name).toBe('Argo Soul #2')
     expect(m!.image).toBe('https://s3/2/hero.png')
     expect(m!.attributes).toEqual([
       { trait_type: 'Stars', value: 3 },

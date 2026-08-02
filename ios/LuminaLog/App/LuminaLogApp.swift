@@ -252,7 +252,7 @@ private struct SplashView: View {
         ZStack {
             Color.appBackground
                 .ignoresSafeArea()
-            Text("LuminaLog")
+            Text("Argo")
                 .font(.journalTitle)
                 .foregroundStyle(Color.textPrimary)
         }

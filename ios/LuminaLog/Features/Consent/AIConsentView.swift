@@ -14,7 +14,7 @@ struct AIConsentView: View {
                         .font(.journalTitle)
                         .foregroundStyle(Color.textPrimary)
 
-                    Text("LuminaLog uses AI to create your summaries, reflections, daily prompts, and voice features. To do that, the **entries, voice recordings, and profile details** you use with an AI feature are sent — over an encrypted connection — to trusted AI providers who process them for you:")
+                    Text("Argo uses AI to create your summaries, reflections, daily prompts, and voice features. To do that, the **entries, voice recordings, and profile details** you use with an AI feature are sent — over an encrypted connection — to trusted AI providers who process them for you:")
                         .font(.uiBody)
                         .foregroundStyle(Color.textPrimary)
 

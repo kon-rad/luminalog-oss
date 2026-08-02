@@ -180,6 +180,75 @@ final class EntryProcessorRetryTests: XCTestCase {
         XCTAssertNil(uploadJournal.entry(draftId: draftId), "journal record must be removed after finalize")
     }
 
+    /// A previously-CAPPED upload (bad connection exhausted its attempts) must get a
+    /// FRESH attempt budget on retry. Without the reset, `startAll` re-attempts once
+    /// and instantly re-caps → "Retry does nothing". With it, a persistently-failing
+    /// upload uses the full `maxAttempts` again (proving the reset), and the entry is
+    /// flipped to `.uploading` for visible progress.
+    func testRetryResetsCappedAttemptsForFreshBudget() async throws {
+        let transport = CountingTransport()
+        transport.statusCode = 500          // always fails, so we can count attempts
+        let ai = SpyAI()
+        let journals = SpyJournals()
+        let profiles = SpyProfiles()
+        let uploadJournal = UploadJournal(directory: tempDir())
+        let finalizer = EntryFinalizer(journals: journals, profiles: profiles, ai: ai)
+        let maxAttempts = 3
+        let uploadManager = UploadManager(
+            journal: uploadJournal,
+            transport: transport,
+            presign: { _ in URL(string: "https://signed/put")! },
+            onFinalize: { pending in await finalizer.finalize(pending) },
+            onPermanentFailure: { _ in },
+            maxAttempts: maxAttempts,
+            backoff: { _ in 0 }
+        )
+        let processor = BackgroundEntryProcessor(
+            dependencies: BackgroundEntryProcessor.Dependencies(
+                journals: journals, profiles: profiles, ai: ai,
+                media: SpyMedia(), ocr: MockOCRService(),
+                transcoder: VideoTranscoder(),
+                journal: uploadJournal, uploadManager: uploadManager,
+                finalizer: finalizer, drafts: DraftStore(directory: tempDir())
+            )
+        )
+
+        // Seed a journal record whose upload is ALREADY capped (state .failed,
+        // attemptCount == maxAttempts) — the state a bad-connection entry lands in.
+        let draftId = UUID().uuidString
+        let ciphertext = makeCiphertextFile()
+        var upload = PendingUpload(
+            attachmentId: UUID(), kind: .audio, journalId: draftId,
+            s3Key: "users/u1/journals/\(draftId)/audio.m4a",
+            encryptedPath: ciphertext.path,
+            durationSec: 5, width: nil, height: nil, thumbnailS3Key: nil,
+            state: .failed
+        )
+        upload.attemptCount = maxAttempts
+        let pending = PendingEntry(
+            draftId: draftId, userId: "u1", type: .voice, title: "t",
+            content: "", wordCount: 0, transcriptStatus: .processing,
+            createdAtEpoch: Date().timeIntervalSince1970, promptText: nil,
+            uploads: [upload]
+        )
+        try uploadJournal.upsert(pending)
+        // The failed entry exists in Firestore (mirrors the real state).
+        try await journals.save(JournalEntry(
+            id: draftId, userId: "u1", type: .voice, title: "t",
+            createdAt: Date(), content: "", media: [], transcriptStatus: .processing,
+            processingStatus: .failed, wordCount: 0))
+
+        processor.retry(draftId: draftId)
+        await processor.task(for: draftId)?.value
+
+        // Fresh budget: a persistently-failing upload used all `maxAttempts` again.
+        XCTAssertEqual(transport.calls, maxAttempts,
+                       "retry must reset the capped attempt count to a fresh full budget")
+        // Retry flipped the entry off `.failed` to `.uploading` for feedback.
+        XCTAssertEqual(journals.store.first(where: { $0.id == draftId })?.processingStatus, .uploading,
+                       "retry must show progress by re-marking the entry .uploading")
+    }
+
     /// In-session path still works: a job in the `jobs` dict is re-run directly.
     func testRetryInSessionJobReruns() async throws {
         let transport = CountingTransport()

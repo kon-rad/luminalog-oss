@@ -19,7 +19,7 @@ struct SignInView: View {
                 Spacer()
 
                 VStack(spacing: Spacing.m) {
-                    Text("LuminaLog")
+                    Text("Argo")
                         .font(.journalTitle)
                         .foregroundStyle(Color.textPrimary)
                     Text("Your journal, with a memory.")

@@ -43,7 +43,7 @@ struct TransientRetryPolicy {
     )
 }
 
-/// Thin JSON/SSE client for the LuminaLog proxy API (spec §4).
+/// Thin JSON/SSE client for the Argo proxy API (spec §4).
 /// Attaches `Authorization: Bearer <Firebase ID token>` to every call and
 /// retries exactly once with a force-refreshed token on HTTP 401.
 final class ProxyAPIClient {

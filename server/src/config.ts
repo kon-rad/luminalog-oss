@@ -18,10 +18,16 @@ const schema = z.object({
   MORPHEUS_API_KEY: z.string().optional(),
   MORPHEUS_BASE_URL: z.string().default('https://api.mor.org/api/v1'),
   // THE global chat model. Change this one var (env override or here) to swap the
-  // model app-wide. `claude-opus-4.8` = best quality on Morpheus for reflective
-  // journaling (empathetic writing + reliable instruction-following). Alternatives:
-  // gemini-3.1-pro-preview, GPT-5.5, glm-5.2, deepseek-v4-pro, llama-3.3-70b (cheapest).
-  MORPHEUS_CHAT_MODEL: z.string().default('claude-opus-4.8'),
+  // model app-wide. Must be a lowercase-hyphen SLUG that Morpheus can currently
+  // route to. `deepseek-v4-flash` = open-source, reliably available (HTTP 200),
+  // cheap/fast (~2-5s), and returns clean answer text in `content` — verified good
+  // for empathetic journaling summaries + the structured entry-AI JSON call.
+  // NOTE: Claude/Llama/Gemma/GPT-OSS slugs currently 503 ("capacity reserved for
+  // priority models") on our account, and display-name ids ("GLM 5.2") also 503 —
+  // only certain slugs route. `deepseek-v4-pro` is a REASONING model that returns
+  // empty `content` (all output in reasoning_content) → do NOT use it here.
+  // Other available slugs (verified 200): gemini-3.1-pro-preview (not open source).
+  MORPHEUS_CHAT_MODEL: z.string().default('deepseek-v4-flash'),
   // The chat model for LIVE VOICE calls only (Vapi custom-LLM proxy). Voice is
   // latency-critical: Vapi ends the call with `custom-llm-llm-failed` if a turn is
   // too slow, so voice needs a fast, LOW-TAIL-LATENCY model even at some quality

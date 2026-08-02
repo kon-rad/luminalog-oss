@@ -12,7 +12,7 @@ import Foundation
 final class RecordingSession: ObservableObject {
 
     enum PauseReason: Equatable { case interruption, manual }
-    enum State: Equatable { case idle, recording, paused(PauseReason), finalizing }
+    enum State: Equatable { case idle, recording, paused(PauseReason) }
 
     @Published private(set) var state: State = .idle {
         didSet { RecordingState.shared.setRecording(state != .idle) }
@@ -35,6 +35,10 @@ final class RecordingSession: ObservableObject {
 
     private var draftId: String = ""
     private var drafts: DraftStore?
+
+    /// The in-flight background merge started by `finishAndBeginMerge()`, if any.
+    /// `awaitPendingMerge()` awaits its result; multiple awaiters share it.
+    private var mergeTask: Task<AudioAttachment?, Never>?
 
     /// Ordered finalized segment filenames (mirrors the persisted manifest).
     private var segmentFileNames: [String] = []
@@ -111,30 +115,62 @@ final class RecordingSession: ObservableObject {
         state = .paused(reason)
     }
 
-    func stop() async -> AudioAttachment? {
-        guard state == .recording || isPaused else { return nil }
+    /// Finalizes the recording and returns to `.idle` **synchronously**, then
+    /// merges the segments into one `.m4a` on a background task. Returning to
+    /// `.idle` immediately is what lets the UI dismiss the recorder panel and
+    /// un-gray Save the instant Stop is tapped — the (potentially slow)
+    /// `AVAssetExportSession` merge no longer blocks the button. The merged clip
+    /// is retrieved with `awaitPendingMerge()`.
+    ///
+    /// Segments + manifest are retained until the merge SUCCEEDS: on failure the
+    /// recorder returns to `.paused(.manual)` (so the panel re-presents and the
+    /// launch recovery sweep can retry) rather than losing the audio.
+    func finishAndBeginMerge() {
+        guard state == .recording || isPaused else { return }
         stopTimer()
         if state == .recording { finalizeCurrentSegment(); recorder.deactivateSession() }
-        state = .finalizing
 
         let urls = segmentFileNames.compactMap { drafts?.mediaURL(draftId: draftId, fileName: $0) }
+        // Idle immediately so `isActive` is false the moment Stop is tapped.
+        state = .idle
         guard !urls.isEmpty else {
             clearManifestAndSegments()
-            state = .idle
-            return nil
+            mergeTask = nil
+            return
         }
+        mergeTask = Task { [weak self] in
+            await self?.performMerge(urls) ?? nil
+        }
+    }
 
+    /// Awaits the background merge started by `finishAndBeginMerge()`. Returns the
+    /// merged clip, or nil when there was no in-flight merge (e.g. a text entry)
+    /// or the merge failed. Safe to call from multiple sites — they share one
+    /// task and see the same result. The task is consumed (cleared) once awaited so
+    /// a later Save (after the clip was already attached, or after the user removed
+    /// it) can't re-attach a stale result.
+    func awaitPendingMerge() async -> AudioAttachment? {
+        let result = await mergeTask?.value ?? nil
+        mergeTask = nil
+        return result
+    }
+
+    /// Runs the actual segment merge (background). On success clears the manifest
+    /// and returns the clip; on failure re-enters `.paused(.manual)` and preserves
+    /// the segments for recovery.
+    private func performMerge(_ urls: [URL]) async -> AudioAttachment? {
         let out = FileManager.default.temporaryDirectory
             .appendingPathComponent("\(UUID().uuidString).m4a")
         do {
             try await merger.merge(urls, to: out)
             let duration = await merger.duration(of: out)
             clearManifestAndSegments()   // only on success
-            state = .idle
             return AudioAttachment(url: out, durationSec: duration)
         } catch {
-            // Preserve segments + manifest (isFinalized:false) so the launch
-            // recovery sweep can retry the merge; do NOT destroy audio here.
+            // A cancelled merge (explicit discard) must not resurrect `.paused`.
+            guard !Task.isCancelled else { return nil }
+            // Preserve segments + manifest so the launch recovery sweep can retry
+            // the merge; surface as paused so the UI re-presents the panel.
             state = .paused(.manual)
             return nil
         }
@@ -143,6 +179,10 @@ final class RecordingSession: ObservableObject {
     /// Discards the whole in-progress recording (segments + manifest).
     func cancel() {
         stopTimer()
+        // Drop any in-flight merge so a late failure can't flip us back to
+        // `.paused` after this explicit discard.
+        mergeTask?.cancel()
+        mergeTask = nil
         if recorder.isActive { _ = recorder.end() }
         recorder.deactivateSession()
         clearManifestAndSegments()

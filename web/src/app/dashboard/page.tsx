@@ -59,9 +59,9 @@ export default function Dashboard() {
           <div className="flex items-center justify-between" style={{ height: 68 }}>
             <Link href="/" className="inline-flex items-center gap-2.5 serif" style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em' }}>
               <span style={{ width: 32, height: 32, borderRadius: 10, overflow: 'hidden', boxShadow: '0 2px 10px rgba(185,107,51,0.4)', flexShrink: 0, display: 'block' }}>
-                <Image src="/logo.svg" width={32} height={32} alt="LuminaLog" />
+                <Image src="/logo.svg" width={32} height={32} alt="Argo" />
               </span>
-              LuminaLog
+              Argo
             </Link>
             <button
               onClick={() => signOut()}
@@ -134,7 +134,7 @@ export default function Dashboard() {
                     ✦ Soulbound NFT
                   </div>
                   <div className="serif" style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>
-                    LuminaLog Soul #{soul.nft.tokenId}
+                    Argo Soul #{soul.nft.tokenId}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
                     Base Sepolia · non-transferable

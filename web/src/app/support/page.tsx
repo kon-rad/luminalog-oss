@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import { LegalLayout } from '@/components/legal'
 
 export const metadata: Metadata = {
-  title: 'Support — LuminaLog',
-  description: 'Get help with LuminaLog. Contact us by email or on X (Twitter) for support, questions, and feedback.',
+  title: 'Support — Argo',
+  description: 'Get help with Argo. Contact us by email or on X (Twitter) for support, questions, and feedback.',
 }
 
 export default function SupportPage() {
@@ -34,7 +34,7 @@ export default function SupportPage() {
       <h3>How do I cancel my subscription?</h3>
       <p>
         Subscriptions are managed through the App Store. Open the Settings app on
-        your iPhone, tap your name → Subscriptions, find LuminaLog, and tap
+        your iPhone, tap your name → Subscriptions, find Argo, and tap
         Cancel Subscription.
       </p>
 
@@ -59,7 +59,7 @@ export default function SupportPage() {
 
       <h3>How do I sign in?</h3>
       <p>
-        LuminaLog uses <strong>Sign in with Apple</strong> or <strong>Sign in with
+        Argo uses <strong>Sign in with Apple</strong> or <strong>Sign in with
         Google</strong> — there is no separate password to remember. Just tap the
         provider you used when you created your account. If you have trouble
         signing in, email us at{' '}

@@ -26,7 +26,7 @@ async function fetchSoul(tokenId: string): Promise<PublicSoul | null> {
 
 export async function generateMetadata({ params }: { params: { tokenId: string } }): Promise<Metadata> {
   const soul = await fetchSoul(params.tokenId)
-  const title = soul ? `LuminaLog Soul #${soul.tokenId}` : 'LuminaLog Soul'
+  const title = soul ? `Argo Soul #${soul.tokenId}` : 'Argo Soul'
   const description = soul
     ? `A constellation of ${soul.stars} ${soul.stars === 1 ? 'star' : 'stars'}, grown from journaling.`
     : 'A soulbound constellation grown from journaling.'
@@ -64,9 +64,9 @@ export default async function SoulPage({ params }: { params: { tokenId: string }
         style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em', color: '#F3EEE4', opacity: 0.9 }}
       >
         <span style={{ width: 28, height: 28, borderRadius: 9, overflow: 'hidden', display: 'block' }}>
-          <Image src="/logo.svg" width={28} height={28} alt="LuminaLog" />
+          <Image src="/logo.svg" width={28} height={28} alt="Argo" />
         </span>
-        LuminaLog
+        Argo
       </Link>
 
       <main style={{ width: '100%', maxWidth: 640, margin: '0 auto', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -74,7 +74,7 @@ export default async function SoulPage({ params }: { params: { tokenId: string }
           <>
             <header style={{ textAlign: 'center', margin: '36px 0 24px' }}>
               <h1 className="serif" style={{ fontSize: 'clamp(30px, 7vw, 44px)', fontWeight: 600, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
-                LuminaLog Soul <span style={{ color: '#E8A44C' }}>#{soul.tokenId}</span>
+                Argo Soul <span style={{ color: '#E8A44C' }}>#{soul.tokenId}</span>
               </h1>
               <p className="serif" style={{ marginTop: 12, fontSize: 17, fontStyle: 'italic', color: 'rgba(243,238,228,0.72)' }}>
                 {soul.stars > 0
@@ -110,7 +110,7 @@ export default async function SoulPage({ params }: { params: { tokenId: string }
 
       <footer style={{ marginTop: 40 }}>
         <Link href="/" style={{ fontSize: 13, color: 'rgba(243,238,228,0.5)', textDecoration: 'none' }}>
-          Grow your own soul at luminalog.com →
+          Grow your own soul at myargoquest.com →
         </Link>
       </footer>
     </div>

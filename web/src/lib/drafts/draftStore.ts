@@ -1,8 +1,8 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 
 // IndexedDB draft store — port of iOS `DraftEntry`/`DraftStore`
-// (`ios/LuminaLog/Core/Models/DraftEntry.swift`,
-// `ios/LuminaLog/Core/Persistence/DraftStore.swift`). A draft is a
+// (`ios/Argo/Core/Models/DraftEntry.swift`,
+// `ios/Argo/Core/Persistence/DraftStore.swift`). A draft is a
 // locally-persisted in-progress journal entry: it lives only between the
 // start of composition and the moment the user taps Save (after which the
 // entry is durable via Firestore). M2 is text-only; `attachments` stays in

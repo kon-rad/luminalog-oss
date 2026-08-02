@@ -1,7 +1,7 @@
-# LuminaLog
+# Argo
 
-**LuminaLog is an AI-assisted journaling app with per-user encryption of all content at rest.**
-Write, speak, or capture your days; LuminaLog transcribes voice and video on-device, encrypts
+**Argo is an AI-assisted journaling app with per-user encryption of all content at rest.**
+Write, speak, or capture your days; Argo transcribes voice and video on-device, encrypts
 every entry under a key unique to you, and uses retrieval-augmented AI to summarize entries,
 surface insights, suggest prompts, and let you chat with your own history.
 

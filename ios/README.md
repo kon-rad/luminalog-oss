@@ -1,4 +1,4 @@
-# LuminaLog (iOS)
+# Argo (iOS)
 
 AI-powered journaling app. Native SwiftUI, iOS 17+.
 

@@ -3,7 +3,7 @@ import Foundation
 /// App-wide configuration read from Info.plist keys.
 enum AppConfig {
 
-    /// Base URL of the LuminaLog proxy API (spec §4). Read from the
+    /// Base URL of the Argo proxy API (spec §4). Read from the
     /// `LUMINALOG_API_URL` Info.plist key; defaults to local development.
     static let proxyBaseURL: URL = {
         if let raw = Bundle.main.object(forInfoDictionaryKey: "LUMINALOG_API_URL") as? String,

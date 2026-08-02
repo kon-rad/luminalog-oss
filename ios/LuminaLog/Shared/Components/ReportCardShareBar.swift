@@ -57,7 +57,7 @@ struct ReportCardShareBar: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Allow photo access so LuminaLog can save your card before sharing.")
+            Text("Allow photo access so Argo can save your card before sharing.")
         }
     }
 

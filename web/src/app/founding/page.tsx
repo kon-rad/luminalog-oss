@@ -9,9 +9,9 @@ import ColophonEndpiece from '@/components/ColophonEndpiece'
 const FOUNDING_CHECKOUT_URL = 'https://buy.stripe.com/28E6oH5bP6Kr6xV7zf2Ry02'
 
 export const metadata: Metadata = {
-  title: 'Founding Member — LuminaLog',
+  title: 'Founding Member — Argo',
   description:
-    'Become a LuminaLog Founding Member: a one-time $29.99 for your first 3 months (50% off the $19.99/month price). No auto-renew — renew if you choose. One price everywhere, web and iOS.',
+    'Become an Argo Founding Member: a one-time $29.99 for your first 3 months (50% off the $19.99/month price). No auto-renew — renew if you choose. One price everywhere, web and iOS.',
 }
 
 const PERKS: [string, string][] = [
@@ -121,7 +121,7 @@ export default function FoundingPage() {
               <span style={{ width: 28, height: 28, borderRadius: 9, overflow: 'hidden', boxShadow: '0 2px 10px rgba(185,107,51,0.4)', flexShrink: 0, display: 'block' }}>
                 <Image src="/logo.svg" width={28} height={28} alt="" />
               </span>
-              LuminaLog
+              Argo
             </Link>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', fontSize: 14 }}>
               <Link href="/privacy" style={{ color: 'var(--text2)' }}>Privacy Policy</Link>
@@ -132,7 +132,7 @@ export default function FoundingPage() {
             </div>
           </div>
           <p style={{ marginTop: 28, fontSize: 13, color: 'var(--text3)' }}>
-            © 2026 LuminaLog · Built by{' '}
+            © 2026 Argo · Built by{' '}
             <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accentDeep)', fontWeight: 600 }}>Konrad Gnat</a>
           </p>
         </div>

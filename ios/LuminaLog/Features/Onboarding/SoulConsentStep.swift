@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Final onboarding gate: explicit, informed consent for the public, on-chain
-/// **LuminaSoul** NFT. The Soul publishes the user's first name + journaling stats on
+/// **ArgoSoul** NFT. The Soul publishes the user's first name + journaling stats on
 /// the Base blockchain, permanently and publicly — so we spell out exactly what is
 /// shared and require an explicit choice. Declining is fine: the Soul simply never
 /// mints (the server gates minting on `consent.soulPublicNft`).
@@ -31,7 +31,7 @@ struct SoulConsentStep: View {
                     Text("Your public Soul")
                         .font(.journalDetailTitle)
                         .foregroundStyle(Color.textPrimary)
-                    Text("LuminaLog can mint you a **LuminaSoul** — a one-of-a-kind NFT on the Base blockchain that grows as you journal. It's **public and permanent**.")
+                    Text("Argo can mint you an **ArgoSoul** — a one-of-a-kind NFT on the Base blockchain that grows as you journal. It's **public and permanent**.")
                         .font(.uiBody)
                         .foregroundStyle(Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

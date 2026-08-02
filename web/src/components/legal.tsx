@@ -4,7 +4,7 @@ import Navbar from '@/components/Navbar'
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Shared presentational helpers for the legal pages (/privacy and /terms).
- * Content is intentionally generic and reflects LuminaLog's shipped
+ * Content is intentionally generic and reflects Argo's shipped
  * functionality: AI-assisted journaling in text/voice/video/photo, on-device
  * OCR, encrypted storage, third-party AI processing of content you choose to
  * share, a no-training pledge, App Store subscriptions, and Voice Credits.
@@ -28,7 +28,7 @@ export function LegalLayout({
         {/* Header */}
         <section style={{ borderBottom: '1px solid var(--hairline)', background: 'var(--surfaceAlt)' }}>
           <div className="wrap" style={{ padding: '72px 0 48px', maxWidth: 820 }}>
-            <Link href="/" className="eyebrow" style={{ marginBottom: 18 }}>← Back to LuminaLog</Link>
+            <Link href="/" className="eyebrow" style={{ marginBottom: 18 }}>← Back to Argo</Link>
             <h1 className="serif" style={{ marginTop: 14, fontSize: 'clamp(34px,5vw,52px)', fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1.05, color: 'var(--text)' }}>{title}</h1>
             <p style={{ marginTop: 14, fontSize: 15, color: 'var(--text3)' }}>Last updated: {updated}</p>
           </div>
@@ -50,7 +50,7 @@ export function LegalLayout({
               <span style={{ width: 28, height: 28, borderRadius: 9, overflow: 'hidden', boxShadow: '0 2px 10px rgba(185,107,51,0.4)', flexShrink: 0, display: 'block' }}>
                 <Image src="/logo.svg" width={28} height={28} alt="" />
               </span>
-              LuminaLog
+              Argo
             </Link>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', fontSize: 14 }}>
               <Link href="/privacy" style={{ color: 'var(--text2)' }}>Privacy Policy</Link>
@@ -61,7 +61,7 @@ export function LegalLayout({
             </div>
           </div>
           <p style={{ marginTop: 28, fontSize: 13, color: 'var(--text3)' }}>
-            © 2026 LuminaLog · Built by{' '}
+            © 2026 Argo · Built by{' '}
             <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accentDeep)', fontWeight: 600 }}>Konrad Gnat</a>
           </p>
         </div>
@@ -108,9 +108,9 @@ export function PrivacyContent() {
   return (
     <>
       <P>
-        This Privacy Policy explains how LuminaLog (&ldquo;LuminaLog,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo; or
+        This Privacy Policy explains how Argo (&ldquo;Argo,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo; or
         &ldquo;our&rdquo;) collects, uses, and protects your information when you use the
-        LuminaLog mobile application and related services (the &ldquo;Service&rdquo;). LuminaLog is a
+        Argo mobile application and related services (the &ldquo;Service&rdquo;). Argo is a
         private, AI-assisted journaling app. Your journal is among the most personal data a
         person can keep, and protecting it is central to how the Service is designed.
       </P>
@@ -286,7 +286,7 @@ export function PrivacyContent() {
 
       <H2>13. Open source</H2>
       <P>
-        The LuminaLog iOS app and backend are publicly available on GitHub. Our privacy practices
+        The Argo iOS app and backend are publicly available on GitHub. Our privacy practices
         are not only a promise — much of the implementation can be read and verified in the code.
       </P>
 
@@ -323,14 +323,14 @@ export function TermsContent({ heading }: { heading?: string }) {
       )}
 
       <P>
-        These Terms of Service (&ldquo;Terms&rdquo;) govern your use of the LuminaLog application and
+        These Terms of Service (&ldquo;Terms&rdquo;) govern your use of the Argo application and
         related services (the &ldquo;Service&rdquo;). By creating an account or using the Service, you
         agree to these Terms. If you do not agree, do not use the Service.
       </P>
 
       <H2>1. The Service</H2>
       <P>
-        LuminaLog is a private, AI-assisted journaling app. It lets you capture entries in text,
+        Argo is a private, AI-assisted journaling app. It lets you capture entries in text,
         voice, video, and photos, and provides AI-generated transcripts, summaries, insights,
         prompts, daily insight cards, and text or live-voice conversation with an AI companion
         grounded in your own entries. Features may change, improve, or be discontinued over time.
@@ -392,7 +392,7 @@ export function TermsContent({ heading }: { heading?: string }) {
 
       <H2>9. Intellectual property &amp; open source</H2>
       <P>
-        The LuminaLog name and brand are our property. The application and backend source code
+        The Argo name and brand are our property. The application and backend source code
         are made available on GitHub under their applicable open-source license; your use of that
         code is governed by that license.
       </P>
@@ -414,7 +414,7 @@ export function TermsContent({ heading }: { heading?: string }) {
 
       <H2>12. Limitation of liability</H2>
       <P>
-        To the maximum extent permitted by law, LuminaLog and its operators will not be liable for
+        To the maximum extent permitted by law, Argo and its operators will not be liable for
         any indirect, incidental, special, consequential, or punitive damages, or for any loss of
         data, profits, or goodwill. Our total liability for any claim relating to the Service will
         not exceed the amount you paid for the Service in the twelve months before the claim.
@@ -422,7 +422,7 @@ export function TermsContent({ heading }: { heading?: string }) {
 
       <H2>13. Indemnification</H2>
       <P>
-        You agree to indemnify and hold harmless LuminaLog and its operators from claims arising
+        You agree to indemnify and hold harmless Argo and its operators from claims arising
         out of your misuse of the Service or violation of these Terms.
       </P>
 

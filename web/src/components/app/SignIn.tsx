@@ -48,9 +48,9 @@ export default function SignIn() {
       style={{ background: 'var(--bg)' }}
     >
       <div className="flex flex-col items-center gap-4 text-center">
-        <Image src="/logo.svg" alt="LuminaLog" width={56} height={56} />
+        <Image src="/logo.svg" alt="Argo" width={56} height={56} />
         <p className="serif text-2xl font-semibold" style={{ color: 'var(--text)' }}>
-          LuminaLog
+          Argo
         </p>
         <p className="serif italic text-lg" style={{ color: 'var(--text2)' }}>
           Your journal, with a memory.

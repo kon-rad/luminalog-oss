@@ -22,12 +22,12 @@ final class SocialShareServiceTests: XCTestCase {
     }
 
     func testXDeepLinkEncodesCaption() {
-        let url = SocialPlatform.x.appURL(caption: "hi there #LuminaLog")
+        let url = SocialPlatform.x.appURL(caption: "hi there #Argo")
         let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)!
         XCTAssertEqual(comps.scheme, "twitter")
         XCTAssertEqual(comps.host, "post")
         XCTAssertEqual(comps.queryItems?.first(where: { $0.name == "message" })?.value,
-                       "hi there #LuminaLog")
+                       "hi there #Argo")
     }
 
     func testXWebFallbackEncodesCaption() {

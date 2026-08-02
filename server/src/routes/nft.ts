@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express'
 import { db } from '../middleware/firebaseAuth'
 
 /** Public web app base — hosts the interactive galaxy + hero PNG. */
-const WEB_BASE = 'https://luminalog.com'
+const WEB_BASE = 'https://myargoquest.com'
 
 /** Standard ERC-721 metadata. Deliberately contains NO coordinates, vectors, or
  *  text — only aggregate counts + rendered image. This is the privacy boundary:
@@ -21,7 +21,7 @@ export function buildNftMetadata(
 ): NftMetadata {
   const owner = opts.username?.trim() ? `${opts.username.trim()}'s` : 'A'
   return {
-    name: `LuminaLog Soul #${tokenId}`,
+    name: `Argo Soul #${tokenId}`,
     description: `${owner} constellation grown from ${opts.stars} ${opts.stars === 1 ? 'day' : 'days'} of journaling.`,
     image: opts.imageUrl || `${WEB_BASE}/soul/${tokenId}/hero.png`,
     animation_url: `${WEB_BASE}/soul/${tokenId}`,

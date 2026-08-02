@@ -268,7 +268,7 @@ private struct TranscriptMessageRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text(message.role == .user ? "You" : "LuminaLog")
+            Text(message.role == .user ? "You" : "Argo")
                 .font(.captionText.weight(.semibold))
                 .foregroundStyle(message.role == .user ? Color.accentWarm : Color.textSecondary)
             Text(message.text)

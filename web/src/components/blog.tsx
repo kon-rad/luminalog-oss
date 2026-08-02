@@ -20,7 +20,7 @@ function BlogFooter() {
             <span style={{ width: 28, height: 28, borderRadius: 9, overflow: 'hidden', boxShadow: '0 2px 10px rgba(185,107,51,0.4)', flexShrink: 0, display: 'block' }}>
               <Image src="/logo.svg" width={28} height={28} alt="" />
             </span>
-            LuminaLog
+            Argo
           </Link>
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', fontSize: 14 }}>
             <Link href="/blog" style={{ color: 'var(--text2)' }}>Blog</Link>
@@ -31,7 +31,7 @@ function BlogFooter() {
           </div>
         </div>
         <p style={{ marginTop: 28, fontSize: 13, color: 'var(--text3)' }}>
-          © 2026 LuminaLog · Built by{' '}
+          © 2026 Argo · Built by{' '}
           <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accentDeep)', fontWeight: 600 }}>Konrad Gnat</a>
         </p>
       </div>
@@ -76,7 +76,7 @@ export function BlogPostLayout({
               Start your 750 words today
             </h3>
             <p style={{ fontSize: 16, color: 'var(--text2)', marginBottom: 20 }}>
-              LuminaLog turns a daily entry — typed, spoken, or filmed — into clarity you can
+              Argo turns a daily entry — typed, spoken, or filmed — into clarity you can
               actually see. Private, encrypted, and built entirely from your own life.
             </p>
             <Link href="/#waitlist" className="btn-amber">Join the waitlist</Link>
@@ -96,7 +96,7 @@ export function BlogIndexLayout({ children }: { children: React.ReactNode }) {
       <main style={{ background: 'var(--bg)' }}>
         <section style={{ borderBottom: '1px solid var(--hairline)', background: 'var(--surfaceAlt)' }}>
           <div className="wrap" style={{ padding: '72px 0 48px', maxWidth: 820 }}>
-            <Link href="/" className="eyebrow" style={{ marginBottom: 18 }}>← Back to LuminaLog</Link>
+            <Link href="/" className="eyebrow" style={{ marginBottom: 18 }}>← Back to Argo</Link>
             <h1 className="serif" style={{ marginTop: 14, fontSize: 'clamp(34px,5vw,52px)', fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1.05, color: 'var(--text)' }}>Writing</h1>
             <p style={{ marginTop: 14, fontSize: 17, color: 'var(--text2)', maxWidth: 560 }}>
               On the science and practice of daily reflection — why putting your life into

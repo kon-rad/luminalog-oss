@@ -155,7 +155,7 @@ struct SettingsView: View {
             }
         }
         .confirmationDialog(
-            "Sign out of LuminaLog?",
+            "Sign out of Argo?",
             isPresented: $showSignOutDialog,
             titleVisibility: .visible
         ) {
@@ -357,7 +357,7 @@ struct SettingsView: View {
 
     // MARK: - Soul Wallet
 
-    /// Custodial wallet for the user's LuminaSoul: the full address (selectable,
+    /// Custodial wallet for the user's ArgoSoul: the full address (selectable,
     /// scales down rather than truncating) plus BaseScan links to the wallet and,
     /// once minted, the token. Rendered as soon as the wallet is provisioned —
     /// before and independent of minting.
@@ -488,7 +488,7 @@ struct SettingsView: View {
             )
 
             Text(reminderPermissionDenied
-                 ? "Enable notifications for LuminaLog in Settings to get reminders."
+                 ? "Enable notifications for Argo in Settings to get reminders."
                  : "Reminders only fire on days you haven't reached \(DailyGoal.wordTarget) words yet.")
                 .font(.captionText)
                 .foregroundStyle(reminderPermissionDenied ? Color.danger : Color.textSecondary)
@@ -985,7 +985,7 @@ struct SettingsView: View {
 
     private var versionFooter: some View {
         VStack(spacing: 2) {
-            Text("LuminaLog v\(viewModel.appVersion)")
+            Text("Argo v\(viewModel.appVersion)")
                 .font(.captionText)
                 .foregroundStyle(Color.textSecondary.opacity(0.8))
             Text(viewModel.gitCommit)

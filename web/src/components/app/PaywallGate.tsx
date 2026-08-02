@@ -43,7 +43,7 @@ export default function PaywallGate({ children }: { children: ReactNode }) {
         style={{ background: 'var(--bg)' }}
       >
         <p className="serif text-2xl font-semibold" style={{ color: 'var(--text)' }}>
-          LuminaLog Pro
+          Argo Pro
         </p>
         <p className="max-w-sm" style={{ color: 'var(--text2)' }}>
           Unlimited insights, prompts, chat, and voice — your whole journal, always with you.

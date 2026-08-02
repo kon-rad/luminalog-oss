@@ -174,13 +174,13 @@ struct CreateEntryView: View {
             Button("Open Settings") { openSettings() }
             Button("Not Now", role: .cancel) {}
         } message: {
-            Text("Enable Microphone and Speech Recognition for LuminaLog in Settings to use dictation.")
+            Text("Enable Microphone and Speech Recognition for Argo in Settings to use dictation.")
         }
         .alert("Microphone Access Needed", isPresented: $recorder.permissionDenied) {
             Button("Open Settings") { openSettings() }
             Button("Not Now", role: .cancel) {}
         } message: {
-            Text("Enable Microphone access for LuminaLog in Settings to record voice entries.")
+            Text("Enable Microphone access for Argo in Settings to record voice entries.")
         }
     }
 
@@ -214,7 +214,14 @@ struct CreateEntryView: View {
                 Spacer()
 
                 Button {
-                    viewModel.save()
+                    Task {
+                        // If Stop was just tapped, the merge may still be running —
+                        // await it (and attach the clip) so the save includes the
+                        // audio. Usually already done, so this is instant.
+                        if await attachPendingRecording() {
+                            viewModel.save()
+                        }
+                    }
                 } label: {
                     Text("Save")
                         .font(.uiBody.weight(.semibold))
@@ -379,15 +386,35 @@ struct CreateEntryView: View {
         }
     }
 
-    /// Finalizes the in-flight recording, attaches the clip, and dismisses the
-    /// full-screen recorder. Shared by the overlay's X and Stop buttons.
+    /// Finalizes the in-flight recording and dismisses the recorder panel
+    /// IMMEDIATELY. The segment merge runs in the background (`finishAndBeginMerge`
+    /// returns to `.idle` synchronously), so Save un-grays and the panel slides
+    /// away the instant Stop is tapped — no waiting on the export. The merged clip
+    /// is attached when it's ready via `attachPendingRecording`. Shared by the
+    /// overlay's X and Stop buttons.
     private func stopAndAttach() {
-        Task {
-            if let audio = await recorder.stop() {
-                viewModel.attachAudio(audio)
-            }
-            isRecorderPresented = false
+        recorder.finishAndBeginMerge()
+        isRecorderPresented = false
+        Task { await attachPendingRecording() }
+    }
+
+    /// Awaits any background merge and attaches the resulting clip. If the merge
+    /// failed the recorder returns to `.paused`, so we re-present the panel with a
+    /// notice rather than silently dropping the audio. Idempotent: safe to call
+    /// from both `stopAndAttach` and the Save handler (they share one merge task).
+    /// Returns true when there is nothing left to finalize (ready to save).
+    @discardableResult
+    private func attachPendingRecording() async -> Bool {
+        if let audio = await recorder.awaitPendingMerge() {
+            viewModel.attachAudio(audio)
         }
+        if recorder.isActive {
+            // Merge failed → recorder is `.paused` again; bring the panel back.
+            isRecorderPresented = true
+            viewModel.attachmentNotice = "Couldn't finish the recording — tap Stop to try again."
+            return false
+        }
+        return true
     }
 
     /// Stages a spinner per item, then decodes each and resolves it in place.

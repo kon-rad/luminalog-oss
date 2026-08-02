@@ -17,7 +17,7 @@ export default function SettingsPage() {
   const [signingOut, setSigningOut] = useState(false)
 
   const handleSignOut = async () => {
-    if (!window.confirm('Sign out of LuminaLog?')) return
+    if (!window.confirm('Sign out of Argo?')) return
     setSigningOut(true)
     try {
       await signOut()
