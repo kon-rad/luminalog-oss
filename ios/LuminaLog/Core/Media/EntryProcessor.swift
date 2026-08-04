@@ -316,14 +316,11 @@ final class BackgroundEntryProcessor: EntryProcessor {
             // 1) Placeholder write so the entry appears in the list immediately.
             try await deps.journals.save(entry)
 
-            // 2) Derive content (voice/video stay typed text; transcript pending).
-            let derived = try await deriveContent(job)
-            entry.content = derived.content
-            entry.transcriptStatus = derived.status
-            entry.wordCount = WordCount.of(derived.content)
-
-            // 3) Stage encrypted ciphertext + mint stable keys for each attachment.
+            // 2) Stage encrypted ciphertext + mint stable keys, and SEED the display
+            //    cache with each plaintext original so the player card can render &
+            //    play LOCALLY the instant `entry.media` is written — no upload wait.
             var uploads: [PendingUpload] = []
+            var mediaItems: [MediaItem] = []
 
             if let video = job.attachments.video {
                 // Transcode oversized video first; fall back to the original on failure.
@@ -347,8 +344,10 @@ final class BackgroundEntryProcessor: EntryProcessor {
                 // Ciphertext temp files are owned by UploadManager (cleaned on
                 // success; retained for the journal record on failure), so we do
                 // NOT track them for processor cleanup here.
+                await deps.media.cacheLocalOriginal(sourceURL, for: prepared.s3Key)
                 var item = prepared.mediaItem
                 item.durationSec = video.durationSec
+                mediaItems.append(item)
                 uploads.append(PendingUpload(
                     attachmentId: video.id, kind: .video, journalId: job.draftId,
                     s3Key: prepared.s3Key, encryptedPath: prepared.encryptedFileURL.path,
@@ -363,8 +362,10 @@ final class BackgroundEntryProcessor: EntryProcessor {
                 let prepared = try await deps.media.prepareUpload(
                     fileURL: audio.url, kind: .audio, journalId: job.draftId)
                 // Ciphertext owned by UploadManager (see video branch above).
+                await deps.media.cacheLocalOriginal(audio.url, for: prepared.s3Key)
                 var item = prepared.mediaItem
                 item.durationSec = audio.durationSec
+                mediaItems.append(item)
                 uploads.append(PendingUpload(
                     attachmentId: audio.id, kind: .audio, journalId: job.draftId,
                     s3Key: prepared.s3Key, encryptedPath: prepared.encryptedFileURL.path,
@@ -375,7 +376,20 @@ final class BackgroundEntryProcessor: EntryProcessor {
                 try? await deps.profiles.recordMediaUploaded(kind: .audio, bytes: bytes)
             }
 
-            // 4) Persist the durable journal record so uploads survive a relaunch.
+            // 3) Mark the entry as uploading WITH its media populated so the audio/
+            //    video card appears & plays from the seeded local file immediately.
+            entry.processingStatus = .uploading
+            entry.media = mediaItems
+            try await deps.journals.save(entry)
+
+            // 4) Derive content (voice/video content stays the typed text; the
+            //    transcript is produced post-upload by the finalizer's recoverer).
+            let derived = try await deriveContent(job)
+            entry.content = derived.content
+            entry.transcriptStatus = derived.status
+            entry.wordCount = WordCount.of(derived.content)
+
+            // 5) Persist the durable journal record so uploads survive a relaunch.
             let pending = PendingEntry(
                 draftId: job.draftId, userId: job.userId, type: type,
                 title: entry.title, content: entry.content, wordCount: entry.wordCount,
@@ -384,17 +398,10 @@ final class BackgroundEntryProcessor: EntryProcessor {
                 promptText: job.promptText, uploads: uploads)
             try deps.journal.upsert(pending)
 
-            // 5) Mark the entry as uploading (media filled in by the finalizer).
-            entry.processingStatus = .uploading
-            entry.media = []
-            try await deps.journals.save(entry)
-
             // 6) Upload in the background; finalize runs inside via onFinalize.
             await deps.uploadManager.startAll(for: pending)
 
-            // 7) Clean up the transcoded temp + the staged original attachment
-            //    files we created. (Ciphertext temp files are owned/cleaned by
-            //    UploadManager on success.)
+            // 7) Clean up staged temp files (ciphertext is owned by UploadManager).
             finish(job, cleanup: true)
         } catch {
             Self.logger.error("AV processing failed for \(job.draftId): \(error)")

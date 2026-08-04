@@ -102,6 +102,11 @@ final class EntryProcessorTests: XCTestCase {
             return PreparedUpload(encryptedFileURL: encryptedURL, s3Key: s3Key, mediaItem: item)
         }
 
+        private(set) var seededKeys: [String] = []
+        func cacheLocalOriginal(_ fileURL: URL, for s3Key: String) async {
+            seededKeys.append(s3Key)
+        }
+
         func presignUpload(s3Key: String?, kind: MediaKind, ext: String, bytes: Int,
                            journalId: String) async throws -> (s3Key: String, url: URL) {
             (s3Key ?? "spy/key", URL(fileURLWithPath: "/dev/null"))
@@ -141,6 +146,8 @@ final class EntryProcessorTests: XCTestCase {
         private(set) var store: [JournalEntry] = []
         /// processingStatus written on each save, in order.
         private(set) var statusHistory: [ProcessingStatus?] = []
+        /// media[] written on each save, in order.
+        private(set) var mediaHistory: [[MediaItem]] = []
 
         func recentEntries(limit: Int) -> AsyncStream<[JournalEntry]> { AsyncStream { $0.finish() } }
         func entries(after: Date?, limit: Int) async throws -> [JournalEntry] { store }
@@ -151,6 +158,7 @@ final class EntryProcessorTests: XCTestCase {
         func save(_ entry: JournalEntry) async throws {
             if let i = store.firstIndex(where: { $0.id == entry.id }) { store[i] = entry } else { store.append(entry) }
             statusHistory.append(entry.processingStatus)
+            mediaHistory.append(entry.media)
         }
         func updateAIFields(id: String, summary: AIGeneration?, insights: AIGeneration?, prompts: AIPrompts?) async throws {}
         func updateContent(id: String, content: String, wordCount: Int, contentEditedAt: Date, appendedMedia: [MediaItem]) async throws {}
@@ -381,6 +389,32 @@ final class EntryProcessorTests: XCTestCase {
         XCTAssertEqual(harness.ai.transcribedJournalIds, [entry.id])
         XCTAssertTrue(harness.ai.indexedJournalIds.isEmpty, "Server transcription re-indexes; no separate index call")
         XCTAssertEqual(harness.profiles.recordedDeltas.count, 1)
+    }
+
+    @MainActor
+    func testVoiceEntryPopulatesMediaAtUploadingSaveAndSeedsCache() async throws {
+        let harness = Harness()
+        let job = voiceJob(durationSec: 720)  // 12 minutes
+        await harness.run(job)
+
+        // The audio MediaItem is present on the persisted entry...
+        let entry = try harness.savedEntry()
+        let audio = try XCTUnwrap(entry.media.first(where: { $0.kind == .audio }))
+        XCTAssertEqual(audio.durationSec, 720)
+
+        // ...and the plaintext original was seeded under that same key, so the
+        // player card resolves locally without waiting for the upload.
+        XCTAssertTrue(harness.media.seededKeys.contains(audio.s3Key),
+                      "expected the audio clip to be seeded into the display cache")
+
+        // Media is written at the `.uploading` stage, not only at finalize: the
+        // FIRST save that carries a non-empty `media` happens while status is
+        // `.uploading` (before `.saving`/`.transcribing`).
+        let firstMediaIndex = harness.journals.mediaHistory.firstIndex { !$0.isEmpty }
+        let uploadingIndex = harness.journals.statusHistory.firstIndex(of: .uploading)
+        XCTAssertNotNil(firstMediaIndex)
+        XCTAssertEqual(firstMediaIndex, uploadingIndex,
+                       "media should first appear on the .uploading save")
     }
 
     // MARK: - Status progression
