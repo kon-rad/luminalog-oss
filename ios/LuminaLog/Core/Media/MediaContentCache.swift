@@ -73,6 +73,25 @@ actor MediaContentCache {
         return try await task.value
     }
 
+    /// Copy an already-on-device plaintext original into the cache under `s3Key`
+    /// so `fileURL(for:)` resolves it LOCALLY (no network) before/after upload.
+    /// No-op if an entry already exists for that key. Best-effort at the call
+    /// site: a failure only means the view falls back to the S3 fetch.
+    func seed(plaintext fileURL: URL, for s3Key: String) throws {
+        let dest = cacheURL(for: s3Key)
+        if FileManager.default.fileExists(atPath: dest.path) { return }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        // Copy to a temp sibling, then atomically move into place (mirrors the
+        // decrypt path) so a partial copy never looks like a valid cache hit.
+        let staging = directory.appendingPathComponent("seed-\(UUID().uuidString)")
+        try FileManager.default.copyItem(at: fileURL, to: staging)
+        if FileManager.default.fileExists(atPath: dest.path) {
+            try? FileManager.default.removeItem(at: staging)
+            return
+        }
+        try FileManager.default.moveItem(at: staging, to: dest)
+    }
+
     /// Remove all cached plaintext. Call on sign-out.
     func purge() {
         try? FileManager.default.removeItem(at: directory)

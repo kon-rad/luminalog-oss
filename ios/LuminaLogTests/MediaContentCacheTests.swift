@@ -92,4 +92,46 @@ final class MediaContentCacheTests: XCTestCase {
         await cache.purge()
         XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
     }
+
+    func testSeedMakesFileURLResolveLocallyWithoutFetch() async throws {
+        // A cache whose fetch would FAIL — proving seed() means no network is used.
+        let cacheDir = tmpDir.appendingPathComponent("cache", isDirectory: true)
+        let cache = MediaContentCache(directory: cacheDir) { _ in
+            struct FetchCalled: Error {}
+            throw FetchCalled()
+        }
+        let s3Key = "users/u1/journals/j1/audio-seed.m4a"
+        let plaintext = Data("recorded audio bytes".utf8)
+        let plain = tmpDir.appendingPathComponent("original.m4a")
+        try plaintext.write(to: plain)
+
+        try await cache.seed(plaintext: plain, for: s3Key)
+        let url = try await cache.fileURL(for: s3Key,
+                                          from: URL(string: "https://example.com/never")!,
+                                          key: SymmetricKey(size: .bits256))
+
+        XCTAssertEqual(try Data(contentsOf: url), plaintext)
+        XCTAssertEqual(url.pathExtension, "m4a")
+    }
+
+    func testSeedIsIdempotentAndKeepsFirstBytes() async throws {
+        let cacheDir = tmpDir.appendingPathComponent("cache2", isDirectory: true)
+        let cache = MediaContentCache(directory: cacheDir) { _ in
+            struct FetchCalled: Error {}
+            throw FetchCalled()
+        }
+        let s3Key = "users/u1/journals/j1/audio-idem.m4a"
+        let first = tmpDir.appendingPathComponent("first.m4a")
+        let second = tmpDir.appendingPathComponent("second.m4a")
+        try Data("first".utf8).write(to: first)
+        try Data("second-different".utf8).write(to: second)
+
+        try await cache.seed(plaintext: first, for: s3Key)
+        try await cache.seed(plaintext: second, for: s3Key)  // must NOT overwrite
+        let url = try await cache.fileURL(for: s3Key,
+                                          from: URL(string: "https://example.com/never")!,
+                                          key: nil)
+
+        XCTAssertEqual(try Data(contentsOf: url), Data("first".utf8))
+    }
 }
