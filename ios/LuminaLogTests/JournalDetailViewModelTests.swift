@@ -649,4 +649,27 @@ final class JournalDetailViewModelTests: XCTestCase {
         let remaining = try await storedEntry(id: "entry-1", in: repo)
         XCTAssertNil(remaining)
     }
+
+    /// A failed entry keeps its handed-off draft as the retry source; deleting the
+    /// entry must also prune that draft (entryId == draftId) so it doesn't leak.
+    @MainActor
+    func testDeletePrunesRetainedHandedOffDraft() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let drafts = DraftStore(directory: dir)
+        var draft = DraftEntry(draftId: "entry-1", text: "keeper", promptText: nil,
+                               createdAtEpoch: 1, updatedAtEpoch: 1, attachments: [])
+        draft.handedOff = true
+        drafts.upsert(draft)
+        XCTAssertNotNil(drafts.load("entry-1"))
+
+        let repo = MockJournalRepository(entries: [makeEntry()])
+        let viewModel = JournalDetailViewModel(entryId: "entry-1", journals: repo,
+                                               ai: SpyAIService(), drafts: drafts)
+        await viewModel.start()
+
+        await viewModel.delete()
+
+        XCTAssertTrue(viewModel.didDelete)
+        XCTAssertNil(drafts.load("entry-1"), "deleting the entry must prune its retained draft")
+    }
 }

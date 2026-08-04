@@ -40,6 +40,12 @@ final class JournalDetailViewModel: ObservableObject {
     private let ai: AIService
     private let media: MediaUploader
     private let backgroundActivity: BackgroundActivityGranting
+    /// Durable draft store. A failed entry keeps its handed-off draft (the retry
+    /// source); deleting such an entry must also prune that draft so it doesn't
+    /// leak. Defaulted to the shared on-disk store inside the init (like the media/
+    /// profiles fallbacks), so pruning works from every entry point without threading
+    /// `DraftStore` through the six `JournalDetailView` call sites; injectable for tests.
+    private let drafts: DraftStore
 
     /// Overall bound on one generate+persist cycle. 75s sits well above the ~40s
     /// worst case (a long voice transcript + opus + a retry pass), so it only fires
@@ -65,11 +71,15 @@ final class JournalDetailViewModel: ObservableObject {
         ai: AIService,
         media: MediaUploader? = nil,
         profiles: ProfileRepository? = nil,
-        backgroundActivity: BackgroundActivityGranting? = nil
+        backgroundActivity: BackgroundActivityGranting? = nil,
+        drafts: DraftStore? = nil
     ) {
         self.entryId = entryId
         self.journals = journals
         self.ai = ai
+        // Same @MainActor fallback pattern as media/profiles below: the default
+        // `DraftStore()` targets the shared `Application Support/Drafts` directory.
+        self.drafts = drafts ?? DraftStore()
         // Fallbacks are constructed inside this @MainActor init (legal), so the
         // media/profiles/backgroundActivity arguments stay optional for tests that
         // don't exercise those paths. Production (`JournalDetailView`) passes them
@@ -308,6 +318,9 @@ final class JournalDetailViewModel: ObservableObject {
             \(error.localizedDescription, privacy: .public)
             """)
         }
+        // Prune the handed-off draft a failed entry keeps as its retry source
+        // (entryId == draftId), so deleting the entry doesn't leak the draft.
+        drafts.delete(entryId)
         // Remove the deleted words from the lifetime odometer (best-effort). The
         // day's goal progress + streak reconcile from today's entries via the
         // app-level DailyGoalReconciler.
