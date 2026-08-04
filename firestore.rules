@@ -91,10 +91,13 @@ service cloud.firestore {
       }
     }
 
-    // Daily reports: indexed by user (uid) and date. Owner-read only; server-write only.
+    // Daily reports: indexed by user (uid) and date. Zero-knowledge — the client
+    // generates the card server-side but re-encrypts and PERSISTS it itself (the
+    // server holds no DEK and no longer writes here; see ADR-0073 + e11b871), so
+    // the owner needs full read/write of their own reports. The doc-path `uid`
+    // segment is the ownership key; no `userId` field to check (unlike journals).
     match /dailyReports/{uid}/days/{date} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow write: if false; // written only by the server (Admin SDK bypasses rules)
+      allow read, write: if request.auth != null && request.auth.uid == uid;
     }
   }
 }
