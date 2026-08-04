@@ -31,4 +31,15 @@ protocol MediaUploader: AnyObject {
     /// Resolve a **decrypted** local file URL for displaying/playing a stored
     /// media item. Downloads ciphertext, decrypts, and caches the plaintext.
     func localFileURL(for s3Key: String) async throws -> URL
+
+    /// Seed the display cache with an already-on-device PLAINTEXT original under
+    /// `s3Key`, so `localFileURL(for:)` resolves it locally & instantly before the
+    /// upload finishes. Best-effort (never throws): a miss just falls back to S3.
+    func cacheLocalOriginal(_ fileURL: URL, for s3Key: String) async
+}
+
+extension MediaUploader {
+    /// Default: no local cache to seed (demo/mock/test uploaders). Production
+    /// `ProxyMediaUploader` overrides this to seed its `MediaContentCache`.
+    func cacheLocalOriginal(_ fileURL: URL, for s3Key: String) async {}
 }

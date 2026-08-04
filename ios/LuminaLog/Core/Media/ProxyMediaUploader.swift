@@ -257,6 +257,10 @@ final class ProxyMediaUploader: MediaUploader {
         await contentCache.purge()
     }
 
+    func cacheLocalOriginal(_ fileURL: URL, for s3Key: String) async {
+        try? await contentCache.seed(plaintext: fileURL, for: s3Key)
+    }
+
     // MARK: - Helpers
 
     private func cachedViewURL(for s3Key: String) -> URL? {
