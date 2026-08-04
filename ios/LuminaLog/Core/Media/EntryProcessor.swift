@@ -590,6 +590,13 @@ final class BackgroundEntryProcessor: EntryProcessor {
                         spoken, forDurationSec: job.attachments.audio?.durationSec)
                     return (joined, plausible ? .ready : .failed)
                 } catch {
+                    // A payload-too-large (413) is deterministic — mark it terminal
+                    // (`.unsupported`) so the on-launch backfill doesn't re-upload the
+                    // same oversized clip forever. Manual Retry still forces a re-run.
+                    if (error as? ProxyAPIError)?.isPayloadTooLarge == true {
+                        Self.logger.error("clip too large to transcribe; marking unsupported")
+                        return (typed, .unsupported)
+                    }
                     Self.logger.error("clip transcription failed: \(error.localizedDescription)")
                     // Keep any typed text; the user can re-transcribe from the transcript editor.
                     return (typed, typed.isEmpty ? .failed : .ready)

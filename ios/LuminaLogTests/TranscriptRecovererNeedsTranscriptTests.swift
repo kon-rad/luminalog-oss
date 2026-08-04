@@ -54,4 +54,12 @@ final class TranscriptRecovererNeedsTranscriptTests: XCTestCase {
         let entry = JournalEntry(userId: "u1", type: .text, title: "t", content: "x")
         XCTAssertFalse(TranscriptRecoverer.needsTranscript(entry))
     }
+
+    func testUnsupportedStatusIsNotAutoRetried() {
+        // Terminal: a clip too large to transcribe (deterministic 413) must NOT be
+        // re-attempted by the launch backfill, even though its content is an
+        // implausibly short transcript for the duration.
+        let entry = voiceEntry(content: "", status: .unsupported, durationSec: 1800)
+        XCTAssertFalse(TranscriptRecoverer.needsTranscript(entry))
+    }
 }

@@ -410,7 +410,9 @@ struct JournalDetailView: View {
         switch entry.transcriptStatus {
         case .processing:
             transcribingHint
-        case .failed:
+        case .failed, .unsupported:
+            // `.unsupported` is terminal for the auto-backfill but still shows the
+            // failed row so the user can force a manual retry.
             transcriptFailedRow
         case .ready, nil:
             if !entry.content.isEmpty {

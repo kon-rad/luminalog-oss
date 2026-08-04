@@ -30,6 +30,10 @@ struct TranscriptRecoverer {
     /// `.ready` transcript and never re-tried).
     static func needsTranscript(_ entry: JournalEntry) -> Bool {
         guard entry.type == .voice || entry.type == .video else { return false }
+        // Terminal: the clip can't be transcribed (e.g. too large even after
+        // chunking). The auto-backfill must NOT re-attempt it every launch — only
+        // the manual Retry button (which bypasses this gate) does.
+        if entry.transcriptStatus == .unsupported { return false }
         if entry.transcriptStatus == .failed { return true }
         let duration = entry.media.compactMap(\.durationSec).max()
         return !TranscriptPlausibility.isPlausible(entry.content, forDurationSec: duration)
@@ -78,6 +82,16 @@ struct TranscriptRecoverer {
             }
             return updated
         } catch {
+            // A payload-too-large (413) is deterministic: retrying the same clip
+            // every launch just re-uploads bytes that always fail. Mark it terminal
+            // (`.unsupported`) so the auto-backfill stops; manual Retry still works.
+            if (error as? ProxyAPIError)?.isPayloadTooLarge == true {
+                Self.logger.error("clip too large to transcribe for \(entry.id, privacy: .public); marking unsupported")
+                var terminal = entry
+                terminal.transcriptStatus = .unsupported
+                try? await journals.save(terminal)
+                return nil
+            }
             Self.logger.error("recover failed for \(entry.id, privacy: .public): \(error.localizedDescription, privacy: .public)")
             return nil
         }

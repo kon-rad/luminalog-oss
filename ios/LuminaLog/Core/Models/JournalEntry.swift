@@ -52,6 +52,12 @@ enum TranscriptStatus: String, Codable, Sendable {
     case ready
     case processing
     case failed
+    /// Terminal: the clip cannot be transcribed by the current pipeline (e.g. it
+    /// exceeds the server's upload limit even after down-sampling + chunking, a
+    /// deterministic 413). Unlike `.failed`, the on-launch backfill does NOT
+    /// auto-retry `.unsupported` — retrying the same bytes always fails — but the
+    /// manual "Retry" button still forces a fresh attempt.
+    case unsupported
 }
 
 /// Background save-pipeline state for an entry whose media is uploaded and
@@ -224,7 +230,7 @@ extension JournalEntry {
         case .transcribing:
             // Handed off to the server; resolve once it reports terminal state.
             switch transcriptStatus {
-            case .failed: return .failed
+            case .failed, .unsupported: return .failed
             case .ready: return .idle
             case .processing, .none: return .transcribing
             }
@@ -232,7 +238,7 @@ extension JournalEntry {
             // Legacy/settled entries still surface live transcription progress.
             switch transcriptStatus {
             case .processing: return .transcribing
-            case .failed: return .failed
+            case .failed, .unsupported: return .failed
             case .ready, .none: return .idle
             }
         }

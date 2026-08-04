@@ -9,6 +9,16 @@ final class ProxyAIService: AIService {
 
     private let api: ProxyAPIClient
 
+    /// Down-samples + chunks a recording before it is uploaded to
+    /// `/transcribe-clip` so no single request exceeds the server's 25 MB body
+    /// limit (a long voice/video entry used to 413 forever). Injectable for tests.
+    private let audioPreparer: AudioTranscriptionPreparing
+
+    /// Max seconds per transcription chunk. At 16 kHz mono 32 kbps this encodes to
+    /// ~2.4 MB — well under the server's 25 MB `/transcribe-clip` cap, with margin
+    /// for container overhead. Longer recordings are split across several requests.
+    private static let maxTranscriptionChunkSeconds: Double = 600
+
     // ── Model 1 (zero-knowledge) collaborators ────────────────────────────────
     // Optional and injected only by `AppServices.live()`. They are used ONLY on
     // the Model-1 path (`DevFlags.aiModel1` ON) to gather PLAINTEXT context on
@@ -60,9 +70,11 @@ final class ProxyAIService: AIService {
         chats: ChatRepository? = nil,
         dailyReports: DailyReportRepository? = nil,
         coordinator: SemanticIndexCoordinating? = nil,
+        audioPreparer: AudioTranscriptionPreparing = AudioTranscriptionPreparer(),
         now: @escaping () -> Date = Date.init
     ) {
         self.api = api
+        self.audioPreparer = audioPreparer
         self.journals = journals
         self.profiles = profiles
         self.chats = chats
@@ -262,9 +274,45 @@ final class ProxyAIService: AIService {
     }
 
     func transcribeClip(audio: Data, contentType: String) async throws -> String {
+        // Down-sample to 16 kHz mono AAC and split into ≤10-min chunks so no upload
+        // trips the server's 25 MB body limit; transcribe each chunk and join. A
+        // long recording used to be POSTed whole and 413 forever (stalling the
+        // entry). Preparation needs a file, so stage the bytes to a temp file first.
+        let ext = AudioContentType.pathExtension(forMime: contentType)
+        let sourceURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("clip-src-\(UUID().uuidString).\(ext)")
+        try audio.write(to: sourceURL)
+        defer { try? FileManager.default.removeItem(at: sourceURL) }
+
+        let chunks: [URL]
+        do {
+            chunks = try await audioPreparer.prepareChunks(
+                from: sourceURL, maxChunkSeconds: Self.maxTranscriptionChunkSeconds)
+        } catch {
+            // Preparation failed (unreadable/odd container). Fall back to a direct
+            // upload of the original — the server accepts it when it's under the
+            // limit, and rejects it with a terminal 413 (handled by the caller's
+            // `.unsupported` marking) when it genuinely can't be sent.
+            Self.logger.error("audio prepare failed, uploading original: \(error.localizedDescription, privacy: .public)")
+            return try await transcribeChunk(audio, contentType: contentType)
+        }
+        defer { chunks.forEach { try? FileManager.default.removeItem(at: $0) } }
+
+        var parts: [String] = []
+        for url in chunks {
+            let data = try Data(contentsOf: url)
+            let text = try await transcribeChunk(data, contentType: "audio/m4a")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !text.isEmpty { parts.append(text) }
+        }
+        return parts.joined(separator: " ")
+    }
+
+    /// One raw `/transcribe-clip` request for a single prepared chunk.
+    private func transcribeChunk(_ data: Data, contentType: String) async throws -> String {
         let response: TranscriptResponse = try await api.postRaw(
             path: "/v1/ai/transcribe-clip",
-            body: audio,
+            body: data,
             contentType: contentType
         )
         return response.text

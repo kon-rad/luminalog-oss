@@ -13,4 +13,17 @@ enum AudioContentType {
         default: return "audio/m4a"
         }
     }
+
+    /// Inverse of `mime(forPathExtension:)` — the file extension for a MIME type,
+    /// used to name the temp file the transcription preparer reads with
+    /// AVFoundation (which infers format from the container). Unknown types fall
+    /// back to `m4a` (the recorder default).
+    static func pathExtension(forMime mime: String) -> String {
+        switch mime.lowercased() {
+        case "audio/mpeg", "audio/mp3": return "mp3"
+        case "audio/wav", "audio/x-wav", "audio/wave": return "wav"
+        case "audio/m4a", "audio/mp4", "audio/x-m4a": return "m4a"
+        default: return "m4a"
+        }
+    }
 }

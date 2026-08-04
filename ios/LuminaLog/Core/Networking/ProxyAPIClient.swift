@@ -24,6 +24,14 @@ enum ProxyAPIError: LocalizedError {
             return "The server returned an empty response."
         }
     }
+
+    /// HTTP 413 — the request body exceeded the server's limit. This is a
+    /// DETERMINISTIC failure for a given payload (retrying the same bytes always
+    /// fails), so callers treat it as terminal rather than re-uploading forever.
+    var isPayloadTooLarge: Bool {
+        if case .httpError(let statusCode, _) = self, statusCode == 413 { return true }
+        return false
+    }
 }
 
 /// Bounded exponential-backoff retry for transient failures on the raw-bytes
