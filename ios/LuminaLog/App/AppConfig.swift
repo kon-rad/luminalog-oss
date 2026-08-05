@@ -22,6 +22,17 @@ enum AppConfig {
         return raw
     }()
 
+    /// Facebook (Meta) App ID used as Instagram Stories' `source_application`
+    /// (required since Jan 2023). Read from the `FACEBOOK_APP_ID` Info.plist key,
+    /// supplied by `Local.xcconfig`. When absent, Stories sharing falls back to
+    /// opening the story camera instead of injecting the rendered card. Not a
+    /// secret — an FB App ID is a public, client-side value.
+    static let facebookAppID: String? = {
+        guard let raw = Bundle.main.object(forInfoDictionaryKey: "FACEBOOK_APP_ID") as? String,
+              !raw.isEmpty else { return nil }
+        return raw
+    }()
+
     // MARK: - On-device embedding model (increment 1c-D)
 
     /// The downloadable ONNX embedding model asset

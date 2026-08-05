@@ -99,8 +99,11 @@ targets:
         NSPhotoLibraryAddUsageDescription: "Argo can save photos and videos from your journal entries back to your photo library."
         # Lets canOpenURL detect whether each social app is installed so the
         # report-card share bar can deep-link into the app instead of the website.
+        # `instagram-stories` is the Stories pasteboard-share scheme (Meta's
+        # documented "Sharing to Stories" API), distinct from plain `instagram`.
         LSApplicationQueriesSchemes:
           - instagram
+          - instagram-stories
           - twitter
           - linkedin
           - fb
@@ -108,6 +111,10 @@ targets:
         LUMINALOG_API_URL: "https://api.luminalog.com"
         GitCommitHash: "unknown"
         REVENUECAT_API_KEY: $(REVENUECAT_API_KEY)
+        # Facebook (Meta) App ID — Instagram Stories' required `source_application`.
+        # Supplied by Local.xcconfig (public client-side value, not a secret); empty
+        # until set, in which case Stories sharing falls back to the story camera.
+        FACEBOOK_APP_ID: $(FACEBOOK_APP_ID)
         # On-device embedding model download (increment 1c-D):
         # distiluse-base-multilingual-cased-v2, 512-dim, fp16 (~258 MB) — the full
         # sentence-transformers pipeline (transformer → mean-pool → Dense) baked into

@@ -10,3 +10,10 @@
 // Reversed OAuth client id from your GoogleService-Info.plist
 // (the REVERSED_CLIENT_ID key, e.g. com.googleusercontent.apps.1234567890-abc...).
 GOOGLE_REVERSED_CLIENT_ID =
+
+// Facebook (Meta) App ID for "Share to Instagram Stories" (Meta's Sharing-to-Stories
+// API requires it as source_application). Create a free app at developers.facebook.com
+// → My Apps → Create App; the App ID is the numeric id shown in its dashboard. It is a
+// public, client-side value (not a secret). Leave empty to keep the old story-camera
+// fallback (the shared story won't be pre-filled with the rendered card).
+FACEBOOK_APP_ID =

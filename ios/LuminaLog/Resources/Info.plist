@@ -43,13 +43,16 @@
 	<string>3564bb27a5b787b8ce0e415d4961a19c682d6fc70c3dc92341d9c699e11d37f6</string>
 	<key>EMBEDDING_TOKENIZER_URL</key>
 	<string>https://luminalog-models.s3.us-east-1.amazonaws.com/distiluse-multilingual/v1/tokenizer.json</string>
+	<key>FACEBOOK_APP_ID</key>
+	<string>$(FACEBOOK_APP_ID)</string>
 	<key>GitCommitHash</key>
-	<string>7556e61</string>
+	<string>81bb941</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>instagram</string>
+		<string>instagram-stories</string>
 		<string>twitter</string>
 		<string>linkedin</string>
 		<string>fb</string>

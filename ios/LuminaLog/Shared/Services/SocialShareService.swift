@@ -83,6 +83,11 @@ enum SocialPlatform: String, CaseIterable, Identifiable {
 struct SocialShareService {
     var canOpen: (URL) -> Bool = { UIApplication.shared.canOpenURL($0) }
     var open: (URL) -> Void = { UIApplication.shared.open($0) }
+    /// Injected so the Instagram Stories pasteboard hand-off is testable without
+    /// touching the real `UIPasteboard`.
+    var setPasteboardItems: ([[String: Any]], [UIPasteboard.OptionsKey: Any]) -> Void = {
+        UIPasteboard.general.setItems($0, options: $1)
+    }
 
     /// Pure routing: app URL when installed, otherwise the web fallback.
     func resolvedURL(for platform: SocialPlatform, caption: String, isAppInstalled: Bool) -> URL {
@@ -95,5 +100,36 @@ struct SocialShareService {
     func share(_ platform: SocialPlatform, caption: String) {
         let installed = canOpen(platform.appURL(caption: caption))
         open(resolvedURL(for: platform, caption: caption, isAppInstalled: installed))
+    }
+
+    /// Pasteboard key Instagram reads to load a story's full-screen background.
+    static let instagramBackgroundImageKey = "com.instagram.sharedSticker.backgroundImage"
+
+    /// Shares an image straight into the Instagram Stories composer via Instagram's
+    /// documented pasteboard API: the PNG is placed on the pasteboard under
+    /// `com.instagram.sharedSticker.backgroundImage`, then `instagram-stories://share`
+    /// is opened so Instagram loads *that exact image*. This is what makes the shared
+    /// story match the card the app just rendered — the old flow (`instagram://story-camera`)
+    /// only opened the camera, leaving the user to pick a possibly-stale card from Photos.
+    ///
+    /// Requires a Facebook App ID for `source_application` (mandatory since Jan 2023;
+    /// without it Instagram shows "…doesn't currently support sharing to Stories").
+    /// Returns `false` — launching nothing — when the App ID is missing, the image
+    /// can't be encoded, or Instagram isn't installed, so the caller can fall back.
+    @discardableResult
+    func shareToInstagramStories(image: UIImage, facebookAppID: String?) -> Bool {
+        guard let appID = facebookAppID, !appID.isEmpty,
+              let data = image.pngData(),
+              let url = URL(string: "instagram-stories://share?source_application=\(appID)"),
+              canOpen(url) else { return false }
+
+        let items: [[String: Any]] = [[Self.instagramBackgroundImageKey: data]]
+        let options: [UIPasteboard.OptionsKey: Any] = [
+            // Instagram must read the pasteboard within this window; 5 min per Meta's docs.
+            .expirationDate: Date().addingTimeInterval(60 * 5)
+        ]
+        setPasteboardItems(items, options)
+        open(url)
+        return true
     }
 }

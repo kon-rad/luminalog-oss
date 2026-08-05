@@ -72,6 +72,15 @@ struct ReportCardShareBar: View {
 
     private func handlePlatform(_ platform: SocialPlatform) {
         Task {
+            // Instagram Stories: hand Instagram the exact rendered card via its
+            // pasteboard API so the story shows *this* card, not whatever the user
+            // last saved to Photos. Falls through to the generic save-then-open flow
+            // when it can't (no Facebook App ID configured, or Instagram missing).
+            if platform == .instagramStories,
+               service.shareToInstagramStories(image: currentImage(),
+                                               facebookAppID: AppConfig.facebookAppID) {
+                return
+            }
             guard await ensureSaved(currentImage()) else { return }
             service.share(platform, caption: caption)
         }
