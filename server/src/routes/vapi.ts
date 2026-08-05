@@ -563,6 +563,11 @@ export async function webhookHandler(req: Request, res: Response, database = db)
     type: parsed.type, endedReason: parsed.endedReason,
     chatId: parsed.chatId, callId: parsed.callId,
     hasRecording: !!parsed.recordingUrl, transcriptLen: parsed.rawTranscript.length,
+    // Duration is the ONLY way to read back Vapi's dashboard `maxDurationSeconds`
+    // from our side: an `exceeded-max-duration` end reports the cap it hit. It was
+    // previously written to Firestore but ONLY when recording staging succeeded,
+    // so a staging failure (currently 400) also lost the duration.
+    durationSeconds: parsed.durationSeconds,
   }))
 
   // Call ended → evict the in-RAM voice-call session so the DEK leaves memory

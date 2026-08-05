@@ -41,11 +41,15 @@ final class EntryAIGenerator {
     init(
         journals: JournalRepository,
         ai: AIService,
-        backgroundActivity: BackgroundActivityGranting = ImmediateBackgroundActivity()
+        backgroundActivity: BackgroundActivityGranting? = nil
     ) {
         self.journals = journals
         self.ai = ai
-        self.backgroundActivity = backgroundActivity
+        // Construct the default INSIDE this @MainActor init (not as a default argument):
+        // `ImmediateBackgroundActivity` conforms to the @MainActor `BackgroundActivityGranting`,
+        // so evaluating its initializer in a nonisolated default-argument context is illegal
+        // (same pattern JournalDetailViewModel uses for its media/profiles fallbacks).
+        self.backgroundActivity = backgroundActivity ?? ImmediateBackgroundActivity()
     }
 
     /// Ensure `entryID` has summary + insights + prompts, generating them if missing.

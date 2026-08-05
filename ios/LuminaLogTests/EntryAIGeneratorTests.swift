@@ -67,10 +67,10 @@ final class EntryAIGeneratorTests: XCTestCase {
 
         XCTAssertTrue(did)
         XCTAssertEqual(ai.generateEntryAICalls, ["e1"])
-        let stored = try? await journals.fetchAllEntries().first { $0.id == "e1" }
-        XCTAssertEqual(stored??.summary?.text, "fresh summary")
-        XCTAssertEqual(stored??.insights?.text, "fresh insights")
-        XCTAssertEqual(stored??.prompts?.items, ["What next?"])
+        let stored = (try? await journals.fetchAllEntries())?.first { $0.id == "e1" }
+        XCTAssertEqual(stored?.summary?.text, "fresh summary")
+        XCTAssertEqual(stored?.insights?.text, "fresh insights")
+        XCTAssertEqual(stored?.prompts?.items, ["What next?"])
     }
 
     func testSkipsEmptyContent() async {
