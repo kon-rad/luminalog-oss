@@ -28,6 +28,15 @@ const schema = z.object({
   // empty `content` (all output in reasoning_content) → do NOT use it here.
   // Other available slugs (verified 200): gemini-3.1-pro-preview (not open source).
   MORPHEUS_CHAT_MODEL: z.string().default('deepseek-v4-flash'),
+  // Ordered, comma-separated FALLBACK slugs tried (in order) after MORPHEUS_CHAT_MODEL
+  // exhausts its per-request retries on a transient/503. Morpheus reserves capacity
+  // for "priority models", so the primary slug can 503 while another routable slug
+  // still serves — the fallback chain keeps entry-AI generation working during those
+  // windows WITHOUT ever leaving the private Morpheus TEE (no cross-provider fallback;
+  // journal content never routes to Together). Same slug rules as MORPHEUS_CHAT_MODEL:
+  // routable lowercase-hyphen slugs only, and NEVER a reasoning model like
+  // `deepseek-v4-pro` (empty `content`). Default `glm-5.2` (open-weights, verified 200).
+  MORPHEUS_CHAT_MODEL_FALLBACKS: z.string().default('glm-5.2'),
   // ── LIVE VOICE call model routing (Vapi custom-LLM proxy) ONLY ──────────────
   // Voice is latency-critical and has a HARD deadline: Vapi tears the call down as
   // `custom-llm-llm-failed` if a turn is too slow. It therefore gets its own

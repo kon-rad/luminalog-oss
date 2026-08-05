@@ -1,4 +1,4 @@
-import { chatCompletion, activeChatModel } from './aiClient'
+import { chatCompletion, activeChatModel, chatModelChain } from './aiClient'
 import { PROMPTS } from './prompts'
 import { resolveSummaryConfig, SummaryConfig } from '../config/summaryDefaults'
 
@@ -70,11 +70,18 @@ export function parseEntryAI(raw: string): EntryAI | null {
 }
 
 /**
- * Generates the entry's summary + insights + 5 prompts in ONE Together AI call
- * (STRICT JSON). Summary length/tone follow the user's resolved summaryConfig,
- * exactly like `generateSummaryText`. Throws on a non-ok completion or an
- * unparseable response (no valid JSON / empty summary), so callers keep the
- * entry's content even when the AI step fails.
+ * Generates the entry's summary + insights + 5 prompts in ONE LLM call (STRICT
+ * JSON). Summary length/tone follow the user's resolved summaryConfig, exactly like
+ * `generateSummaryText`.
+ *
+ * RESILIENCE: walks the provider's model chain (`chatModelChain()` — the primary
+ * Morpheus slug followed by its configured fallbacks; a single model for Together).
+ * Morpheus per-model priority-gating means the primary can 503 while another slug
+ * still serves, so a non-ok completion OR an unparseable/empty result advances to
+ * the next model instead of failing outright. The response is stamped with the model
+ * that actually produced it. Throws only when EVERY model in the chain fails, so
+ * callers keep the entry's content even when the AI step can't complete. All models
+ * are on the same private provider — there is no cross-provider fallback.
  */
 export async function generateEntryAI(params: {
   type: string
@@ -82,28 +89,45 @@ export async function generateEntryAI(params: {
   userConfig: Partial<SummaryConfig> | undefined | null
 }): Promise<EntryAI & { model: string; generatedAt: string }> {
   const cfg = resolveSummaryConfig(params.userConfig)
-  const generate = async (): Promise<EntryAI | null> => {
-    const res = await chatCompletion(
-      [
-        { role: 'system', content: PROMPTS.entryAI(params.type, cfg) },
-        { role: 'user', content: params.content },
-      ],
-      { response_format: { type: 'json_object' } },
-    )
-    if (!res.ok) throw new Error(`AI error: ${res.status}`)
-    const data = (await res.json()) as { choices: Array<{ message: { content: string } }> }
-    return parseEntryAI(data.choices[0]?.message?.content ?? '')
+
+  // One full attempt against a single model, including the promptless double-try.
+  const generateWith = async (model: string): Promise<EntryAI | null> => {
+    const generate = async (): Promise<EntryAI | null> => {
+      const res = await chatCompletion(
+        [
+          { role: 'system', content: PROMPTS.entryAI(params.type, cfg) },
+          { role: 'user', content: params.content },
+        ],
+        { model, response_format: { type: 'json_object' } },
+      )
+      if (!res.ok) throw new Error(`AI error: ${res.status}`)
+      const data = (await res.json()) as { choices: Array<{ message: { content: string } }> }
+      return parseEntryAI(data.choices[0]?.message?.content ?? '')
+    }
+    let parsed = await generate()
+    // Retry once when the model returns a valid summary but no usable prompts —
+    // otherwise the entry persists with an empty Prompts tab (ADR-0081). Mirrors
+    // the daily-prompt double-try. If the retry is still promptless we keep the
+    // first result (summary + insights survive) rather than failing this model.
+    if (parsed && parsed.prompts.length === 0) {
+      const retry = await generate()
+      if (retry && retry.prompts.length > 0) parsed = retry
+    }
+    return parsed
   }
 
-  let parsed = await generate()
-  // Retry once when the model returns a valid summary but no usable prompts —
-  // otherwise the entry persists with an empty Prompts tab (ADR-0081). Mirrors
-  // the daily-prompt double-try. If the retry is still promptless we keep the
-  // first result (summary + insights survive) rather than failing the whole call.
-  if (parsed && parsed.prompts.length === 0) {
-    const retry = await generate()
-    if (retry && retry.prompts.length > 0) parsed = retry
+  const chain = chatModelChain()
+  let lastErr: unknown = new Error('Entry AI: unparseable response')
+  for (const model of chain) {
+    try {
+      const parsed = await generateWith(model)
+      if (parsed) return { ...parsed, model, generatedAt: new Date().toISOString() }
+      // parsed === null (unparseable / empty summary): try the next model.
+    } catch (err) {
+      // Non-ok completion (e.g. a 503 that outlived its per-request retries):
+      // try the next model in the chain.
+      lastErr = err
+    }
   }
-  if (!parsed) throw new Error('Entry AI: unparseable response')
-  return { ...parsed, model: activeChatModel(), generatedAt: new Date().toISOString() }
+  throw lastErr
 }

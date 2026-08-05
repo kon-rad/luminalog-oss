@@ -68,6 +68,31 @@ export function activeChatModel(): string {
 }
 
 /**
+ * Ordered, de-duped list of chat models to try for a generation, primary first.
+ *
+ * For Morpheus this is `[MORPHEUS_CHAT_MODEL, ...MORPHEUS_CHAT_MODEL_FALLBACKS]`:
+ * Morpheus per-model priority-gating means the primary slug can 503 while another
+ * routable slug still serves, so the entry-AI generator walks this chain, moving to
+ * the next slug only when the current one exhausts its retries. It is Morpheus-only
+ * by design — there is NO cross-provider fallback, so journal content never leaves
+ * the private gateway. For Together (or any non-Morpheus provider) it is just the
+ * single configured model (no benefit / privacy reasons).
+ */
+export function chatModelChain(): string[] {
+  const primary = resolveProviders().primary
+  if (primary.name !== 'morpheus') return [primary.chatModel]
+  const fallbacks = (config.MORPHEUS_CHAT_MODEL_FALLBACKS ?? '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+  const chain: string[] = []
+  for (const model of [primary.chatModel, ...fallbacks]) {
+    if (!chain.includes(model)) chain.push(model)
+  }
+  return chain
+}
+
+/**
  * The provider + model for a LIVE VOICE turn. Selected by `VOICE_AI_PROVIDER`,
  * which is INDEPENDENT of the global `AI_PROVIDER`: voice has a hard latency
  * deadline (Vapi drops the call as `custom-llm-llm-failed` on a slow turn), so it

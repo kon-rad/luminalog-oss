@@ -17,6 +17,7 @@ import { config } from '../config'
 import {
   fetchWithRetry,
   chatCompletion,
+  chatModelChain,
   resolveProviders,
   transcribeAudio,
   transcribeWithDeepgram,
@@ -225,7 +226,51 @@ function resetProviderConfig() {
   c.MORPHEUS_API_KEY = undefined
   c.MORPHEUS_BASE_URL = undefined
   c.MORPHEUS_CHAT_MODEL = undefined
+  c.MORPHEUS_CHAT_MODEL_FALLBACKS = undefined
 }
+
+// ── Morpheus model fallback chain (resilience) ───────────────────────────────
+// Morpheus per-model priority-gating means the primary slug can 503 while another
+// routable slug still serves. `chatModelChain()` is the ordered, de-duped list the
+// entry-AI generator walks (primary first, then fallbacks) — all Morpheus slugs, so
+// journal content never leaves the private gateway.
+describe('chatModelChain', () => {
+  beforeEach(resetProviderConfig)
+  afterEach(resetProviderConfig)
+
+  it('returns only the single model for the together provider (no fallback)', () => {
+    // AI_PROVIDER unset → together. No fallback chain regardless of the Morpheus var.
+    ;(config as any).MORPHEUS_CHAT_MODEL_FALLBACKS = 'glm-5.2'
+    const chain = chatModelChain()
+    expect(chain).toEqual([resolveProviders().primary.chatModel])
+    expect(chain).toHaveLength(1)
+  })
+
+  it('prepends the primary Morpheus slug then the parsed fallbacks', () => {
+    config.AI_PROVIDER = 'morpheus'
+    config.MORPHEUS_CHAT_MODEL = 'deepseek-v4-flash'
+    ;(config as any).MORPHEUS_CHAT_MODEL_FALLBACKS = 'glm-5.2, gemini-3.1-pro-preview'
+    expect(chatModelChain()).toEqual([
+      'deepseek-v4-flash',
+      'glm-5.2',
+      'gemini-3.1-pro-preview',
+    ])
+  })
+
+  it('trims, drops blanks, and de-dupes (incl. a fallback equal to the primary)', () => {
+    config.AI_PROVIDER = 'morpheus'
+    config.MORPHEUS_CHAT_MODEL = 'p'
+    ;(config as any).MORPHEUS_CHAT_MODEL_FALLBACKS = ' a , b ,a, , p '
+    expect(chatModelChain()).toEqual(['p', 'a', 'b'])
+  })
+
+  it('is just the primary when there are no fallbacks configured', () => {
+    config.AI_PROVIDER = 'morpheus'
+    config.MORPHEUS_CHAT_MODEL = 'deepseek-v4-flash'
+    ;(config as any).MORPHEUS_CHAT_MODEL_FALLBACKS = ''
+    expect(chatModelChain()).toEqual(['deepseek-v4-flash'])
+  })
+})
 
 describe('resolveProviders', () => {
   beforeEach(resetProviderConfig)
