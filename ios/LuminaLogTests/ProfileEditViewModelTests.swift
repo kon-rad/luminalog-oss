@@ -50,6 +50,7 @@ final class ProfileEditViewModelTests: XCTestCase {
         private(set) var uploads: [(kind: MediaKind, journalId: String)] = []
         private(set) var viewURLKeys: [String] = []
         private(set) var localFileURLKeys: [String] = []
+        private(set) var seededKeys: [String] = []
         var shouldFail = false
         var s3Key = "profile/avatar-1.jpg"
 
@@ -58,6 +59,7 @@ final class ProfileEditViewModelTests: XCTestCase {
             uploads.append((kind, journalId))
             return MediaItem(s3Key: s3Key, kind: kind)
         }
+        func cacheLocalOriginal(_ fileURL: URL, for s3Key: String) async { seededKeys.append(s3Key) }
         func prepareUpload(fileURL: URL, kind: MediaKind, journalId: String) async throws -> PreparedUpload {
             PreparedUpload(encryptedFileURL: fileURL, s3Key: s3Key, mediaItem: MediaItem(s3Key: s3Key, kind: kind))
         }
@@ -177,6 +179,20 @@ final class ProfileEditViewModelTests: XCTestCase {
         XCTAssertTrue(media.viewURLKeys.isEmpty,
                       "Avatar ciphertext must not be handed to AsyncImage via viewURL")
         XCTAssertEqual(vm.avatarURL?.path, "/decrypted/users/u/journals/profile/image-1.jpg")
+    }
+
+    /// Regression: a freshly-picked avatar must be seeded into the display
+    /// cache at upload time (mirroring the voice/video instant-display path)
+    /// so it resolves from a LOCAL plaintext file. Without the seed, display
+    /// depends entirely on an S3 download + decrypt round-trip that shows
+    /// nothing while it runs and fails silently — so the photo never appears.
+    @MainActor
+    func testUploadAvatarSeedsDisplayCacheWithPlaintextOriginal() async {
+        let (vm, _, media) = await makeStarted()
+        media.s3Key = "users/u/journals/profile/image-7.jpg"
+        await vm.uploadAvatar(imageData: Data("jpeg".utf8))
+        XCTAssertEqual(media.seededKeys, ["users/u/journals/profile/image-7.jpg"],
+                       "uploadAvatar must seed the display cache with the plaintext original")
     }
 
     // MARK: - Dirty tracking

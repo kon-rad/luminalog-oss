@@ -97,7 +97,7 @@ export const GALLERY_IMAGES: GalleryImage[] = [
     room: "arrival",
     title: "The invitation",
     caption: "The poster that started it: a retro-futurist mash-up of the Petronas Towers, KL Tower and the Sasana Kijang building under a blood-orange sun, with a flying car thrown in for good measure.",
-    text: "CRYPTO NATIVES — TRIP TO BANK AND ART MUSEUM [ESSAY CONTEST]. Thursday 7/30, 11:00 AM, Kuala Lumpur, Malaysia Blockchain Week 2026. LuminaLog.com — Private AI journaling companion & proof of human on Base main net.",
+    text: "CRYPTO NATIVES — TRIP TO BANK AND ART MUSEUM [ESSAY CONTEST]. Thursday 7/30, 11:00 AM, Kuala Lumpur, Malaysia Blockchain Week 2026. myargoquest.com — Private AI journaling companion & proof of human on Base main net.",
     topics: ["essay-contest", "sasana-kijang"],
     width: 1170,
     height: 1160,

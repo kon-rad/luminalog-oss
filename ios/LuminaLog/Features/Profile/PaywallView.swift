@@ -115,15 +115,19 @@ struct SubscriptionPaywall: View {
                 if !isDismissible, let onSignOut {
                     Button { onSignOut() } label: {
                         Text("Sign out")
-                            .font(.captionText)
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.textSecondary)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Sign out")
+                } else {
+                    // Dismissible sheet: the hosted paywall already renders the
+                    // required Terms/Privacy links, so show the native legal
+                    // footer only where the hosted template's footer isn't relied on.
+                    PaywallLegalFooter()
                 }
-                PaywallLegalFooter()
             }
-            .padding(.bottom, Spacing.m)
+            .padding(.bottom, Spacing.xs)
         }
     }
 }
@@ -137,9 +141,9 @@ struct PaywallLegalFooter: View {
 
     var body: some View {
         HStack(spacing: Spacing.s) {
-            link("Terms of Use", "https://luminalog.com/terms")
+            link("Terms of Use", "https://myargoquest.com/terms")
             Text("·").foregroundStyle(Color.textSecondary.opacity(0.5))
-            link("Privacy Policy", "https://luminalog.com/privacy")
+            link("Privacy Policy", "https://myargoquest.com/privacy")
         }
         .font(.caption2)
         .padding(.vertical, 6)

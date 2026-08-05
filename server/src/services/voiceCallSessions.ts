@@ -20,6 +20,17 @@ export interface VoiceCallSession {
   focalEntry?: string
   now?: string
   expiresAt: number
+  /**
+   * DIAGNOSTIC (voice cut-off investigation). Number of assistant CONTENT
+   * CHARACTERS the proxy streamed on the previous turn of this call. Compared
+   * against the length of the assistant message Vapi echoes back in the next
+   * turn's history: if Vapi's copy is SHORTER, the spoken turn was cut short
+   * (barge-in / TTS abort) rather than the model stopping on its own. Lengths
+   * only — never the text itself.
+   */
+  lastStreamedChars?: number
+  /** DIAGNOSTIC: 1-based turn counter within this call, for log correlation. */
+  turnSeq?: number
 }
 
 export interface CreateSessionData {

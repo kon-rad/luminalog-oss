@@ -286,3 +286,75 @@ describe('chatCompletion (single provider, no fallback)', () => {
     await expect(chatCompletion([{ role: 'user', content: 'hi' }])).rejects.toThrow(/no API key/)
   })
 })
+
+// ── voice provider routing (ADR-0109) ────────────────────────────────────────
+
+import { resolveVoiceProvider } from './aiClient'
+
+describe('resolveVoiceProvider', () => {
+  afterEach(() => {
+    delete (config as any).VOICE_AI_PROVIDER
+    delete (config as any).VOICE_CHAT_MODEL
+    delete (config as any).AI_PROVIDER
+  })
+
+  it('defaults to Together with the fast voice model, even when the global provider is Morpheus', () => {
+    // The whole point of the split: summaries/text chat stay on Morpheus while the
+    // latency-critical voice turn runs somewhere that can actually serve it.
+    ;(config as any).AI_PROVIDER = 'morpheus'
+    const p = resolveVoiceProvider()
+    expect(p.name).toBe('together')
+    expect(p.chatModel).toBe('meta-llama/Llama-3.3-70B-Instruct-Turbo')
+  })
+
+  it('switches to Morpheus by env alone, with a routable non-reasoning default slug', () => {
+    ;(config as any).VOICE_AI_PROVIDER = 'morpheus'
+    const p = resolveVoiceProvider()
+    expect(p.name).toBe('morpheus')
+    // NOT deepseek-v4-pro: it is a reasoning model whose text lands in
+    // `reasoning_content`, so it would stream an empty reply to Vapi.
+    expect(p.chatModel).toBe('deepseek-v4-flash')
+    expect(p.chatModel).not.toBe('deepseek-v4-pro')
+  })
+
+  it('lets VOICE_CHAT_MODEL override the chosen provider default', () => {
+    ;(config as any).VOICE_AI_PROVIDER = 'morpheus'
+    ;(config as any).VOICE_CHAT_MODEL = 'some-better-slug'
+    expect(resolveVoiceProvider().chatModel).toBe('some-better-slug')
+  })
+
+  it('does not disturb the global provider resolution', () => {
+    ;(config as any).AI_PROVIDER = 'morpheus'
+    ;(config as any).VOICE_AI_PROVIDER = 'together'
+    resolveVoiceProvider()
+    expect(resolveProviders().primary.name).toBe('morpheus')
+  })
+})
+
+describe('chatCompletion provider + retry overrides', () => {
+  afterEach(() => { vi.unstubAllGlobals(); delete (config as any).AI_PROVIDER })
+
+  it('uses the passed provider and forwards the retry budget', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init: any) => resp(200))
+    vi.stubGlobal('fetch', fetchMock)
+    await chatCompletion([{ role: 'user', content: 'hi' }], {
+      provider: { name: 'together', baseUrl: 'https://example.test/v1', apiKey: 'kk', chatModel: 'm', embeddingModel: 'e' },
+      retry: { attempts: 2, timeoutMs: 6_000, sleep: noSleep },
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][0]).toBe('https://example.test/v1/chat/completions')
+    expect(JSON.parse((fetchMock.mock.calls[0][1] as any).body).model).toBe('m')
+  })
+
+  it('stops after the voice attempt budget instead of the default 3', async () => {
+    const fetchMock = vi.fn(async () => resp(503))
+    vi.stubGlobal('fetch', fetchMock)
+    const res = await chatCompletion([{ role: 'user', content: 'hi' }], {
+      provider: { name: 'together', baseUrl: 'https://example.test/v1', apiKey: 'kk', chatModel: 'm', embeddingModel: 'e' },
+      retry: { attempts: 2, timeoutMs: 6_000, sleep: noSleep },
+    })
+    // 2 attempts, not 3 — a voice turn cannot afford the background budget.
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(res.status).toBe(503)
+  })
+})

@@ -40,7 +40,7 @@ export default function Sidebar() {
       {/* Wordmark */}
       <Link href="/home" className="flex items-center gap-2.5 px-6 pt-7">
         <span style={{ width: 30, height: 30, borderRadius: 9, overflow: 'hidden', display: 'block' }}>
-          <Image src="/logo.svg" width={30} height={30} alt="Argo" />
+          <Image src="/logo.png" width={30} height={30} alt="Argo" />
         </span>
         <span className="serif text-lg font-semibold" style={{ color: 'var(--text)', letterSpacing: '-0.02em' }}>
           Argo

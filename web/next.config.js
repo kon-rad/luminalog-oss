@@ -8,6 +8,13 @@ const nextConfig = {
     // required at runtime from node_modules (bundling their .node binaries fails).
     serverComponentsExternalPackages: ['onnxruntime-node', '@huggingface/transformers'],
   },
+  async redirects() {
+    // The AI Power Users course moved under /courses. Keep old links working.
+    return [
+      { source: '/ai-power-users', destination: '/courses/ai-power-users', permanent: true },
+      { source: '/ai-power-users/:path*', destination: '/courses/ai-power-users/:path*', permanent: true },
+    ]
+  },
 }
 
 module.exports = nextConfig

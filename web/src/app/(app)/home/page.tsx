@@ -268,7 +268,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col gap-8">
       <header>
-        <p className="eyebrow">Luminalog</p>
+        <p className="eyebrow">Argo</p>
         <h1
           className="serif mt-1 text-[28px] font-semibold leading-tight"
           style={{ color: 'var(--text)' }}

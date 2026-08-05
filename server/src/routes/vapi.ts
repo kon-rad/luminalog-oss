@@ -9,7 +9,7 @@ import { config } from '../config'
 import { createSession, getSession, evictByChatId } from '../services/voiceCallSessions'
 import { decryptField } from '../crypto/fieldCipher'
 import { searchChunks } from '../services/ragStore'
-import { chatCompletion } from '../services/aiClient'
+import { chatCompletion, resolveVoiceProvider } from '../services/aiClient'
 
 export const vapiRouter = Router()
 
@@ -126,12 +126,56 @@ interface OpenAIMessage { role?: string; content?: string }
 // no longer blocks the response. ADR-0093.
 const RAG_BUDGET_MS = 1500
 
+// Voice-turn fetch budget. The DEFAULT budget in aiClient (3 attempts × 30s) is
+// sized for background work and is actively harmful here: against a hung upstream
+// it blocks a voice turn for up to 90.75s, so Vapi has long since killed the call
+// as `custom-llm-llm-failed`. A voice turn has a hard deadline (~20s at Vapi), so
+// bound it well inside that: 2 attempts × 6s + 150ms backoff ≈ 12.15s worst case,
+// while still leaving ~3x headroom over the measured 2.06s p100 TTFB. ADR-0109.
+const VOICE_FETCH_TIMEOUT_MS = 6_000
+const VOICE_FETCH_ATTEMPTS = 2
+const VOICE_FETCH_BACKOFF_MS = 150
+
+// Mid-stream idle ceiling. `fetchWithRetry`'s timeout only bounds time-to-HEADERS;
+// once the upstream responds it is cleared, so a provider that sends headers and
+// then stalls would leave `reader.read()` awaiting forever and the turn would never
+// complete. Cut the stream loose after this long with no bytes. ADR-0109.
+const VOICE_STREAM_IDLE_MS = 8_000
+
 /** Resolve to `p`, or to `fallback` if `p` hasn't settled within `ms`. */
 function withBudget<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
   return Promise.race([
     p.catch(() => fallback),
     new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms)),
   ])
+}
+
+// Conversational filler that carries no retrieval signal. Running the full RAG
+// step (embed → Chroma → Firestore → decrypt) for "yeah" spends up to RAG_BUDGET_MS
+// of dead air to retrieve nothing useful, on a turn where the user most expects an
+// instant reply.
+const BACKCHANNEL_WORDS = new Set([
+  'yeah', 'yes', 'yep', 'yup', 'no', 'nope', 'ok', 'okay', 'sure', 'right',
+  'mhm', 'mm', 'mmhmm', 'uh', 'uhhuh', 'huh', 'oh', 'ah', 'hm', 'hmm', 'um', 'er',
+  'thanks', 'thank', 'you', 'cool', 'nice', 'wow', 'true', 'exactly', 'totally',
+  'i', 'see', 'got', 'it', 'good', 'great', 'fine', 'well', 'so', 'and',
+])
+
+/**
+ * True when the user's turn is pure backchannel ("yeah", "mhm", "got it") and so
+ * cannot usefully drive semantic retrieval. Deliberately CONSERVATIVE: it only
+ * fires on turns of ≤3 words where EVERY word is filler, so a short but real
+ * question ("what about mom?", "why though?") still gets full RAG. ADR-0109.
+ */
+export function isBackchannel(text: string): boolean {
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z\s']/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+  if (words.length === 0) return true
+  if (words.length > 3) return false
+  return words.every(w => BACKCHANNEL_WORDS.has(w.replace(/'/g, '')))
 }
 
 /**
@@ -187,6 +231,50 @@ async function buildPastRagContext(
   }
 }
 
+/**
+ * DIAGNOSTIC (voice cut-off investigation). Meters the OpenAI SSE stream we relay
+ * to Vapi WITHOUT altering or storing it: counts assistant content characters and
+ * delta chunks, and captures the terminal `finish_reason`. It never logs or
+ * retains the text — only lengths — so it is safe on the zero-knowledge path.
+ *
+ * Why: our logs previously recorded only raw BYTES relayed, which conflates SSE
+ * framing overhead (~200-280 bytes/token) with actual spoken content, and could
+ * not distinguish "the model stopped early" (`finish_reason: length`) from "the
+ * model finished but the speech was cut".
+ */
+class SseContentMeter {
+  private decoder = new TextDecoder()
+  private buf = ''
+  chars = 0
+  chunks = 0
+  finish: string | null = null
+
+  push(bytes: Uint8Array): void {
+    this.buf += this.decoder.decode(bytes, { stream: true })
+    let idx: number
+    while ((idx = this.buf.indexOf('\n')) !== -1) {
+      const line = this.buf.slice(0, idx).trim()
+      this.buf = this.buf.slice(idx + 1)
+      if (!line.startsWith('data:')) continue
+      const payload = line.slice(5).trim()
+      if (!payload || payload === '[DONE]') continue
+      try {
+        const choice = JSON.parse(payload)?.choices?.[0]
+        const content = choice?.delta?.content
+        if (typeof content === 'string' && content.length > 0) {
+          this.chars += content.length
+          this.chunks++
+        }
+        if (choice?.finish_reason) this.finish = String(choice.finish_reason)
+      } catch {
+        // Keep-alive comment or a payload we don't recognize — metering only.
+      }
+    }
+    // A stream that never emits a newline must not grow the buffer unbounded.
+    if (this.buf.length > 64 * 1024) this.buf = ''
+  }
+}
+
 // One OpenAI-shaped streaming chunk carrying a spoken line, followed by [DONE].
 // Used as the graceful fallback when Morpheus is unavailable (no cross-provider
 // fallback — strict privacy). Written directly to the SSE response.
@@ -216,19 +304,48 @@ export async function llmProxyHandler(req: Request, res: Response, database = db
       return
     }
 
+    const turnStart = Date.now()
     const inbound: OpenAIMessage[] = Array.isArray(req.body?.messages) ? req.body.messages : []
     // The RAG query is the latest user turn.
     const lastUser = [...inbound].reverse().find(m => m?.role === 'user')
     const query = String(lastUser?.content ?? '')
 
+    // DIAGNOSTIC (voice cut-off investigation). Vapi replays the conversation so
+    // far on every turn, and the assistant messages it replays are what was
+    // actually SPOKEN. So the previous turn's spoken length arrives here, and we
+    // can compare it against what we streamed for that turn: a SHORTER echo means
+    // the speech was cut mid-turn (barge-in / TTS abort), a matching one means the
+    // audio played through and any cut-off lives further downstream (client audio).
+    // Lengths only — no content is logged. See the ADR for this investigation.
+    const chatTag = session.chatId.slice(0, 8)
+    const seq = (session.turnSeq = (session.turnSeq ?? 0) + 1)
+    const lastAssistant = [...inbound].reverse().find(m => m?.role === 'assistant')
+    const echoedChars = String(lastAssistant?.content ?? '').length
+    const prevStreamedChars = session.lastStreamedChars ?? -1
+    const cutBy =
+      prevStreamedChars > 0 && echoedChars > 0 ? prevStreamedChars - echoedChars : 0
+    console.log(
+      `[vapi/llm] turn in chat=${chatTag} seq=${seq} msgs=${inbound.length} ` +
+        `echoedAsstChars=${echoedChars} prevStreamedChars=${prevStreamedChars}` +
+        (cutBy > 0 ? ` SPEECH_CUT_BY=${cutBy}` : ''),
+    )
+
     // Bound the RAG step so a slow embed/Chroma/Firestore turn can't stall the
     // reply past Vapi's custom-LLM timeout (which shows up as an instant "Call
     // ended" on-device). Fail-soft to no context on timeout. ADR-0093.
-    const ragContext = await withBudget(
-      buildPastRagContext(session.uid, session.dek, query, database),
-      RAG_BUDGET_MS,
-      '',
-    )
+    // Pure backchannel ("yeah", "mhm") skips retrieval entirely — it can't produce
+    // a useful query, so paying up to RAG_BUDGET_MS for it is pure dead air on the
+    // turn where the user most expects an instant reply. ADR-0109.
+    const skipRag = isBackchannel(query)
+    const ragStart = Date.now()
+    const ragContext = skipRag
+      ? ''
+      : await withBudget(
+          buildPastRagContext(session.uid, session.dek, query, database),
+          RAG_BUDGET_MS,
+          '',
+        )
+    const ragMs = Date.now() - ragStart
 
     const systemPrompt = PROMPTS.voiceChat(
       session.name,
@@ -246,14 +363,27 @@ export async function llmProxyHandler(req: Request, res: Response, database = db
       .map(m => ({ role: String(m.role), content: String(m.content ?? '') }))
     const messages = [{ role: 'system', content: systemPrompt }, ...history]
 
+    // Voice is latency-critical and picks its provider independently of the global
+    // AI_PROVIDER (ADR-0109): a slow or unavailable model here is a DROPPED CALL.
+    const provider = resolveVoiceProvider()
+    const llmStart = Date.now()
     let aiRes: Awaited<ReturnType<typeof chatCompletion>>
     try {
-      // Voice is latency-critical: use the fast, low-tail-latency voice model
-      // (config.VOICE_CHAT_MODEL) rather than the global reflective-quality model,
-      // so a slow turn doesn't make Vapi drop the call. ADR-0093.
-      aiRes = await chatCompletion(messages, { stream: true, model: config.VOICE_CHAT_MODEL })
+      aiRes = await chatCompletion(messages, {
+        stream: true,
+        provider,
+        retry: {
+          attempts: VOICE_FETCH_ATTEMPTS,
+          timeoutMs: VOICE_FETCH_TIMEOUT_MS,
+          baseBackoffMs: VOICE_FETCH_BACKOFF_MS,
+        },
+      })
     } catch (err) {
-      console.error('[vapi/llm] chatCompletion threw', err)
+      console.error(
+        `[vapi/llm] turn FAILED provider=${provider.name} model=${provider.chatModel} ` +
+          `ragMs=${ragMs}${skipRag ? '(skipped)' : ''} llmMs=${Date.now() - llmStart} threw`,
+        err,
+      )
       res.setHeader('Content-Type', 'text/event-stream')
       res.setHeader('Cache-Control', 'no-cache')
       res.setHeader('Connection', 'keep-alive')
@@ -261,30 +391,84 @@ export async function llmProxyHandler(req: Request, res: Response, database = db
       writeGracefulCompletion(res, "Sorry, I'm having a moment — could you say that again?")
       return
     }
+    const ttfbMs = Date.now() - llmStart
 
     res.setHeader('Content-Type', 'text/event-stream')
     res.setHeader('Cache-Control', 'no-cache')
     res.setHeader('Connection', 'keep-alive')
     res.flushHeaders()
 
-    // Pre-stream Morpheus failure → fail-soft, NO fallback provider.
+    // Pre-stream upstream failure → fail-soft, NO cross-provider retry mid-call.
+    // Log the BODY, not just the status: a bare "503" hid a total model outage
+    // ("capacity is reserved for priority models") for weeks. ADR-0109.
     if (!aiRes.ok || !aiRes.body) {
-      console.error('[vapi/llm] Morpheus error', aiRes.status)
+      const detail = await aiRes.text().catch(() => '<unreadable>')
+      console.error(
+        `[vapi/llm] turn FAILED provider=${provider.name} model=${provider.chatModel} ` +
+          `status=${aiRes.status} ragMs=${ragMs}${skipRag ? '(skipped)' : ''} ttfbMs=${ttfbMs} ` +
+          `body=${detail.slice(0, 300)}`,
+      )
       writeGracefulCompletion(res, "Sorry, I'm having a moment — could you say that again?")
       return
     }
+
+    // Per-turn latency telemetry. Previously the proxy logged ONLY errors, so there
+    // was no way to see turn latency creeping toward Vapi's deadline. ADR-0109.
+    console.log(
+      `[vapi/llm] turn ok chat=${chatTag} seq=${seq} provider=${provider.name} model=${provider.chatModel} ` +
+        `ragMs=${ragMs}${skipRag ? '(skipped)' : ''} ttfbMs=${ttfbMs} preLlmMs=${llmStart - turnStart}`,
+    )
 
     // Pass the upstream OpenAI SSE bytes through verbatim. Vapi's custom-LLM
     // expects the standard `data: {choices:[{delta:{content}}]}` + `[DONE]` shape,
     // which Morpheus already emits — so we do NOT reshape.
     const reader = (aiRes.body as any).getReader()
+    const meter = new SseContentMeter()
+    let bytes = 0
     try {
       while (true) {
-        const { done, value } = await reader.read()
+        // Race each read against the idle ceiling. Without this a provider that
+        // sends headers then stalls parks this await forever, the response never
+        // ends, and the turn hangs until Vapi kills the call. ADR-0109.
+        const IDLE = Symbol('idle')
+        let idleTimer: NodeJS.Timeout | undefined
+        const next = await Promise.race([
+          reader.read(),
+          new Promise<typeof IDLE>(resolve => {
+            idleTimer = setTimeout(() => resolve(IDLE), VOICE_STREAM_IDLE_MS)
+          }),
+        ]).finally(() => clearTimeout(idleTimer))
+
+        if (next === IDLE) {
+          console.error(
+            `[vapi/llm] stream idle >${VOICE_STREAM_IDLE_MS}ms — cutting turn loose ` +
+              `provider=${provider.name} model=${provider.chatModel} bytes=${bytes}`,
+          )
+          // Cancel upstream so the socket isn't leaked, then close cleanly. If we
+          // never relayed anything, give Vapi a spoken line rather than silence.
+          await reader.cancel().catch(() => {})
+          session.lastStreamedChars = meter.chars
+          if (bytes === 0) writeGracefulCompletion(res, "Sorry, I'm having a moment — could you say that again?")
+          else { res.write('data: [DONE]\n\n'); res.end() }
+          return
+        }
+
+        const { done, value } = next as { done: boolean; value?: Uint8Array }
         if (done) break
-        if (value) res.write(Buffer.from(value as Uint8Array))
+        if (value) {
+          bytes += value.byteLength
+          // Relay VERBATIM first; metering never touches what Vapi receives.
+          res.write(Buffer.from(value))
+          meter.push(value)
+        }
       }
       res.end()
+      session.lastStreamedChars = meter.chars
+      console.log(
+        `[vapi/llm] turn streamed chat=${chatTag} seq=${seq} bytes=${bytes} ` +
+          `contentChars=${meter.chars} deltas=${meter.chunks} finish=${meter.finish ?? 'none'} ` +
+          `totalMs=${Date.now() - turnStart}`,
+      )
     } catch (err) {
       // Mid-stream failure after headers are already sent: end gracefully.
       console.error('[vapi/llm] stream relay failed', err)

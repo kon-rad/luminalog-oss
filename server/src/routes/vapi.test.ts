@@ -10,7 +10,9 @@ vi.mock('../config', () => ({
     VAPI_PUBLIC_KEY: 'pk_test',
     VAPI_ASSISTANT_ID: 'asst_test',
     VAPI_WEBHOOK_SECRET: 'secret_test',
-    VOICE_CHAT_MODEL: 'Gemini 3.5 Flash',
+    // Voice model routing now resolves via the mocked `resolveVoiceProvider`
+    // below, not by reading config directly (ADR-0109).
+    VOICE_AI_PROVIDER: 'together',
   },
 }))
 vi.mock('../middleware/firebaseAuth', () => ({
@@ -19,7 +21,18 @@ vi.mock('../middleware/firebaseAuth', () => ({
 }))
 vi.mock('../services/prompts', () => ({ PROMPTS: { voiceChat: vi.fn(() => 'VOICE_SYSTEM_PROMPT') } }))
 vi.mock('../services/ragStore', () => ({ searchChunks: vi.fn(async () => []) }))
-vi.mock('../services/aiClient', () => ({ chatCompletion: vi.fn() }))
+vi.mock('../services/aiClient', () => ({
+  chatCompletion: vi.fn(),
+  // The voice turn resolves its provider independently of the global AI_PROVIDER
+  // (ADR-0109); the proxy calls this on every turn.
+  resolveVoiceProvider: vi.fn(() => ({
+    name: 'together',
+    baseUrl: 'https://api.together.xyz/v1',
+    apiKey: 'k',
+    chatModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+    embeddingModel: 'e',
+  })),
+}))
 vi.mock('../services/voiceRecordingStore', () => ({
   stageRecording: vi.fn(),
   deleteStaging: vi.fn(),
@@ -465,14 +478,22 @@ describe('vapi /llm/:token proxy', () => {
     expect(out).toContain('data: [DONE]')
   })
 
-  it('uses the fast VOICE_CHAT_MODEL override (not the global reflective model)', async () => {
+  it('routes the turn at the VOICE provider with a tight retry budget', async () => {
     const token = makeSession()
     const req: any = { params: { token }, body: { messages: [{ role: 'user', content: 'hi' }], stream: true } }
     const res = mockSseRes()
     await llmProxyHandler(req, res, journalsDbMock({}))
     const opts = (chatCompletion as any).mock.calls[0][1]
-    expect(opts.model).toBe('Gemini 3.5 Flash')
     expect(opts.stream).toBe(true)
+    // Voice runs on the voice provider, NOT the global reflective one.
+    expect(opts.provider.name).toBe('together')
+    expect(opts.provider.chatModel).toBe('meta-llama/Llama-3.3-70B-Instruct-Turbo')
+    // The default aiClient budget (3 × 30s) would block a voice turn for up to
+    // 90s and guarantee `custom-llm-llm-failed`; voice must bound it well under
+    // Vapi's ~20s deadline. ADR-0109.
+    expect(opts.retry.attempts).toBe(2)
+    expect(opts.retry.timeoutMs).toBe(6_000)
+    expect(opts.retry.attempts * opts.retry.timeoutMs).toBeLessThan(20_000)
   })
 
   it('bounds slow RAG: proceeds with empty context when the RAG step exceeds its budget', async () => {
@@ -518,3 +539,115 @@ describe('vapi webhook evicts the call session on end-of-call', () => {
 })
 
 import { getSession as getSessionForTest } from '../services/voiceCallSessions'
+
+// ── backchannel RAG skip + stream idle timeout (ADR-0109) ────────────────────
+
+import { isBackchannel } from './vapi'
+
+describe('isBackchannel', () => {
+  it('treats pure filler turns as backchannel', () => {
+    for (const t of ['yeah', 'Mhm.', 'ok', 'got it', 'I see', 'uh huh', 'yes!', '', '   ']) {
+      expect(isBackchannel(t), t).toBe(true)
+    }
+  })
+
+  it('does NOT skip short but substantive turns', () => {
+    // Conservative by design: a 2-3 word real question must still get full RAG.
+    for (const t of ['what about mom?', 'why though?', 'tell me more', 'my sister', 'work stress']) {
+      expect(isBackchannel(t), t).toBe(false)
+    }
+  })
+
+  it('never treats a long turn as backchannel', () => {
+    expect(isBackchannel('yeah yeah yeah yeah')).toBe(false)
+  })
+})
+
+describe('vapi /llm backchannel handling', () => {
+  const dekLocal = Buffer.alloc(32, 7)
+  const newSession = () => createSession({
+    uid: 'user-1', chatId: 'chat-1', dek: dekLocal, name: 'Ada', bio: 'bio',
+    profile: {}, todayContext: '',
+  } as any)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    _clearAllSessions()
+    ;(chatCompletion as any).mockResolvedValue(sseResponse('data: [DONE]\n\n'))
+  })
+
+  it('skips the RAG step entirely for a backchannel turn', async () => {
+    const token = newSession()
+    const req: any = { params: { token }, body: { messages: [{ role: 'user', content: 'mhm' }] } }
+    await llmProxyHandler(req, mockSseRes(), journalsDbMock({}))
+    // No retrieval at all — that is the whole point (no dead air on "mhm").
+    expect((searchChunks as any)).not.toHaveBeenCalled()
+    expect((PROMPTS.voiceChat as any).mock.calls[0][3]).toBe('')
+  })
+
+  it('still runs RAG for a substantive turn', async () => {
+    const token = newSession()
+    const req: any = { params: { token }, body: { messages: [{ role: 'user', content: 'how did the trip to Rome go?' }] } }
+    await llmProxyHandler(req, mockSseRes(), journalsDbMock({}))
+    expect((searchChunks as any)).toHaveBeenCalled()
+  })
+})
+
+describe('vapi /llm stream idle timeout', () => {
+  const dekIdle = Buffer.alloc(32, 9)
+  const newSession = () => createSession({
+    uid: 'user-1', chatId: 'chat-1', dek: dekIdle, name: 'Ada', bio: 'bio',
+    profile: {}, todayContext: '',
+  } as any)
+
+  beforeEach(() => { vi.clearAllMocks(); _clearAllSessions() })
+
+  // A body that emits `first` then STALLS forever — the failure mode a plain
+  // `await reader.read()` cannot escape (the turn would hang until Vapi kills
+  // the call).
+  function stallingResponse(first?: string): Response {
+    let sent = false
+    const body = new ReadableStream({
+      pull(controller) {
+        if (first && !sent) { sent = true; controller.enqueue(new TextEncoder().encode(first)); return }
+        return new Promise(() => {}) // never settles
+      },
+    })
+    return new Response(body, { status: 200 })
+  }
+
+  it('cuts a stalled stream loose and still terminates the SSE response', async () => {
+    ;(chatCompletion as any).mockResolvedValue(stallingResponse('data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n'))
+    vi.useFakeTimers()
+    try {
+      const req: any = { params: { token: newSession() }, body: { messages: [{ role: 'user', content: 'mhm' }] } }
+      const res = mockSseRes()
+      const p = llmProxyHandler(req, res, journalsDbMock({}))
+      await vi.advanceTimersByTimeAsync(8_100) // past VOICE_STREAM_IDLE_MS (8000)
+      await p
+      const out = res.writes.join('')
+      expect(out).toContain('Hi')        // the bytes we did get were relayed
+      expect(out).toContain('data: [DONE]') // and the turn was closed off
+      expect(res.ended).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('speaks the graceful line when the stall happens before ANY bytes', async () => {
+    ;(chatCompletion as any).mockResolvedValue(stallingResponse())
+    vi.useFakeTimers()
+    try {
+      const req: any = { params: { token: newSession() }, body: { messages: [{ role: 'user', content: 'mhm' }] } }
+      const res = mockSseRes()
+      const p = llmProxyHandler(req, res, journalsDbMock({}))
+      await vi.advanceTimersByTimeAsync(8_100)
+      await p
+      // Silence would leave the user hanging; a spoken line is recoverable.
+      expect(res.writes.join('')).toContain('having a moment')
+      expect(res.ended).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

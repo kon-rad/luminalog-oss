@@ -533,13 +533,13 @@ struct SettingsView: View {
 
             VStack(spacing: 0) {
                 legalLinkRow(icon: "lock.shield", label: "Privacy Policy",
-                             url: URL(string: "https://luminalog.com/privacy")!)
+                             url: URL(string: "https://myargoquest.com/privacy")!)
                 rowDivider
                 legalLinkRow(icon: "doc.text", label: "Terms of Use",
-                             url: URL(string: "https://luminalog.com/terms")!)
+                             url: URL(string: "https://myargoquest.com/terms")!)
                 rowDivider
                 legalLinkRow(icon: "envelope", label: "Support",
-                             url: URL(string: "https://luminalog.com/support")!)
+                             url: URL(string: "https://myargoquest.com/support")!)
             }
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)

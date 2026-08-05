@@ -19,10 +19,9 @@ struct AIConsentView: View {
                         .foregroundStyle(Color.textPrimary)
 
                     VStack(alignment: .leading, spacing: Spacing.s) {
-                        providerRow("Together AI", "summaries, reflections, chat, and prompts")
-                        providerRow("Deepgram", "transcribing your voice & video entries")
-                        providerRow("Vapi & Morpheus", "live voice calls — Vapi carries the call audio; Morpheus runs the AI privately inside a secure hardware enclave")
-                        providerRow("Hume AI", "optional emotion insights")
+                        providerRow("Morpheus", "summaries, reflections, chat, and prompts, run inside a secure hardware enclave")
+                        providerRow("Deepgram (with Together AI as backup)", "transcribing your voice & video entries")
+                        providerRow("Vapi, Deepgram & Together AI", "live voice calls — Vapi carries the call audio, Deepgram transcribes it, and Together AI runs the conversational model")
                     }
                     .padding(Spacing.m)
                     .background(RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous).fill(Color.cardBackground))
@@ -31,11 +30,11 @@ struct AIConsentView: View {
                         .font(.captionText)
                         .foregroundStyle(Color.textSecondary)
 
-                    Text("**Live voice calls work a little differently.** So your companion can recall relevant past entries in real time as you talk, during a call — and only for the length of the call — your device sends its encryption key to our server. The server uses it to decrypt just the entries needed to answer you **in memory only** — never written to disk and never saved — and feeds them to the AI running in the secure hardware enclave (Morpheus). The key and any decrypted text are wiped the moment the call ends. This applies only to live voice calls; your stored journal, text features, transcription, and search stay encrypted and unreadable to us, as always.")
+                    Text("**Live voice calls work a little differently.** So your companion can recall relevant past entries in real time as you talk, during a call — and only for the length of the call — your device sends its encryption key to our server. The server uses it to decrypt just the entries needed to answer you **in memory only** — never written to disk and never saved — and feeds them to the AI that generates the reply. The key and any decrypted text are wiped the moment the call ends. Unlike our other AI features, which run inside a secure hardware enclave (Morpheus), **live voice currently runs on a conventional AI provider (Together AI)** — no enclave model is yet fast enough for real-time speech. Bringing voice into the enclave is on our roadmap. This applies only to live voice calls; your stored journal, text features, transcription, and search stay encrypted and unreadable to us, as always.")
                         .font(.captionText)
                         .foregroundStyle(Color.textSecondary)
 
-                    Link("Privacy Policy", destination: URL(string: "https://luminalog.com/privacy")!)
+                    Link("Privacy Policy", destination: URL(string: "https://myargoquest.com/privacy")!)
                         .font(.uiBody.weight(.semibold))
                         .foregroundStyle(Color.accentWarm)
                 }

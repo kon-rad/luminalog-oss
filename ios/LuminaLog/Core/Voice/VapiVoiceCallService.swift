@@ -1,3 +1,4 @@
+import AVFoundation
 import Combine
 import CryptoKit
 import Foundation
@@ -22,6 +23,11 @@ final class VapiVoiceCallService: VoiceCallService {
     /// User-initiated hang-ups don't reach `.callDidEnd` here (`endCall()` unsubscribes
     /// first), so this only classifies natural/error ends. See ADR-0093.
     private var assistantDidSpeak = false
+    /// Whether Vapi ever transcribed a word from the USER this call. Distinguishes a
+    /// real conversation from one where the companion could not hear the user at all
+    /// (mic permission, a hijacked audio session, a dead input route) — which Vapi
+    /// reports as `…error-assistant-did-not-receive-customer-audio`. See ADR-0110.
+    private var userWasHeard = false
     /// Vends the currently-loaded per-user DEK (`UserKeyStore.currentDataKey`).
     /// Injected as a closure (mirrors the `SemanticIndexCoordinator` wiring in
     /// `AppServices`) so this service stays decoupled from `UserKeyStore` and is
@@ -29,14 +35,24 @@ final class VapiVoiceCallService: VoiceCallService {
     /// into `CallConfigRequest.dek` so the server can do per-turn RAG mid-call.
     private let currentDEK: @MainActor () -> SymmetricKey?
 
+    /// Requests (or re-reads) microphone permission. Injected so tests can drive the
+    /// denied path without touching the real AVAudioApplication. See ADR-0110.
+    private let requestMicPermission: () async -> Bool
+
     init(
         api: ProxyAPIClient,
         ai: AIService,
-        currentDEK: @escaping @MainActor () -> SymmetricKey? = { nil }
+        currentDEK: @escaping @MainActor () -> SymmetricKey? = { nil },
+        requestMicPermission: @escaping () async -> Bool = {
+            // Returns immediately with the existing answer once decided; only the
+            // first, undetermined call actually prompts.
+            await AVAudioApplication.requestRecordPermission()
+        }
     ) {
         self.api = api
         self.ai = ai
         self.currentDEK = currentDEK
+        self.requestMicPermission = requestMicPermission
     }
 
     // MARK: - DTOs
@@ -120,6 +136,22 @@ final class VapiVoiceCallService: VoiceCallService {
 
     func startCall(chatId: String, journalId: String?, journalTitle: String?) async throws {
         assistantDidSpeak = false
+        userWasHeard = false
+
+        // Microphone FIRST, before any context build or network call. Every other
+        // audio path in the app already guards on this (AudioRecorderController,
+        // SegmentRecorder, AppleSpeechTranscriber) — the call path did not, and the
+        // failure was silent: Vapi connects, the assistant greets, but no customer
+        // audio is ever sent, so Vapi ends the call as
+        // `…error-assistant-did-not-receive-customer-audio`. Since the assistant DID
+        // speak, the ADR-0093 classifier scored that as a normal end, leaving the user
+        // talking to a companion that never responds. ADR-0110.
+        guard await requestMicPermission() else {
+            Self.logger.error("mic permission denied — refusing to start a call that could not hear the user")
+            broadcaster.send(.failed(message: VoiceCallError.microphonePermissionDenied.localizedDescription))
+            throw VoiceCallError.microphonePermissionDenied
+        }
+
         broadcaster.send(.connecting)
 
         // Zero-knowledge (Model-1): build the RAG context ON DEVICE from plaintext and
@@ -218,9 +250,11 @@ final class VapiVoiceCallService: VoiceCallService {
             // turn failed and Vapi dropped the call as `custom-llm-llm-failed`) — so
             // surface `.failed` instead of the benign "Call ended" screen. User hang-ups
             // don't reach here (`endCall()` unsubscribes first). ADR-0093.
-            let endEvent = Self.endEvent(assistantDidSpeak: assistantDidSpeak)
+            let endEvent = Self.endEvent(assistantDidSpeak: assistantDidSpeak, userWasHeard: userWasHeard)
             if case .failed = endEvent {
-                Self.logger.error("call ended before the assistant spoke — surfacing as failed")
+                Self.logger.error(
+                    "call ended abnormally — assistantDidSpeak=\(self.assistantDidSpeak, privacy: .public) userWasHeard=\(self.userWasHeard, privacy: .public)"
+                )
             } else {
                 Self.logger.log("call ended")
             }
@@ -235,6 +269,9 @@ final class VapiVoiceCallService: VoiceCallService {
             if transcript.role == .assistant {
                 assistantDidSpeak = true
                 broadcaster.send(.assistantSpeaking(partial: transcript.transcript))
+            } else if !transcript.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                // Proof that customer audio actually reached Vapi's transcriber.
+                userWasHeard = true
             }
             if transcript.transcriptType == .final {
                 let chatMessage = ChatMessage(
@@ -299,10 +336,24 @@ final class VapiVoiceCallService: VoiceCallService {
     /// the call) and must surface as `.failed` ("Call failed"), not the benign "Call
     /// ended" screen. `nonisolated static` (pure) so it is unit-testable without the
     /// Vapi SDK or a live call. See ADR-0093.
-    nonisolated static func endEvent(assistantDidSpeak: Bool) -> VoiceCallEvent {
-        assistantDidSpeak
-            ? .ended(reason: nil)
-            : .failed(message: "The call couldn't connect. Please try again.")
+    /// Classifies a natural/error `.callDidEnd` (user hang-ups never reach here —
+    /// `endCall()` emits `.ended` and unsubscribes first).
+    ///
+    /// - assistant never spoke → the call died before it began (e.g. the custom-LLM
+    ///   turn failed and Vapi dropped it as `custom-llm-llm-failed`). ADR-0093.
+    /// - assistant spoke but the user was NEVER transcribed → Vapi received no
+    ///   customer audio (`…error-assistant-did-not-receive-customer-audio`). This
+    ///   previously scored as a NORMAL end, so a call where the companion simply
+    ///   could not hear the user looked successful and showed a transcript screen.
+    ///   Naming it is both accurate and actionable. ADR-0110.
+    nonisolated static func endEvent(assistantDidSpeak: Bool, userWasHeard: Bool) -> VoiceCallEvent {
+        if !assistantDidSpeak {
+            return .failed(message: "The call couldn't connect. Please try again.")
+        }
+        if !userWasHeard {
+            return .failed(message: "We couldn't hear you on that call. Check that Argo has microphone access in Settings, and that nothing else is using your mic.")
+        }
+        return .ended(reason: nil)
     }
 
     /// Maps the server's `assistantOverrides` into the dict the Vapi SDK expects.

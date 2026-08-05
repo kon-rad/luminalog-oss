@@ -194,22 +194,35 @@ struct InsightsCardView: View {
     var backgroundImage: UIImage? = nil
 
     var body: some View {
-        // Content is centered in the fixed 320×692 canvas. The background photo +
-        // gradient are applied via `.background` so scaledToFill cannot push layout.
-        VStack(alignment: .center, spacing: Spacing.m) {
-            VStack(alignment: .center, spacing: 2) {
-                Text("DAILY INSIGHTS").font(.captionText.weight(.semibold))
+        // Fixed 320×692 canvas. The header sits at the top-left, the gem/haiku is
+        // the centered hero, and the stats sit de-emphasized near the bottom. The
+        // background photo + gradient are applied via `.background` so scaledToFill
+        // cannot push layout.
+        VStack(alignment: .leading, spacing: 0) {
+            // Header — top-left, compact.
+            VStack(alignment: .leading, spacing: 3) {
+                Text("DAILY INSIGHTS").font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(Color.accentWarm).kerning(2)
-                Text(formattedDate).font(.uiBody.weight(.semibold))
-                    .foregroundStyle(.white)
+                Text(formattedDate).font(.captionText.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.9))
             }
-            section("A Gem", report.gem)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer(minLength: Spacing.l)
+
+            // Hero — the gem/haiku, centered and prominent.
+            gemHero
+
+            Spacer(minLength: Spacing.l)
+
             emotionBars
+                .padding(.bottom, Spacing.m)
+
             statsRow
             footer
+                .padding(.top, Spacing.m)
         }
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .padding(.horizontal, Spacing.l)
         .padding(.vertical, Spacing.l)
         .frame(width: 320, height: 692)
@@ -263,28 +276,38 @@ struct InsightsCardView: View {
         return out.string(from: day)
     }
 
-    private func section(_ title: String, _ body: String) -> some View {
-        VStack(alignment: .center, spacing: 3) {
-            Text(title.uppercased()).font(.captionText.weight(.semibold))
-                .foregroundStyle(Color.accentWarm).kerning(1)
-            Text(body).font(.uiBody)
+    /// The gem/haiku hero — centered, in the larger serif face used for
+    /// reflective content, with generous line spacing so it reads like a poem.
+    private var gemHero: some View {
+        VStack(alignment: .center, spacing: Spacing.s) {
+            Text("A GEM").font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Color.accentWarm).kerning(3)
+            Text(report.gem)
+                .font(.system(.title2, design: .serif))
+                .foregroundStyle(.white)
+                .lineSpacing(6)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .center)
     }
 
     private var statsRow: some View {
-        HStack(spacing: Spacing.s) {
+        HStack(spacing: Spacing.m) {
             stat("🔥 \(report.streakCount)", "day streak")
             stat("\(report.wordsToday.formatted())", "words today")
             stat("\(report.totalWords.formatted())", "total words")
         }
+        .frame(maxWidth: .infinity)
     }
+    /// De-emphasized stat: no filled box, smaller value, faint label.
     private func stat(_ v: String, _ l: String) -> some View {
-        VStack(spacing: 2) {
-            Text(v).font(.uiBody.weight(.bold))
-            Text(l.uppercased()).font(.system(size: 9)).foregroundStyle(.white.opacity(0.8))
+        VStack(spacing: 1) {
+            Text(v).font(.captionText.weight(.semibold)).foregroundStyle(.white.opacity(0.9))
+            Text(l.uppercased()).font(.system(size: 8)).kerning(0.5)
+                .foregroundStyle(.white.opacity(0.6))
         }
-        .frame(maxWidth: .infinity).padding(Spacing.s)
-        .background(RoundedRectangle(cornerRadius: CornerRadius.medium).fill(.white.opacity(0.12)))
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder private var emotionBars: some View {
@@ -317,7 +340,7 @@ struct InsightsCardView: View {
                 .clipShape(Circle())
                 .overlay(Circle().stroke(.white.opacity(0.25), lineWidth: 1))
             VStack(alignment: .leading, spacing: 1) {
-                Text("luminalog.com").font(.captionText.weight(.semibold)).kerning(1)
+                Text("myargoquest.com").font(.captionText.weight(.semibold)).kerning(1)
                 Text("journaling companion").font(.system(size: 9))
                     .foregroundStyle(.white.opacity(0.85))
             }

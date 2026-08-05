@@ -412,7 +412,7 @@ export default function Home() {
                       ))}
                     </div>
                     <div style={{ marginTop: 'auto', paddingTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', color: 'rgba(255,255,255,0.85)' }}>LUMINALOG</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', color: 'rgba(255,255,255,0.85)' }}>ARGO</span>
                       <span style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.45)' }}>Photo · Unsplash</span>
                     </div>
                   </div>
@@ -502,7 +502,8 @@ export default function Home() {
             <div>
               <span className="eyebrow">Private AI</span>
               <h2 className="serif" style={{ marginTop: 12, fontSize: 'clamp(30px,3.6vw,42px)', fontWeight: 600, color: 'var(--dark-text)', letterSpacing: '-0.025em', lineHeight: 1.08 }}>Even the AI reads your<br />journal in a sealed room.</h2>
-              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 20 }}>The reflective AI (every chat, insight, summary, and daily prompt) runs on <b style={{ color: 'var(--dark-text)', fontWeight: 600 }}>Morpheus</b>, a decentralized network where your words are processed inside hardware enclaves, encrypted end to end. Inside the enclave your words are processed and then discarded, never stored, never used to train anyone&apos;s AI. Your journal at rest stays encrypted and unreadable to us. Not a privacy policy. A locked box no one holds the key to.</p>
+              <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 20 }}>The reflective AI (every chat, insight, summary, and daily prompt) runs on <b style={{ color: 'var(--dark-text)', fontWeight: 600 }}>Morpheus</b>, a decentralized network where your words are processed inside hardware enclaves, encrypted end to end. Inside the enclave your words are processed and then discarded, never stored, never used to train anyone&apos;s AI. Your journal at rest stays encrypted and unreadable to us. Not a privacy policy. A locked box no one holds the key to.<sup style={{ color: 'var(--accent)', fontWeight: 600, marginLeft: 2 }}>*</sup></p>
+              <p style={{ fontSize: 13.5, lineHeight: 1.6, color: 'var(--dark-text2)', opacity: 0.72, marginTop: 14 }}><span style={{ color: 'var(--accent)', fontWeight: 600 }}>*</span> Live voice calls are today&apos;s one exception: they run on a conventional AI provider, because no enclave model is yet fast enough for real-time speech. Bringing voice into the enclave is on our roadmap.</p>
               <p style={{ fontSize: 17, lineHeight: 1.72, color: 'var(--dark-text2)', marginTop: 16 }}>Your journal is yours: sealed at rest, sealed in thought, and never used to train anyone&apos;s AI. You own your data, down to the moment a model reasons over it.</p>
               <div style={{ marginTop: 26, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                 {['Runs on Morpheus', 'Hardware enclaves (TEE)', 'End-to-end encrypted'].map((chip) => (
@@ -585,7 +586,7 @@ export default function Home() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 48px' }} className="privacy-grid">
                 {[
                   ['🔒', 'Zero-knowledge encryption', "End-to-end encrypted. We can't read your entries, and neither can anyone else. The keys are derived on your device and never leave it, so everything reaches our servers already sealed."],
-                  ['🛡️', 'Private, confidential inference', "The AI that reads your journal runs on Morpheus, a decentralized network where inference happens inside hardware enclaves (TEEs) with end-to-end-encrypted prompts. Even while the AI reasons over your words, no one can see them: not the compute node, not Morpheus, not us."],
+                  ['🛡️', 'Private, confidential inference*', "The AI that reads your journal runs on Morpheus, a decentralized network where inference happens inside hardware enclaves (TEEs) with end-to-end-encrypted prompts. Even while the AI reasons over your words, no one can see them: not the compute node, not Morpheus, not us. *Live voice calls are the one exception today, and bringing them into the enclave is on our roadmap."],
                   ['📱', 'On-device dictation & search', "Voice dictation, handwriting recognition (OCR), and the semantic search that finds relevant entries all run on your own device."],
                   ['🎯', 'You choose what the AI sees', "What you share with the AI is up to you: your journal entries plus the biography and profile details you provide, which can include personal, identifying information. Share as much or as little as you like; anything you keep private stays out entirely."],
                   ['🚫', 'Never used to train AI', "Your journal is never used to train AI models. Not ours. Not anyone else's. Full stop."],
@@ -764,14 +765,14 @@ export default function Home() {
             <div>
               <a href="#top" className="inline-flex items-center gap-2.5 serif" style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em' }}>
                 <span style={{ width: 32, height: 32, borderRadius: 10, overflow: 'hidden', boxShadow: '0 2px 10px rgba(185,107,51,0.4)', flexShrink: 0, display: 'block' }}>
-                  <Image src="/logo.svg" width={32} height={32} alt="" />
+                  <Image src="/logo.png" width={32} height={32} alt="" />
                 </span>
                 Argo
               </a>
               <p className="serif" style={{ fontStyle: 'italic', fontSize: 16, color: 'var(--text2)', marginTop: 14, maxWidth: 280 }}>Record, reflect, and grow with your private AI journaling companion.</p>
             </div>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', paddingTop: 6 }}>
-              {[['Blog', '/blog'], ['Privacy Policy', '/privacy'], ['Terms', '/terms'], ['Send me a tweet', 'https://x.com/konrad_gnat'], ['Support', 'mailto:konradmgnat@gmail.com'], ['GitHub', 'https://github.com/konradgnat/luminalog']].map(([label, href]) => (
+              {[['Events', '/events'], ['Blog', '/blog'], ['Privacy Policy', '/privacy'], ['Terms', '/terms'], ['Send me a tweet', 'https://x.com/konrad_gnat'], ['Support', 'mailto:konradmgnat@gmail.com'], ['GitHub', 'https://github.com/konradgnat/luminalog']].map(([label, href]) => (
                 <a key={label} href={href} style={{ fontSize: 14, color: 'var(--text2)', transition: 'color .15s' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--accentDeep)')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--text2)')}>

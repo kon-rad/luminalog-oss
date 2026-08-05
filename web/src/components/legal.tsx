@@ -48,7 +48,7 @@ export function LegalLayout({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
             <Link href="/" className="inline-flex items-center gap-2.5 serif" style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em' }}>
               <span style={{ width: 28, height: 28, borderRadius: 9, overflow: 'hidden', boxShadow: '0 2px 10px rgba(185,107,51,0.4)', flexShrink: 0, display: 'block' }}>
-                <Image src="/logo.svg" width={28} height={28} alt="" />
+                <Image src="/logo.png" width={28} height={28} alt="" />
               </span>
               Argo
             </Link>
@@ -210,11 +210,14 @@ export function PrivacyContent() {
         the key and any decrypted content are wiped from memory when the call ends.
       </P>
       <P>
-        The AI that reasons over those memories runs inside a hardware secure enclave (Morpheus —
-        see Section 6), so the model&apos;s inference remains confidential. This transient,
-        in-memory decryption happens only during a live voice call; your stored entries, text
-        features, transcription, and search continue to work without our servers reading your
-        journal.
+        For live voice calls specifically, the model that reasons over those memories currently
+        runs on a conventional AI model provider (Together AI — see Section 6), <strong>not</strong>{' '}
+        inside a hardware secure enclave, because no enclave model is yet fast enough for real-time
+        speech. Moving live voice to enclave-based inference is on our roadmap. Every other AI
+        feature — chat, insights, summaries, and daily prompts — runs inside a hardware secure
+        enclave (Morpheus). This transient, in-memory decryption happens only during a live voice
+        call; your stored entries, text features, transcription, and search continue to work
+        without our servers reading your journal.
       </P>
 
       <H2>6. Third-party service providers</H2>
@@ -225,10 +228,10 @@ export function PrivacyContent() {
       </P>
       <UL items={[
         'Cloud hosting and database / authentication providers (for example, Google Firebase / Firestore) to store accounts and encrypted data.',
-        'AI model providers (for example, Together AI) to generate insights, summaries, prompts, and conversation.',
+        'AI model providers (for example, Together AI) to generate insights, summaries, prompts, and conversation, and to run the conversational model during live voice calls.',
         'Speech-to-text providers (for example, Deepgram) to transcribe your voice and video journal entries into text.',
         'Live voice-conversation transport (for example, Vapi) — which carries the call audio and uses Deepgram for speech-to-text — to run real-time spoken conversations with your AI companion; your audio is processed to run the call.',
-        'Confidential AI inference for live calls (Morpheus) — a network that runs the conversational model inside a hardware secure enclave (a trusted execution environment). During a live call, the relevant past entries our server transiently decrypts in memory (see Section 5) are sent to this enclave so the model can respond with your memories in context.',
+        'Confidential AI inference (Morpheus) — a network that runs our models inside a hardware secure enclave (a trusted execution environment), covering chat, insights, summaries, and daily prompts. Live voice calls are the exception: they currently run on a conventional AI model provider (Together AI, above), so the past entries our server transiently decrypts during a call (see Section 5) go to that provider rather than to an enclave. Moving live voice into the enclave is on our roadmap.',
         'Emotion-analysis providers (for example, Hume AI) used to estimate the emotional tone of an entry.',
         'Subscription-management providers (for example, RevenueCat) to process purchases and manage your subscription and entitlement status.',
         'An image provider (for example, Unsplash) used to match a themed photograph to your daily insight card; photographer attribution is shown on the card.',

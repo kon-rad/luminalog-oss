@@ -16,6 +16,8 @@ const NAV_LINKS: [label: string, href: string][] = [
   ['Practice', '/#practice'],
   ['Privacy', '/#privacy'],
   ['Pricing', '/#pricing'],
+  ['Courses', '/courses'],
+  ['Events', '/events'],
   ['Blog', '/blog'],
 ]
 
@@ -93,7 +95,7 @@ export default function Navbar() {
           {/* Brand */}
           <Link href="/" className="inline-flex items-center gap-2.5 serif" style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em' }}>
             <span style={{ width: 32, height: 32, borderRadius: 10, overflow: 'hidden', boxShadow: '0 2px 10px rgba(185,107,51,0.4)', flexShrink: 0, display: 'block' }}>
-              <Image src="/logo.svg" width={32} height={32} alt="Argo" />
+              <Image src="/logo.png" width={32} height={32} alt="Argo" />
             </span>
             Argo
           </Link>

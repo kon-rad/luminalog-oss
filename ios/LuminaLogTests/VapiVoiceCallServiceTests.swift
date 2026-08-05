@@ -99,11 +99,11 @@ final class VapiVoiceCallServiceTests: XCTestCase {
 
     // MARK: - Call-end classification (surface Vapi error-ends, ADR-0092)
 
-    /// A call that ended after the assistant spoke is a normal end → `.ended`.
-    func testEndEventIsEndedWhenAssistantSpoke() {
-        let event = VapiVoiceCallService.endEvent(assistantDidSpeak: true)
+    /// A real two-way conversation is a normal end → `.ended`.
+    func testEndEventIsEndedWhenAssistantSpokeAndUserWasHeard() {
+        let event = VapiVoiceCallService.endEvent(assistantDidSpeak: true, userWasHeard: true)
         guard case .ended = event else {
-            return XCTFail("expected .ended when the assistant spoke, got \(event)")
+            return XCTFail("expected .ended for a normal two-way call, got \(event)")
         }
     }
 
@@ -111,10 +111,25 @@ final class VapiVoiceCallServiceTests: XCTestCase {
     /// custom-LLM turn failed and Vapi dropped the call) → `.failed`, so the user
     /// sees "Call failed" instead of the benign "Call ended / View transcript" screen.
     func testEndEventIsFailedWhenAssistantNeverSpoke() {
-        let event = VapiVoiceCallService.endEvent(assistantDidSpeak: false)
+        let event = VapiVoiceCallService.endEvent(assistantDidSpeak: false, userWasHeard: false)
         guard case .failed = event else {
             return XCTFail("expected .failed when the assistant never spoke, got \(event)")
         }
+    }
+
+    /// The assistant greeted but Vapi never transcribed a word from the user: the
+    /// companion could not hear them (`…did-not-receive-customer-audio`). This used
+    /// to score as a NORMAL end, so the failure was invisible. ADR-0110.
+    func testEndEventIsFailedWhenUserWasNeverHeard() {
+        let event = VapiVoiceCallService.endEvent(assistantDidSpeak: true, userWasHeard: false)
+        guard case .failed(let message) = event else {
+            return XCTFail("expected .failed when the user was never heard, got \(event)")
+        }
+        // The message must point at the mic, not a generic connection error.
+        XCTAssertTrue(
+            message.lowercased().contains("hear you") && message.lowercased().contains("microphone"),
+            "expected a mic-specific message, got: \(message)"
+        )
     }
 
     // MARK: - DEK encoding (Model-1 / ZK path)
@@ -154,5 +169,87 @@ final class VapiVoiceCallServiceTests: XCTestCase {
             try JSONSerialization.jsonObject(with: data) as? [String: Any]
         )
         XCTAssertEqual(object["dek"] as? String, "QUJDRA==")
+    }
+}
+
+// MARK: - Microphone permission gate (ADR-0110)
+
+private final class MicGateTokenProvider: TokenProvider {
+    func idToken(forceRefresh: Bool) async throws -> String { "test-token" }
+}
+
+/// Fails the test if any request escapes — the permission gate must short-circuit
+/// BEFORE the service does any network work.
+private final class NoRequestURLProtocol: URLProtocol {
+    nonisolated(unsafe) static var sawRequest = false
+    override class func canInit(with request: URLRequest) -> Bool { sawRequest = true; return true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() { client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet)) }
+    override func stopLoading() {}
+}
+
+final class VapiVoiceCallMicPermissionTests: XCTestCase {
+
+    @MainActor
+    private func makeService(micGranted: Bool) -> VapiVoiceCallService {
+        let cfg = URLSessionConfiguration.ephemeral
+        cfg.protocolClasses = [NoRequestURLProtocol.self]
+        let api = ProxyAPIClient(
+            baseURL: URL(string: "https://api.example.com")!,
+            tokenProvider: MicGateTokenProvider(),
+            session: URLSession(configuration: cfg)
+        )
+        return VapiVoiceCallService(
+            api: api,
+            ai: MockAIService(generationDelay: 0, wordDelay: 0),
+            currentDEK: { nil },
+            requestMicPermission: { micGranted }
+        )
+    }
+
+    /// Without mic access the call would connect, the assistant would greet, and Vapi
+    /// would end it as `…did-not-receive-customer-audio` — a companion that cannot
+    /// hear you. Refuse up front with an actionable error instead.
+    @MainActor
+    func testStartCallThrowsWhenMicPermissionDenied() async {
+        NoRequestURLProtocol.sawRequest = false
+        let service = makeService(micGranted: false)
+        do {
+            try await service.startCall(chatId: "chat-1", journalId: nil, journalTitle: nil)
+            XCTFail("expected startCall to throw when mic permission is denied")
+        } catch let error as VoiceCallError {
+            guard case .microphonePermissionDenied = error else {
+                return XCTFail("expected .microphonePermissionDenied, got \(error)")
+            }
+            XCTAssertTrue(
+                (error.errorDescription ?? "").contains("Settings"),
+                "the message must tell the user where to fix it"
+            )
+        } catch {
+            XCTFail("expected VoiceCallError, got \(error)")
+        }
+        // The gate must run before any call-config request is issued.
+        XCTAssertFalse(NoRequestURLProtocol.sawRequest, "no network work should happen without mic access")
+    }
+
+    /// The denial must also reach the UI via the event stream, not just the throw.
+    @MainActor
+    func testDeniedPermissionEmitsFailedEvent() async {
+        let service = makeService(micGranted: false)
+        // Subscribe BEFORE starting so the event is buffered for us, then read the
+        // stream directly. (A collector Task would race: it may not be scheduled
+        // before the assertion runs.)
+        var iterator = service.events.makeAsyncIterator()
+        try? await service.startCall(chatId: "chat-1", journalId: nil, journalTitle: nil)
+
+        // The FIRST event must be the failure — proving `.connecting` was never
+        // announced, because the call never got that far.
+        guard let first = await iterator.next() else {
+            return XCTFail("expected a .failed event, got none")
+        }
+        guard case .failed(let message) = first else {
+            return XCTFail("expected .failed first (never .connecting), got \(first)")
+        }
+        XCTAssertTrue(message.lowercased().contains("microphone"))
     }
 }

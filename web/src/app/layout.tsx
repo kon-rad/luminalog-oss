@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: 'Argo: Record, reflect, and grow with your private AI journaling companion',
   description: 'Argo is The Merge, a new category of journaling. Capture your life in text, voice, video, or photos and talk to a private AI companion that remembers everything, helps you see your patterns, and grows your mind, spirit, and ability to articulate yourself. Your journal is encrypted so only you hold the key, and you choose what you share with the AI.',
   icons: {
-    icon: '/logo.svg',
+    icon: '/logo.png',
     apple: '/logo-icon.png',
   },
   openGraph: {

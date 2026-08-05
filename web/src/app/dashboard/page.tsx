@@ -7,6 +7,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useAuth } from '@/lib/auth-context'
 import { useSoul, basescanNftUrl } from '@/lib/useSoul'
+import QuizHistory from '@/components/QuizHistory'
 
 const SoulGalaxy = dynamic(() => import('@/components/SoulGalaxy'), { ssr: false })
 
@@ -59,7 +60,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between" style={{ height: 68 }}>
             <Link href="/" className="inline-flex items-center gap-2.5 serif" style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em' }}>
               <span style={{ width: 32, height: 32, borderRadius: 10, overflow: 'hidden', boxShadow: '0 2px 10px rgba(185,107,51,0.4)', flexShrink: 0, display: 'block' }}>
-                <Image src="/logo.svg" width={32} height={32} alt="Argo" />
+                <Image src="/logo.png" width={32} height={32} alt="Argo" />
               </span>
               Argo
             </Link>
@@ -124,6 +125,9 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+
+          {/* Your quizzes */}
+          <QuizHistory />
 
           {/* Soulbound NFT card */}
           {soul?.nft && (

@@ -64,7 +64,7 @@ export default async function SoulPage({ params }: { params: { tokenId: string }
         style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em', color: '#F3EEE4', opacity: 0.9 }}
       >
         <span style={{ width: 28, height: 28, borderRadius: 9, overflow: 'hidden', display: 'block' }}>
-          <Image src="/logo.svg" width={28} height={28} alt="Argo" />
+          <Image src="/logo.png" width={28} height={28} alt="Argo" />
         </span>
         Argo
       </Link>

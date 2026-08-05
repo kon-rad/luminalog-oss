@@ -28,13 +28,31 @@ const schema = z.object({
   // empty `content` (all output in reasoning_content) → do NOT use it here.
   // Other available slugs (verified 200): gemini-3.1-pro-preview (not open source).
   MORPHEUS_CHAT_MODEL: z.string().default('deepseek-v4-flash'),
-  // The chat model for LIVE VOICE calls only (Vapi custom-LLM proxy). Voice is
-  // latency-critical: Vapi ends the call with `custom-llm-llm-failed` if a turn is
-  // too slow, so voice needs a fast, LOW-TAIL-LATENCY model even at some quality
-  // cost — unlike the global `MORPHEUS_CHAT_MODEL`, which optimizes summaries/text
-  // chat for quality. `Gemini 3.5 Flash` had the tightest measured p95 on Morpheus
-  // (~3.6s vs claude-opus-4.8's 13.8s spikes). Optional/defaulted → no crash-loop.
-  VOICE_CHAT_MODEL: z.string().default('Gemini 3.5 Flash'),
+  // ── LIVE VOICE call model routing (Vapi custom-LLM proxy) ONLY ──────────────
+  // Voice is latency-critical and has a HARD deadline: Vapi tears the call down as
+  // `custom-llm-llm-failed` if a turn is too slow. It therefore gets its own
+  // provider switch, independent of the global `AI_PROVIDER` (ADR-0109).
+  //
+  // Why voice defaults to `together` while everything else stays on Morpheus:
+  // Morpheus reserves capacity for "priority models" and now 503s 159 of its 163
+  // models — including EVERY Gemini and Claude slug. The previous default
+  // (`Gemini 3.5 Flash`) failed 8/8 live probes, so every voice turn fell through
+  // to the "having a moment" fallback. Measured from the droplet (10 runs, real
+  // voice turn, streaming TTFB):
+  //   together meta-llama/Llama-3.3-70B-Instruct-Turbo → ~0.95s median, 2.06s max, 10/10
+  //   morpheus glm-5.2                                 → ~1.6s median, 5.27s max
+  //   morpheus deepseek-v4-flash                       → ~2.5s median, 10.1s max
+  // Flip back with `VOICE_AI_PROVIDER=morpheus` the moment Morpheus can serve a
+  // fast slug again — no code change needed.
+  VOICE_AI_PROVIDER: z.enum(['together', 'morpheus']).default('together'),
+  // Overrides the voice model for whichever provider VOICE_AI_PROVIDER selects.
+  // Unset → that provider's built-in voice default (see aiClient.ts). This is the
+  // knob to turn when a better Morpheus slug appears: set VOICE_AI_PROVIDER=morpheus
+  // and VOICE_CHAT_MODEL=<slug>. Must be a routable SLUG on Morpheus (display-name
+  // ids like "Gemini 3.5 Flash" 503 — see the MORPHEUS_CHAT_MODEL note above), and
+  // NOT a reasoning model like `deepseek-v4-pro` (empty `content`).
+  // Optional → no crash-loop deploy.
+  VOICE_CHAT_MODEL: z.string().optional(),
   MORPHEUS_EMBEDDING_MODEL: z.string().default('text-embedding-bge-m3'),
   AWS_ACCESS_KEY_ID: z.string(),
   AWS_SECRET_ACCESS_KEY: z.string(),

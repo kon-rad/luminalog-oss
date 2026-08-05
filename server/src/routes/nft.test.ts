@@ -22,7 +22,7 @@ describe('buildNftMetadata', () => {
       name: 'Argo Soul #12',
       description: 'A constellation grown from 41 days of journaling.',
       image: 'https://s3/hero.png',
-      animation_url: 'https://luminalog.com/soul/12',
+      animation_url: 'https://myargoquest.com/soul/12',
       attributes: [
         { trait_type: 'Stars', value: 41 },
         { trait_type: 'Day streak', value: 5 },
@@ -40,7 +40,7 @@ describe('buildNftMetadata', () => {
   it('uses singular "day" for one star and a default image when none rendered', () => {
     const m = buildNftMetadata('1', { stars: 1, streak: 1, maxStreak: 1, totalWords: 800 })
     expect(m.description).toBe('A constellation grown from 1 day of journaling.')
-    expect(m.image).toBe('https://luminalog.com/soul/1/hero.png')
+    expect(m.image).toBe('https://myargoquest.com/soul/1/hero.png')
   })
 
   it('exposes ONLY non-sensitive fields — no coordinates, vectors, or text', () => {

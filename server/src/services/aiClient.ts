@@ -13,6 +13,15 @@ const DEFAULT_MORPHEUS_BASE = 'https://api.mor.org/api/v1'
 const DEFAULT_MORPHEUS_CHAT_MODEL = 'llama-3.3-70b'
 const DEFAULT_MORPHEUS_EMBEDDING_MODEL = 'text-embedding-bge-m3'
 
+// Per-provider defaults for the LIVE VOICE turn, which is latency-critical and
+// picks its provider independently of AI_PROVIDER (ADR-0109). Both are measured
+// fast, currently-routable ids — see the VOICE_AI_PROVIDER note in config.ts.
+// The Morpheus one is deliberately `deepseek-v4-flash` (a routable slug that
+// returns real `content`), NOT `deepseek-v4-pro` (a reasoning model whose output
+// lands in `reasoning_content`, so it would stream an empty reply to Vapi).
+const DEFAULT_VOICE_TOGETHER_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
+const DEFAULT_VOICE_MORPHEUS_MODEL = 'deepseek-v4-flash'
+
 export type AiProviderName = 'together' | 'morpheus'
 export interface AiProvider {
   name: AiProviderName
@@ -56,6 +65,21 @@ export function resolveProviders(): { primary: AiProvider } {
 /** The model id generations are tagged with (stored on the entry's AI metadata). */
 export function activeChatModel(): string {
   return resolveProviders().primary.chatModel
+}
+
+/**
+ * The provider + model for a LIVE VOICE turn. Selected by `VOICE_AI_PROVIDER`,
+ * which is INDEPENDENT of the global `AI_PROVIDER`: voice has a hard latency
+ * deadline (Vapi drops the call as `custom-llm-llm-failed` on a slow turn), so it
+ * may need a different provider than the reflective/quality path. `VOICE_CHAT_MODEL`
+ * overrides the chosen provider's voice default. ADR-0109.
+ */
+export function resolveVoiceProvider(): AiProvider {
+  const name: AiProviderName = config.VOICE_AI_PROVIDER === 'morpheus' ? 'morpheus' : 'together'
+  const base = name === 'morpheus' ? morpheusProvider() : togetherProvider()
+  const fallbackModel =
+    name === 'morpheus' ? DEFAULT_VOICE_MORPHEUS_MODEL : DEFAULT_VOICE_TOGETHER_MODEL
+  return { ...base, chatModel: config.VOICE_CHAT_MODEL || fallbackModel }
 }
 
 // Together's serverless endpoints intermittently return these under load. They
@@ -280,13 +304,27 @@ export async function embedQuery(text: string): Promise<number[]> {
  */
 export async function chatCompletion(
   messages: Array<{ role: string; content: string }>,
-  opts: { model?: string; stream?: boolean; response_format?: { type: string } } = {},
+  opts: {
+    model?: string
+    stream?: boolean
+    response_format?: { type: string }
+    /**
+     * Target a specific provider instead of the global `AI_PROVIDER` one. The live
+     * voice turn passes `resolveVoiceProvider()` so it can run on a fast provider
+     * while summaries/text chat stay on the quality provider (ADR-0109).
+     */
+    provider?: AiProvider
+    /**
+     * Per-call retry/timeout budget. Defaults suit background work (3 attempts ×
+     * 30s); the voice turn passes a far tighter budget because a slow turn is a
+     * DROPPED CALL, not just a slow response.
+     */
+    retry?: RetryOpts
+  } = {},
 ): Promise<Response> {
-  const p = resolveProviders().primary
+  const p = opts.provider ?? resolveProviders().primary
   if (!p.apiKey) {
-    throw new Error(
-      `chatCompletion: no API key for AI_PROVIDER=${config.AI_PROVIDER ?? 'together'}`,
-    )
+    throw new Error(`chatCompletion: no API key for provider=${p.name}`)
   }
   const model = opts.model ?? p.chatModel
   const body: Record<string, unknown> = { model, messages, stream: opts.stream ?? false }
@@ -298,5 +336,5 @@ export async function chatCompletion(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
-  })
+  }, opts.retry)
 }

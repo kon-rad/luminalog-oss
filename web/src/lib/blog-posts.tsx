@@ -3377,7 +3377,301 @@ function FrancisGoonLosingTheFearOfAiContent() {
   )
 }
 
+/* ── Post: How private AI works — Morpheus, TEEs, secure enclaves ── */
+function PrivateAIEnclavesContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/david-johnston-morpheus-hero.jpg"
+        alt="David Johnston, lead technologist on Morpheus, talking with Konrad at Network School"
+        width={1920}
+        height={1080}
+        priority
+      />
+      <P>
+        Every AI product asks you to trust it with something. A chatbot gets your questions. A
+        coding assistant gets your source. A journal gets the thing you would not say out loud.
+      </P>
+      <P>
+        Usually that trust is a policy — a paragraph promising your data will not be stored or
+        trained on. Policies are worth something. But a policy is a promise about what a company
+        chooses to do, and promises can be revised, breached, subpoenaed, or quietly ignored by one
+        employee with database access.
+      </P>
+      <P>
+        There is a different approach, and it is the one Argo is built on: make it so the company
+        <em> cannot</em> read your data, even if it wanted to. Not &ldquo;will not.&rdquo;{' '}
+        <em>Cannot.</em> That is a claim about architecture, not intent — and unlike a policy, you
+        can check it.
+      </P>
+      <P>
+        This post explains the machinery: what a secure enclave actually is, how a TEE protects
+        computation, what remote attestation proves, what none of it protects against, and exactly
+        how Argo uses it — including the one place we currently do not.
+      </P>
+
+      <H2>The problem: encryption stops at the CPU</H2>
+      <P>
+        We already know how to protect data in two of its three states. Data <strong>at rest</strong>{' '}
+        — sitting in a database — is protected by disk and field encryption. Data{' '}
+        <strong>in transit</strong> — moving across a network — is protected by TLS. Both are
+        solved, boring, and effective.
+      </P>
+      <P>
+        The gap is data <strong>in use</strong>. To do anything with your words — run a model over
+        them, generate a reflection — a processor has to load them into memory in plaintext.
+        Multiplying encrypted numbers gives you nonsense. At the instant of computation, the data is
+        readable, and anyone with sufficient privilege on that machine can read it: the operating
+        system, the hypervisor, the cloud provider, an administrator, or malware that escalated far
+        enough.
+      </P>
+      <Pull>
+        Encryption protects your data everywhere except the one moment the AI actually looks at it.
+      </Pull>
+      <P>
+        Confidential computing exists to close that third gap.
+      </P>
+
+      <H2>What a secure enclave is</H2>
+      <P>
+        A <strong>secure enclave</strong> is a region of memory that the CPU itself keeps isolated.
+        A <strong>Trusted Execution Environment (TEE)</strong> is the broader term for a hardware
+        environment that guarantees that isolation. The distinction is mostly vocabulary; the idea
+        is one thing.
+      </P>
+      <P>
+        The mechanism is a hardware memory encryption engine sitting between the processor and RAM.
+        Memory belonging to the enclave is encrypted with a key generated inside the CPU at boot —
+        a key that never leaves the silicon and that no software, at any privilege level, can read.
+        Data is decrypted only inside the processor package while executing, then re-encrypted
+        before it goes back to RAM.
+      </P>
+      <P>
+        The consequence is the interesting part. Dump the physical memory of that server and you get
+        ciphertext. Attach a debugger from the host OS and you are blocked. The hypervisor can
+        schedule the enclave, start it, and kill it — but it cannot look inside it. The trust
+        boundary stops being &ldquo;the company and everyone with root&rdquo; and becomes &ldquo;the
+        CPU vendor and the code in the enclave.&rdquo;
+      </P>
+      <P>
+        In practice this is implemented by a handful of technologies: <strong>Intel TDX</strong> and{' '}
+        <strong>AMD SEV-SNP</strong> for confidential virtual machines, and{' '}
+        <strong>NVIDIA confidential computing</strong> on H100-class GPUs — the last of which is
+        what makes this relevant to AI at all. Protecting the CPU is useless if the model runs on a
+        GPU whose memory is wide open, so the encrypted boundary has to extend across the PCIe bus
+        to GPU memory. That capability is recent, and it is the reason private LLM inference became
+        practical in the last couple of years rather than the last ten.
+      </P>
+
+      <H2>Attestation: the part that makes it more than a promise</H2>
+      <P>
+        Here is the question that separates confidential computing from marketing: how do you know
+        you are talking to a real enclave at all? Anyone can stand up a normal server and{' '}
+        <em>claim</em> the workload is protected.
+      </P>
+      <P>
+        The answer is <strong>remote attestation</strong>, and it is the single most important
+        concept here.
+      </P>
+      <P>
+        As an enclave boots, the hardware computes a cryptographic hash — a{' '}
+        <strong>measurement</strong> — of exactly what was loaded: firmware, kernel, and the
+        application code. The CPU then signs that measurement with a private key fused into the chip
+        at manufacture, whose certificate chains back to the vendor. The result is a signed{' '}
+        <strong>quote</strong>.
+      </P>
+      <P>
+        Before sending anything sensitive, a client asks for that quote and checks three things:
+      </P>
+      <UL items={[
+        <><strong>Is the signature valid</strong> and does it chain to a genuine CPU vendor root? This proves real hardware, not an emulator.</>,
+        <><strong>Does the measurement match</strong> the code that is supposed to be running? This proves the enclave was not loaded with a modified build that copies prompts to a log file.</>,
+        <><strong>Is the firmware current</strong>, with no known-vulnerable versions? This proves it is not a machine left deliberately unpatched.</>,
+      ]} />
+      <P>
+        Only if all three pass does the client establish an encrypted channel whose keys terminate{' '}
+        <em>inside</em> the enclave. That last detail matters enormously: the session is encrypted to
+        the enclave, not to the server operating it. The operator relays ciphertext it cannot read.
+      </P>
+      <Pull>
+        Attestation turns &ldquo;trust us&rdquo; into &ldquo;verify the hardware, then trust the
+        math.&rdquo;
+      </Pull>
+
+      <H2>What TEEs do not protect against</H2>
+      <P>
+        Any honest account has to include the limits, because a security property you misunderstand
+        is worse than one you do not have.
+      </P>
+      <UL items={[
+        <><strong>You still trust the CPU vendor.</strong> The root of trust is a key Intel, AMD, or NVIDIA put in the chip. If that process is compromised, so is everything above it. Confidential computing relocates trust; it does not eliminate it.</>,
+        <><strong>Side channels are real.</strong> Enclaves have historically been vulnerable to timing, power, and speculative-execution attacks that infer secrets without reading memory directly. This is an active research area with a steady history of findings and patches.</>,
+        <><strong>Attestation only helps if it is actually checked.</strong> A client that requests a quote and skips verification gets no security at all. This is the most common real-world failure, and it is silent.</>,
+        <><strong>The enclave code still has to be trustworthy.</strong> Attestation proves <em>which</em> code is running, not that the code is well written. An enclave whose program deliberately logs your prompts is perfectly attestable and completely unsafe.</>,
+        <><strong>Metadata usually leaks.</strong> Request timing, sizes, and frequency are visible to whoever runs the machine, even when contents are not.</>,
+      ]} />
+      <P>
+        Confidential computing is a genuine and large improvement over an administrator with
+        database access. It is not magic, and it is not a substitute for encrypting your data at
+        rest with keys the service never holds.
+      </P>
+
+      <H2>Where Morpheus comes in</H2>
+      <P>
+        <A href="https://mor.org">Morpheus</A> is a permissionless network for AI inference. We
+        covered it in depth with David Johnston — the man who coined &ldquo;DApps&rdquo; in 2013,
+        now its lead technologist — in{' '}
+        <A href="https://myargoquest.com/blog/david-johnston-morpheus">an earlier conversation</A>.
+      </P>
+      <P>
+        The structural point is that Morpheus runs no hardware of its own. It is a set of smart
+        contracts on Ethereum and Base that coordinate a marketplace: independent providers supply
+        model inference on their own machines and are paid on-chain. There is no company operating a
+        datacenter that could decide to retain your prompts, because there is no company in the
+        serving path at all — there is a protocol, and a set of providers competing under it.
+      </P>
+      <P>
+        That decentralization solves a governance problem, not a privacy one. Spreading inference
+        across many independent operators means no single company holds everything — but on its own,
+        it means your prompt is now readable by <em>whichever</em> operator happened to serve it.
+        Decentralization without confidentiality can widen the exposure rather than narrow it.
+      </P>
+      <P>
+        The two ideas only work together. Decentralization removes the single trusted company;
+        enclaves remove the need to trust the individual operator who replaces it. Morpheus
+        providers running confidential hardware serve requests they cannot themselves read. That
+        combination — an open marketplace where participants are structurally unable to inspect what
+        passes through them — is what attracted us.
+      </P>
+      <P>
+        From an engineering standpoint it is refreshingly ordinary to consume: an OpenAI-compatible
+        endpoint at <code>api.mor.org</code>, so an existing integration is roughly a base URL, a
+        key, and a model id.
+      </P>
+
+      <H2>How Argo actually uses this</H2>
+      <P>
+        Argo layers two independent protections, and it is worth being precise about which does
+        what.
+      </P>
+      <P>
+        <strong>First, zero-knowledge encryption at rest.</strong> Your entries are encrypted on
+        your device with a key derived there and never sent to us. What lands in our database is
+        ciphertext. This is the stronger of the two guarantees and it does not depend on enclaves,
+        hardware vendors, or any provider behaving well. If our entire database leaked tomorrow, it
+        would leak unreadable blobs.
+      </P>
+      <P>
+        <strong>Second, confidential inference.</strong> When you ask for a reflection, the model has
+        to see plaintext. That work — chat, insights, summaries, and daily prompts — runs on Morpheus
+        inside a hardware enclave, so the plaintext exists only inside a boundary the compute
+        provider cannot read.
+      </P>
+      <P>
+        Live voice calls are the interesting case, because they are the one place the design has to
+        bend. To reference your past entries while you are speaking, something has to decrypt the
+        relevant ones in real time. Our server holds your key <em>in memory only</em>, for the
+        duration of the call, decrypts just the entries needed to answer, and wipes both the key and
+        the decrypted text the moment the call ends. Nothing is written to disk. It is the one
+        moment the architecture asks for more trust than the rest of the app, which is why it is
+        called out explicitly in the consent screen rather than buried.
+      </P>
+
+      <H2>The asterisk: voice does not run in the enclave today</H2>
+      <P>
+        We recently moved live voice inference off Morpheus and onto a conventional AI provider. The
+        honest reason is latency.
+      </P>
+      <P>
+        A spoken conversation has a deadline that text does not. If a reply takes four seconds, the
+        conversation is broken — you start talking over it, or you assume it hung up. Our voice
+        pipeline gives the language model roughly a two-second budget to produce its first token,
+        and when the enclave-backed models we had been using could no longer meet that budget, voice
+        calls stopped working entirely.
+      </P>
+      <P>
+        We had two options: leave a headline privacy claim intact and ship a feature that did not
+        work, or move voice to a faster provider and say so plainly. We chose the second, and
+        updated the privacy policy, the marketing copy, and the in-app consent screen the same week.
+      </P>
+      <Note>
+        <strong>Where things stand.</strong> Chat, insights, summaries, and daily prompts run inside
+        a hardware enclave on Morpheus. Live voice calls currently run on a conventional AI provider
+        (Together AI), because no enclave-backed model is yet fast enough for real-time speech.
+        Zero-knowledge encryption at rest is unchanged and applies to everything. Moving voice into
+        the enclave is on our roadmap, and we will say so here when it lands.
+      </Note>
+      <P>
+        We would rather publish an accurate asterisk than an elegant claim that is not true. A
+        privacy promise you have to caveat is worth more than one you have to defend.
+      </P>
+
+      <H2>What we learned running on it</H2>
+      <P>
+        One practical note for anyone building on decentralized inference, because it cost us real
+        downtime.
+      </P>
+      <P>
+        Model availability on an open marketplace is <em>volatile</em> in a way that a commercial API
+        is not. Capacity is finite and gets reallocated toward priority models, and when that
+        happens a model id you have been using for months starts returning{' '}
+        <code>503 model_unavailable</code> — not deprecated, not announced, just gone. During a
+        recent incident we swept the full catalogue and found that the large majority of listed
+        models were refusing traffic, including every one from two major families.
+      </P>
+      <P>
+        The lesson is that on a decentralized network a model id is an{' '}
+        <strong>operational variable, not a constant</strong>. It belongs in configuration, behind a
+        provider switch you can flip without a deploy, with health checks and latency telemetry on
+        every call. We had the first of those and not the others, which is why a provider-side
+        capacity change became a user-visible outage instead of a log line. That is now fixed.
+      </P>
+
+      <H2>Why this is worth the trouble</H2>
+      <P>
+        All of this is more work than calling a normal API. Enclaves constrain which models you can
+        run and what hardware they run on. Decentralized networks are less predictable than a vendor
+        with an SLA. Zero-knowledge encryption means we cannot do a great many convenient things,
+        because we genuinely cannot read the data.
+      </P>
+      <P>
+        We think a journal earns that cost. The value of writing honestly depends completely on
+        feeling safe enough to be honest, and that feeling should rest on something sturdier than a
+        promise. Not because anyone at Argo intends to read your entries, but because the
+        architecture should make the question irrelevant.
+      </P>
+      <Pull>
+        The goal is not a company you trust with your journal. It is a journal that does not require
+        you to trust a company.
+      </Pull>
+      <P>
+        Argo is <A href="https://github.com/konradgnat/luminalog">open source</A>. The encryption,
+        the inference routing, and the voice pipeline described here are all readable. Privacy
+        claims should be checkable, and that includes the asterisks.
+      </P>
+
+      <H2>Read more</H2>
+      <P>
+        <A href="https://mor.org">Morpheus</A> — the protocol.{' '}
+        <A href="https://tech.mor.org">Morpheus tech and privacy walkthrough</A>.{' '}
+        <A href="https://myargoquest.com/privacy">Our privacy policy</A>, including the third-party
+        processors named in Section 6.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'how-private-ai-works-morpheus-tees-enclaves',
+    title: 'How private AI actually works: Morpheus, TEEs, and secure enclaves',
+    description:
+      'Encryption protects your data at rest and in transit — but not at the moment a model reads it. A plain-English explanation of secure enclaves, how remote attestation turns “trust us” into something checkable, what TEEs genuinely do not protect against, and exactly how Argo uses Morpheus for confidential inference — including the one feature that does not run in the enclave today, and why.',
+    date: 'August 5, 2026',
+    isoDate: '2026-08-05T10:00',
+    readingTime: '9 min read',
+    Content: PrivateAIEnclavesContent,
+  },
   {
     slug: 'francis-goon-losing-the-fear-of-ai',
     title: 'LLP#025 — Francis Goon: losing the fear of AI',

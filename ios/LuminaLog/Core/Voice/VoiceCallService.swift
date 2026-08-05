@@ -11,6 +11,14 @@ enum VoiceCallError: LocalizedError {
     /// decrypts server-side (1c-E not built), so it can't run once the server holds
     /// no key. Gated off rather than 500-ing mid-call.
     case unavailableInPrivateMode
+    /// The user has not granted microphone access. Without it the call still
+    /// connects and the assistant still greets — but NO customer audio ever reaches
+    /// Vapi, which ends the call as
+    /// `call.in-progress.error-assistant-did-not-receive-customer-audio`. Because
+    /// the assistant did speak, the ADR-0093 end-classifier would call that a normal
+    /// end, so the user just sees a companion that never responds. Fail loudly and
+    /// early instead (ADR-0110).
+    case microphonePermissionDenied
 
     var errorDescription: String? {
         switch self {
@@ -20,6 +28,8 @@ enum VoiceCallError: LocalizedError {
             return "The call couldn't be set up: \(message)"
         case .unavailableInPrivateMode:
             return "Voice journaling isn't available yet in private (zero-knowledge) mode."
+        case .microphonePermissionDenied:
+            return "Argo needs microphone access for voice calls. Enable it in Settings › Argo › Microphone, then try again."
         }
     }
 }
