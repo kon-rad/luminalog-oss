@@ -1,4 +1,5 @@
 import XCTest
+import CryptoKit
 @testable import LuminaLog
 
 /// In-memory `SecretStore` so the session tests don't touch the real Keychain.
@@ -17,11 +18,20 @@ final class SessionStoreTests: XCTestCase {
     private func makeStore(
         auth: MockAuthService,
         subscriptions: MockSubscriptionService,
-        consentService: ConsentService? = nil
+        consentService: ConsentService? = nil,
+        keys: UserKeyStore? = nil,
+        transport: KeyMigrationTransport = MockKeyMigrationTransport()
     ) -> SessionStore {
-        SessionStore(
+        let keys = keys ?? UserKeyStore(provider: MockKeyProvider(), secrets: MemorySecretStore())
+        return SessionStore(
             auth: auth,
-            keys: UserKeyStore(provider: MockKeyProvider(), secrets: MemorySecretStore()),
+            keys: keys,
+            keyEnrollment: KeyEnrollmentService(
+                keys: keys,
+                enroller: ClientKeyEnroller(transport: transport, iCloudStore: MemorySecretStore()),
+                transport: transport,
+                defaults: UserDefaults(suiteName: "test-keys-\(UUID().uuidString)")!
+            ),
             profiles: MockProfileRepository(),
             subscriptions: subscriptions,
             onboarding: OnboardingStore(defaults: UserDefaults(suiteName: "test-session-\(UUID().uuidString)")!),
@@ -183,5 +193,59 @@ final class SessionStoreTests: XCTestCase {
         try? await Task.sleep(nanoseconds: 100_000_000)
         XCTAssertTrue(putAPI.puts.isEmpty,
                      "No unsynced local consent means bootstrap must not PUT /v1/consent")
+    }
+
+    // MARK: - Key-gated bootstrap
+
+    /// Everything the sign-in bootstrap does (seed `users/{uid}`, merge the
+    /// onboarding draft, stream the profile) writes or reads ENCRYPTED fields, so
+    /// it must not run while the user is still locked out — it would just throw
+    /// `keyNotLoaded` and mark the work done. It runs when `KeyGate` reports the
+    /// unlock instead.
+    @MainActor
+    func testBootstrapIsDeferredUntilTheKeyIsUnlocked() async {
+        // A device with no key at all, for an account that HAS server wraps →
+        // the recovery-code path.
+        let dek = SymmetricKey(size: .bits256)
+        let transport = MockKeyMigrationTransport()
+        try? await transport.uploadWraps(MultiWrappedDEK(
+            icloud: WrappedKey.wrapping(dek: dek, under: SymmetricKey(size: .bits256)),
+            recovery: RecoveryCode.wrap(dek: dek, code: "TEST-CODE")
+        ))
+        let keys = UserKeyStore(provider: AlwaysFailingKeyProvider(), secrets: MemorySecretStore())
+        let auth = MockAuthService(signedIn: true)
+        let store = makeStore(auth: auth, subscriptions: MockSubscriptionService(),
+                              keys: keys, transport: transport)
+
+        await waitUntil("Signed in even though the key is locked") {
+            store.state == .signedIn(userId: MockData.userId)
+        }
+        try? await Task.sleep(nanoseconds: 150_000_000)
+        XCTAssertNil(store.profile, "No profile stream while the journal is locked")
+
+        // The user enters their recovery code; KeyGate then tells the session.
+        await store.keyDidUnlockForTesting(keys: keys, dek: dek)
+
+        await waitUntil("Profile stream starts once the key is available") {
+            store.profile != nil
+        }
+    }
+}
+
+/// A device that can't unlock anything — the production `ICloudKeyProvider`
+/// behavior when this device holds no iCloud KEK.
+private final class AlwaysFailingKeyProvider: KeyProvider {
+    func fetchDataKey(userId: String) async throws -> Data {
+        throw ICloudKeyProviderError.noICloudKey
+    }
+}
+
+private extension SessionStore {
+    /// Mirrors what `KeyGate` does after `submitRecoveryCode` succeeds: the DEK
+    /// is installed, then the deferred bootstrap runs.
+    @MainActor
+    func keyDidUnlockForTesting(keys: UserKeyStore, dek: SymmetricKey) async {
+        keys.install(dek: dek, userId: MockData.userId)
+        await keyDidUnlock()
     }
 }

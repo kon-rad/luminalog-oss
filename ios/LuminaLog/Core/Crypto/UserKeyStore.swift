@@ -64,6 +64,20 @@ final class UserKeyStore {
         return cipher
     }
 
+    /// Adopt a DEK obtained OUTSIDE the provider — freshly enrolled for a new
+    /// account, or recovered from the user's recovery code (`KeyEnrollmentService`).
+    /// Caches it in memory and persists it to the device Keychain so later
+    /// launches unlock straight from the cache.
+    ///
+    /// Callers MUST NOT call this until the DEK's wraps are uploaded and
+    /// verified — installing first would let the user encrypt data with a key
+    /// that has no durable backup.
+    func install(dek: SymmetricKey, userId: String) {
+        secrets.set(dek.rawData, for: Self.account(for: userId))
+        cachedKey = dek
+        cachedCipher = FieldCipher(key: dek)
+    }
+
     /// Clear the in-memory cipher and the stored key for the user.
     func signOut(userId: String) {
         cachedCipher = nil

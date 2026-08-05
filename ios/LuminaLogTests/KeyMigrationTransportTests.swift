@@ -5,7 +5,7 @@ import CryptoKit
 /// In-memory `KeyMigrationTransport` double for unit tests. Stores the last
 /// uploaded `MultiWrappedDEK` and replays it from `fetchWraps`, and counts
 /// `finalizeMigration()` calls. Internal (not private) — a later task
-/// extends this with tamper flags and reuses it for `KeyMigrator` tests.
+/// extends this with tamper flags and reuses it for `ClientKeyEnroller` tests.
 final class InMemoryKeyMigrationTransport: KeyMigrationTransport {
     private(set) var uploadedWraps: MultiWrappedDEK?
     private(set) var finalizeCalls = 0
@@ -13,7 +13,7 @@ final class InMemoryKeyMigrationTransport: KeyMigrationTransport {
 
     /// When true, `fetchWraps` returns an `icloud` wrap of a DIFFERENT DEK than
     /// was actually uploaded (the `recovery` wrap is left untouched), simulating
-    /// a server-side corruption/tamper of the iCloud wrap so `KeyMigrator`'s
+    /// a server-side corruption/tamper of the iCloud wrap so `ClientKeyEnroller`'s
     /// verify gate must catch it.
     var tamperICloudOnFetch = false
     /// Same idea, but tampers the `recovery` wrap instead.
@@ -54,7 +54,7 @@ final class KeyMigrationTransportTests: XCTestCase {
         // Verify the DTO mapping conceptually: MultiWrappedDEK -> transport -> back
         // must be bit-identical. The real HTTP path is `ProxyKeyMigrationTransport`,
         // backed by `ProxyAPIClient` (covered separately); this fake proves the
-        // round-trip contract `KeyMigrator` will rely on.
+        // round-trip contract `ClientKeyEnroller` relies on.
         let dek = SymmetricKey(size: .bits256)
         let kek = SymmetricKey(size: .bits256)
         let wraps = MultiWrappedDEK(

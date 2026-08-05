@@ -1,7 +1,7 @@
 import Foundation
 
 /// Narrow network surface the zero-knowledge key-migration flow needs, so a
-/// later `KeyMigrator` can be unit-tested without real HTTP. Backed by
+/// `ClientKeyEnroller` can be unit-tested without real HTTP. Backed by
 /// `ProxyAPIClient` in production via `ProxyKeyMigrationTransport`.
 protocol KeyMigrationTransport {
     /// Upload both wraps of the DEK (`PUT /v1/keys/wrapped`).

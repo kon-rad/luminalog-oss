@@ -68,8 +68,22 @@ final class FirestoreProfileRepository: ProfileRepository {
         let ref = userRef(uid)
         let snapshot = try await ref.getDocument()
         // Never overwrite an existing document — returning users keep their
-        // biography, stats, and any proxy-written fields.
-        guard !snapshot.exists else { return false }
+        // biography, stats, and any proxy-written fields. But DO fill in identity
+        // fields it is missing: the RevenueCat webhook creates `users/{uid}` the
+        // moment a purchase lands, so a user who subscribes before the client's
+        // first write would otherwise never get a name or photo (ADR-0114).
+        if snapshot.exists {
+            let backfill = UserProfile.identityBackfill(
+                existing: snapshot.data() ?? [:],
+                displayName: displayName,
+                email: email,
+                photoURL: photoURL
+            )
+            if !backfill.isEmpty {
+                try await ref.setData(backfill.firestoreData, merge: true)
+            }
+            return false
+        }
 
         let seed = UserProfile(
             id: uid,

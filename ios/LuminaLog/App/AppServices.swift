@@ -46,11 +46,16 @@ final class AppServices: ObservableObject {
     /// `DevFlags.zkMigration` — OFF by default, deleted after the cutover).
     /// Built from `api` + the iCloud-Keychain-backed `SyncedKeychainStore`;
     /// nil when `api` is nil (`mocks()` — the migration path never runs there).
-    let keyMigrator: KeyMigrator?
+    let keyMigrator: ClientKeyEnroller?
     /// Narrow transport used to detect whether the signed-in user already has
     /// server-side wraps (i.e. migration already ran), independent of running
     /// the migration itself. Nil alongside `keyMigrator`.
     let keyMigrationTransport: KeyMigrationTransport?
+    /// Resolves the per-user DEK at sign-in — enrolling a brand-new account that
+    /// has no key at all, or asking for the recovery code when this device can't
+    /// unlock. `KeyGate` renders its state; `SessionStore` waits on it before any
+    /// encrypted read/write. See ADR-0114.
+    let keyEnrollment: KeyEnrollmentService
     /// On-device anchored soul constellation. Rebuilds automatically after each
     /// entry is indexed (reusing the semantic index's cached vector via a coalesced
     /// `scheduleRebuild()`), and can be rebuilt on demand from the DEBUG developer
@@ -91,8 +96,9 @@ final class AppServices: ObservableObject {
         drafts: DraftStore,
         api: ProxyAPIClient? = nil,
         uploadTransport: BackgroundUploadTransport? = nil,
-        keyMigrator: KeyMigrator? = nil,
+        keyMigrator: ClientKeyEnroller? = nil,
         keyMigrationTransport: KeyMigrationTransport? = nil,
+        keyEnrollment: KeyEnrollmentService,
         constellationCoordinator: ConstellationCoordinator
     ) {
         self.auth = auth
@@ -119,6 +125,7 @@ final class AppServices: ObservableObject {
         self.uploadTransport = uploadTransport
         self.keyMigrator = keyMigrator
         self.keyMigrationTransport = keyMigrationTransport
+        self.keyEnrollment = keyEnrollment
         self.constellationCoordinator = constellationCoordinator
         self.dailyGoalReconciler = DailyGoalReconciler(journals: journals, profiles: profiles)
         // Built here (not in the factories) from the injected repositories, mirroring
@@ -292,7 +299,15 @@ final class AppServices: ObservableObject {
         // One-time ZK migration collaborators (phase 1d). Reuses `migrationTransport`
         // built above for the read path. Actually running/prompting stays gated behind
         // `DevFlags.zkMigration` (OFF by default) in `LuminaLogApp`.
-        let keyMigrator = KeyMigrator(transport: migrationTransport, iCloudStore: SyncedKeychainStore())
+        let keyMigrator = ClientKeyEnroller(transport: migrationTransport, iCloudStore: SyncedKeychainStore())
+
+        // First-run key enrollment + recovery-code unlock. Shares the enroller and
+        // transport above: a brand-new account has neither an iCloud KEK nor server
+        // wraps, so without this it could never obtain a DEK and every entry it
+        // saved would fail closed, silently (ADR-0114).
+        let keyEnrollment = KeyEnrollmentService(
+            keys: keys, enroller: keyMigrator, transport: migrationTransport
+        )
 
         // Anchored soul constellation (on-device, gated by `DevFlags.aiModel1`).
         // Reuses the same embedder already selected above for the semantic index,
@@ -347,6 +362,7 @@ final class AppServices: ObservableObject {
             uploadTransport: transport,
             keyMigrator: keyMigrator,
             keyMigrationTransport: migrationTransport,
+            keyEnrollment: keyEnrollment,
             constellationCoordinator: constellationCoordinator
         )
     }
@@ -463,6 +479,13 @@ final class AppServices: ObservableObject {
                 )
             ),
             drafts: drafts,
+            keyEnrollment: KeyEnrollmentService(
+                keys: keys,
+                enroller: ClientKeyEnroller(
+                    transport: MockKeyMigrationTransport(), iCloudStore: KeychainStore()
+                ),
+                transport: MockKeyMigrationTransport()
+            ),
             constellationCoordinator: constellationCoordinator
         )
     }

@@ -58,6 +58,7 @@ struct LuminaLogApp: App {
         _session = StateObject(wrappedValue: SessionStore(
             auth: services.auth,
             keys: services.keys,
+            keyEnrollment: services.keyEnrollment,
             profiles: services.profiles,
             subscriptions: services.subscriptions,
             onboarding: onboarding,
@@ -109,13 +110,25 @@ struct LuminaLogApp: App {
                         // Re-key the whole shell per uid: repository streams capture
                         // the user at creation, so all tab content must be rebuilt
                         // when the signed-in user changes.
-                        ConsentGate(store: services.consentStore, service: services.consentService) {
-                            PaywallGate(
-                                subscriptions: services.subscriptions,
-                                onSignOut: { try? services.auth.signOut() }
-                            ) {
-                                RootView()
-                                    .id(uid)
+                        // Encryption-key gate FIRST: without a DEK every content
+                        // path fails closed, so a keyless account would otherwise
+                        // render a normal-looking but permanently empty app
+                        // (ADR-0114). New accounts enroll here; returning users
+                        // pass straight through.
+                        KeyGate(
+                            enrollment: services.keyEnrollment,
+                            userId: uid,
+                            onUnlock: { await session.keyDidUnlock() },
+                            onSignOut: { try? services.auth.signOut() }
+                        ) {
+                            ConsentGate(store: services.consentStore, service: services.consentService) {
+                                PaywallGate(
+                                    subscriptions: services.subscriptions,
+                                    onSignOut: { try? services.auth.signOut() }
+                                ) {
+                                    RootView()
+                                        .id(uid)
+                                }
                             }
                         }
                         .id(uid)

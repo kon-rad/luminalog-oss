@@ -40,14 +40,14 @@ enum ZKMigrationLocalMark {
 /// migration and shows the resulting recovery code. Presented as a
 /// `.fullScreenCover` above the signed-in app shell (see `LuminaLogApp`).
 ///
-/// Never deletes or finalizes anything server-side — `KeyMigrator.migrate`
+/// Never deletes or finalizes anything server-side — `ClientKeyEnroller.migrate`
 /// only uploads the new wraps after verifying they both recover the existing
 /// DEK, so a failure here is always safe to retry.
 struct ZKMigrationView: View {
 
     let userId: String
     let dek: SymmetricKey
-    let migrator: KeyMigrator
+    let migrator: ClientKeyEnroller
     /// Called once the user has confirmed they saved the recovery code and
     /// tapped Done. The view has already marked local completion by then.
     var onDone: () -> Void
@@ -203,7 +203,7 @@ struct ZKMigrationView: View {
     private func runMigration() async {
         phase = .running
         do {
-            let code = try await migrator.migrate(userId: userId, dek: dek)
+            let code = try await migrator.enroll(userId: userId, dek: dek)
             phase = .success(code: code)
         } catch {
             phase = .failed(error.localizedDescription)
@@ -234,7 +234,7 @@ struct ZKMigrationView: View {
     ZKMigrationView(
         userId: "preview-user",
         dek: SymmetricKey(size: .bits256),
-        migrator: KeyMigrator(
+        migrator: ClientKeyEnroller(
             transport: PreviewTransport(),
             iCloudStore: PreviewSecretStore()
         ),

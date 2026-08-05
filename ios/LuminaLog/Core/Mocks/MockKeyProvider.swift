@@ -10,3 +10,14 @@ final class MockKeyProvider: KeyProvider {
         return Data(digest)   // SHA-256 → exactly 32 bytes
     }
 }
+
+/// In-memory `KeyMigrationTransport` for previews and mock wiring, where there is
+/// no `ProxyAPIClient` to talk to. `MockKeyProvider` always vends a key, so
+/// `KeyEnrollmentService` resolves to `.unlocked` without ever reaching this.
+final class MockKeyMigrationTransport: KeyMigrationTransport {
+    private var wraps: MultiWrappedDEK?
+
+    func uploadWraps(_ wraps: MultiWrappedDEK) async throws { self.wraps = wraps }
+    func fetchWraps() async throws -> MultiWrappedDEK? { wraps }
+    func finalizeMigration() async throws {}
+}

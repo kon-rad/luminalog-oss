@@ -24,6 +24,7 @@ final class SessionStore: ObservableObject {
 
     private let auth: AuthService
     private let keys: UserKeyStore
+    private let keyEnrollment: KeyEnrollmentService
     private let profiles: ProfileRepository
     private let subscriptions: SubscriptionService
     private let onboarding: OnboardingStore
@@ -31,10 +32,14 @@ final class SessionStore: ObservableObject {
 
     private var authTask: Task<Void, Never>?
     private var profileTask: Task<Void, Never>?
+    /// The user whose post-key bootstrap has already run, so a later
+    /// `keyDidUnlock()` (recovery-code path) can't repeat it.
+    private var bootstrappedUid: String?
 
     init(
         auth: AuthService,
         keys: UserKeyStore,
+        keyEnrollment: KeyEnrollmentService,
         profiles: ProfileRepository,
         subscriptions: SubscriptionService,
         onboarding: OnboardingStore,
@@ -42,6 +47,7 @@ final class SessionStore: ObservableObject {
     ) {
         self.auth = auth
         self.keys = keys
+        self.keyEnrollment = keyEnrollment
         self.profiles = profiles
         self.subscriptions = subscriptions
         self.onboarding = onboarding
@@ -84,20 +90,18 @@ final class SessionStore: ObservableObject {
         profileTask = nil
 
         if let uid {
-            // Load the encryption key BEFORE any read/write: ensureUserDocument
-            // seeds an encrypted profile and the profile stream decrypts. A
-            // failure here is logged, not fatal — repositories fail closed
-            // (reads yield empty, writes throw) until the key is available.
-            do {
-                try await keys.loadCipher(userId: uid)
-            } catch {
-                Self.logger.error("loadCipher failed: \(error.localizedDescription, privacy: .public)")
-            }
+            bootstrappedUid = nil
             state = .signedIn(userId: uid)
-            let createdNewUser = await ensureUserDocument()
-            isNewUser = createdNewUser
-            await mergeOnboardingDraftIfPresent(overwriteExisting: createdNewUser)
-            startProfileStream()
+            // Resolve the encryption key BEFORE any read/write: ensureUserDocument
+            // seeds an encrypted profile and the profile stream decrypts. This
+            // ENROLLS a brand-new account (which has no key at all) rather than
+            // leaving it silently unable to persist anything — see ADR-0114.
+            await keyEnrollment.resolve(userId: uid)
+            // Enrollment is non-interactive, so a new user is already unlocked
+            // here (only the code acknowledgement is still pending). The
+            // recovery-code path isn't — `KeyGate` calls `keyDidUnlock()` when
+            // the user finishes it.
+            await bootstrapSignedInUser()
             await subscriptions.setUser(uid)
             // Best-effort: mirror a locally-consented new user's AI-data-sharing
             // choice (recorded pre-auth in onboarding) to the server before the
@@ -106,6 +110,8 @@ final class SessionStore: ObservableObject {
             await consentService.syncIfNeeded()
         } else {
             if let previousUid { keys.signOut(userId: previousUid) }
+            keyEnrollment.reset()
+            bootstrappedUid = nil
             // Decrypted plaintext must not outlive the session.
             Task.detached { await MediaContentCache().purge() }
             state = .signedOut
@@ -113,6 +119,27 @@ final class SessionStore: ObservableObject {
             profile = nil
             await subscriptions.setUser(nil)
         }
+    }
+
+    /// Everything that needs the DEK: seed `users/{uid}`, merge the buffered
+    /// onboarding answers, and start mirroring the live profile. No-ops until a
+    /// key is available (the recovery-code path defers it), and runs at most once
+    /// per signed-in user.
+    private func bootstrapSignedInUser() async {
+        guard case .signedIn(let uid) = state else { return }
+        guard keys.currentCipher != nil, bootstrappedUid != uid else { return }
+        bootstrappedUid = uid
+
+        let createdNewUser = await ensureUserDocument()
+        isNewUser = createdNewUser
+        await mergeOnboardingDraftIfPresent(overwriteExisting: createdNewUser)
+        startProfileStream()
+    }
+
+    /// Called by `KeyGate` once the user unlocks with their recovery code, so the
+    /// profile seed + stream that were skipped at sign-in run now.
+    func keyDidUnlock() async {
+        await bootstrapSignedInUser()
     }
 
     /// Creates `users/{uid}` on first sign-in. Returns `true` if it created the

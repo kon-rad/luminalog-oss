@@ -241,6 +241,47 @@ extension UserProfile {
         )
     }
 
+    /// Auth-provider identity fields that are absent (or blank) on an existing
+    /// `users/{uid}` document. All plaintext — none of these are encrypted.
+    struct IdentityBackfill: Equatable {
+        var displayName: String?
+        var email: String?
+        var photoURL: String?
+
+        var isEmpty: Bool { displayName == nil && email == nil && photoURL == nil }
+
+        var firestoreData: [String: Any] {
+            var data: [String: Any] = [:]
+            if let displayName { data["displayName"] = displayName }
+            if let email { data["email"] = email }
+            if let photoURL { data["photoURL"] = photoURL }
+            return data
+        }
+    }
+
+    /// Which identity fields the signed-in provider can fill in on an EXISTING
+    /// document. Fills only what is missing or blank — a name or photo the user
+    /// changed in-app always wins over the provider's copy.
+    static func identityBackfill(
+        existing: [String: Any],
+        displayName: String?,
+        email: String?,
+        photoURL: URL?
+    ) -> IdentityBackfill {
+        func filled(_ key: String, with candidate: String?) -> String? {
+            let stored = (existing[key] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard stored?.isEmpty ?? true else { return nil }
+            let candidate = candidate?.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let candidate, !candidate.isEmpty else { return nil }
+            return candidate
+        }
+        return IdentityBackfill(
+            displayName: filled("displayName", with: displayName),
+            email: filled("email", with: email),
+            photoURL: filled("photoURL", with: photoURL?.absoluteString)
+        )
+    }
+
     func firestoreData(cipher: FieldCipher) throws -> [String: Any] {
         var data: [String: Any] = [
             "displayName": displayName,
