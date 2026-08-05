@@ -7,6 +7,10 @@ import SwiftUI
 struct AttachmentStrip: View {
 
     let attachments: AttachmentSet
+    /// Non-nil while a just-stopped recording is still merging in the background:
+    /// render the chip with this duration IMMEDIATELY, before the merged file is
+    /// ready, so Stop feels instant. Ignored once a real `attachments.audio` exists.
+    let pendingAudioDuration: TimeInterval?
     /// One id per photo still being fetched/decoded — rendered as a spinner.
     let loadingPhotoIDs: [UUID]
     /// Whether a picked video is still loading (shows a spinner tile).
@@ -49,7 +53,11 @@ struct AttachmentStrip: View {
                 }
 
                 if let audio = attachments.audio {
-                    audioChip(audio)
+                    audioChip(durationSec: audio.durationSec)
+                } else if let pending = pendingAudioDuration {
+                    // Instant chip: shown the moment recording stops, before the
+                    // background merge produces the playable file.
+                    audioChip(durationSec: pending)
                 }
             }
             .padding(.horizontal, Spacing.m)
@@ -115,12 +123,12 @@ struct AttachmentStrip: View {
         }
     }
 
-    private func audioChip(_ audio: AudioAttachment) -> some View {
+    private func audioChip(durationSec: Double) -> some View {
         ZStack(alignment: .topTrailing) {
             HStack(spacing: Spacing.s) {
                 Image(systemName: "waveform")
                     .foregroundStyle(Color.tintVoice)
-                Text(Self.durationLabel(audio.durationSec))
+                Text(Self.durationLabel(durationSec))
                     .font(.captionText.weight(.semibold))
                     .foregroundStyle(Color.textPrimary)
             }
@@ -133,7 +141,7 @@ struct AttachmentStrip: View {
 
             removeButton(action: onRemoveAudio)
         }
-        .accessibilityLabel("Voice recording, \(Self.durationLabel(audio.durationSec))")
+        .accessibilityLabel("Voice recording, \(Self.durationLabel(durationSec))")
     }
 
     private func removeButton(action: @escaping () -> Void) -> some View {

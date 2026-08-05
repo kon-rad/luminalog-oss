@@ -64,6 +64,12 @@ final class CreateEntryViewModel: ObservableObject {
     /// view dismisses on it. Upload/transcribe then continue without the UI.
     @Published private(set) var didSave = false
 
+    /// A just-stopped recording whose segment merge is still running in the
+    /// background. We show the audio chip IMMEDIATELY using the duration the
+    /// recorder already measured, then swap in the real (playable) attachment
+    /// when the merge lands. nil when nothing is being finalized.
+    @Published private(set) var pendingRecordingDuration: TimeInterval?
+
     // MARK: Dependencies & identity
 
     var promptText: String?
@@ -111,13 +117,16 @@ final class CreateEntryViewModel: ObservableObject {
 
     var hasUnsavedContent: Bool {
         !trimmedText.isEmpty || !attachments.isEmpty || hasInProgressRecording
+            || pendingRecordingDuration != nil
     }
 
     /// True while any picked media is still being fetched/decoded.
     var isLoadingMedia: Bool { !loadingPhotoIDs.isEmpty || isLoadingVideo }
 
     /// Whether the attachment strip has anything to show (resolved or loading).
-    var hasVisibleAttachments: Bool { !attachments.isEmpty || isLoadingMedia }
+    var hasVisibleAttachments: Bool {
+        !attachments.isEmpty || isLoadingMedia || pendingRecordingDuration != nil
+    }
 
     /// Save is blocked while media is loading so a not-yet-resolved item can't
     /// be dropped; it re-enables the instant the last load finishes.
@@ -254,7 +263,20 @@ final class CreateEntryViewModel: ObservableObject {
         persistDraftNow()
     }
 
+    /// Show the audio chip instantly on Stop — before the background segment
+    /// merge finishes — using the duration the recorder already measured.
+    func beginPendingRecording(durationSec: TimeInterval) {
+        pendingRecordingDuration = durationSec
+    }
+
+    /// Clear the instant chip when the merge finished, failed, or was cancelled
+    /// without producing an attached clip.
+    func clearPendingRecording() {
+        pendingRecordingDuration = nil
+    }
+
     func attachAudio(_ audio: AudioAttachment) {
+        pendingRecordingDuration = nil
         let previousURL = attachments.audio?.url
         let notice = attachments.setAudio(audio)
         attachmentNotice = notice

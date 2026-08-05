@@ -328,12 +328,23 @@ struct CreateEntryView: View {
             if viewModel.hasVisibleAttachments {
                 AttachmentStrip(
                     attachments: viewModel.attachments,
+                    pendingAudioDuration: viewModel.pendingRecordingDuration,
                     loadingPhotoIDs: viewModel.loadingPhotoIDs,
                     isLoadingVideo: viewModel.isLoadingVideo,
                     isDisabled: false,
                     onRemovePhoto: { viewModel.removePhoto(id: $0) },
                     onRemoveVideo: { viewModel.removeVideo() },
-                    onRemoveAudio: { viewModel.removeAudio() }
+                    onRemoveAudio: {
+                        // Removing the instant chip while its merge is still
+                        // running must cancel that merge, or it would re-attach
+                        // the clip the user just dismissed.
+                        if viewModel.pendingRecordingDuration != nil {
+                            recorder.cancel()
+                            viewModel.clearPendingRecording()
+                        } else {
+                            viewModel.removeAudio()
+                        }
+                    }
                 )
                 .padding(.bottom, Spacing.s)
             }
@@ -393,8 +404,14 @@ struct CreateEntryView: View {
     /// is attached when it's ready via `attachPendingRecording`. Shared by the
     /// overlay's X and Stop buttons.
     private func stopAndAttach() {
+        // Capture the duration BEFORE the merge starts so the chip can show the
+        // recorded time instantly, without waiting on the export.
+        let pendingDuration = recorder.cumulativeElapsed
         recorder.finishAndBeginMerge()
         isRecorderPresented = false
+        if pendingDuration > 0 {
+            viewModel.beginPendingRecording(durationSec: pendingDuration)
+        }
         Task { await attachPendingRecording() }
     }
 
@@ -406,14 +423,19 @@ struct CreateEntryView: View {
     @discardableResult
     private func attachPendingRecording() async -> Bool {
         if let audio = await recorder.awaitPendingMerge() {
-            viewModel.attachAudio(audio)
+            viewModel.attachAudio(audio)   // swaps the instant chip for the real clip
         }
         if recorder.isActive {
-            // Merge failed → recorder is `.paused` again; bring the panel back.
+            // Merge failed → recorder is `.paused` again; bring the panel back and
+            // drop the instant chip (there's no clip to keep).
+            viewModel.clearPendingRecording()
             isRecorderPresented = true
             viewModel.attachmentNotice = "Couldn't finish the recording — tap Stop to try again."
             return false
         }
+        // No clip attached (e.g. empty recording): make sure the instant chip
+        // doesn't linger. (On success `attachAudio` already cleared it.)
+        viewModel.clearPendingRecording()
         return true
     }
 

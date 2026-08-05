@@ -50,6 +50,41 @@ final class CreateEntryViewModelTests: XCTestCase {
             .appendingPathComponent("\(UUID().uuidString).m4a")
     }
 
+    // MARK: - Instant recording chip
+
+    /// Stopping a recording surfaces the audio chip IMMEDIATELY (from the known
+    /// duration), keeps Save enabled while the merge runs, and swaps in the real
+    /// clip — clearing the instant marker — once the merge lands.
+    @MainActor
+    func testInstantChipShowsOnStopAndClearsWhenClipAttaches() {
+        let h = Harness()
+        XCTAssertNil(h.viewModel.pendingRecordingDuration)
+        XCTAssertFalse(h.viewModel.hasVisibleAttachments)
+
+        h.viewModel.beginPendingRecording(durationSec: 42)
+        XCTAssertEqual(h.viewModel.pendingRecordingDuration, 42)
+        XCTAssertTrue(h.viewModel.hasVisibleAttachments, "instant chip must show before the merge")
+        XCTAssertTrue(h.viewModel.canSave, "Save must stay enabled while the merge finalizes")
+
+        let url = tempAudioURL()
+        try? Data([0, 1, 2]).write(to: url)
+        h.viewModel.attachAudio(AudioAttachment(url: url, durationSec: 42))
+        XCTAssertNil(h.viewModel.pendingRecordingDuration, "attaching the clip clears the instant chip")
+        XCTAssertNotNil(h.viewModel.attachments.audio)
+    }
+
+    /// A failed/cancelled merge clears the instant chip so nothing lingers.
+    @MainActor
+    func testClearPendingRecordingHidesChip() {
+        let h = Harness()
+        h.viewModel.beginPendingRecording(durationSec: 10)
+        XCTAssertTrue(h.viewModel.hasVisibleAttachments)
+
+        h.viewModel.clearPendingRecording()
+        XCTAssertNil(h.viewModel.pendingRecordingDuration)
+        XCTAssertFalse(h.viewModel.hasVisibleAttachments)
+    }
+
     // MARK: - Save hands off and dismisses
 
     @MainActor
