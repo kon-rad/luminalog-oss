@@ -69,6 +69,10 @@ final class AppServices: ObservableObject {
     /// degenerate, from the durable S3 audio, and refreshes their derived AI.
     /// Run once per signed-in user at launch from `LuminaLogApp`.
     let transcriptBackfiller: TranscriptBackfiller
+    /// Headless entry-AI generation (summary/insights/prompts) — the launch sweep
+    /// (`sweep()`) and the same instance the finalize pipeline uses to generate at
+    /// save. Shared so both paths dedup against one another.
+    let entryAIGenerator: EntryAIGenerator
     /// Encrypts + re-uploads webhook-staged voice recordings on next foreground.
     /// Nil when `api` is nil (`mocks()`), like other network-backed helpers.
     let voiceRecordingImporter: VoiceRecordingImporter?
@@ -99,7 +103,8 @@ final class AppServices: ObservableObject {
         keyMigrator: ClientKeyEnroller? = nil,
         keyMigrationTransport: KeyMigrationTransport? = nil,
         keyEnrollment: KeyEnrollmentService,
-        constellationCoordinator: ConstellationCoordinator
+        constellationCoordinator: ConstellationCoordinator,
+        entryAIGenerator: EntryAIGenerator
     ) {
         self.auth = auth
         self.keys = keys
@@ -127,6 +132,7 @@ final class AppServices: ObservableObject {
         self.keyMigrationTransport = keyMigrationTransport
         self.keyEnrollment = keyEnrollment
         self.constellationCoordinator = constellationCoordinator
+        self.entryAIGenerator = entryAIGenerator
         self.dailyGoalReconciler = DailyGoalReconciler(journals: journals, profiles: profiles)
         // Built here (not in the factories) from the injected repositories, mirroring
         // `dailyGoalReconciler`. The recoverer is the same fetch→decrypt→transcribe
@@ -263,9 +269,14 @@ final class AppServices: ObservableObject {
         // ONE shared draft store across Create/Home/processor/finalizer (retry
         // rebuild reads what Save retained).
         let drafts = DraftStore()
+        // Headless entry-AI generation shared by the finalize pipeline (generate at
+        // save) and the launch sweep. `UIKitBackgroundActivity` keeps a brief
+        // backgrounding from aborting an in-flight generation.
+        let entryAIGenerator = EntryAIGenerator(
+            journals: journals, ai: ai, backgroundActivity: UIKitBackgroundActivity())
         let finalizer = EntryFinalizer(
             journals: journals, profiles: profiles, ai: ai,
-            recoverer: transcriptRecoverer, drafts: drafts)
+            recoverer: transcriptRecoverer, drafts: drafts, aiGenerator: entryAIGenerator)
         let transport = BackgroundUploadTransport()
         // Instantiate the background session at launch so it can receive delegate
         // events (incl. the relaunch-delivered completion handler) right away.
@@ -363,7 +374,8 @@ final class AppServices: ObservableObject {
             keyMigrator: keyMigrator,
             keyMigrationTransport: migrationTransport,
             keyEnrollment: keyEnrollment,
-            constellationCoordinator: constellationCoordinator
+            constellationCoordinator: constellationCoordinator,
+            entryAIGenerator: entryAIGenerator
         )
     }
 
@@ -428,7 +440,10 @@ final class AppServices: ObservableObject {
             directory: FileManager.default.temporaryDirectory
                 .appendingPathComponent("MockUploads", isDirectory: true))
         let drafts = DraftStore()
-        let finalizer = EntryFinalizer(journals: journals, profiles: profiles, ai: ai, drafts: drafts)
+        let entryAIGenerator = EntryAIGenerator(journals: journals, ai: ai)
+        let finalizer = EntryFinalizer(
+            journals: journals, profiles: profiles, ai: ai, drafts: drafts,
+            aiGenerator: entryAIGenerator)
         let uploadManager = UploadManager(
             journal: uploadJournal,
             transport: AlwaysOKTransport(),
@@ -486,7 +501,8 @@ final class AppServices: ObservableObject {
                 ),
                 transport: MockKeyMigrationTransport()
             ),
-            constellationCoordinator: constellationCoordinator
+            constellationCoordinator: constellationCoordinator,
+            entryAIGenerator: entryAIGenerator
         )
     }
 }

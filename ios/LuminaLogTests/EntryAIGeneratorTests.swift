@@ -160,4 +160,24 @@ final class EntryAIGeneratorTests: XCTestCase {
 
         XCTAssertEqual(Set(ai.generateEntryAICalls), ["n1", "n2"])
     }
+
+    // MARK: - Finalize pipeline trigger (C2)
+
+    func testFinalizerTriggersGenerationForSavedEntry() async {
+        let journals = MockJournalRepository(entries: [])
+        let ai = SpyAI()
+        let gen = EntryAIGenerator(journals: journals, ai: ai)
+        let finalizer = EntryFinalizer(
+            journals: journals, profiles: MockProfileRepository(), ai: ai, aiGenerator: gen)
+
+        let draftId = "draft-1"
+        let pending = PendingEntry(
+            draftId: draftId, userId: "u", type: .text, title: "t",
+            content: "A journal entry worth summarizing.", wordCount: 6,
+            transcriptStatus: nil, createdAtEpoch: 0, promptText: nil, uploads: [])
+
+        await finalizer.finalize(pending)
+
+        XCTAssertEqual(ai.generateEntryAICalls, [draftId])
+    }
 }

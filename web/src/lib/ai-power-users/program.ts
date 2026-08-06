@@ -1,8 +1,8 @@
 /* ──────────────────────────────────────────────────────────────────────────
  * Data for the live 5-day AI Power Users program.
  *
- * Only Module 1 is fully built out. The program grid gives the shape of the
- * whole course; MODULE_1 carries the detail the module-1 page renders.
+ * Modules 1 and 2 are fully built out. The program grid gives the shape of
+ * the whole course; MODULE_1_* and MODULE_2_* carry the per-module detail.
  * ────────────────────────────────────────────────────────────────────────── */
 import {
   Mic,
@@ -11,6 +11,9 @@ import {
   Bot,
   Network,
   SquareTerminal,
+  Search,
+  Shuffle,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react'
 import { LUMA_CALENDAR_URL } from '@/lib/events/luma'
@@ -200,4 +203,172 @@ export const MODULE_1_OPEN_QUESTIONS: string[] = [
   'Explain the PARA method. Give one real example of something in your own life that would go in each of the four buckets.',
   'What is a Hermes skill? Describe, in your own words, what your daily-standup skill does step by step.',
   'Why might someone choose a private/decentralized model like Morpheus over a mainstream cloud chatbot? Give at least one benefit and one trade-off.',
+]
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * MODULE 2 — Agent Mastery and Vibe Coding a Pro Website
+ * One 110-minute session in two parts: the agent writes three skills for
+ * itself, then vibe codes a real client website from a blank folder to a
+ * live URL.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+const MODULE_2_SLUG = 'module-02-agent-mastery-and-vibe-coding'
+export const MODULE_2_MATERIALS_URL = `${COURSE_REPO_URL}/tree/main/modules/${MODULE_2_SLUG}`
+export const MODULE_2_GUIDE_URL = `${COURSE_REPO_URL}/blob/main/modules/${MODULE_2_SLUG}/student-guide.md`
+
+export interface AgentSkill {
+  command: string
+  cadence: string
+  what: string
+  why: string
+  icon: LucideIcon
+}
+
+/* The three skills the agent writes for itself from a single brief. Command
+ * names are checked against Hermes built-ins — /switch is taken (alias for
+ * /sessions), and /model, /profile and /usage are built in too. */
+export const MODULE_2_SKILLS: AgentSkill[] = [
+  {
+    command: '/models-research',
+    cadence: 'Weekly, plus on demand',
+    what: 'Researches text, image, video, speech and music models with live pricing from public APIs and independent leaderboards, then writes a dated briefing into your notes.',
+    why: 'You stop reading “best AI tools” listicles. The data is current, sourced, and yours.',
+    icon: Search,
+  },
+  {
+    command: '/model-switch',
+    cadence: 'On demand',
+    what: 'Moves between four profiles — private, fast, smart and coding — and stops you before you send client data to a public provider.',
+    why: 'Automating a command is a shortcut. Automating a decision is a skill.',
+    icon: Shuffle,
+  },
+  {
+    command: '/spend-report',
+    cadence: 'Weekly, plus on demand',
+    what: 'Incremental by design: keeps a watermark and only ever processes usage since its last run. Reports by project and model, and flags spikes.',
+    why: 'A well-built tool remembers what it already did and refuses to repeat itself.',
+    icon: Wallet,
+  },
+]
+
+export const MODULE_2_AGENDA: AgendaItem[] = [
+  {
+    time: '0:00',
+    title: 'Open with the payoff',
+    detail: 'The finished client site on a phone, and what an agency charges for it.',
+  },
+  {
+    time: '0:04',
+    title: 'Models, tokens and the cache trap',
+    detail: 'What a token really costs, why your agent gets worse over a long session, and the one habit that fixes it.',
+  },
+  {
+    time: '0:12',
+    title: 'Three skills from one brief',
+    detail: 'You describe what you want; the agent writes and runs all three skills itself.',
+  },
+  {
+    time: '0:24',
+    title: 'SOUL.md and HERMES.md',
+    detail: 'Who your agent is, versus how this job works — and what each one costs per message.',
+  },
+  {
+    time: '0:31',
+    title: 'Wire it into your standup',
+    detail: 'Weekly, not daily. When nothing is due, it says nothing at all.',
+  },
+  { time: '0:34', title: 'Break', detail: 'Ten minutes.' },
+  {
+    time: '0:44',
+    title: 'Goals and the knowledge base',
+    detail: 'Interview the client, then let the agent read their photos and write the alt text and a shot list.',
+  },
+  {
+    time: '1:03',
+    title: 'Layout, functionality and architecture',
+    detail: 'You describe the site out loud. Then make the AI argue against its own tech recommendation.',
+  },
+  {
+    time: '1:23',
+    title: 'Build',
+    detail: 'The best agentic coding model executes the plan you approved, using the real photos.',
+  },
+  {
+    time: '1:41',
+    title: 'Verify, git, deploy',
+    detail: 'Evidence not assurances, then version control and a real live URL on a real phone.',
+  },
+]
+
+export const MODULE_2_STEPS: string[] = [
+  'Install the engineering skills — process beats prompt',
+  'Set the goals — what must this achieve, and what counts as failure?',
+  'Build the knowledge base — the client interview, and the agent reads their photos',
+  'Design the layout and functionality — you describe, the agent writes the spec',
+  'Pick the architecture — then make the AI argue against itself',
+  'Approve the plan — where a non-programmer gets their power back',
+  'Build it — best coding model, real photos, real copy',
+  'Verify it — evidence, not assurances',
+  'Git, deploy, live URL',
+  'Price it — what the work is actually worth',
+]
+
+export const MODULE_2_MCQ: QuizMCQ[] = [
+  {
+    question: 'What is a token?',
+    options: [
+      'One character',
+      'One word, always',
+      'A chunk of text, roughly three-quarters of a word on average',
+      'One sentence',
+    ],
+    answer: 2,
+  },
+  {
+    question: 'Which normally costs more per token?',
+    options: [
+      'Input — what you send',
+      'Output — what the model writes back',
+      'They always cost exactly the same',
+      'Neither; you are billed per message',
+    ],
+    answer: 1,
+  },
+  {
+    question: 'What is the difference between a session and a task?',
+    options: [
+      'Nothing, they are two words for the same thing',
+      'A session is one continuous conversation where context accumulates; a task is one unit of work',
+      'A task is longer than a session',
+      'A session is one message, a task is one reply',
+    ],
+    answer: 1,
+  },
+  {
+    question: 'What does SOUL.md hold that HERMES.md does not?',
+    options: [
+      'Project conventions and the tech stack for one job',
+      'Your API keys',
+      'Who your agent is everywhere — persona, voice, base behaviour',
+      'The conversation history',
+    ],
+    answer: 2,
+  },
+  {
+    question: 'Why do you check for secrets before your first commit?',
+    options: [
+      'Git will refuse to commit a file containing a key',
+      'A key pushed to a public repository is scraped within minutes',
+      'It makes the repository smaller',
+      'The host will not deploy without it',
+    ],
+    answer: 1,
+  },
+]
+
+export const MODULE_2_OPEN_QUESTIONS: string[] = [
+  'Why does one-task-per-session make the prompt-cache problem disappear rather than just reduce it?',
+  'Paste your goals.md. How did it help you say no to something the agent suggested?',
+  'Did your agent recommend a database for the site? Was it right, and why?',
+  'Paste a skill brief you wrote yourself. Could a peer build the same skill from it without asking you a question?',
 ]

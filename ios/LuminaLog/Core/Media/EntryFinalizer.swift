@@ -22,6 +22,11 @@ struct EntryFinalizer {
     /// deleted once its uploads finalize successfully. Optional for mock/test
     /// wiring that doesn't exercise draft retention.
     var drafts: DraftStore? = nil
+    /// Generates the entry's summary/insights/prompts HEADLESSLY once its content is
+    /// final, so a saved voice/media entry gets its AI right away instead of only when
+    /// the user opens its detail view. Optional so mock/test wiring can omit it (the
+    /// launch sweep still backfills); `live()` always provides one.
+    var aiGenerator: EntryAIGenerator? = nil
     private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "finalizer")
 
     func finalize(_ pending: PendingEntry) async {
@@ -58,6 +63,14 @@ struct EntryFinalizer {
                     entry = recovered
                 }
                 await ai.requestIndex(journalId: entry.id)
+            }
+            // Content is now final (transcript recovered for voice/video, typed body
+            // otherwise), so generate the entry's summary/insights/prompts headlessly
+            // — the entry no longer waits to be opened to get its AI. Best-effort;
+            // skipped for empty content, and the launch sweep is the safety net if the
+            // app is backgrounded past the ~30s assertion mid-generation.
+            if !entry.content.isEmpty {
+                await aiGenerator?.ensureAI(for: entry.id)
             }
             // The entry is now durable (Firestore + S3), so its retained handed-off
             // draft — kept only as the cross-launch retry source — is no longer

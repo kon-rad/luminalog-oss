@@ -147,6 +147,13 @@ struct LuminaLogApp: App {
                             // audio) and refresh its derived AI. Runs after the sweep
                             // so freshly-stranded entries are eligible too.
                             await services.transcriptBackfiller.backfill()
+                            // Safety net for headless entry-AI: generate summary/
+                            // insights/prompts for any entry that has content but is
+                            // still missing them (e.g. generation was interrupted by an
+                            // app close, or predates the at-save pipeline). Runs LAST so
+                            // transcript recovery + its own AI regen finish first and
+                            // this only mops up whatever is still missing.
+                            await services.entryAIGenerator.sweep()
                         }
                         .task(id: uid) {
                             await services.voiceRecordingImporter?.sweep()
