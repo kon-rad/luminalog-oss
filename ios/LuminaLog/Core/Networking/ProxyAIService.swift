@@ -34,23 +34,10 @@ final class ProxyAIService: AIService {
     /// `generateDailyReport` writes it here so the Home feed can read it back.
     /// Nil in mock wiring.
     private let dailyReports: DailyReportRepository?
-    /// Client-side semantic-search index (increment 1c-D / 19b). Optional and
-    /// injected only by `AppServices.live()`. Used ONLY on the Model-1 path
-    /// (`DevFlags.aiModel1` ON) to rank RAG context by on-device embedding
-    /// similarity, with a keyword fallback. Nil in mock wiring and unused with the
-    /// flag OFF, so retrieval is unchanged.
+    /// Server-backed semantic index (`ServerSemanticIndex`). Injected only by
+    /// `AppServices.live()`; used on the Model-1 path (`DevFlags.aiModel1` ON) to
+    /// rank RAG context via `/v1/rag/search`, with a keyword fallback. Nil in mocks.
     private let coordinator: SemanticIndexCoordinating?
-    /// Priming latches — each flips true only after its step *succeeds*, so a transient
-    /// failure (e.g. the 258 MB model download dropping, or the DEK not being ready
-    /// yet) doesn't poison the session: the next Model-1 call retries. Tracked
-    /// separately so a load that already succeeded isn't repeated when only the
-    /// backfill needs another attempt. `@MainActor` isolation keeps this consistent
-    /// without a lock.
-    private var didLoadIndex = false
-    private var didBackfill = false
-    /// Single-flight guard: concurrent first calls join one priming pass instead of
-    /// each kicking off their own load + backfill.
-    private var primeTask: Task<Void, Never>?
     /// Injected clock so Model-1 recency scoring / day bounds are testable.
     private let now: () -> Date
 
@@ -256,9 +243,9 @@ final class ProxyAIService: AIService {
     }
 
     func requestIndex(journalId: String) async {
-        // Model 1 (zero-knowledge): entries are indexed ON DEVICE by
-        // `IndexingJournalRepository` → `SemanticIndexCoordinator`, so the server index
-        // call is redundant and would 500 (no server DEK). Skip it.
+        // Model 1 (zero-knowledge): entries are (re)indexed via
+        // `IndexingJournalRepository` → `ServerSemanticIndex` on save/edit, so this
+        // legacy id-based index call is redundant. Skip it.
         if DevFlags.aiModel1 { return }
         // Fire-and-forget: indexing failures are reconciled server-side.
         try? await api.post(path: "/v1/rag/index", body: JournalIdBody(journalId: journalId))
@@ -320,8 +307,9 @@ final class ProxyAIService: AIService {
 
     func relatedEntries(journalId: String, limit: Int) async throws -> [RelatedEntry] {
         // ── Model 1 (zero-knowledge) branch ──────────────────────────────────
-        // On-device: semantic-search the focal entry's OWN text against the local
-        // index, drop the entry itself, map the neighbours. Server can't decrypt.
+        // Server semantic search on the focal entry's OWN text (`/v1/rag/search`
+        // returns entry ids), drop the entry itself, and map the neighbours from the
+        // local decrypted corpus.
         if DevFlags.aiModel1, let journals, let coordinator {
             let entries = try await journals.fetchAllEntries()
             guard let focal = entries.first(where: { $0.id == journalId }) else { return [] }
@@ -348,33 +336,39 @@ final class ProxyAIService: AIService {
         return response.related
     }
 
+    /// Server-computed similarity edges over `POST /v1/rag/graph`, re-attached to
+    /// locally-decrypted titles/dates/types (the server holds no text). The server
+    /// returns entry-id node + edge lists; nodes that aren't in the local corpus
+    /// (e.g. just deleted) are dropped.
+    private struct ServerGraphResponse: Decodable {
+        let nodes: [String]
+        let edges: [Edge]
+        struct Edge: Decodable { let a: String; let b: String; let score: Double }
+    }
+
     func journalGraph() async throws -> JournalGraph {
-        // ── Model 1 (zero-knowledge) branch ──────────────────────────────────
-        // Build the similarity graph ON DEVICE from the local encrypted vectors
-        // (pairwise cosine, no re-embed, no server decrypt).
-        if DevFlags.aiModel1, let journals, let coordinator {
-            let entries = try await journals.fetchAllEntries()
-            let byId = Dictionary(entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-            let edges = try await coordinator.similarityGraph(neighborsPerNode: 3)
-            var degree: [String: Int] = [:]
-            var links: [GraphLink] = []
-            for edge in edges where byId[edge.source] != nil && byId[edge.target] != nil {
-                links.append(GraphLink(source: edge.source, target: edge.target, value: edge.score))
-                degree[edge.source, default: 0] += 1
-                degree[edge.target, default: 0] += 1
-            }
-            let nodes = entries.map { entry in
-                GraphNode(
-                    id: entry.id,
-                    title: entry.title,
-                    date: Self.dateFormatter.string(from: entry.updatedAt),
-                    type: entry.type.rawValue,
-                    degree: degree[entry.id] ?? 0
-                )
-            }
-            return JournalGraph(nodes: nodes, links: links)
+        let resp: ServerGraphResponse = try await api.post(path: "/v1/rag/graph", body: EmptyBody())
+        let entries = (try? await journals?.fetchAllEntries()) ?? []
+        let byId = Dictionary(entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+
+        var degree: [String: Int] = [:]
+        var links: [GraphLink] = []
+        for edge in resp.edges where byId[edge.a] != nil && byId[edge.b] != nil {
+            links.append(GraphLink(source: edge.a, target: edge.b, value: edge.score))
+            degree[edge.a, default: 0] += 1
+            degree[edge.b, default: 0] += 1
         }
-        return try await api.post(path: "/v1/rag/graph", body: EmptyBody())
+        let nodes = resp.nodes.compactMap { id -> GraphNode? in
+            guard let entry = byId[id] else { return nil }
+            return GraphNode(
+                id: entry.id,
+                title: entry.title,
+                date: Self.dateFormatter.string(from: entry.updatedAt),
+                type: entry.type.rawValue,
+                degree: degree[entry.id] ?? 0
+            )
+        }
+        return JournalGraph(nodes: nodes, links: links)
     }
 
     func deleteEntry(journalId: String) async throws {
@@ -409,9 +403,9 @@ final class ProxyAIService: AIService {
 
     func searchSemantic(query: String) async throws -> [SearchResult] {
         // ── Model 1 (zero-knowledge) branch ──────────────────────────────────
-        // On-device semantic search via the local vector index; if the index isn't
-        // ready yet (model still downloading / not embedded), fall back to on-device
-        // keyword search so results never depend on the server decrypting.
+        // Server semantic search (`/v1/rag/search` → entry ids), resolved against the
+        // local decrypted corpus. Falls back to on-device keyword search when the
+        // server returns nothing, so results never depend on the server decrypting.
         if DevFlags.aiModel1, let journals {
             if let coordinator {
                 let ids = try await coordinator.search(query: query, k: 50)
@@ -520,9 +514,8 @@ final class ProxyAIService: AIService {
             let todayIds = Set(todaysEntries.map(\.id))
             let todayText = todaysEntries.map(\.content).filter { !$0.isEmpty }.joined(separator: "\n\n")
             // RAG over PAST entries (exclude today's), matched on the day's text.
-            // Semantic-first (1c-D) with keyword fallback; `coordinator` is nil
-            // unless the flag is on and it was injected in `live()`.
-            await primeSemanticIndexIfNeeded(entries: allEntries)
+            // Server semantic search with keyword fallback; `coordinator` is nil
+            // only in mocks.
             let pastEntries = allEntries.filter { !todayIds.contains($0.id) }
             let relatedContext = await Model1Requests.journalContext(
                 from: pastEntries, query: todayText, now: now(), searcher: coordinator
@@ -582,9 +575,8 @@ final class ProxyAIService: AIService {
         let ragQuery = String("\(message) \(assistantContext)".suffix(2000))
 
         let entries = (try? await journals.fetchAllEntries()) ?? []
-        // Semantic-first (1c-D) with keyword fallback; `coordinator` is nil unless
-        // the flag is on and it was injected in `live()`.
-        await primeSemanticIndexIfNeeded(entries: entries)
+        // Server semantic search (chunk-level) with keyword fallback; `coordinator`
+        // is nil only in mocks.
         let journalContext = await Model1Requests.journalContext(
             from: entries, query: ragQuery, now: now(), searcher: coordinator
         )
@@ -639,7 +631,6 @@ final class ProxyAIService: AIService {
             .map(\.content)
             .joined(separator: "\n\n")
         let ragQuery = String((focal?.content ?? recentText).suffix(2000))
-        await primeSemanticIndexIfNeeded(entries: pastEntries)
         let ranked = await Model1Requests.rankedEntries(
             from: pastEntries, query: ragQuery, now: now(), searcher: coordinator
         )
@@ -656,49 +647,32 @@ final class ProxyAIService: AIService {
         )
     }
 
-    /// Prime the semantic index at most once *successfully* per session: load any
-    /// server-synced vectors, then backfill entries that aren't indexed yet.
-    ///
-    /// Best-effort — retrieval falls back to keyword when the index is empty, so
-    /// priming can never make the result worse than today. But unlike a naive
-    /// one-shot, a *failed* step does not latch: because the latches (`didLoadIndex` /
-    /// `didBackfill`) flip only on success, a transient failure (download drop, DEK not
-    /// ready) is retried on the next Model-1 call instead of degrading the whole
-    /// session to keyword search. Concurrent first calls are single-flighted via
-    /// `primeTask`. A no-op unless the Model-1 flag is on and a coordinator was injected
-    /// (nil in mocks / flag-off).
-    private func primeSemanticIndexIfNeeded(entries: [JournalEntry]) async {
-        guard DevFlags.aiModel1, let coordinator else { return }
-        if didLoadIndex && didBackfill { return }
-        if let primeTask { await primeTask.value; return }   // join an in-flight prime
+    /// UserDefaults latch: the one-time server-RAG migration backfill has completed.
+    /// Bump the suffix if the server index is ever wiped and the whole corpus must
+    /// be re-shipped.
+    private static let serverBackfillDoneKey = "ll-server-rag-backfilled-v1"
 
-        let task = Task { @MainActor in
-            if !didLoadIndex {
-                do { try await coordinator.loadIndex(); didLoadIndex = true }
-                catch { /* transient — retry on the next Model-1 call */ }
-            }
-            if !didBackfill, !entries.isEmpty {
-                do {
-                    try await coordinator.backfill(entries.map { (id: $0.id, text: $0.content) })
-                    didBackfill = true
-                } catch { /* transient — retry on the next Model-1 call */ }
-            }
-        }
-        primeTask = task
-        await task.value
-        primeTask = nil
-    }
-
-    /// Background-prime the semantic index off the request path: fetch the corpus and
-    /// run the same load + backfill the first AI call would, so that call is already
-    /// primed. Shares `primeSemanticIndexIfNeeded`'s single-flight + success-latch
-    /// state, so it composes safely with (and de-dupes against) the on-demand path.
-    /// The caller (`AppServices.warmSemanticIndexIfModelReady`) only invokes this once
-    /// the model is cached locally, so backfill never triggers a metered download.
+    /// One-time migration: ship the entire local corpus to the server index (with
+    /// each entry's real day), for the single pre-existing user whose entries were
+    /// only ever indexed on-device. New entries index themselves via
+    /// `IndexingJournalRepository` on save/edit, so this runs exactly once — and is
+    /// a no-op for fresh installs (empty corpus) and after it has succeeded once.
+    /// Best-effort: on failure the latch stays unset so the next launch retries;
+    /// retrieval falls back to keyword search meanwhile, so it is never worse.
     func warmSemanticIndex() async {
-        guard DevFlags.aiModel1, coordinator != nil, let journals else { return }
+        guard DevFlags.aiModel1, let coordinator, let journals else { return }
+        guard !UserDefaults.standard.bool(forKey: Self.serverBackfillDoneKey) else { return }
         let entries = (try? await journals.fetchAllEntries()) ?? []
-        await primeSemanticIndexIfNeeded(entries: entries)
+        guard !entries.isEmpty else {
+            UserDefaults.standard.set(true, forKey: Self.serverBackfillDoneKey)
+            return
+        }
+        do {
+            try await coordinator.backfill(entries.map { (id: $0.id, text: $0.content, createdAt: $0.createdAt) })
+            UserDefaults.standard.set(true, forKey: Self.serverBackfillDoneKey)
+        } catch {
+            Self.logger.error("server-RAG backfill failed (will retry next launch): \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     /// First emission of the injected profile stream, or nil when there is no

@@ -2,7 +2,7 @@ import XCTest
 @testable import LuminaLog
 
 private actor FakeRag: RagServing {
-    var indexed: [(entryId: String, chunks: [String])] = []
+    var indexed: [(entryId: String, dayIndex: Int, chunks: [String])] = []
     var deleted: [String] = []
     var refs: [ChunkRef] = [
         ChunkRef(entryId: "e1", chunkIndex: 0, score: 0.9),
@@ -11,7 +11,7 @@ private actor FakeRag: RagServing {
     ]
 
     func index(entryId: String, type: String, dayIndex: Int, wordCount: Int, chunks: [String]) async throws {
-        indexed.append((entryId, chunks))
+        indexed.append((entryId, dayIndex, chunks))
     }
     func search(query: String, topK: Int) async throws -> [ChunkRef] { refs }
     func delete(entryId: String) async throws { deleted.append(entryId) }
@@ -21,10 +21,19 @@ final class ServerSemanticIndexTests: XCTestCase {
 
     func testIndexEntryChunksAndForwards() async throws {
         let rag = FakeRag()
-        try await ServerSemanticIndex(rag: rag).indexEntry(id: "e1", text: "hello world")
+        // 2020-06-01T00:00:00Z → day index 18414 (days since epoch, UTC).
+        let created = Date(timeIntervalSince1970: 1_590_969_600)
+        try await ServerSemanticIndex(rag: rag).indexEntry(id: "e1", text: "hello world", createdAt: created)
         let indexed = await rag.indexed
         XCTAssertEqual(indexed.first?.entryId, "e1")
         XCTAssertEqual(indexed.first?.chunks, JournalChunker.chunks(of: "hello world"))
+        XCTAssertEqual(indexed.first?.dayIndex, 18414)
+    }
+
+    func testDayIndexIsUTCDaysSinceEpoch() {
+        XCTAssertEqual(ServerSemanticIndex.dayIndex(for: Date(timeIntervalSince1970: 0)), 0)
+        XCTAssertEqual(ServerSemanticIndex.dayIndex(for: Date(timeIntervalSince1970: 86_400)), 1)
+        XCTAssertEqual(ServerSemanticIndex.dayIndex(for: Date(timeIntervalSince1970: 86_399)), 0)
     }
 
     func testSearchDedupesEntryIdsPreservingBestRank() async throws {

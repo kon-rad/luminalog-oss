@@ -56,11 +56,6 @@ final class AppServices: ObservableObject {
     /// unlock. `KeyGate` renders its state; `SessionStore` waits on it before any
     /// encrypted read/write. See ADR-0114.
     let keyEnrollment: KeyEnrollmentService
-    /// On-device anchored soul constellation. Rebuilds automatically after each
-    /// entry is indexed (reusing the semantic index's cached vector via a coalesced
-    /// `scheduleRebuild()`), and can be rebuilt on demand from the DEBUG developer
-    /// tools. Gated by `DevFlags.aiModel1` (the zero-knowledge path, on by default).
-    let constellationCoordinator: ConstellationCoordinator
     /// App-level observer that reconciles today's daily-goal progress + streak
     /// from the entries created today (self-healing across transcript retries,
     /// edits, and deletes). Started per signed-in user from `LuminaLogApp`.
@@ -103,7 +98,6 @@ final class AppServices: ObservableObject {
         keyMigrator: ClientKeyEnroller? = nil,
         keyMigrationTransport: KeyMigrationTransport? = nil,
         keyEnrollment: KeyEnrollmentService,
-        constellationCoordinator: ConstellationCoordinator,
         entryAIGenerator: EntryAIGenerator
     ) {
         self.auth = auth
@@ -131,7 +125,6 @@ final class AppServices: ObservableObject {
         self.keyMigrator = keyMigrator
         self.keyMigrationTransport = keyMigrationTransport
         self.keyEnrollment = keyEnrollment
-        self.constellationCoordinator = constellationCoordinator
         self.entryAIGenerator = entryAIGenerator
         self.dailyGoalReconciler = DailyGoalReconciler(journals: journals, profiles: profiles)
         // Built here (not in the factories) from the injected repositories, mirroring
@@ -192,59 +185,13 @@ final class AppServices: ObservableObject {
         let failedReports = FailedReportStore(auth: auth)
         let chats = FirestoreChatRepository(auth: auth, keys: keys)
 
-        // Client-side semantic-search index (increment 1c-D / 19b). Always
-        // constructed, but only USED when `DevFlags.aiModel1` is ON — with the flag
-        // OFF, `ProxyAIService` never queries it and `IndexingJournalRepository`
-        // never fires an indexing hook, so behavior is byte-identical to today.
-        //
-        // Self-activating embedder selection: the moment the distiluse artifact
-        // is hosted and the Info.plist keys are filled, `AppConfig` resolves the
-        // model + both tokenizer assets to non-nil and we build the real
-        // `LazyONNXTextEmbedder` (downloads + verifies on first use, then runs ONNX);
-        // otherwise we stay on the deterministic `StubTextEmbedder`. The `model:`
-        // identifier is stored beside each vector blob, so switching embedders marks
-        // stub-era vectors as stale (they get re-embedded), and the 512-dim is
-        // identical across both so no blob is invalidated by dimension.
-        // NOTE: this only changes WHICH embedder is constructed — usage stays gated by
-        // `DevFlags.aiModel1` (OFF in production), so hosting the model alone changes
-        // no behavior.
-        // `DevFlags.serverRag` ON → retrieval + embeddings run SERVER-side (Morpheus
-        // BGE-M3 via `/v1/rag/*`); no on-device model is built. OFF → the on-device
-        // ONNX/stub path below, unchanged. Chunking stays on-device (`JournalChunker`).
-        // Both conform to `SemanticIndexCoordinating`, so downstream wiring is identical.
-        // `embedder` is still needed by the on-device constellation builder below, so
-        // it is always defined; under `serverRag` it is an unused stub (the on-device
-        // constellation degrades to a stub embedder + nil cached vectors — server-side
-        // constellation is a follow-up).
-        let coordinator: SemanticIndexCoordinating
-        let embedder: TextEmbedder
-        if DevFlags.serverRag {
-            coordinator = ServerSemanticIndex(rag: RagService(api: api))
-            embedder = StubTextEmbedder()
-        } else {
-            let embedderModel: String
-            if let modelAsset = AppConfig.embeddingModelAsset,
-               let tokenizerAsset = AppConfig.embeddingTokenizerAsset,
-               let tokenizerConfigAsset = AppConfig.embeddingTokenizerConfigAsset {
-                embedder = LazyONNXTextEmbedder(
-                    modelAsset: modelAsset,
-                    tokenizerAsset: tokenizerAsset,
-                    tokenizerConfigAsset: tokenizerConfigAsset
-                )
-                embedderModel = "distiluse-multilingual-v1"
-            } else {
-                embedder = StubTextEmbedder()
-                embedderModel = "stub-embedder-v1"
-            }
-            coordinator = SemanticIndexCoordinator(
-                embedder: embedder,
-                service: ProxyVectorService(api: api),
-                model: embedderModel,
-                dek: { [weak keys] in keys?.currentDataKey }
-            )
-        }
-        // Lifecycle hooks: create/edit → index, delete → remove (flag-gated,
-        // fire-and-forget). Pure pass-through with the flag OFF.
+        // Semantic RAG runs entirely SERVER-side (zero-knowledge): the client chunks
+        // on-device (`JournalChunker`) and ships plaintext chunks to `/v1/rag/*`, where
+        // Morpheus BGE-M3 embeds them; only vectors + metadata persist server-side. No
+        // embedding model is ever downloaded to the device.
+        let coordinator: SemanticIndexCoordinating = ServerSemanticIndex(rag: RagService(api: api))
+        // Lifecycle hooks: create/edit → index, delete → remove (gated on
+        // `DevFlags.aiModel1`, fire-and-forget).
         let journals = IndexingJournalRepository(base: baseJournals, coordinator: coordinator)
 
         // Model-1 (zero-knowledge) collaborators are injected so, when
@@ -320,27 +267,9 @@ final class AppServices: ObservableObject {
             keys: keys, enroller: keyMigrator, transport: migrationTransport
         )
 
-        // Anchored soul constellation (on-device, gated by `DevFlags.aiModel1`).
-        // Reuses the same embedder already selected above for the semantic index,
-        // and the `journals` repository (whichever wraps `baseJournals`) so the
-        // rebuild reads the full local corpus. `rebuildAndSync()` is a no-op with
-        // the flag off, so this is inert until manually triggered from Settings.
-        let constellationCoordinator = ConstellationCoordinator(
-            builder: ConstellationBuilder(
-                embedder: embedder,
-                vectorProvider: { [weak coordinator] id in coordinator?.vector(for: id) }),
-            sync: ProxyConstellationSyncService(api: api),
-            entriesProvider: { [journals] in
-                try await journals.fetchAllEntries().map {
-                    (id: $0.id, text: $0.content, wordCount: $0.wordCount, createdAt: $0.createdAt)
-                }
-            })
-        // Living sculpture: after each on-device index, rebuild reusing the
-        // just-cached vector (no re-embed). Coalesced; `weak` breaks the
-        // repo → coordinator → repo (entriesProvider captures `journals`) cycle.
-        journals.onEntryIndexed = { [weak constellationCoordinator] _ in
-            constellationCoordinator?.scheduleRebuild()
-        }
+        // The Soul Constellation is now computed SERVER-side (from the indexed chunk
+        // vectors, on `/v1/rag/index`); the Soul UI reads it via `GET /v1/soul`. No
+        // on-device rebuild/sync remains.
 
         return AppServices(
             auth: auth,
@@ -374,45 +303,15 @@ final class AppServices: ObservableObject {
             keyMigrator: keyMigrator,
             keyMigrationTransport: migrationTransport,
             keyEnrollment: keyEnrollment,
-            constellationCoordinator: constellationCoordinator,
             entryAIGenerator: entryAIGenerator
         )
     }
 
-    /// Proactively download the on-device embedding assets on an unmetered network so
-    /// the user's first AI request (daily report / chat / voice) isn't blocked behind a
-    /// ~258 MB download. Fired once per signed-in user from `LuminaLogApp`. A no-op
-    /// unless the Model-1 path is on and the model is configured; it needs neither auth
-    /// nor the DEK (the bytes are public + unencrypted). Best-effort and Wi-Fi-gated —
-    /// the lazy on-demand path (any network) remains the fallback. See
-    /// `EmbeddingModelPrefetcher`. Returns `true` iff the model is now fully cached
-    /// locally (safe to embed without any further download).
-    @discardableResult
-    func prefetchEmbeddingModel() async -> Bool {
-        guard DevFlags.aiModel1,
-              let model = AppConfig.embeddingModelAsset,
-              let tokenizer = AppConfig.embeddingTokenizerAsset,
-              let tokenizerConfig = AppConfig.embeddingTokenizerConfigAsset else { return false }
-        let provider = EmbeddingModelProvider(
-            downloader: URLSessionFileDownloader(session: .embeddingPrefetch))
-        return await EmbeddingModelPrefetcher(
-            assets: [model, tokenizer, tokenizerConfig], provider: provider
-        ).prefetch()
-    }
-
-    /// Get the on-device semantic index **primed off the request path**: first prefetch
-    /// the model (Wi-Fi only), then — ONLY once it is fully cached — background-load the
-    /// synced vectors and backfill un-indexed entries, so the user's first AI request is
-    /// already primed instead of blocking on load + embed.
-    ///
-    /// The "only once cached" gate is load-bearing: the semantic index's embedder is the
-    /// *any-network* lazy embedder, so backfilling before the model is present would
-    /// silently pull 258 MB over cellular. By waiting for the Wi-Fi prefetch to confirm
-    /// the model is local, background backfill never spends metered data; a user on
-    /// cellular who actively invokes AI still triggers the lazy download (their choice).
-    /// Best-effort and idempotent — priming is single-flight and latches only on success.
-    func warmSemanticIndexIfModelReady() async {
-        guard await prefetchEmbeddingModel() else { return }
+    /// One-time server-RAG migration: ship the existing local corpus to the server
+    /// index (a no-op after it succeeds once / for a fresh install). Fired once per
+    /// signed-in user from `LuminaLogApp`. New entries index themselves via
+    /// `IndexingJournalRepository` on save/edit. See `ProxyAIService.warmSemanticIndex`.
+    func migrateServerIndexIfNeeded() async {
         await ai.warmSemanticIndex()
     }
 
@@ -451,19 +350,6 @@ final class AppServices: ObservableObject {
             onFinalize: { pending in await finalizer.finalize(pending) }
         )
 
-        // Anchored soul constellation: no live `ProxyAPIClient` in mock wiring, so
-        // this is wired with a stub embedder + no-op sync (never exercised by
-        // previews/unit tests; real behavior is covered by `live()` + the
-        // dedicated ConstellationCoordinatorTests).
-        let constellationCoordinator = ConstellationCoordinator(
-            builder: ConstellationBuilder(embedder: StubTextEmbedder()),
-            sync: NoOpConstellationSyncService(),
-            entriesProvider: { [journals] in
-                try await journals.fetchAllEntries().map {
-                    (id: $0.id, text: $0.content, wordCount: $0.wordCount, createdAt: $0.createdAt)
-                }
-            })
-
         return AppServices(
             auth: auth,
             keys: keys,
@@ -501,7 +387,6 @@ final class AppServices: ObservableObject {
                 ),
                 transport: MockKeyMigrationTransport()
             ),
-            constellationCoordinator: constellationCoordinator,
             entryAIGenerator: entryAIGenerator
         )
     }
@@ -510,13 +395,6 @@ final class AppServices: ObservableObject {
 /// Demo/preview upload transport that reports success without any network I/O.
 private final class AlwaysOKTransport: UploadTransport {
     func put(file: URL, to url: URL) async -> Int { 200 }
-}
-
-/// Demo/preview constellation sync that never leaves the device — `mocks()`
-/// has no live `ProxyAPIClient` to upload through, and previews/tests never
-/// exercise this path.
-private final class NoOpConstellationSyncService: ConstellationSyncing {
-    func upload(points: [ConstellationPoint]) async throws {}
 }
 
 /// Demo/preview consent transport — `mocks()` has no live `ProxyAPIClient` to

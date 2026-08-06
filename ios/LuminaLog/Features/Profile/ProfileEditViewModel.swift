@@ -155,6 +155,11 @@ final class ProfileEditViewModel: ObservableObject {
         do {
             try imageData.write(to: fileURL)
             let item = try await media.upload(fileURL: fileURL, kind: .image, journalId: "profile")
+            // Seed the display cache with the plaintext original so the avatar shows
+            // instantly, without a round-trip S3 download + decrypt (mirrors how
+            // EntryProcessor seeds voice/video uploads). The temp file still exists
+            // here — the `defer` above only removes it on scope exit.
+            await media.cacheLocalOriginal(fileURL, for: item.s3Key)
             updated.photoURL = URL(string: item.s3Key)
             try await profiles.update(updated)
         } catch {

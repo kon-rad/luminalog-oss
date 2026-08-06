@@ -50,6 +50,24 @@ function chunkId(userId: string, entryId: string, i: number): string {
   return `${userId}__${entryId}__${i}`
 }
 
+/**
+ * The `dayIndex` an entry's chunks are stored under (all of an entry's chunks share
+ * one day, from its `createdAt`). Used to recompute that day's constellation star
+ * after a delete, when the caller only knows the entryId. Null if the entry has no
+ * indexed chunks. userId-scoped.
+ */
+export async function getEntryDayIndex(userId: string, entryId: string): Promise<number | null> {
+  const res = await withJournalsCollection(col =>
+    col.get({
+      where: { $and: [{ userId: { $eq: userId } }, { entryId: { $eq: entryId } }] },
+      include: ['metadatas'] as any,
+      limit: 1,
+    }),
+  )
+  const meta = (res.metadatas?.[0] ?? null) as { dayIndex?: number } | null
+  return typeof meta?.dayIndex === 'number' ? meta.dayIndex : null
+}
+
 /** Delete all of an entry's chunk rows (idempotent, userId-scoped). */
 export async function deleteEntryChunks(userId: string, entryId: string): Promise<void> {
   await withJournalsCollection(col =>

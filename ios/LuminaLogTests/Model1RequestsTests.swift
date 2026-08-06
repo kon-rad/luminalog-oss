@@ -4,6 +4,7 @@ import XCTest
 /// A ML-free, network-free stand-in for the semantic index used to drive the
 /// `journalContext` semantic overload down each path (hits / empty / throwing).
 private final class FakeSearcher: SemanticIndexCoordinating {
+    enum FakeError: Error { case boom }
     var hits: [String]
     var shouldThrow: Bool
     private(set) var searchCalled = false
@@ -13,13 +14,12 @@ private final class FakeSearcher: SemanticIndexCoordinating {
         self.shouldThrow = shouldThrow
     }
 
-    func indexEntry(id: String, text: String) async throws {}
+    func indexEntry(id: String, text: String, createdAt: Date) async throws {}
     func removeEntry(id: String) async throws {}
-    func loadIndex() async throws {}
-    func backfill(_ entries: [(id: String, text: String)]) async throws {}
+    func backfill(_ entries: [(id: String, text: String, createdAt: Date)]) async throws {}
     func search(query: String, k: Int) async throws -> [String] {
         searchCalled = true
-        if shouldThrow { throw SemanticIndexError.keyUnavailable }
+        if shouldThrow { throw FakeError.boom }
         return hits
     }
 }

@@ -29,7 +29,7 @@ final class VapiVoiceCallService: VoiceCallService {
     /// reports as `…error-assistant-did-not-receive-customer-audio`. See ADR-0110.
     private var userWasHeard = false
     /// Vends the currently-loaded per-user DEK (`UserKeyStore.currentDataKey`).
-    /// Injected as a closure (mirrors the `SemanticIndexCoordinator` wiring in
+    /// Injected as a closure (mirrors the key-vending wiring in
     /// `AppServices`) so this service stays decoupled from `UserKeyStore` and is
     /// testable without a loaded key. On the Model-1/ZK path the DEK is base64'd
     /// into `CallConfigRequest.dek` so the server can do per-turn RAG mid-call.

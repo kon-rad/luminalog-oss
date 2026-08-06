@@ -184,12 +184,11 @@ enum Model1Requests {
         retriever: EntryRetriever = EntryRetriever(),
         searcher: SemanticIndexCoordinating?
     ) async -> String {
-        // Server-RAG (Architecture A): chunk-only context. When `serverRag` is ON,
-        // the searcher returns chunk references; format ONLY those matched chunks
-        // (re-extracted on-device via the deterministic `JournalChunker`), not whole
-        // entries. Falls through to the entry-level path on any miss, so it is never
-        // worse. The on-device path (`serverRag` OFF) is byte-identical to before.
-        if DevFlags.serverRag, let searcher,
+        // Server-RAG chunk-only context: the searcher returns chunk references and
+        // we format ONLY those matched chunks (re-extracted on-device via the
+        // deterministic `JournalChunker`), not whole entries. Falls through to the
+        // entry-level ranking on any miss (empty index, error), so it is never worse.
+        if let searcher,
            let refs = try? await searcher.searchChunks(query: query, k: topK), !refs.isEmpty {
             let ctx = chunkContext(from: entries, refs: refs, snippetChars: snippetChars)
             if !ctx.isEmpty { return ctx }

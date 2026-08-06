@@ -15,7 +15,13 @@ SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 echo "==> Syncing $SRC_DIR -> $SERVER:$REMOTE_DIR ..."
 # NOTE: .env.local is intentionally excluded — the server keeps its own .env.local
 # with NEXT_PUBLIC_* vars baked in at build time. Never let a local file overwrite it.
-rsync -avz \
+#
+# --delete keeps the remote tree an exact mirror of this one. Without it, files
+# deleted or moved locally linger on the server and get compiled into the next
+# build: a route that was moved away kept importing a symbol its lib no longer
+# exported, which broke `npm run build` until the orphan was removed by hand.
+# Excluded paths (node_modules, .next, .env.local, ...) are never deleted.
+rsync -avz --delete \
   --exclude node_modules \
   --exclude .next \
   --exclude out \

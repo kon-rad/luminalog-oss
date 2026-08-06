@@ -61,14 +61,18 @@ final class CreateEntryDraftTests: XCTestCase {
         XCTAssertTrue(store.all().isEmpty)
     }
 
-    func testSaveDeletesDraft() {
+    func testSaveRetainsDraftAsHandedOff() {
         let store = DraftStore(directory: tempDir())
         let vm = makeVM(store: store)
         vm.text = "keeper"
         vm.persistDraftNow()
         vm.save()
         XCTAssertTrue(vm.didSave)
-        XCTAssertTrue(store.all().isEmpty)   // draft cleared; entry now durable via processor
+        // The draft is RETAINED (not deleted) as the durable cross-launch retry
+        // source, flagged `handedOff` so Home hides it; it's cleared once the entry
+        // settles `.ready`. See DraftEntry.handedOff / CreateEntryViewModel.save().
+        XCTAssertEqual(store.all().count, 1)
+        XCTAssertTrue(store.all().first?.handedOff == true)
     }
 
     func testPersistAfterSaveDoesNotRecreateDraft() {
@@ -77,9 +81,12 @@ final class CreateEntryDraftTests: XCTestCase {
         vm.text = "keeper"
         vm.persistDraftNow()
         vm.save()
-        XCTAssertTrue(store.all().isEmpty)
+        XCTAssertEqual(store.all().count, 1)
         vm.persistDraftNow()                 // simulates the onDisappear flush after save
-        XCTAssertTrue(store.all().isEmpty, "a saved entry must not leave a phantom draft")
+        // The post-save flush must NOT create a second/phantom draft, and must not
+        // clear the handed-off flag on the retained one.
+        XCTAssertEqual(store.all().count, 1, "a saved entry must not leave a phantom draft")
+        XCTAssertTrue(store.all().first?.handedOff == true)
     }
 }
 

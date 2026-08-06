@@ -1,9 +1,22 @@
 import XCTest
+import NaturalLanguage
 @testable import LuminaLog
 
 final class WordFrequencyAnalyzerTests: XCTestCase {
 
-    func testLemmatizationCollapsesInflections() {
+    /// The NaturalLanguage lemma model is not present in every runtime (a bare
+    /// Simulator often lacks it). Probe once so the lemmatization-specific test can
+    /// skip cleanly there instead of red-failing, while still running on device/CI.
+    private func lemmatizationAvailable() -> Bool {
+        let tagger = NLTagger(tagSchemes: [.lemma])
+        tagger.string = "running"
+        let lemma = tagger.tag(at: "running".startIndex, unit: .word, scheme: .lemma).0?.rawValue
+        return lemma?.lowercased() == "run"
+    }
+
+    func testLemmatizationCollapsesInflections() throws {
+        try XCTSkipUnless(lemmatizationAvailable(),
+                          "NaturalLanguage lemma model unavailable in this runtime")
         let text = "I am running. I ran yesterday and I will run tomorrow."
         let words = WordFrequencyAnalyzer.topWords(in: text, limit: 10)
         let run = words.first { $0.word == "run" }

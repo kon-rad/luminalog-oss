@@ -11,10 +11,9 @@ private final class RecordingCoordinator: SemanticIndexCoordinating {
     private(set) var indexed: [(id: String, text: String)] = []
     private(set) var removed: [String] = []
 
-    func indexEntry(id: String, text: String) async throws { indexed.append((id, text)) }
+    func indexEntry(id: String, text: String, createdAt: Date) async throws { indexed.append((id, text)) }
     func removeEntry(id: String) async throws { removed.append(id) }
-    func loadIndex() async throws {}
-    func backfill(_ entries: [(id: String, text: String)]) async throws {}
+    func backfill(_ entries: [(id: String, text: String, createdAt: Date)]) async throws {}
     func search(query: String, k: Int) async throws -> [String] { [] }
 }
 

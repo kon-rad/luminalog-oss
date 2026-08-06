@@ -170,14 +170,12 @@ struct LuminaLogApp: App {
                         .task(id: uid) {
                             await checkZKMigration(uid: uid)
                         }
-                        // Prime the on-device semantic index off the request path:
-                        // prefetch the ~258 MB model on Wi-Fi, then — only once it's
-                        // cached — background-load + backfill so the first AI request
-                        // isn't blocked on the download OR the backfill embed. Best-
-                        // effort, off the render path; no-op unless the Model-1 path is
-                        // on and the model is configured. Once per signed-in user.
+                        // One-time server-RAG migration: ship the pre-existing local
+                        // corpus to the server index (a no-op once done / for fresh
+                        // installs). Best-effort, off the render path. New entries index
+                        // themselves on save. Once per signed-in user.
                         .task(id: uid) {
-                            await services.warmSemanticIndexIfModelReady()
+                            await services.migrateServerIndexIfNeeded()
                         }
                         .fullScreenCover(item: $migrationPresentation) { presentation in
                             if let migrator = services.keyMigrator {

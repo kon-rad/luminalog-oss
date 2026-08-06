@@ -27,14 +27,6 @@ packages:
   Vapi:
     url: https://github.com/VapiAI/ios
     branch: main
-  # On-device embedding stack (increment 1c-D): ONNX Runtime runs the
-  # EmbeddingGemma model; swift-transformers provides the SentencePiece tokenizer.
-  onnxruntime:
-    url: https://github.com/microsoft/onnxruntime-swift-package-manager
-    from: 1.16.0
-  swift-transformers:
-    url: https://github.com/huggingface/swift-transformers
-    from: 0.1.0
 
 targets:
   LuminaLog:
@@ -61,10 +53,6 @@ targets:
         product: GoogleSignIn
       - package: Vapi
         product: Vapi
-      - package: onnxruntime
-        product: onnxruntime
-      - package: swift-transformers
-        product: Transformers
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.konradgnat.luminalog
@@ -115,20 +103,6 @@ targets:
         # Supplied by Local.xcconfig (public client-side value, not a secret); empty
         # until set, in which case Stories sharing falls back to the story camera.
         FACEBOOK_APP_ID: $(FACEBOOK_APP_ID)
-        # On-device embedding model download (increment 1c-D):
-        # distiluse-base-multilingual-cased-v2, 512-dim, fp16 (~258 MB) — the full
-        # sentence-transformers pipeline (transformer → mean-pool → Dense) baked into
-        # one ONNX. WordPiece tokenizer (works with swift-transformers, unlike the
-        # SentencePiece MiniLM we tried first). Tokenizer ships as two plain files
-        # (tokenizer.json + tokenizer_config.json), NOT a zip. Six keys total (3
-        # URL/SHA-256 pairs). SHA-256 is verified on download; a model swap = new
-        # versioned path + new hashes + bumped `model:` id in AppServices.
-        EMBEDDING_MODEL_URL: "https://luminalog-models.s3.us-east-1.amazonaws.com/distiluse-multilingual/v1/distiluse-multilingual.onnx"
-        EMBEDDING_MODEL_SHA256: "ef4f58f1eb478e3097c3b4f197c97390ae4decaedc363defbb937a4c8eb41e6f"
-        EMBEDDING_TOKENIZER_URL: "https://luminalog-models.s3.us-east-1.amazonaws.com/distiluse-multilingual/v1/tokenizer.json"
-        EMBEDDING_TOKENIZER_SHA256: "3564bb27a5b787b8ce0e415d4961a19c682d6fc70c3dc92341d9c699e11d37f6"
-        EMBEDDING_TOKENIZER_CONFIG_URL: "https://luminalog-models.s3.us-east-1.amazonaws.com/distiluse-multilingual/v1/tokenizer_config.json"
-        EMBEDDING_TOKENIZER_CONFIG_SHA256: "84e36de990575ab69acf45c7537a1bb7f1bd6ecba95ab4d5ba8bf64ccc24b2c8"
         # Google Sign-In redirect scheme. Resolves to the GOOGLE_REVERSED_CLIENT_ID
         # build setting above — empty (inert) until configured per the README.
         CFBundleURLTypes:

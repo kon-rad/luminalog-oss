@@ -33,10 +33,6 @@ struct SettingsView: View {
     @State private var isGeneratingReport = false
     /// DEBUG-only: set when report generation fails, shown inline on the row.
     @State private var generateReportFailed = false
-    /// DEBUG-only: true while the "Rebuild Soul Constellation" tool is running.
-    @State private var isRebuildingConstellation = false
-    /// DEBUG-only: last rebuild outcome ("N stars uploaded" / failure), shown inline.
-    @State private var rebuildConstellationStatus: String?
     /// DEBUG-only: true while the "Re-index All Entries" server-RAG backfill is running.
     @State private var isReindexing = false
     /// DEBUG-only: live re-index progress / final outcome, shown inline.
@@ -585,8 +581,6 @@ struct SettingsView: View {
                 rowDivider
                 generateReportRow
                 rowDivider
-                rebuildConstellationRow
-                rowDivider
                 reindexEntriesRow
             }
             .background(
@@ -654,61 +648,6 @@ struct SettingsView: View {
         }
     }
 
-    /// One-shot rebuild of the anchored soul constellation from the full local
-    /// journal corpus, gated by `DevFlags.aiModel1` (`rebuildAndSync()` is a
-    /// no-op with the flag off). This is the one-time rewrite for the existing
-    /// account once the flag is flipped on.
-    private var rebuildConstellationRow: some View {
-        Button {
-            rebuildConstellation()
-        } label: {
-            HStack(spacing: Spacing.m) {
-                settingsIcon("sparkles.square.filled.on.square", tint: .accentWarm)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Rebuild Soul Constellation")
-                        .font(.uiBody)
-                        .foregroundStyle(Color.textPrimary)
-                    Text(rebuildConstellationStatus ?? "Re-derive stars from the local corpus (requires DevFlags.aiModel1)")
-                        .font(.captionText)
-                        .foregroundStyle(Color.textSecondary)
-                }
-                Spacer()
-                if isRebuildingConstellation {
-                    ProgressView()
-                        .tint(Color.accentWarm)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.textSecondary.opacity(0.6))
-                }
-            }
-            .padding(Spacing.m)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(isRebuildingConstellation)
-        .accessibilityLabel("Rebuild Soul Constellation, re-derive stars from the local corpus")
-    }
-
-    /// Runs `ConstellationCoordinator.rebuildAndSync()` (no-op unless
-    /// `DevFlags.aiModel1` is on) and surfaces the resulting star count inline.
-    private func rebuildConstellation() {
-        guard !isRebuildingConstellation else { return }
-        isRebuildingConstellation = true
-        rebuildConstellationStatus = nil
-        Task {
-            defer { isRebuildingConstellation = false }
-            do {
-                let count = try await services.constellationCoordinator.rebuildAndSync()
-                rebuildConstellationStatus = DevFlags.aiModel1
-                    ? "Uploaded \(count) star\(count == 1 ? "" : "s")"
-                    : "No-op — DevFlags.aiModel1 is off"
-            } catch {
-                rebuildConstellationStatus = "Rebuild failed — tap to retry"
-            }
-        }
-    }
-
     /// One-tap migration: re-index the ENTIRE journal corpus into the server RAG
     /// index (Morpheus BGE-M3 → Chroma). Because entries are zero-knowledge encrypted,
     /// the server can't re-index them itself — this fetches + decrypts every entry
@@ -772,7 +711,7 @@ struct SettingsView: View {
                 var firstError: String?
                 for entry in entries {
                     do {
-                        try await index.indexEntry(id: entry.id, text: entry.content)
+                        try await index.indexEntry(id: entry.id, text: entry.content, createdAt: entry.createdAt)
                     } catch {
                         failed += 1
                         if firstError == nil { firstError = error.localizedDescription }

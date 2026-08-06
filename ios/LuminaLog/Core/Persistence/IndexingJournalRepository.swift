@@ -23,11 +23,6 @@ final class IndexingJournalRepository: JournalRepository {
     private let base: JournalRepository
     private let coordinator: SemanticIndexCoordinating
 
-    /// Fired (on the main actor) after an entry's on-device vector is indexed.
-    /// Set post-construction to trigger a constellation rebuild that reuses the
-    /// just-cached vector. Nil = no-op (previews/tests/flag-off).
-    var onEntryIndexed: (@MainActor (String) -> Void)?
-
     init(base: JournalRepository, coordinator: SemanticIndexCoordinating) {
         self.base = base
         self.coordinator = coordinator
@@ -63,7 +58,7 @@ final class IndexingJournalRepository: JournalRepository {
 
     func save(_ entry: JournalEntry) async throws {
         try await base.save(entry)
-        index(id: entry.id, text: entry.content)
+        index(id: entry.id, text: entry.content, createdAt: entry.createdAt)
     }
 
     func updateContent(
@@ -77,7 +72,7 @@ final class IndexingJournalRepository: JournalRepository {
             id: id, content: content, wordCount: wordCount,
             contentEditedAt: contentEditedAt, appendedMedia: appendedMedia
         )
-        index(id: id, text: content)
+        index(id: id, text: content, createdAt: nil)
     }
 
     func applyEntryEdit(
@@ -92,7 +87,7 @@ final class IndexingJournalRepository: JournalRepository {
             id: id, title: title, content: content, wordCount: wordCount,
             contentEditedAt: contentEditedAt, edit: edit
         )
-        index(id: id, text: content)
+        index(id: id, text: content, createdAt: nil)
     }
 
     func delete(id: String) async throws {
@@ -118,14 +113,21 @@ final class IndexingJournalRepository: JournalRepository {
 
     // MARK: - Fire-and-forget indexing side-effects
 
-    private func index(id: String, text: String) {
-        guard DevFlags.aiModel1 || DevFlags.serverRag else { return }
+    /// Ship the entry for server-side (re)indexing. `createdAt` sets the entry's
+    /// constellation day; the content-edit paths don't carry it, so it is resolved
+    /// from the just-saved entry (its day never changes on edit) inside the task,
+    /// falling back to now if the entry can't be read.
+    private func index(id: String, text: String, createdAt: Date?) {
+        guard DevFlags.aiModel1 else { return }
         Task {
             do {
-                try await self.coordinator.indexEntry(id: id, text: text)
-                // Vector is now cached in the index; let the constellation rebuild
-                // reuse it (no re-embed). @MainActor closure, we're on the main actor.
-                self.onEntryIndexed?(id)
+                let created: Date
+                if let createdAt {
+                    created = createdAt
+                } else {
+                    created = (await self.resolveCreatedAt(id: id)) ?? Date()
+                }
+                try await self.coordinator.indexEntry(id: id, text: text, createdAt: created)
             } catch {
                 indexLog.error("indexEntry(\(id, privacy: .public)) failed: \(error.localizedDescription, privacy: .public)")
             }
@@ -133,7 +135,7 @@ final class IndexingJournalRepository: JournalRepository {
     }
 
     private func remove(id: String) {
-        guard DevFlags.aiModel1 || DevFlags.serverRag else { return }
+        guard DevFlags.aiModel1 else { return }
         let coordinator = self.coordinator
         Task {
             do {
@@ -142,5 +144,11 @@ final class IndexingJournalRepository: JournalRepository {
                 indexLog.error("removeEntry(\(id, privacy: .public)) failed: \(error.localizedDescription, privacy: .public)")
             }
         }
+    }
+
+    /// First emission of the entry stream → its `createdAt`, or nil if absent.
+    private func resolveCreatedAt(id: String) async -> Date? {
+        for await entry in base.entry(id: id) { return entry?.createdAt }
+        return nil
     }
 }
