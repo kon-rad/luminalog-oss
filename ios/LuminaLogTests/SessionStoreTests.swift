@@ -20,7 +20,9 @@ final class SessionStoreTests: XCTestCase {
         subscriptions: MockSubscriptionService,
         consentService: ConsentService? = nil,
         keys: UserKeyStore? = nil,
-        transport: KeyMigrationTransport = MockKeyMigrationTransport()
+        transport: KeyMigrationTransport = MockKeyMigrationTransport(),
+        profiles: ProfileRepository? = nil,
+        onboarding: OnboardingStore? = nil
     ) -> SessionStore {
         let keys = keys ?? UserKeyStore(provider: MockKeyProvider(), secrets: MemorySecretStore())
         return SessionStore(
@@ -32,9 +34,11 @@ final class SessionStoreTests: XCTestCase {
                 transport: transport,
                 defaults: UserDefaults(suiteName: "test-keys-\(UUID().uuidString)")!
             ),
-            profiles: MockProfileRepository(),
+            profiles: profiles ?? MockProfileRepository(),
             subscriptions: subscriptions,
-            onboarding: OnboardingStore(defaults: UserDefaults(suiteName: "test-session-\(UUID().uuidString)")!),
+            onboarding: onboarding ?? OnboardingStore(
+                defaults: UserDefaults(suiteName: "test-session-\(UUID().uuidString)")!
+            ),
             consentService: consentService ?? ConsentService(
                 api: SpyPutAPI(),
                 store: ConsentStore(defaults: UserDefaults(suiteName: "test-consent-\(UUID().uuidString)")!)
@@ -229,6 +233,106 @@ final class SessionStoreTests: XCTestCase {
         await waitUntil("Profile stream starts once the key is available") {
             store.profile != nil
         }
+    }
+
+    // MARK: - Onboarding draft must not cross accounts
+
+    @MainActor
+    private func makeOnboardingStore() -> OnboardingStore {
+        OnboardingStore(defaults: UserDefaults(suiteName: "test-onboarding-\(UUID().uuidString)")!)
+    }
+
+    /// The draft and the buffered Soul consent are PRE-AUTH buffers: they belong to
+    /// the person who was at the device before anyone signed in. Left behind at
+    /// sign-out (e.g. a merge that failed and stayed buffered), they would be
+    /// applied to whoever signs in next — stamping one person's name, biography and
+    /// public-NFT consent onto a different account.
+    @MainActor
+    func testSignOutClearsTheBufferedOnboardingDraft() async {
+        let auth = MockAuthService(signedIn: false)
+        let onboarding = makeOnboardingStore()
+        let store = makeStore(auth: auth, subscriptions: MockSubscriptionService(), onboarding: onboarding)
+
+        await waitUntil("Starts signed out") { store.state == .signedOut }
+        await auth.signInDemo()
+        await waitUntil("Signed in") { store.state == .signedIn(userId: MockData.userId) }
+
+        // A draft still buffered while signed in — what a failed merge leaves behind.
+        onboarding.saveDraft(["name": "Priya", "goals": "Ship the thing"])
+        onboarding.setPendingSoulConsent(true)
+
+        try? auth.signOut()
+
+        await waitUntil("Sign-out routes to signedOut") { store.state == .signedOut }
+        await waitUntil("Sign-out discards the buffered onboarding draft") {
+            onboarding.loadDraft().isEmpty
+        }
+        XCTAssertNil(onboarding.pendingSoulConsent,
+                     "Sign-out must discard buffered Soul consent — it is one person's answer")
+    }
+
+    /// The draft is written pre-auth and must survive an app kill (the flow is
+    /// onboarding → relaunch → sign in). Only a real sign-out discards it, so the
+    /// first `nil` emission on a cold launch must leave it alone.
+    @MainActor
+    func testColdStartWhileSignedOutKeepsTheBufferedDraft() async {
+        let auth = MockAuthService(signedIn: false)
+        let onboarding = makeOnboardingStore()
+        onboarding.saveDraft(["name": "Ada"])
+        onboarding.setPendingSoulConsent(true)
+
+        let store = makeStore(auth: auth, subscriptions: MockSubscriptionService(), onboarding: onboarding)
+
+        await waitUntil("Cold start routes to signedOut") { store.state == .signedOut }
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        XCTAssertEqual(onboarding.loadDraft()["name"], "Ada",
+                       "A cold start is not a sign-out — onboarding progress must survive")
+        XCTAssertEqual(onboarding.pendingSoulConsent, true)
+    }
+
+    /// The reported bug: a draft that a previous account already claimed (its merge
+    /// failed and stayed buffered) must never be merged into the next account.
+    @MainActor
+    func testDraftClaimedByAnotherAccountIsNeverMerged() async {
+        let auth = MockAuthService(signedIn: false)
+        let onboarding = makeOnboardingStore()
+        onboarding.saveDraft(["name": "Priya", "goals": "Someone else's answers"])
+        onboarding.claimDraft(for: "a-different-uid")
+        // A fresh profile with a blank name: without the guard the draft fills it.
+        let profiles = MockProfileRepository(profile: UserProfile(id: MockData.userId))
+        let store = makeStore(auth: auth, subscriptions: MockSubscriptionService(),
+                              profiles: profiles, onboarding: onboarding)
+
+        await waitUntil("Starts signed out") { store.state == .signedOut }
+        await auth.signInDemo()
+        await waitUntil("Signed in") { store.state == .signedIn(userId: MockData.userId) }
+        try? await Task.sleep(nanoseconds: 150_000_000)
+
+        XCTAssertNil(profiles.lastSaved,
+                     "Another account's onboarding answers must never be written to this profile")
+        XCTAssertTrue(onboarding.loadDraft().isEmpty,
+                      "The foreign draft must be discarded, not left to leak into a later account")
+    }
+
+    /// The normal path stays intact: an unclaimed draft still merges into the
+    /// account that signs in first.
+    @MainActor
+    func testUnclaimedDraftStillMergesIntoTheFirstAccount() async {
+        let auth = MockAuthService(signedIn: false)
+        let onboarding = makeOnboardingStore()
+        onboarding.saveDraft(["name": "Ada"])
+        let profiles = MockProfileRepository(profile: UserProfile(id: MockData.userId))
+        let store = makeStore(auth: auth, subscriptions: MockSubscriptionService(),
+                              profiles: profiles, onboarding: onboarding)
+
+        await waitUntil("Starts signed out") { store.state == .signedOut }
+        await auth.signInDemo()
+
+        await waitUntil("Onboarding answers reach the profile") {
+            profiles.lastSaved?.displayName == "Ada"
+        }
+        XCTAssertTrue(onboarding.loadDraft().isEmpty, "A merged draft is cleared")
     }
 }
 

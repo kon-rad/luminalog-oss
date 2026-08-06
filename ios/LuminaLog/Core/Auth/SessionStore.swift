@@ -109,7 +109,18 @@ final class SessionStore: ObservableObject {
             // `needsServerSync` true so a later launch retries.
             await consentService.syncIfNeeded()
         } else {
-            if let previousUid { keys.signOut(userId: previousUid) }
+            if let previousUid {
+                keys.signOut(userId: previousUid)
+                // The onboarding draft and the buffered Soul consent are PRE-AUTH
+                // buffers held in device-wide storage. Left behind at sign-out (a
+                // merge that failed stays buffered by design), they would be applied
+                // to whoever signs in next — stamping one person's name, biography
+                // and public-NFT consent onto a different account. Only a real
+                // sign-out clears them: the first `nil` on a cold launch must leave
+                // a pre-auth draft alone so onboarding survives an app kill.
+                onboarding.clearDraft()
+                onboarding.clearPendingSoulConsent()
+            }
             keyEnrollment.reset()
             bootstrappedUid = nil
             // Decrypted plaintext must not outlive the session.
@@ -165,6 +176,19 @@ final class SessionStore: ObservableObject {
     /// user only blank fields are filled. Best-effort: failures are logged, never
     /// block routing into the app.
     private func mergeOnboardingDraftIfPresent(overwriteExisting: Bool) async {
+        guard case .signedIn(let uid) = state else { return }
+
+        // The buffers are filled in pre-auth, so the first account to sign in owns
+        // them. One that another account already claimed — because its merge failed
+        // and stayed buffered for a retry — must never be applied here; sign-out is
+        // the primary clear, this is the backstop for a direct account switch.
+        guard onboarding.draftBelongs(to: uid) else {
+            onboarding.clearDraft()
+            onboarding.clearPendingSoulConsent()
+            return
+        }
+        onboarding.claimDraft(for: uid)
+
         // Record the public-Soul NFT consent answered during onboarding (pre-auth), now
         // that we're signed in. The server gates minting on `consent.soulPublicNft`, so
         // the Soul never mints unless the user accepted. Runs independent of the draft.
