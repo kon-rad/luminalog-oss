@@ -8,6 +8,10 @@ final class OnboardingStore {
 
     static let completedKey = "ll-onboarding-completed"
     private static let draftKey = "ll-onboarding-draft"
+    /// The uid of the account that claimed the buffered draft. Nil until the
+    /// first account signs in — the draft is filled in pre-auth, so it has no
+    /// owner until then, and from that point it belongs to that account alone.
+    private static let draftOwnerKey = "ll-onboarding-draft-owner"
     /// Buffered public-Soul NFT consent answered pre-auth (nil until the user answers
     /// the "Your public Soul" step). Recorded to the profile at the post-sign-in merge.
     private static let soulConsentKey = "ll-onboarding-soul-consent"
@@ -38,5 +42,24 @@ final class OnboardingStore {
         defaults.set(data, forKey: Self.draftKey)
     }
 
-    func clearDraft() { defaults.removeObject(forKey: Self.draftKey) }
+    func clearDraft() {
+        defaults.removeObject(forKey: Self.draftKey)
+        defaults.removeObject(forKey: Self.draftOwnerKey)
+    }
+
+    // MARK: - Draft ownership
+
+    /// The account that owns the buffered draft, or nil while it is unclaimed.
+    var draftOwner: String? { defaults.string(forKey: Self.draftOwnerKey) }
+
+    /// Bind the buffered draft to `userId`, so a merge that fails and stays
+    /// buffered can only ever be retried for the same account.
+    func claimDraft(for userId: String) { defaults.set(userId, forKey: Self.draftOwnerKey) }
+
+    /// Whether `userId` may merge the buffered draft: true while it is unclaimed
+    /// (the normal pre-auth case) and afterwards only for its owner.
+    func draftBelongs(to userId: String) -> Bool {
+        guard let draftOwner else { return true }
+        return draftOwner == userId
+    }
 }
