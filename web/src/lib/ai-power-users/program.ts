@@ -229,21 +229,21 @@ export interface AgentSkill {
  * /sessions), and /model, /profile and /usage are built in too. */
 export const MODULE_2_SKILLS: AgentSkill[] = [
   {
-    command: '/models-research',
+    command: '/model-research',
     cadence: 'Weekly, plus on demand',
     what: 'Researches text, image, video, speech and music models with live pricing from public APIs and independent leaderboards, then writes a dated briefing into your notes.',
     why: 'You stop reading “best AI tools” listicles. The data is current, sourced, and yours.',
     icon: Search,
   },
   {
-    command: '/model-switch',
+    command: '/switch-models',
     cadence: 'On demand',
     what: 'Moves between four profiles — private, fast, smart and coding — and stops you before you send client data to a public provider.',
     why: 'Automating a command is a shortcut. Automating a decision is a skill.',
     icon: Shuffle,
   },
   {
-    command: '/spend-report',
+    command: '/spend-tracker',
     cadence: 'Weekly, plus on demand',
     what: 'Incremental by design: keeps a watermark and only ever processes usage since its last run. Reports by project and model, and flags spikes.',
     why: 'A well-built tool remembers what it already did and refuses to repeat itself.',
