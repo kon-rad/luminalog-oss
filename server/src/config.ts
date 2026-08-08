@@ -106,6 +106,14 @@ const schema = z.object({
   // so we never scan from block 0 (public Base Sepolia RPC caps the range).
   SOULBOUND_DEPLOY_BLOCK: z.coerce.number().int().nonnegative().optional(),
   NFT_METADATA_BASE_URL: z.string().optional(),
+  // Argo Course Badge NFT (Base) — separate contract from the Soul. Optional so
+  // the server boots before deploy; make required only when the code needs them.
+  COURSE_BADGE_CONTRACT_ADDRESS: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{40}$/, 'COURSE_BADGE_CONTRACT_ADDRESS must be 0x + 40 hex')
+    .optional(),
+  COURSE_BADGE_DEPLOY_BLOCK: z.coerce.number().int().nonnegative().optional(),
+  COURSE_BADGE_METADATA_BASE_URL: z.string().optional(),
   // Zero-knowledge consent enforcement (encryption Step 1 / 1b). When enabled,
   // the `requireAiConsent` guard returns 403 for users who have not recorded
   // AI-data-sharing consent. OPTIONAL + default OFF so existing users are NOT
@@ -162,4 +170,12 @@ export function chainEnabled(): boolean {
       config.BASE_MINTER_PRIVATE_KEY &&
       config.SOULBOUND_CONTRACT_ADDRESS,
   )
+}
+
+/**
+ * True when the shared chain path is configured AND the course-badge contract
+ * address is set. Course-badge minting no-ops/throws clearly when false.
+ */
+export function courseChainEnabled(): boolean {
+  return chainEnabled() && Boolean(config.COURSE_BADGE_CONTRACT_ADDRESS)
 }
