@@ -107,5 +107,27 @@ service cloud.firestore {
     match /dailyReports/{uid}/days/{date} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+
+    // Course badge class definitions — world-readable (the /badge/{classId} claim
+    // page renders them; the quiz carries no answer keys, completion-only). Writes
+    // are server-only (Admin SDK bypasses rules).
+    match /courseBadges/{classId} {
+      allow read: if true;
+      allow write: if false;
+
+      // A participant's quiz answers + minted badge — private to the owner. Client
+      // writes go through the authed server API, so direct client writes stay
+      // closed. v2 rules do not cascade the parent allow to subcollections.
+      match /participants/{uid} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+    }
+
+    // tokenId -> {classId, uid} reverse index for the metadata endpoint — server
+    // only (Admin SDK). Never exposed to clients.
+    match /courseBadgeTokens/{tokenId} {
+      allow read, write: if false;
+    }
   }
 }
