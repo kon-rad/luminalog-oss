@@ -10,6 +10,7 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { base, baseSepolia } from 'viem/chains'
 import { config, chainEnabled } from '../../config'
 import { db } from '../../middleware/firebaseAuth'
+import { runExclusiveMint } from './minterQueue'
 
 /** The viem chain selected by BASE_CHAIN ('base' mainnet | 'base-sepolia' testnet). */
 const activeChain = config.BASE_CHAIN === 'base' ? base : baseSepolia
@@ -89,18 +90,9 @@ function walletClient() {
 }
 
 // Single-flight queue (I3): the minter is one shared EOA, so concurrent
-// writeContract calls would fetch the same pending nonce and collide. Serialize
-// every submit+receipt so they run strictly one-at-a-time, process-wide.
-let _mintChain: Promise<unknown> = Promise.resolve()
-function runExclusiveMint<T>(fn: () => Promise<T>): Promise<T> {
-  const result = _mintChain.then(fn, fn)
-  // keep the chain alive but never let a rejection poison the next submission
-  _mintChain = result.then(
-    () => undefined,
-    () => undefined,
-  )
-  return result
-}
+// writeContract calls would fetch the same pending nonce and collide. The queue
+// lives in ./minterQueue so the course-badge mint path serializes against this
+// one too (both submit from the same key).
 
 /**
  * Transactional per-user mint claim (C1). Concurrent callers (rag/ai/soul all
