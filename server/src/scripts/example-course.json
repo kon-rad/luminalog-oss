@@ -1,0 +1,17 @@
+{
+  "classId": "ai-power-users-m1-2026-08-08",
+  "name": "AI Power Users · Module 1",
+  "course": "ai-power-users",
+  "module": "Module 1",
+  "date": "August 8, 2026",
+  "time": "7:00 PM",
+  "location": "Network School",
+  "imageUrl": "https://images.lu.ma/REPLACE.png",
+  "lumaEventId": "",
+  "contentUrl": "https://myargoquest.com/courses/ai-power-users/module-1",
+  "active": true,
+  "quiz": [
+    { "id": "q1", "type": "mc", "prompt": "Which tool fits a quick factual lookup?", "options": ["A spreadsheet", "A chat assistant", "A calculator"] },
+    { "id": "q2", "type": "short", "prompt": "Name one thing you learned today." }
+  ]
+}
