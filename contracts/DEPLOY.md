@@ -68,3 +68,50 @@ After successful deployment:
 - **Never commit secrets:** private keys, RPC URLs, or deployed addresses must never be in this repo.
 - **Environment-only:** Use shell export or `.env` files locally; `.env` is gitignored.
 - **Private storage:** Real values are stored in the server `.env` and workspace-root `CLAUDE.md`, not here.
+
+---
+
+# Deploy ArgoCourseBadge Contract
+
+`ArgoCourseBadge` is a **separate** soulbound ERC-721 for course/class proof-of-participation
+badges (one unique token per wallet per class). It reuses the **same deployer/owner/minter key**
+as `LuminaSoul` (`BASE_MINTER_PRIVATE_KEY` on the server), so the existing server minter can mint
+badges without new key management.
+
+## Deploy
+
+Deploy to Base Sepolia first, then mainnet. `BASE_URI` must be the **course-badge** metadata
+endpoint (note the `/course-badge/` path — different from the Soul's `/nft/`):
+
+```bash
+cd luminalog-oss/contracts
+export PATH="$HOME/.foundry/bin:$PATH"
+export PRIVATE_KEY=<your_key>
+export BASE_URI=https://api.luminalog.com/v1/course-badge/
+
+# testnet
+forge script script/DeployArgoCourseBadge.s.sol --rpc-url "$BASE_SEPOLIA_RPC" --broadcast
+# mainnet (after testing)
+forge script script/DeployArgoCourseBadge.s.sol --rpc-url "$BASE_MAINNET_RPC" --broadcast --verify
+```
+
+## Post-Deploy
+
+1. Record the deployed address in the **private server `.env`** as `COURSE_BADGE_CONTRACT_ADDRESS`,
+   and the deploy block as `COURSE_BADGE_DEPLOY_BLOCK` (from the broadcast output).
+2. Restart the API. Verify `courseChainEnabled()` is now true (a `/v1/course/:id/mint` call no
+   longer returns 503).
+3. Author the first class sessions:
+   `cd ../server && npx tsx src/scripts/createCourseBadge.ts src/scripts/example-course.json`
+   (edit the JSON first with the real Luma `imageUrl` + quiz). Note the printed `chainClassId` and
+   QR target `https://myargoquest.com/badge/{classId}`.
+4. Smoke test: visit `/badge/{classId}`, sign in, complete the quiz, mint, and confirm
+   `GET /v1/course-badge/{tokenId}.json` returns metadata with the Luma image and the token shows
+   as soulbound on BaseScan.
+
+## Recorded deployments
+
+| Network | Address | Deploy block | baseURI |
+|---|---|---|---|
+| base-sepolia | _pending_ | _pending_ | `https://api.luminalog.com/v1/course-badge/` |
+| base (mainnet) | _pending_ | _pending_ | `https://api.luminalog.com/v1/course-badge/` |
