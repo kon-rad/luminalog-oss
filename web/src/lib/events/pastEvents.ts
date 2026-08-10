@@ -90,7 +90,7 @@ export const PAST_EVENTS: PastEvent[] = [
     "eventType": "WORKSHOP",
     "lumaUrl": "https://luma.com/fitqgyx9",
     "coverUrl": "https://images.lumacdn.com/event-covers/d1/d2418575-9d1c-4622-a3d0-6b2d5a56bef6.png",
-    "description": "Connect Your World: Google Suite & Social Media Automation with OpenClaw on Augmi\nReady to put your AI agent to work on the tools you use every day? In this hands-on workshop, we'll walk through real use cases for connecting OpenClaw agents to your Google Drive, Gmail, and Google Calendar — and then take it further by linking to social media channels through Postiz.\nThis isn't a lecture. You'll follow along on your laptop, set things up live on augmi.world, and walk out with working automations.\nWhat You'll Do\nGoogle Drive Integration\nConnect your agent to Google Drive\nAutomate file organization, search, and document creation\nSet up workflows that read and write to your Drive\nGmail…",
+    "description": "Connect Your World: Google Suite & Social Media Automation with OpenClaw on Augmi\nReady to put your AI agent to work on the tools you use every day? In this hands-on workshop, we'll walk through real use cases for connecting OpenClaw agents to your Google Drive, Gmail, and Google Calendar, and then take it further by linking to social media channels through Postiz.\nThis isn't a lecture. You'll follow along on your laptop, set things up live on augmi.world, and walk out with working automations.\nWhat You'll Do\nGoogle Drive Integration\nConnect your agent to Google Drive\nAutomate file organization, search, and document creation\nSet up workflows that read and write to your Drive\nGmail…",
     "photos": []
   },
   {
@@ -114,7 +114,7 @@ export const PAST_EVENTS: PastEvent[] = [
     "eventType": "WORKSHOP",
     "lumaUrl": "https://luma.com/iob0uhgy",
     "coverUrl": "https://images.lumacdn.com/event-covers/tb/646484ca-4653-4232-804f-43c56df9df6d.png",
-    "description": "By the end of this session, you'll have your own AI agent running — connected to your tools, your APIs, and your workflows.\nMost people think setting up AI agents takes hours of configuration, terminal commands, and developer experience. It doesn't. In this live demo, we'll go from nothing to a fully operational OpenClaw agent on augmi.world in under a minute — and then show you how to make it actually useful.\nYou'll see exactly how to connect agents to the skills and APIs you already use, set up social media automation that runs without you, and build the personal AI infrastructure that lets you operate like a team of ten.\nWalk in curious. Walk out with agents working for you.\nWhat You'll…",
+    "description": "By the end of this session, you'll have your own AI agent running: connected to your tools, your APIs, and your workflows.\nMost people think setting up AI agents takes hours of configuration, terminal commands, and developer experience. It doesn't. In this live demo, we'll go from nothing to a fully operational OpenClaw agent on augmi.world in under a minute, and then show you how to make it actually useful.\nYou'll see exactly how to connect agents to the skills and APIs you already use, set up social media automation that runs without you, and build the personal AI infrastructure that lets you operate like a team of ten.\nWalk in curious. Walk out with agents working for you.\nWhat You'll…",
     "photos": []
   },
   {
@@ -198,7 +198,7 @@ export const PAST_EVENTS: PastEvent[] = [
     "eventType": "OTHER",
     "lumaUrl": "https://luma.com/4juzzjrj",
     "coverUrl": "https://images.lumacdn.com/event-covers/r8/923a5d1c-a21a-4202-8d69-52f6b28866b0.jpg",
-    "description": "From Drama to Responsibility: Escaping the Karpman Triangle\nWhy do the same conflicts keep repeating—in teams, relationships, and even inside your own head?This talk breaks down the Karpman Drama Triangle (Victim–Rescuer–Persecutor) and shows how high-agency people unknowingly get trapped in it. You’ll learn how to recognize these patterns in real time, exit drama loops, and shift into responsibility, clarity, and adult-to-adult communication— especially in high-pressure founder, creative, and leadership environments.Talk will include short exercises and short AI generated videos that help you visualize how the shift in perspective and awareness can help you find the hidden doors that will…",
+    "description": "From Drama to Responsibility: Escaping the Karpman Triangle\nWhy do the same conflicts keep repeating, in teams, relationships, and even inside your own head?This talk breaks down the Karpman Drama Triangle (Victim–Rescuer–Persecutor) and shows how high-agency people unknowingly get trapped in it. You’ll learn how to recognize these patterns in real time, exit drama loops, and shift into responsibility, clarity, and adult-to-adult communication: especially in high-pressure founder, creative, and leadership environments.Talk will include short exercises and short AI generated videos that help you visualize how the shift in perspective and awareness can help you find the hidden doors that will…",
     "photos": []
   },
   {
@@ -222,7 +222,7 @@ export const PAST_EVENTS: PastEvent[] = [
     "eventType": "OTHER",
     "lumaUrl": "https://luma.com/xm6az683",
     "coverUrl": "https://images.lumacdn.com/event-covers/9v/67fd720b-b79f-48bb-8047-44bffc5b011b.png",
-    "description": "A collaborative co-creation session designed to cultivate creativity, explore new ideas, and connect with your inner artist. This is a dedicated time and space for creative expression in any form—whether you write, draw, paint, dance, make AI films, compose music, or explore any other artistic medium.\nThe session features 1.5 hours of lofi music creating a calm, focused atmosphere for deep creative work. No pressure, no judgment—just the opportunity to create alongside fellow builders and artists.\nWhat You Can Create\nParticipants are welcome to work on any creative endeavor:\nWriting (blogs, poetry, journals, morning pages, books)\nVisual art (drawing, painting, digital art, photography)\nAI…",
+    "description": "A collaborative co-creation session designed to cultivate creativity, explore new ideas, and connect with your inner artist. This is a dedicated time and space for creative expression in any form, whether you write, draw, paint, dance, make AI films, compose music, or explore any other artistic medium.\nThe session features 1.5 hours of lofi music creating a calm, focused atmosphere for deep creative work. No pressure, no judgment, just the opportunity to create alongside fellow builders and artists.\nWhat You Can Create\nParticipants are welcome to work on any creative endeavor:\nWriting (blogs, poetry, journals, morning pages, books)\nVisual art (drawing, painting, digital art, photography)\nAI…",
     "photos": []
   },
   {
@@ -234,7 +234,7 @@ export const PAST_EVENTS: PastEvent[] = [
     "eventType": "FILM_DISCUSSION",
     "lumaUrl": "https://luma.com/5gv64mnu",
     "coverUrl": "https://images.lumacdn.com/event-covers/85/d9a76857-d945-4c04-876d-a11ea278f24e.png",
-    "description": "Join the NS Film Discussion Club for a screening and discussion of \"Code is Law\" (2025), a gripping documentary that dives into the dark side of decentralized finance and the hackers behind multi-million-dollar crypto heists.\nWhat it's about: The film follows Andean Medjedovic, a Canadian teen math prodigy who orchestrated a $65 million crypto heist across multiple DeFi platforms—then challenged the very definition of crime before vanishing as an international fugitive. It explores the philosophical and legal battleground where blockchain immutability collides with real-world justice.\nWhy watch at NS: As builders in the crypto/web3 space, this documentary forces us to confront uncomfortable…",
+    "description": "Join the NS Film Discussion Club for a screening and discussion of \"Code is Law\" (2025), a gripping documentary that dives into the dark side of decentralized finance and the hackers behind multi-million-dollar crypto heists.\nWhat it's about: The film follows Andean Medjedovic, a Canadian teen math prodigy who orchestrated a $65 million crypto heist across multiple DeFi platforms, then challenged the very definition of crime before vanishing as an international fugitive. It explores the philosophical and legal battleground where blockchain immutability collides with real-world justice.\nWhy watch at NS: As builders in the crypto/web3 space, this documentary forces us to confront uncomfortable…",
     "photos": [
       {
         "full": "/events/2026-01-24-code-is-law-film-screening-discussion/2026-01-24-2013-IMG_2711-full.jpg",

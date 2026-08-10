@@ -138,7 +138,7 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
         minutes from the conference venue depending on what the traffic is doing. Bank Negara Malaysia
         opened it in 2011 as a centre for learning and research rather than as a banking hall, and the
         museum occupies part of it. Admission is free, no booking is needed, and bags are not allowed
-        inside — there are lockers at the door, but the storage area is not the kind of place you leave a
+        inside, there are lockers at the door, but the storage area is not the kind of place you leave a
         hardware wallet. You walk in under an atrium with a spiral staircase modelled on a nautilus shell.
       </P>
 
@@ -160,8 +160,8 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
         a panel about gross domestic product, it opens with a wall of the questions people actually ask,
         in Malay, English and Manglish. <i>Why does my RM100 feel small now?</i>{' '}
         <i>Cukup tak gaji RM2,700 hidup di KL?</i> <i>OPR keeps changing. Can&apos;t they be static?</i>{' '}
-        <i>Should I save or spend my money?</i> One of them is not a question at all —{' '}
-        <i>I trust e-Payment more now for my daily transactions</i> — which is a central bank recording a
+        <i>Should I save or spend my money?</i> One of them is not a question at all,{' '}
+        <i>I trust e-Payment more now for my daily transactions</i>, which is a central bank recording a
         shift in public confidence and quietly filing it as an achievement.
       </P>
 
@@ -170,7 +170,7 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
       <P>
         From there it tells one long story about {T('malaysia-economy', 'transformation')}: a dependence
         on agriculture and commodity exports giving way to a diversified, open economy plugged into global
-        value chains. The {T('commodities', 'commodities')} wall covers what came before independence —
+        value chains. The {T('commodities', 'commodities')} wall covers what came before independence,
         coal, gold, tin from the 1820s, and rubber, introduced by seeds that the museum describes without
         euphemism as smuggled. By 1921 Malaya was producing half the world&apos;s rubber. The first oil
         well, the Grand Old Lady in Sarawak, managed eighty-three barrels a day in its early years and
@@ -190,7 +190,7 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
       <Figure id="img3184" />
 
       <P>
-        A quieter room covers {T('infrastructure', 'infrastructure')} — the physical preconditions for any
+        A quieter room covers {T('infrastructure', 'infrastructure')}: the physical preconditions for any
         market at all. Electricity first showed up at the turn of the twentieth century in a mining town in
         Rawang. The first railway ran from Taiping to Port Weld in 1885, built specifically to move tin to
         the coast. The first telephone line was strung in 1874, forty-five kilometres of it, connecting a
@@ -211,7 +211,7 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
       <P>
         Downstairs, the money itself. It begins with{' '}
         {T('pitis-money-tree', 'a pair of iron moulds from Kelantan')} and the branching tin
-        &ldquo;money tree&rdquo; they cast — a technique the label credits to Tang-dynasty China, which
+        &ldquo;money tree&rdquo; they cast, a technique the label credits to Tang-dynasty China, which
         tells you how long this peninsula has been a node on somebody else&apos;s trade route.
       </P>
 
@@ -222,7 +222,7 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
         the Malay Archipelago ran on an arrangement that sounds, described plainly, quite radical: there
         was no issuer monopoly. The trading community accepted <i>any</i> silver crown weighing at least
         415 grains at ninety per cent fineness. Spanish Pillar Dollars, Mexican pesos, British Crowns,
-        Hong Kong dollars, Japanese Meiji yen, French Indo-China piastres — all of it circulated
+        Hong Kong dollars, Japanese Meiji yen, French Indo-China piastres: all of it circulated
         side by side, valued by metal content rather than by whose face was on the front.
       </P>
 
@@ -230,7 +230,7 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
         Locals renamed everything. The Spanish Pillar Dollar became <i>Ringgit Tua</i>, the old ringgit.
         The Japanese yen became <i>Ringgit Muda</i>, the young one. The Mexican eagle coin became{' '}
         <i>Ringgit Garuda</i> or <i>Ringgit Burung</i>; its sunburst variant, <i>Ringgit Matahari</i>. The
-        British trade dollar became <i>Ringgit Tongkat</i> — staff ringgit — because Britannia is holding
+        British trade dollar became <i>Ringgit Tongkat</i> (staff ringgit) because Britannia is holding
         a trident. And the word <i>ringgit</i> itself simply means jagged, after the milled edges of the
         Spanish coins. Malaysia&apos;s currency is named after the serrations on a foreign coin.
       </P>
@@ -240,7 +240,7 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
       <P>
         The French Indo-China piastre of 1898 is the one a cryptographer would linger on. Stamped across
         its obverse: <b>TITRE 0.900, POIDS 27 GR.</b> The coin publishes its own specification. You do not
-        have to trust the issuer, or even read the language — you can weigh it and assay it and check the
+        have to trust the issuer, or even read the language: you can weigh it and assay it and check the
         claim against the object. A multi-issuer currency system where acceptance rests on verifiable
         physical properties rather than institutional identity is not a thought experiment here. It is what
         this region did for three hundred years. It worked, and it also imposed a constant, grinding{' '}
@@ -273,7 +273,7 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
 
       <P>
         You enter through a lit cylinder wrapped in geometric strapwork that reads{' '}
-        <i>Kewangan Islam Menjangkaui Dunia</i> — the world embraces{' '}
+        <i>Kewangan Islam Menjangkaui Dunia</i>, the world embraces{' '}
         {T('islamic-finance', 'Islamic finance')}. This is the room that will do the most work for anyone
         writing about blockchain in Malaysia, and it is worth being specific about why.
       </P>
@@ -286,14 +286,14 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
         {T('riba', 'panel on riba')} is more precise than the usual summary. The prohibition was a response
         to pre-Islamic money-lending in Mecca that let a lender <i>unilaterally increase the sum owed</i> if
         a borrower missed a payment. That is not a blanket objection to returns. It is an objection to one
-        party rewriting an obligation after the fact — which is, functionally, a demand for contract
+        party rewriting an obligation after the fact, which is, functionally, a demand for contract
         immutability, and a rather elegant one.
       </P>
 
       <P>
         And then, in a glass case near the middle of the room, the object I did not expect. A{' '}
         {T('ledgers', 'handwritten Quran from Uzbekistan, dated 1354')}, open at verse 282 of Surah
-        Al-Baqarah — the longest verse in the Quran, and the one about lending.
+        Al-Baqarah, the longest verse in the Quran, and the one about lending.
       </P>
 
       <Figure id="img3191" />
@@ -317,8 +317,8 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
 
       <P>
         The rest of the room keeps handing you the same kind of gift. The{' '}
-        {T('hawala-suftaja', 'suftaja')} — a bill of exchange, displayed here as a Qajar-dynasty example
-        from Iran — let one party issue a bearer instrument that another party would honour elsewhere,
+        {T('hawala-suftaja', 'suftaja')}: a bill of exchange, displayed here as a Qajar-dynasty example
+        from Iran, let one party issue a bearer instrument that another party would honour elsewhere,
         with the monetary agreement made beforehand, specifically to avoid the risk of physically
         transporting money. By the ninth century, Arab traders could cash a <i>sakk</i> in China against
         funds held in Baghdad. <i>Sakk</i> is the root of &ldquo;cheque&rdquo;; its plural is{' '}
@@ -350,7 +350,7 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
         Which produces the single most quotable fact in the building. The Central Bank of Malaysia Act
         2009 states that <b>&ldquo;the financial system in Malaysia shall consist of the conventional
         financial system and the Islamic financial system.&rdquo;</b> Not a carve-out, not a sandbox
-        exemption — a statutory declaration that two parallel rule-sets both constitute the national
+        exemption, a statutory declaration that two parallel rule-sets both constitute the national
         financial system. Malaysia has already proven, at national scale and for four decades, that it can{' '}
         {T('dual-system', 'run two sets of rules over one financial system')} with shared infrastructure and
         shared supervision.
@@ -371,8 +371,8 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
 
       <P>
         The last room is the institution&apos;s account of itself, and it makes its case in economic terms
-        rather than patriotic ones. After the Second World War Malaya looked strong — the world&apos;s
-        largest producer of rubber and tin — but roughly eighty per cent of export earnings came from those
+        rather than patriotic ones. After the Second World War Malaya looked strong, the world&apos;s
+        largest producer of rubber and tin, but roughly eighty per cent of export earnings came from those
         two commodities, so national fortunes tracked prices nobody here controlled. The monetary system was
         anchored to sterling and local banking was dominated by British banks financing trade rather than
         development. In 1955 the IBRD was asked how a young country should manage monetary stability; the
@@ -387,7 +387,7 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
         The {T('kijang-coin', 'logo')} has its own panel, and it is a small masterpiece of institutional
         signalling. In 1964 the first Malaysian Governor, Tun Ismail Mohamed Ali, chose as the basis for the
         Bank&apos;s crest a gold coin from Kelantan minted somewhere between the thirteenth and sixteenth
-        centuries, stamped with a barking deer — a <i>kijang</i>. He picked it partly because, unlike almost
+        centuries, stamped with a barking deer: a <i>kijang</i>. He picked it partly because, unlike almost
         every other early coin from the peninsula, which carried only Jawi script, this one carried an image.
         A new central bank in a new country reached back past the colonial currencies, past the trade
         dollars, to a pre-national coin, and made it the mark of the institution. The building we spent the
@@ -404,7 +404,7 @@ export default function MuseumEssay({ onOpenTopic }: { onOpenTopic?: (slug: stri
       <H2>What we took away</H2>
 
       <P>
-        You do not go to a central bank museum expecting it to argue your side. This one mostly does not —
+        You do not go to a central bank museum expecting it to argue your side. This one mostly does not,
         and that is what makes it useful. It never mentions blockchain. What it does instead is lay out, room
         by room, a thousand years of people solving the same four problems: how to record an obligation, how
         to verify a claim without trusting the claimant, how to move value without moving the thing, and how

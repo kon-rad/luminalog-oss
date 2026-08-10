@@ -15,31 +15,44 @@ export interface KidsClass {
   title: string
   summary: string
   status: 'live' | 'soon'
+  /* Where the card links. Same-page anchor for class 0, its own route after. */
+  href?: string
 }
 
 export const KIDS_CLASSES: KidsClass[] = [
   {
     n: 0,
-    title: 'Meet the Computer — Wholistic Creativity & STEM',
+    title: 'Meet the Computer: Wholistic Creativity & STEM',
     summary:
       'Breathing and movement, free drawing and expressive writing, and a first STEM lesson: what a computer actually is, explained for every age.',
     status: 'live',
+    href: '#module-0',
   },
   {
     n: 1,
-    title: 'Algorithms — Step-by-Step Instructions',
-    summary: 'We become “human robots” and learn how exact, ordered steps make things happen.',
-    status: 'soon',
+    title: 'What Is AI? Learning from Examples',
+    summary:
+      'How computers learn from lots of examples, the same way we learned what a cat is, plus the story of AI, the people who built it, and where it goes next.',
+    status: 'live',
+    href: `${KIDS_COURSE_BASE}/what-is-ai`,
   },
   {
     n: 2,
-    title: 'What Is AI? — Learning from Examples',
-    summary: 'How computers learn from lots of examples, the same way we learned what a cat is.',
+    title: 'What Is a Blockchain? The Notebook Nobody Can Erase',
+    summary:
+      'How a lot of people can agree on what is true when nobody is in charge, plus the thirty-year story behind it, and why some things belong on a wall and some belong in your notebook.',
+    status: 'live',
+    href: `${KIDS_COURSE_BASE}/what-is-blockchain`,
+  },
+  {
+    n: 3,
+    title: 'Algorithms: Step-by-Step Instructions',
+    summary: 'We become “human robots” and learn how exact, ordered steps make things happen.',
     status: 'soon',
   },
 ]
 
-/* ── Module 0 — the class structure (from the Luma description) ───────────── */
+/* ── Module 0: the class structure (from the Luma description) ───────────── */
 
 export interface ClassSegment {
   minutes: number
@@ -47,42 +60,93 @@ export interface ClassSegment {
   detail: string
 }
 
-export const MODULE_0_SEGMENTS: ClassSegment[] = [
+/** The sixty-minute class agenda. Every session runs this same shape, so the
+ * children know what is coming and can settle quickly. Rendered on the course
+ * overview, the enrolment page and each module page. */
+export const CLASS_AGENDA: ClassSegment[] = [
   {
     minutes: 5,
-    title: 'Arrival exercise',
-    detail: 'Breathing, mindfulness, and gentle movements to settle in.',
+    title: 'Breathing and short meditation',
+    detail:
+      'We arrive, settle, and put the rest of the day down. Simple breathing exercises and a short meditation to bring attention into the room.',
   },
   {
     minutes: 10,
-    title: 'Movement & mind-body connection',
+    title: 'Stretching and movement',
     detail:
-      'Gentle stretches, simple yoga poses, and light exercises to wake up the body, build self-regulation and concentration, and release excess energy and tension.',
+      'Yoga stretches, warrior pose, the kung fu attention pose, and a short standing workout. This wakes up the body, builds self-regulation and concentration, and releases excess nervous energy before we sit down to work.',
   },
   {
-    minutes: 20,
-    title: 'Drawing, expressive writing, lettering & creativity',
+    minutes: 10,
+    title: 'Assignment 1: the drawing prompt',
     detail:
-      'Draw freely — landscapes, cars, buildings, people, stories, characters — then a gentle intro to expressive journaling: writing about your day, thoughts, feelings, ideas and learnings. For the littlest ones, holding the pen or writing one letter is a perfect start.',
+      'A drawing prompt tied to the day’s STEM concept. Everybody draws their own answer to it. There is no wrong drawing, and the youngest children start wherever they are.',
   },
   {
-    minutes: 20,
-    title: 'STEM lesson',
+    minutes: 10,
+    title: 'Assignment 2: the writing prompt',
     detail:
-      'A topic in computer science, math, technology or engineering is explained; kids pair up and explain it in their own words, then draw or write what they understand.',
+      'A writing prompt that is personal, about their own life, and connects back to the same concept. Children who cannot yet write put down one letter or one word. Older children write full sentences.',
   },
   {
-    minutes: 5,
-    title: 'Closing',
+    minutes: 15,
+    title: 'The STEM concept',
     detail:
-      'We reflect on what we did and share: what it was like, what we liked, what we learned, and what we are curious to learn next.',
+      'One new concept, for example AI, computers or blockchain, explained three ways in the same room: a version for a three-year-old, a version for a seven-year-old, and a version for a twelve-year-old. The course page carries an infographic for each age, three deeper paragraphs, and a short history of the idea.',
+  },
+  {
+    minutes: 10,
+    title: 'Assignment 3: teach it back',
+    detail:
+      'One page of drawing and writing that teaches the concept to somebody their own age. A twelve-year-old fills a page that would teach another twelve-year-old. A child who cannot write yet uses a drawing and a single letter or word. Explaining it is how we know it landed.',
+  },
+]
+
+/* Back-compat alias: the agenda used to be named for Module 0 before it became
+ * the shape of every class. */
+export const MODULE_0_SEGMENTS = CLASS_AGENDA
+
+/* ── The three assignments and the points they earn ──────────────────────── */
+
+export const ASSIGNMENTS_INTRO =
+  'Every class has one concept and three assignments built around it: draw it, write about it in your own life, then teach it to somebody your age. The drawing and writing prompts both connect back to the same idea, so the concept gets approached from three directions in one sitting.'
+
+export const MONTHLY_OUTCOME =
+  'Three classes a week, twelve concepts a month. By the end of the month your child has twelve finished pages, each one explaining a concept in their own drawings and their own words. We then choose a few of those pages to go into the printed magazine.'
+
+/** Complete all three assignments in a class and you earn a point. Ten points
+ * buys one reward. */
+export const POINTS_RULE =
+  'Finish all three assignments in a class and your child earns one point. Ten points can be exchanged for any one of these.'
+
+export interface Reward {
+  cost: number
+  title: string
+  detail: string
+}
+
+export const REWARDS: Reward[] = [
+  {
+    cost: 10,
+    title: 'Five-minute private drone lesson',
+    detail: 'Your child flies the drone themselves and records a short video to keep.',
+  },
+  {
+    cost: 10,
+    title: 'Five minutes on Oculus Quest 3',
+    detail: 'Playtime inside a game on the headset.',
+  },
+  {
+    cost: 10,
+    title: 'Five minutes on Apple Vision Pro',
+    detail: 'Playtime inside a game on the headset.',
   },
 ]
 
 export const MODULE_0_INTRO =
-  'A wholistic creativity and STEM class for kids from about 2 to 12 years old. Every child gets personalized exercises and space for creativity, play and learning. Notebooks, pens and pencils are provided — kids keep their notebook and bring it to future classes, which build on each other and compound.'
+  'A sixty-minute wholistic creativity and STEM class for kids from about 2 to 12 years old. Every child gets personalized exercises and space for creativity, play and learning. Notebooks, pens and pencils are provided, kids keep their notebook and bring it to future classes, which build on each other and compound.'
 
-/* ── How a computer works — explained by age ─────────────────────────────── */
+/* ── How a computer works, explained by age ─────────────────────────────── */
 
 export interface AgeExplanation {
   age: string
@@ -90,6 +154,16 @@ export interface AgeExplanation {
   body: string
   image?: string
   alt?: string
+  /* The image-generation prompt, kept alongside so a missing infographic can be
+   * regenerated, and shown on the page while the picture does not exist yet. */
+  imagePrompt?: string
+}
+
+/* One beat in a module's history timeline. */
+export interface HistoryBeat {
+  year: string
+  title: string
+  detail: string
 }
 
 /* The three illustrated levels (each has a Nano Banana visual). */
@@ -111,17 +185,17 @@ export const COMPUTER_BY_AGE: AgeExplanation[] = [
   {
     age: 'Age 12',
     headline: 'Hardware, software & 1s and 0s',
-    body: 'A computer has hardware (the parts you can touch) and software (the instructions that tell it what to do). The CPU is the brain that runs the steps, RAM is short-term memory and storage is long-term memory. Underneath, everything is tiny switches that are on (1) or off (0) — flipped billions of times a second.',
+    body: 'A computer has hardware (the parts you can touch) and software (the instructions that tell it what to do). The CPU is the brain that runs the steps, RAM is short-term memory and storage is long-term memory. Underneath, everything is tiny switches that are on (1) or off (0), flipped billions of times a second.',
     image: '/courses/kids-stem/computer-explained-age-12.jpg',
     alt: 'A flat-vector infographic: INPUT to CPU (PROCESS) to OUTPUT, with MEMORY (RAM), STORAGE, binary 1s and 0s, and HARDWARE vs SOFTWARE labels.',
   },
 ]
 
-/* The full ladder — the same idea at five depths. */
+/* The full ladder, the same idea at five depths. */
 export const COMPUTER_LADDER: { age: string; idea: string }[] = [
   { age: 'Age 2', idea: 'I touch it, it responds. (cause → effect)' },
   { age: 'Age 5', idea: 'It takes things in, thinks, and shows something out.' },
-  { age: 'Age 7', idea: 'It follows exact instructions, step by step — that is code.' },
+  { age: 'Age 7', idea: 'It follows exact instructions, step by step. That is code.' },
   { age: 'Age 10', idea: 'Hardware plus software, and everything is 1s and 0s.' },
   { age: 'Age 13', idea: 'Billions of on/off switches running simple instructions, very fast.' },
 ]

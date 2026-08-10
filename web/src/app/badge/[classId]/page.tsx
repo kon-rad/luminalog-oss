@@ -60,7 +60,7 @@ export default function BadgeClaimPage({ params }: { params: { classId: string }
           />
         ) : null}
         <p>
-          {c.name} — {c.date}
+          {c.name}, {c.date}
         </p>
         {badge.contract ? (
           <p>

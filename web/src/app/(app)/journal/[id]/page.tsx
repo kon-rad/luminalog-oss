@@ -368,7 +368,7 @@ function DetailLoaded({
                   type="button"
                   role="menuitem"
                   disabled
-                  title="Voice chat — coming soon"
+                  title="Voice chat, coming soon"
                   className="flex w-full cursor-not-allowed items-center gap-2.5 rounded-xl px-3 py-2.5 text-left font-sans text-sm font-medium opacity-40"
                   style={{ color: 'var(--text2)' }}
                 >

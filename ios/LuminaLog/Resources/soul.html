@@ -67,7 +67,7 @@
       return s;
     }
 
-    // 'orbit' controls give a turntable feel and — unlike the default trackball —
+    // 'orbit' controls give a turntable feel and, unlike the default trackball,
     // support autoRotate (see below), so the constellation slowly turns in place.
     // Padding (screen px) left around the constellation when framing it. Small,
     // so the constellation fills most of the card with just a little breathing
@@ -85,7 +85,7 @@
       // Refit once the layout settles: onEngineStop fires after the engine has
       // committed fixed positions into node.x/y/z, so zoomToFit finally has a
       // real bounding box to frame (calling it synchronously after graphData is
-      // a no-op — coords aren't populated yet — which left the camera parked at
+      // a no-op (coords aren't populated yet) which left the camera parked at
       // its far default distance and the constellation looking tiny).
       .onEngineStop(function () { if (lastCount) Graph.zoomToFit(0, FIT_PAD); });
 

@@ -40,7 +40,7 @@ struct RecordingOverlayView: View {
             }
 
             if case .paused = recorder.state {
-                Text("Paused — tap the mic to resume")
+                Text("Paused, tap the mic to resume")
                     .font(.captionText)
                     .foregroundStyle(Color.textSecondary)
                     .padding(.bottom, Spacing.xs)

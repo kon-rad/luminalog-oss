@@ -31,12 +31,12 @@ final class MockVoiceCallService: VoiceCallService {
 
     private static let script: [(user: String, assistant: String)] = [
         (
-            user: "Hey. I've got a few minutes — can we talk through my day?",
+            user: "Hey. I've got a few minutes, can we talk through my day?",
             assistant: "Of course. You wrote this morning about wanting margin before the rush. Did the day leave you any?"
         ),
         (
             user: "A little. I protected the morning block, but the afternoon got eaten by meetings again.",
-            assistant: "That's still a win — the morning block was the part you said mattered most. What's one thing from the afternoon you'd hand off or decline next time?"
+            assistant: "That's still a win, the morning block was the part you said mattered most. What's one thing from the afternoon you'd hand off or decline next time?"
         ),
         (
             user: "Probably the vendor review. I'm not even the right person for it.",
@@ -96,7 +96,7 @@ final class MockVoiceCallService: VoiceCallService {
 
             try await beat(1.5)
             scriptTask = nil
-            broadcaster.send(.ended(reason: "Talk soon — I'll be here."))
+            broadcaster.send(.ended(reason: "Talk soon, I'll be here."))
         } catch is CancellationError {
             // endCall() already emitted .ended.
         } catch {

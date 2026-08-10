@@ -26,7 +26,7 @@ struct RecoveryCodeDisplayView: View {
                     Text("Save your recovery code")
                         .font(.sectionHeader)
                         .foregroundStyle(Color.textPrimary)
-                    Text("Your journal is encrypted with a key only you hold. This code is the backup way to unlock it if you ever lose access to this device — we can't recover it for you.")
+                    Text("Your journal is encrypted with a key only you hold. This code is the backup way to unlock it if you ever lose access to this device, we can't recover it for you.")
                         .font(.captionText)
                         .foregroundStyle(Color.textSecondary)
                         .multilineTextAlignment(.center)

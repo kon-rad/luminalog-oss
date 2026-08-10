@@ -187,7 +187,7 @@ export function EventsLayout({ children }: { children: React.ReactNode }) {
               Events
             </h1>
             <p style={{ fontSize: 18.5, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 620 }}>
-              Workshops, training sessions, screenings and demo nights — run in person
+              Workshops, training sessions, screenings and demo nights: run in person
               and open to anyone who wants to build, move, and think alongside others.
             </p>
           </div>

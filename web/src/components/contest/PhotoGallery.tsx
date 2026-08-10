@@ -124,7 +124,7 @@ function Lightbox({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`${image.title} — image ${index + 1} of ${images.length}`}
+      aria-label={`${image.title}, image ${index + 1} of ${images.length}`}
       style={{
         position: 'fixed',
         inset: 0,
@@ -408,7 +408,7 @@ export default function PhotoGallery({ onOpenTopic }: { onOpenTopic?: (slug: str
       <p style={{ fontSize: 15, lineHeight: 1.62, color: 'var(--text2)', marginBottom: 22 }}>
         {activeRoom
           ? activeRoom.blurb
-          : `Everything we shot on the morning of 30 July 2026, in the order it was taken — ${photoCount} photographs and ${videoCount} short video${videoCount === 1 ? '' : 's'}. Tap any tile to open it full-screen; swipe or use the arrow keys to move between them.`}
+          : `Everything we shot on the morning of 30 July 2026, in the order it was taken: ${photoCount} photographs and ${videoCount} short video${videoCount === 1 ? '' : 's'}. Tap any tile to open it full-screen; swipe or use the arrow keys to move between them.`}
       </p>
 
       {/* Masonry tiles. Round-robin across columns rather than CSS `columns`, so the

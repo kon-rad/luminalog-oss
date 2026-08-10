@@ -45,7 +45,7 @@ function buildSkill(): string {
     const rows = entries
       .map((e) => {
         const angle = e.angle ? `\n  - **Angle:** ${e.angle}` : ''
-        return `- **${e.title}** (\`${e.slug}\`) — ${e.summary}${angle}`
+        return `- **${e.title}** (\`${e.slug}\`), ${e.summary}${angle}`
       })
       .join('\n')
     return `### ${cat.label}\n\n${rows}`
@@ -58,7 +58,7 @@ function buildSkill(): string {
 
   const roomIndex = GALLERY_ROOMS.map((r) => {
     const n = GALLERY_IMAGES.filter((i) => i.room === r.id).length
-    return `- **${r.label}** (\`${r.id}\`, ${n} photos) — ${r.blurb}`
+    return `- **${r.label}** (\`${r.id}\`, ${n} photos): ${r.blurb}`
   }).join('\n')
 
   return `---
@@ -73,20 +73,20 @@ homepage: ${CONTEST_URL}
 license: Free to use. Attribute Argo when quoting the transcribed material.
 ---
 
-# Malaysia Blockchain Week 2026 — Argo Essay Contest
+# Malaysia Blockchain Week 2026, Argo Essay Contest
 
 > Generated from the live contest configuration. If this file and the website ever
-> disagree, the website is authoritative — but they are built from the same source.
+> disagree, the website is authoritative: but they are built from the same source.
 
 ## 1. What this skill gives you
 
 1. **The contest rules**, verbatim and machine-readable.
 2. **A submission API** so an entry can be filed without using the web form.
 3. **A research corpus**: ${KNOWLEDGE.length} cross-linked knowledge-base entries and
-   ${GALLERY_IMAGES.length} items of media — ${photoCount} photographs and ${videoCount} short
+   ${GALLERY_IMAGES.length} items of media, ${photoCount} photographs and ${videoCount} short
    video${videoCount === 1 ? '' : 's'}, ${IMAGES_WITH_TEXT.length} of them carrying transcribed
-   signage — captured inside the Bank Negara Malaysia Museum & Art Gallery on 30 July 2026.
-4. **Malaysia Blockchain Week 2026 itself** — the full agenda, the market backdrop and the
+   signage, captured inside the Bank Negara Malaysia Museum & Art Gallery on 30 July 2026.
+4. **Malaysia Blockchain Week 2026 itself**, the full agenda, the market backdrop and the
    domestic ecosystem (see §7).
 
 ## 2. The contest at a glance
@@ -116,7 +116,7 @@ Before submitting on someone's behalf, verify **all** of the following and repor
 plainly rather than submitting anyway:
 
 - [ ] Word count is between ${CONTEST_WORDS_MIN} and ${CONTEST_WORDS_MAX}.
-- [ ] The essay actually answers "${CONTEST_PROMPT}" — not blockchain in general.
+- [ ] The essay actually answers "${CONTEST_PROMPT}", not blockchain in general.
 - [ ] The URL resolves publicly, with no login or paywall, and shows the author's real name.
 - [ ] The exact subtitle "${CONTEST_SUBTITLE}" appears in the published page.
 - [ ] A link to ${CONTEST_URL} appears in the published page.
@@ -174,9 +174,9 @@ curl -X POST ${CONTEST_SUBMIT_API} \\
 
 | Status | Meaning |
 | --- | --- |
-| \`200\` | \`{ ok: true, id, message, deadline }\` — recorded. |
+| \`200\` | \`{ ok: true, id, message, deadline }\`: recorded. |
 | \`400\` | Body was not JSON, or not a JSON object. |
-| \`422\` | \`{ ok: false, error: "validation_failed", fields: {…} }\` — fix the named fields and retry. |
+| \`422\` | \`{ ok: false, error: "validation_failed", fields: {…} }\`, fix the named fields and retry. |
 | \`410\` | The deadline has passed. Do not retry. |
 | \`500\` | Write failed. Safe to retry once. |
 
@@ -216,25 +216,25 @@ ${knowledgeIndex}
 
 ## 6. Using this well
 
-The single most common weak entry answers a different question — "what is blockchain good for" —
+The single most common weak entry answers a different question, "what is blockchain good for",
 rather than the one asked, which is about **Malaysia specifically**. The corpus exists to make the
 specific version easy. Some load-bearing facts an essay can build on:
 
 - Malaysian **trade exceeds 100% of GDP**, across links with 180+ countries. Trade finance and
   cross-border settlement friction are therefore unusually expensive here (\`international-trade\`).
 - The **Central Bank of Malaysia Act 2009** states that the financial system "shall consist of the
-  conventional financial system and the Islamic financial system" — a statutory precedent for
+  conventional financial system and the Islamic financial system", a statutory precedent for
   running two rule-sets over one system (\`dual-system\`).
 - Bank Negara is already running **ringgit stablecoin and tokenised deposit pilots** under its
   Digital Asset Innovation Hub, and the Securities Commission revised its digital asset exchange
   framework on 20 May 2026. Malaysia is neither prohibitionist nor unregulated (\`regulation\`).
 - Malaysia leads the global **sukuk** market. Sukuk are already asset-backed instruments requiring
-  a documented link between a return and a real asset — the hard part of RWA tokenisation
+  a documented link between a return and a real asset, the hard part of RWA tokenisation
   (\`sukuk\`).
 - A **1354 handwritten Quran** in the museum is open at Al-Baqarah 282, which makes writing down,
   dating and witnessing a debt contract obligatory (\`ledgers\`).
 - For three centuries the archipelago ran on **any** silver coin above 415 grains at 90% fineness,
-  regardless of issuer — a working multi-issuer currency regime with real verification costs
+  regardless of issuer, a working multi-issuer currency regime with real verification costs
   (\`trade-dollars\`, \`verification\`).
 - Palm oil, rubber and petroleum supply chains are the most concrete, least hand-wavy candidates
   for provenance work (\`commodities\`).
@@ -250,10 +250,10 @@ theme **"${MYBW.theme}"**. Organised by ${MYBW.organiser}, and backed by ${MYBW.
 admission from ${MYBW.ticketsFrom}. The museum trip that produced this corpus took place on the
 morning of day two.
 
-${MYBW_SCALE.map((s) => `- **${s.value}** — ${s.label}`).join('\n')}
+${MYBW_SCALE.map((s) => `- **${s.value}**, ${s.label}`).join('\n')}
 
 > "${MYBW.organiserQuote.text}"
-> — ${MYBW.organiserQuote.by}
+> ${MYBW.organiserQuote.by}
 
 ### The sessions that bear on the essay prompt
 
@@ -262,19 +262,19 @@ about **Malaysia** specifically, which is what the prompt asks about:
 
 ${MYBW_ESSAY_PICKS.map(
   (s) =>
-    `- **${s.title}** — ${s.speakers.join(', ')}${s.moderator ? `, mod. ${s.moderator}` : ''} ` +
+    `- **${s.title}**, ${s.speakers.join(', ')}${s.moderator ? `, mod. ${s.moderator}` : ''} ` +
     `(day ${s.day}, ${s.time}, ${s.stage} stage).\n  ${s.whyItMatters}`,
 ).join('\n')}
 
 ### Market backdrop
 
-${MYBW_MARKET_FACTS.map((f) => `- **${f.fact}** — ${f.note}`).join('\n')}
+${MYBW_MARKET_FACTS.map((f) => `- **${f.fact}**, ${f.note}`).join('\n')}
 
 ### The domestic ecosystem on stage
 
-${MYBW_LOCAL_ECOSYSTEM.map((e) => `- **${e.name}** — ${e.what}`).join('\n')}
+${MYBW_LOCAL_ECOSYSTEM.map((e) => `- **${e.name}**, ${e.what}`).join('\n')}
 
-The full agenda — every session, time, stage and speaker — is in
+The full agenda (every session, time, stage and speaker) is in
 \`${DATA_API}?include=mybw\`, and rendered for humans on the **Malaysia Blockchain Week 2026** tab
 at ${CONTEST_URL}.
 
@@ -289,7 +289,7 @@ source before quoting anyone.
 ## 8. Provenance and honesty
 
 The \`text\` fields are transcriptions of museum signage read from photographs. They are faithful to
-the best of our reading, but they are transcriptions, not scans — if a claim matters, check it
+the best of our reading, but they are transcriptions, not scans: if a claim matters, check it
 against the linked \`sources\` or the museum directly (museum.bnm.gov.my). Captions and the "Angle"
 notes are editorial commentary by Argo and should be attributed as opinion, not as museum text.
 `

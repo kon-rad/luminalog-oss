@@ -31,7 +31,7 @@ struct SoulConsentStep: View {
                     Text("Your public Soul")
                         .font(.journalDetailTitle)
                         .foregroundStyle(Color.textPrimary)
-                    Text("Argo can mint you an **ArgoSoul** — a one-of-a-kind NFT on the Base blockchain that grows as you journal. It's **public and permanent**.")
+                    Text("Argo can mint you an **ArgoSoul**, a one-of-a-kind NFT on the Base blockchain that grows as you journal. It's **public and permanent**.")
                         .font(.uiBody)
                         .foregroundStyle(Color.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -53,7 +53,7 @@ struct SoulConsentStep: View {
                 )
 
                 Label {
-                    Text("Your journal entries, media, and everything you write are **never** put on-chain — only the details above are public.")
+                    Text("Your journal entries, media, and everything you write are **never** put on-chain: only the details above are public.")
                         .font(.captionText)
                         .foregroundStyle(Color.textSecondary)
                 } icon: {
@@ -81,7 +81,7 @@ struct SoulConsentStep: View {
                     Button {
                         onDecision(false)
                     } label: {
-                        Text("Not now — keep my Soul private")
+                        Text("Not now, keep my Soul private")
                             .font(.uiBody)
                             .foregroundStyle(Color.textSecondary)
                             .frame(maxWidth: .infinity)

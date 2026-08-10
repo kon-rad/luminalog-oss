@@ -210,7 +210,7 @@ struct ChatListView: View {
             EmptyStateView(
                 systemImage: "bubble.left.and.bubble.right",
                 title: "Talk to your journal",
-                message: "Your companion has been reading along. Start a conversation about anything on your mind — by text or voice."
+                message: "Your companion has been reading along. Start a conversation about anything on your mind, by text or voice."
             )
 
             VStack(spacing: Spacing.s) {

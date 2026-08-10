@@ -4,13 +4,13 @@ import { ArrowRight, Sparkles, Cpu, Palette } from 'lucide-react'
 import { CourseLayout } from '@/components/course'
 
 export const metadata: Metadata = {
-  title: 'Courses — Argo',
+  title: 'Courses, Argo',
   description:
-    'Free, hands-on courses from Argo: AI Power Users for adults, and a Wholistic Creativity & STEM class for kids.',
+    'Hands-on courses from Argo: AI Power Users for adults, and a Wholistic Creativity & STEM class for kids.',
   openGraph: {
-    title: 'Courses — Argo',
+    title: 'Courses, Argo',
     description:
-      'Free, hands-on courses from Argo: AI Power Users for adults, and a Wholistic Creativity & STEM class for kids.',
+      'Hands-on courses from Argo: AI Power Users for adults, and a Wholistic Creativity & STEM class for kids.',
   },
 }
 
@@ -18,7 +18,7 @@ const COURSES = [
   {
     href: '/courses/ai-power-users',
     icon: Cpu,
-    eyebrow: 'For adults · one-week intensive',
+    eyebrow: 'For adults · 5 hands-on modules',
     title: 'AI Power Users',
     blurb:
       'Go from “I’ve heard of ChatGPT” to picking the right tool for any task, prompting like a pro, chaining tools together, protecting your data, and running a private model on your own laptop.',
@@ -29,7 +29,7 @@ const COURSES = [
     eyebrow: 'For kids 2–12 · weekly class',
     title: 'Kids Wholistic Creativity & STEM',
     blurb:
-      'Breathing and movement, free drawing and expressive writing, and playful STEM lessons — starting with what a computer actually is, explained for every age.',
+      'Breathing and movement, free drawing and expressive writing, and playful STEM lessons: starting with what a computer actually is, explained for every age.',
   },
 ]
 
@@ -48,7 +48,7 @@ export default function CoursesPage() {
             Courses
           </h1>
           <p style={{ fontSize: 19, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 620, margin: '0 auto' }}>
-            Free, hands-on learning from Argo — for grown-ups and for kids. Lifelong
+            Hands-on learning from Argo, for grown-ups and for kids. Lifelong
             education, self-reliance, and private, creative use of technology.
           </p>
         </div>

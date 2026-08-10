@@ -60,7 +60,7 @@ export default function BlockchainWeek({ onOpenTopic }: { onOpenTopic?: (slug: s
       >
         <i>&ldquo;{MYBW.organiserQuote.text}&rdquo;</i>
         <span style={{ display: 'block', marginTop: 8, fontSize: 14, color: 'var(--text3)' }}>
-          — {MYBW.organiserQuote.by}
+{MYBW.organiserQuote.by}
         </span>
       </blockquote>
 
@@ -107,7 +107,7 @@ export default function BlockchainWeek({ onOpenTopic }: { onOpenTopic?: (slug: s
       <Section title="If you are writing the essay, start here">
         <p style={prose}>
           {MYBW_ESSAY_PICKS.length} sessions from the programme bear directly on{' '}
-          <i>&ldquo;How can blockchain technology be used to benefit Malaysia?&rdquo;</i> — because they
+          <i>&ldquo;How can blockchain technology be used to benefit Malaysia?&rdquo;</i>, because they
           were about Malaysia specifically, not blockchain in general. Naming one of these, and what it
           was actually about, is the fastest way to make an essay concrete.
         </p>
@@ -149,7 +149,7 @@ export default function BlockchainWeek({ onOpenTopic }: { onOpenTopic?: (slug: s
           <TopicLink slug="islamic-finance" onOpenTopic={onOpenTopic}>
             Islamic Finance Gallery
           </TopicLink>{' '}
-          at the museum — Malaysia is not starting from zero on tokenised assets, it is starting from{' '}
+          at the museum, Malaysia is not starting from zero on tokenised assets, it is starting from{' '}
           <TopicLink slug="sukuk" onOpenTopic={onOpenTopic}>
             the deepest sukuk market in the world
           </TopicLink>
@@ -171,9 +171,9 @@ export default function BlockchainWeek({ onOpenTopic }: { onOpenTopic?: (slug: s
           ))}
         </ul>
         <p style={{ ...prose, marginTop: 18 }}>
-          For the regulatory picture underneath all of this — Bank Negara&apos;s 2026 ringgit stablecoin
+          For the regulatory picture underneath all of this, Bank Negara&apos;s 2026 ringgit stablecoin
           and tokenised-deposit pilots, and the Securities Commission&apos;s revised digital asset exchange
-          framework — see{' '}
+          framework, see{' '}
           <TopicLink slug="regulation" onOpenTopic={onOpenTopic}>
             the knowledge base entry on supervision and digital assets
           </TopicLink>
@@ -265,7 +265,7 @@ export default function BlockchainWeek({ onOpenTopic }: { onOpenTopic?: (slug: s
       {/* ── Sources ── */}
       <Section title="Sources">
         <p style={prose}>
-          Everything above is compiled from public material. Nothing here is a transcript — check the
+          Everything above is compiled from public material. Nothing here is a transcript, check the
           primary sources before quoting a speaker, and treat session titles as published billing rather
           than as claims that were necessarily made on stage.
         </p>

@@ -189,7 +189,7 @@ export default function ContestForm() {
             style={{ width: 20, height: 20, marginTop: 2, flexShrink: 0, accentColor: 'var(--accent)', cursor: 'pointer' }}
           />
           <span style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text2)' }}>
-            I confirm my essay is <b style={{ color: 'var(--text)' }}>not 100% AI-generated</b> —
+            I confirm my essay is <b style={{ color: 'var(--text)' }}>not 100% AI-generated</b>,
             I may have used AI tastefully, but the thinking and writing are my own. I have{' '}
             <b style={{ color: 'var(--text)' }}>read my essay in full</b> before submitting, it is my
             honest best effort at answering{' '}

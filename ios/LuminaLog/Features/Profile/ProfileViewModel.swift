@@ -174,7 +174,7 @@ final class ProfileViewModel: ObservableObject {
     var subscriptionLabel: String {
         guard let entitlement, entitlement.isPro else { return "Free plan" }
         if let expiresAt = entitlement.expiresAt {
-            return "Pro — renews \(expiresAt.formatted(date: .abbreviated, time: .omitted))"
+            return "Pro, renews \(expiresAt.formatted(date: .abbreviated, time: .omitted))"
         }
         return "Pro"
     }
@@ -226,7 +226,7 @@ final class ProfileViewModel: ObservableObject {
 
     /// Marketing version from the bundle ("1.0.0").
     var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "-"
     }
 
     /// Short git commit SHA embedded at build time ("a1b2c3d" or "unknown").

@@ -23,7 +23,7 @@ struct MilestonePopupView: View {
             Text(earnedToday ? "\(target) words today!" : "You hit your \(target)-word goal!")
                 .font(.journalTitle).foregroundStyle(Color.textPrimary)
 
-            Text("Congratulations — you completed your daily writing challenge.")
+            Text("Congratulations, you completed your daily writing challenge.")
                 .font(.uiBody).foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
 

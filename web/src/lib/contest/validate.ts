@@ -71,7 +71,7 @@ export function validateContestSubmission(input: ContestSubmissionInput): Contes
   const ethAddress = input.ethAddress.trim()
   if (!ethAddress) errors.ethAddress = 'Please enter the Ethereum mainnet address for the prize.'
   else if (!CONTEST_ETH_RE.test(ethAddress))
-    errors.ethAddress = 'Enter a valid Ethereum address — 0x followed by 40 hex characters.'
+    errors.ethAddress = 'Enter a valid Ethereum address, 0x followed by 40 hex characters.'
 
   if (!input.agreedToTerms) errors.agreedToTerms = 'Please confirm you agree to the contest terms.'
 

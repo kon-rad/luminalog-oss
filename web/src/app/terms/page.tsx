@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { LegalLayout, LEGAL_UPDATED, TermsContent } from '@/components/legal'
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — Argo',
+  title: 'Terms of Service, Argo',
   description:
     'The terms governing your use of Argo: the Service, eligibility, subscriptions and Voice Credits, your content and ownership, AI disclaimers, and more.',
 }

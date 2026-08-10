@@ -45,7 +45,7 @@ struct ConsentGate<Content: View>: View {
             AIConsentView(onAgree: { Task { await viewModel.agree() } })
                 .overlay(alignment: .bottom) {
                     if viewModel.syncFailed {
-                        Text("Couldn't save your choice — check your connection and tap again.")
+                        Text("Couldn't save your choice, check your connection and tap again.")
                             .font(.captionText).foregroundStyle(Color.textSecondary)
                             .padding(.bottom, Spacing.xl)
                     }

@@ -4,13 +4,13 @@ import { BlogIndexLayout } from '@/components/blog'
 import { posts } from '@/lib/blog-posts'
 
 export const metadata: Metadata = {
-  title: 'Writing — Argo',
+  title: 'Writing, Argo',
   description:
-    'The Argo blog: the science and practice of daily reflection — why putting your life into words changes how you think, feel, and grow.',
+    'The Argo blog: the science and practice of daily reflection, why putting your life into words changes how you think, feel, and grow.',
   openGraph: {
-    title: 'Writing — Argo',
+    title: 'Writing, Argo',
     description:
-      'The science and practice of daily reflection — why putting your life into words changes how you think, feel, and grow.',
+      'The science and practice of daily reflection, why putting your life into words changes how you think, feel, and grow.',
   },
 }
 

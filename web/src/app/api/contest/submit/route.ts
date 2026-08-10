@@ -51,14 +51,14 @@ export async function GET() {
     rules: CONTEST_RULES,
     skill: CONTEST_SKILL_URL,
     body: {
-      name: 'string, required — your real name',
-      email: 'string, required — valid email address',
-      company: 'string, required — the company you work for (use "Independent" if none)',
-      role: 'string, required — your role',
-      xAccount: 'string, required — your X/Twitter handle (use "none" if you have none)',
-      essayUrl: 'string, required — https URL of the published essay',
-      ethAddress: 'string, required — 0x-prefixed Ethereum mainnet address, 40 hex chars',
-      agreedToTerms: 'boolean, required — must be true; see rules',
+      name: 'string, required: your real name',
+      email: 'string, required: valid email address',
+      company: 'string, required: the company you work for (use "Independent" if none)',
+      role: 'string, required: your role',
+      xAccount: 'string, required: your X/Twitter handle (use "none" if you have none)',
+      essayUrl: 'string, required: https URL of the published essay',
+      ethAddress: 'string, required: 0x-prefixed Ethereum mainnet address, 40 hex chars',
+      agreedToTerms: 'boolean, required: must be true; see rules',
     },
   })
 }

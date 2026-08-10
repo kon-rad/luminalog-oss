@@ -407,7 +407,7 @@ export default function HomePage() {
         {!feedLoading && feed.length === 0 && (
           <EmptyState
             title="No entries yet"
-            message="Your journal is waiting — write your first entry to get started."
+            message="Your journal is waiting, write your first entry to get started."
             actionLabel="Write your first entry"
             onAction={() => router.push('/create')}
           />

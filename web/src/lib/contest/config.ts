@@ -63,7 +63,7 @@ export const CONTEST_RULES: ContestRule[] = [
   {
     id: 'published',
     text:
-      'Your essay must be published on a public web page — a blog, Medium, Substack, YouTube, X, or anything similar — under your real name, and must be publicly readable without a login or paywall.',
+      'Your essay must be published on a public web page (a blog, Medium, Substack, YouTube, X, or anything similar) under your real name, and must be publicly readable without a login or paywall.',
   },
   {
     id: 'subtitle',

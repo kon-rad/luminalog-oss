@@ -1,8 +1,9 @@
 /* ──────────────────────────────────────────────────────────────────────────
- * Data for the live 5-day AI Power Users program.
+ * Data for the live AI Power Users program.
  *
- * Modules 1 and 2 are fully built out. The program grid gives the shape of
- * the whole course; MODULE_1_* and MODULE_2_* carry the per-module detail.
+ * Modules 0, 1 and 2 are fully built out. The program grid gives the shape of
+ * the whole course; MODULE_0_*, MODULE_1_* and MODULE_2_* carry the per-module
+ * detail.
  * ────────────────────────────────────────────────────────────────────────── */
 import {
   Mic,
@@ -11,6 +12,7 @@ import {
   Bot,
   Network,
   SquareTerminal,
+  FolderTree,
   Search,
   Shuffle,
   Wallet,
@@ -24,10 +26,223 @@ export const YOUTUBE_URL = 'https://www.youtube.com/@myargoquest'
 
 /* Course materials are open source. MODULE_1_MATERIALS_URL points at this
  * class's module folder (agenda, quiz, livestream script, assets); GUIDE_URL
- * is the student guide inside it — the step-by-step walkthrough. */
+ * is the student guide inside it, the step-by-step walkthrough. */
 export const COURSE_REPO_URL = 'https://github.com/kon-rad/ai-power-users-course'
 export const MODULE_1_MATERIALS_URL = `${COURSE_REPO_URL}/tree/main/modules/module-01-agent-and-second-brain`
 export const GUIDE_URL = `${COURSE_REPO_URL}/blob/main/modules/module-01-agent-and-second-brain/student-guide.md`
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * MODULE 0, AI Power User Fundamentals for Windows 11
+ * The pre-course hour, for anyone who has never opened a terminal. No AI, no
+ * agent, no code. One folder, four windows. Mac and Linux students can skip it.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+const MODULE_0_SLUG = 'module-00-fundamentals-windows-11'
+export const MODULE_0_MATERIALS_URL = `${COURSE_REPO_URL}/tree/main/modules/${MODULE_0_SLUG}`
+export const MODULE_0_GUIDE_URL = `${COURSE_REPO_URL}/blob/main/modules/${MODULE_0_SLUG}/student-guide.md`
+export const MODULE_0_QUIZ_URL = `${COURSE_REPO_URL}/blob/main/modules/${MODULE_0_SLUG}/quiz.md`
+
+/* Module 0 has its own Luma event rather than the general course calendar. */
+export const MODULE_0_LUMA_URL = 'https://luma.com/tzfta4dy'
+
+/* Two of the five are already on the machine, so `href` is optional here. */
+export interface FundamentalTool {
+  icon: LucideIcon
+  name: string
+  role: string
+  source: string
+  href?: string
+}
+
+export const MODULE_0_TOOLSTACK: FundamentalTool[] = [
+  {
+    icon: SquareTerminal,
+    name: 'Windows Terminal',
+    role: 'Type commands instead of clicking. A click cannot be saved, repeated, or shared. A command can.',
+    source: 'Ships with Windows 11',
+  },
+  {
+    icon: FolderTree,
+    name: 'File Explorer',
+    role: 'The same folders, with a mouse. Turn on file name extensions and hidden items and most beginner confusion disappears.',
+    source: 'Ships with Windows 11',
+  },
+  {
+    icon: Mic,
+    name: 'Handy',
+    role: 'Talk instead of type, in any application, offline. A Whisper model covers 99+ languages, including Khmer.',
+    source: 'Free, open source',
+    href: 'https://handy.computer',
+  },
+  {
+    icon: BookOpen,
+    name: 'Obsidian',
+    role: 'Read, link, and think in your notes. A vault is just a folder, so nothing is imported and nothing is locked in.',
+    source: 'Free for personal use',
+    href: 'https://obsidian.md',
+  },
+  {
+    icon: Code2,
+    name: 'VS Code',
+    role: 'Look at what is actually in the files. Obsidian shows your thinking, VS Code shows the files underneath.',
+    source: 'Free, open source',
+    href: 'https://code.visualstudio.com',
+  },
+]
+
+/* What you can do by the end of the hour. Straight from the module README. */
+export const MODULE_0_OBJECTIVES: string[] = [
+  'Say what a terminal is, where it came from, and why it outlived the mouse.',
+  'Explain what open source means, and why the file format matters more than the licence.',
+  'Navigate the filesystem from the command line and read any path out loud.',
+  'Create folders and files from the terminal and find the same ones in File Explorer.',
+  'Copy, cut, paste, switch windows, switch tabs, and open a new tab by keyboard.',
+  'Rename a file and pin a folder to the File Explorer sidebar.',
+  'Open a terminal in any folder from File Explorer, and File Explorer from any terminal.',
+  'Set up Handy with a Whisper model, a push-to-talk key, and recover text from history.',
+  'Open a folder as an Obsidian vault and organise it with PARA.',
+  'Use links, backlinks, and canvas, see all file types, and install a community plugin.',
+  'Open the same folder in VS Code and install an extension.',
+]
+
+/* Install these before the session. The Whisper model download is over a
+ * gigabyte and will not finish on venue wifi with thirty people trying at once. */
+export const MODULE_0_PREREQS: string[] = [
+  'Windows 11, 8 GB RAM, and 5 GB free disk.',
+  'Install Handy, Obsidian, and VS Code from their websites.',
+  'Open Handy once and download a Whisper model, before you arrive.',
+]
+
+export const MODULE_0_AGENDA: AgendaItem[] = [
+  {
+    time: '0:00',
+    title: 'One folder, four windows',
+    detail:
+      'The finished state first. Four windows on the same folder: change a file in one and watch it change in the others.',
+  },
+  {
+    time: '0:03',
+    title: 'Terminal history and open source',
+    detail:
+      'Teletype, glass terminal, emulator. Then open source in one line, and the question that matters: what happens to your files if the company dies?',
+  },
+  {
+    time: '0:08',
+    title: 'The terminal, hands on',
+    detail:
+      'Read the prompt. pwd, ls, cd, cls. Tab completion and the up arrow, taught hard. Then build secondBrain and the four PARA folders.',
+  },
+  {
+    time: '0:20',
+    title: 'Windows shortcuts and File Explorer',
+    detail:
+      'Copy, cut, paste, undo, and the terminal gotcha where Ctrl+C only copies when text is selected. Alt+Tab, Ctrl+Tab, window snapping, F2 to rename, Pin to Quick access.',
+  },
+  {
+    time: '0:29',
+    title: 'Install the three apps',
+    detail:
+      'Confirm Handy, Obsidian, and VS Code are installed. What installing actually does, and what PATH is, using code --version.',
+  },
+  {
+    time: '0:33',
+    title: 'Handy: model, keys, history',
+    detail:
+      'Pick a Whisper model, set a push-to-talk key, then dictate into the terminal, Obsidian, and a browser. The History tab gets lost text back.',
+  },
+  {
+    time: '0:41',
+    title: 'Obsidian: vault, PARA, links',
+    detail:
+      'Open the same folder as a vault. PARA sorted by actionability, not subject. Links, backlinks, canvas, and your first community plugin.',
+  },
+  {
+    time: '0:51',
+    title: 'VS Code: the same folder, underneath',
+    detail:
+      'code . from the terminal, install an extension, then Ctrl+backtick for the built-in terminal, already standing in your folder.',
+  },
+  {
+    time: '0:55',
+    title: 'Write your Module 0 note',
+    detail:
+      'Create 2-areas/ai-power-users/module-00.md and fill it in live, partly dictated with Handy. That note is what you take home.',
+  },
+]
+
+export const MODULE_0_MCQ: QuizMCQ[] = [
+  {
+    question: 'You type pwd and press Enter. What happens?',
+    options: [
+      'It deletes the folder you are in',
+      'It prints the folder you are currently standing in',
+      'It creates a new folder',
+      'It asks for your password',
+    ],
+    answer: 1,
+  },
+  {
+    question: 'You want to dictate in Khmer with Handy. Which model do you choose?',
+    options: [
+      'Any model, they all support every language',
+      'The smallest one, because speed is what matters',
+      'A Whisper model, because Whisper supports 99+ languages including Khmer',
+      'It cannot be done offline',
+    ],
+    answer: 2,
+  },
+  {
+    question: 'In an Obsidian note you type [[Terminal]]. What does that do?',
+    options: [
+      'Nothing, it is just text in brackets',
+      'It runs a terminal command',
+      'It hides the word from the reader',
+      'It creates a link to a note called Terminal, and creates that note if it does not exist',
+    ],
+    answer: 3,
+  },
+  {
+    question:
+      'You are in a terminal, standing in your secondBrain folder, and you run start . What happens?',
+    options: [
+      'It starts an AI agent',
+      'File Explorer opens showing that same folder',
+      'It restarts the terminal',
+      'It starts a new file',
+    ],
+    answer: 1,
+  },
+  {
+    question: 'What is an Obsidian vault?',
+    options: [
+      'An encrypted container that locks your notes',
+      'A cloud account where your notes are stored',
+      'A normal folder on your disk that Obsidian has been pointed at',
+      'A paid feature for backing up notes',
+    ],
+    answer: 2,
+  },
+  {
+    question: 'You have text selected in the terminal and you press Ctrl+C. What happens?',
+    options: [
+      'It stops the running command',
+      'It copies the selected text',
+      'It closes the terminal',
+      'It pastes from the clipboard',
+    ],
+    answer: 1,
+  },
+]
+
+/* The three open questions from quiz.md, plus the two practical exercises
+ * rewritten so they can be answered in writing rather than checked in the room. */
+export const MODULE_0_OPEN_QUESTIONS: string[] = [
+  'Explain to someone who has never used one what a terminal is, and why it still exists in 2026.',
+  'You dictated a good paragraph with Handy, then the window closed before you saved it. Where is that text, and how do you get it back?',
+  'Give one example from your own life of something that is an Area, and a Project that lives inside it. Explain why one is which.',
+  'Open your secondBrain folder in all four windows (File Explorer, Windows Terminal, Obsidian, VS Code) without touching the mouse. List the keys you pressed, in order.',
+  'Pick one note in your vault. Without opening it, use the Backlinks and Outgoing links panels to say what links to it and what it links to.',
+]
 
 export interface Tool {
   icon: LucideIcon
@@ -42,7 +257,7 @@ export const TOOLSTACK: Tool[] = [
   {
     icon: Mic,
     name: 'Handy',
-    role: 'Offline speech-to-text. Press a key, talk, and it types for you — your voice never leaves your machine.',
+    role: 'Offline speech-to-text. Press a key, talk, and it types for you, your voice never leaves your machine.',
     free: 'Free',
     openSource: true,
     href: 'https://handy.computer',
@@ -58,7 +273,7 @@ export const TOOLSTACK: Tool[] = [
   {
     icon: Code2,
     name: 'VS Code',
-    role: 'Inspect and edit the real files behind your agent — your notes, skills, and config — with a full code editor.',
+    role: 'Inspect and edit the real files behind your agent (your notes, skills, and config) with a full code editor.',
     free: 'Free',
     openSource: true,
     href: 'https://code.visualstudio.com',
@@ -74,7 +289,7 @@ export const TOOLSTACK: Tool[] = [
   {
     icon: Network,
     name: 'Morpheus',
-    role: 'The private, decentralized model that powers the agent — an OpenAI-compatible endpoint at api.mor.org.',
+    role: 'The private, decentralized model that powers the agent, an OpenAI-compatible endpoint at api.mor.org.',
     free: 'Free to start',
     openSource: true,
     href: 'https://mor.org',
@@ -99,7 +314,7 @@ export const MODULE_1_AGENDA: AgendaItem[] = [
   {
     time: '0:00',
     title: 'Welcome & course intro',
-    detail: 'The 5-day shape — one topic a day — the six values, and how peer learning works.',
+    detail: 'The shape of the course, the three values, and how peer learning works.',
   },
   {
     time: '0:05',
@@ -109,7 +324,7 @@ export const MODULE_1_AGENDA: AgendaItem[] = [
   {
     time: '0:08',
     title: 'Install the tools',
-    detail: 'Kick off Handy, Obsidian, cmux, and the Hermes install — explained as they download.',
+    detail: 'Kick off Handy, Obsidian, cmux, and the Hermes install, explained as they download.',
   },
   {
     time: '0:14',
@@ -206,10 +421,9 @@ export const MODULE_1_OPEN_QUESTIONS: string[] = [
 ]
 
 /* ──────────────────────────────────────────────────────────────────────────
- * MODULE 2 — Agent Mastery and Vibe Coding a Pro Website
- * One 110-minute session in two parts: the agent writes three skills for
- * itself, then vibe codes a real client website from a blank folder to a
- * live URL.
+ * MODULE 2, Agent Mastery and Vibe Coding a Pro Website
+ * One 60-minute session: the agent writes three skills for itself, then vibe
+ * codes a real client website from a blank folder to a live URL.
  * ────────────────────────────────────────────────────────────────────────── */
 
 const MODULE_2_SLUG = 'module-02-agent-mastery-and-vibe-coding'
@@ -225,7 +439,7 @@ export interface AgentSkill {
 }
 
 /* The three skills the agent writes for itself from a single brief. Command
- * names are checked against Hermes built-ins — /switch is taken (alias for
+ * names are checked against Hermes built-ins, /switch is taken (alias for
  * /sessions), and /model, /profile and /usage are built in too. */
 export const MODULE_2_SKILLS: AgentSkill[] = [
   {
@@ -238,7 +452,7 @@ export const MODULE_2_SKILLS: AgentSkill[] = [
   {
     command: '/switch-models',
     cadence: 'On demand',
-    what: 'Moves between four profiles — private, fast, smart and coding — and stops you before you send client data to a public provider.',
+    what: 'Moves between four profiles (private, fast, smart and coding) and stops you before you send client data to a public provider.',
     why: 'Automating a command is a shortcut. Automating a decision is a skill.',
     icon: Shuffle,
   },
@@ -270,14 +484,13 @@ export const MODULE_2_AGENDA: AgendaItem[] = [
   {
     time: '0:24',
     title: 'SOUL.md and HERMES.md',
-    detail: 'Who your agent is, versus how this job works — and what each one costs per message.',
+    detail: 'Who your agent is, versus how this job works, and what each one costs per message.',
   },
   {
     time: '0:31',
     title: 'Wire it into your standup',
     detail: 'Weekly, not daily. When nothing is due, it says nothing at all.',
   },
-  { time: '0:34', title: 'Break', detail: 'Ten minutes.' },
   {
     time: '0:44',
     title: 'Goals and the knowledge base',
@@ -301,16 +514,16 @@ export const MODULE_2_AGENDA: AgendaItem[] = [
 ]
 
 export const MODULE_2_STEPS: string[] = [
-  'Install the engineering skills — process beats prompt',
-  'Set the goals — what must this achieve, and what counts as failure?',
-  'Build the knowledge base — the client interview, and the agent reads their photos',
-  'Design the layout and functionality — you describe, the agent writes the spec',
-  'Pick the architecture — then make the AI argue against itself',
-  'Approve the plan — where a non-programmer gets their power back',
-  'Build it — best coding model, real photos, real copy',
-  'Verify it — evidence, not assurances',
+  'Install the engineering skills, process beats prompt',
+  'Set the goals, what must this achieve, and what counts as failure?',
+  'Build the knowledge base, the client interview, and the agent reads their photos',
+  'Design the layout and functionality, you describe, the agent writes the spec',
+  'Pick the architecture, then make the AI argue against itself',
+  'Approve the plan, where a non-programmer gets their power back',
+  'Build it, best coding model, real photos, real copy',
+  'Verify it, evidence, not assurances',
   'Git, deploy, live URL',
-  'Price it — what the work is actually worth',
+  'Price it, what the work is actually worth',
 ]
 
 export const MODULE_2_MCQ: QuizMCQ[] = [
@@ -327,8 +540,8 @@ export const MODULE_2_MCQ: QuizMCQ[] = [
   {
     question: 'Which normally costs more per token?',
     options: [
-      'Input — what you send',
-      'Output — what the model writes back',
+      'Input, what you send',
+      'Output, what the model writes back',
       'They always cost exactly the same',
       'Neither; you are billed per message',
     ],
@@ -349,7 +562,7 @@ export const MODULE_2_MCQ: QuizMCQ[] = [
     options: [
       'Project conventions and the tech stack for one job',
       'Your API keys',
-      'Who your agent is everywhere — persona, voice, base behaviour',
+      'Who your agent is everywhere, persona, voice, base behaviour',
       'The conversation history',
     ],
     answer: 2,

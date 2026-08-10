@@ -141,7 +141,7 @@ struct VoiceCallView: View {
                 .padding(.top, Spacing.xs)
 
             if viewModel.lowCreditWarning {
-                Label("Low on credits — call will end soon", systemImage: "exclamationmark.circle.fill")
+                Label("Low on credits, call will end soon", systemImage: "exclamationmark.circle.fill")
                     .font(.captionText.weight(.medium))
                     .foregroundStyle(Color.tintVoice)
                     .padding(.horizontal, Spacing.m)
@@ -477,7 +477,7 @@ struct BreathingOrb: View {
     })
 }
 
-#Preview("Active — animation") {
+#Preview("Active, animation") {
     VoiceCallPreview(configure: { vm in
         vm.setPreviewState(
             phase: .active,
@@ -488,7 +488,7 @@ struct BreathingOrb: View {
     })
 }
 
-#Preview("Active — transcript") {
+#Preview("Active, transcript") {
     VoiceCallPreview(configure: { vm in
         vm.setPreviewState(
             phase: .active,
@@ -502,7 +502,7 @@ struct BreathingOrb: View {
 
 #Preview("Ended") {
     VoiceCallPreview(configure: { vm in
-        vm.setPreviewState(phase: .ended(reason: "Talk soon — I'll be here."), elapsedSeconds: 312)
+        vm.setPreviewState(phase: .ended(reason: "Talk soon, I'll be here."), elapsedSeconds: 312)
     })
 }
 

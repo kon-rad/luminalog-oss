@@ -135,7 +135,7 @@ struct ProfileDetailView: View {
                 Text("About You")
                     .font(.sectionHeader)
                     .foregroundStyle(Color.textPrimary)
-                Text("Tell your AI companion about yourself — tap Edit to begin.")
+                Text("Tell your AI companion about yourself, tap Edit to begin.")
                     .font(.journalBody)
                     .foregroundStyle(Color.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)

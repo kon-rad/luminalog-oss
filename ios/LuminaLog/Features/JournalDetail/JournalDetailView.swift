@@ -613,23 +613,23 @@ struct JournalDetailView: View {
     JournalDetailPreview(entryId: "demo-entry-06")
 }
 
-#Preview("Insights — saved") {
+#Preview("Insights, saved") {
     JournalDetailPreview(entryId: "demo-entry-02", tab: .insights)
 }
 
-#Preview("Insights — empty") {
+#Preview("Insights, empty") {
     JournalDetailPreview(entryId: "demo-entry-01", tab: .insights)
 }
 
-#Preview("Prompts — saved") {
+#Preview("Prompts, saved") {
     JournalDetailPreview(entryId: "demo-entry-01", tab: .prompts)
 }
 
-#Preview("Prompts — empty") {
+#Preview("Prompts, empty") {
     JournalDetailPreview(entryId: "demo-entry-04", tab: .prompts)
 }
 
-#Preview("Dark — Voice") {
+#Preview("Dark, Voice") {
     JournalDetailPreview(entryId: "demo-entry-02")
         .preferredColorScheme(.dark)
 }

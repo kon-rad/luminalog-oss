@@ -103,7 +103,7 @@ private struct KeyUnlockFailedView: View {
                     .font(.uiBody)
                     .foregroundStyle(Color.textSecondary)
                     .multilineTextAlignment(.center)
-                Text("Your entries are safe — nothing was changed.")
+                Text("Your entries are safe, nothing was changed.")
                     .font(.captionText)
                     .foregroundStyle(Color.textSecondary)
                 Spacer()

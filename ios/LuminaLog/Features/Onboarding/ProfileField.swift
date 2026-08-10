@@ -66,7 +66,7 @@ enum ProfileFieldCatalog {
         ProfileField(
             key: "biography", group: .about, title: "Your story",
             question: "Tell us about yourself.",
-            helper: "Who you are, your life story, your values — up to 750 words. Type or tap the mic to speak.",
+            helper: "Who you are, your life story, your values: up to 750 words. Type or tap the mic to speak.",
             multiline: true, isHeader: false, graphicAsset: "onboarding-biography",
             get: { $0.biography }, set: { $0.biography = $1 }
         ),

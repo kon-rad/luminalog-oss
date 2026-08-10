@@ -265,14 +265,21 @@ private struct ZKMigrationPresentation: Identifiable {
 }
 
 /// Minimal splash shown while the first auth-state emission is in flight.
+///
+/// Deliberately ink in both appearances: the Argo emblem is a dark-surface
+/// asset (its gold wordmark has no contrast on warm paper), and matching
+/// `LaunchBackground` means the system launch screen hands over to this view
+/// with no flash.
 private struct SplashView: View {
     var body: some View {
         ZStack {
-            Color.appBackground
+            Color("LaunchBackground")
                 .ignoresSafeArea()
-            Text("Argo")
-                .font(.journalTitle)
-                .foregroundStyle(Color.textPrimary)
+            Image("ArgoEmblem")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 200)
+                .accessibilityLabel("Argo")
         }
     }
 }

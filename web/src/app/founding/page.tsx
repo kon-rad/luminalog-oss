@@ -9,16 +9,16 @@ import ColophonEndpiece from '@/components/ColophonEndpiece'
 const FOUNDING_CHECKOUT_URL = 'https://buy.stripe.com/28E6oH5bP6Kr6xV7zf2Ry02'
 
 export const metadata: Metadata = {
-  title: 'Founding Member — Argo',
+  title: 'Founding Member, Argo',
   description:
-    'Become an Argo Founding Member: a one-time $29.99 for your first 3 months (50% off the $19.99/month price). No auto-renew — renew if you choose. One price everywhere, web and iOS.',
+    'Become an Argo Founding Member: a one-time $29.99 for your first 3 months (50% off the $19.99/month price). No auto-renew, renew if you choose. One price everywhere, web and iOS.',
 }
 
 const PERKS: [string, string][] = [
-  ['Half price, up front', 'A one-time $29.99 covers your first 3 months — 50% off the regular $19.99/month. No auto-renew: after 3 months you simply renew if you want to keep going.'],
+  ['Half price, up front', 'A one-time $29.99 covers your first 3 months: 50% off the regular $19.99/month. No auto-renew: after 3 months you simply renew if you want to keep going.'],
   ['First through the door', 'Start the moment we open: full access on the web immediately, and on iOS the day we launch. Your access carries over.'],
-  ['A permanent Founding mark', 'Founding Members carry a lasting badge — you were here at the beginning, before anyone else.'],
-  ['Your On-Chain Soul from day one', 'Every day you cross your 750-word goal becomes a star in your Soul — a soulbound token on Base, provably earned, yours alone.'],
+  ['A permanent Founding mark', 'Founding Members carry a lasting badge: you were here at the beginning, before anyone else.'],
+  ['Your On-Chain Soul from day one', 'Every day you cross your 750-word goal becomes a star in your Soul: a soulbound token on Base, provably earned, yours alone.'],
 ]
 
 export default function FoundingPage() {
@@ -45,7 +45,7 @@ export default function FoundingPage() {
           <p style={{ marginTop: 22, fontSize: 19, lineHeight: 1.62, color: 'var(--text2)', maxWidth: 600, margin: '22px auto 0' }}>
             Write 750 words a day and keep your daily streak alive. Each day generates a
             shareable social card, and every goal you hit is minted as provable proof in your
-            Soulbound NFT — all guided by human-in-the-loop AI that reflects with you, never for you.
+            Soulbound NFT, all guided by human-in-the-loop AI that reflects with you, never for you.
           </p>
         </div>
       </section>
@@ -85,7 +85,7 @@ export default function FoundingPage() {
                     Become a Founding Member →
                   </a>
                   <p style={{ marginTop: 18, fontSize: 14, color: 'rgba(255,255,255,0.78)', lineHeight: 1.55 }}>
-                    A one-time charge for your first 3 months. It does not auto-renew —
+                    A one-time charge for your first 3 months. It does not auto-renew,
                     after 3 months you renew only if you choose to.
                   </p>
                 </div>
@@ -104,7 +104,7 @@ export default function FoundingPage() {
             </div>
 
             <p style={{ marginTop: 28, textAlign: 'center', fontSize: 14, color: 'var(--text3)', lineHeight: 1.6 }}>
-              One price, everywhere — $19.99/month or $199.99/year, the same on the web and in
+              One price, everywhere: $19.99/month or $199.99/year, the same on the web and in
               the app. Live voice calls run on add-on Voice Credits.
             </p>
 

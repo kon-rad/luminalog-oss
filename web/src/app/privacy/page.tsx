@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { LegalLayout, LEGAL_UPDATED, PrivacyContent } from '@/components/legal'
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — Argo',
+  title: 'Privacy Policy, Argo',
   description:
     'How Argo collects, uses, and protects your data: zero-knowledge encrypted storage, on-device dictation, the AI providers we share what you choose with, and a no-training pledge. Includes our Terms of Service.',
 }

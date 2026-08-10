@@ -6,13 +6,13 @@ import { getUpcomingEvents, LUMA_CALENDAR_URL } from '@/lib/events/luma'
 import { PAST_EVENTS } from '@/lib/events/pastEvents'
 
 export const metadata: Metadata = {
-  title: 'Events — Argo',
+  title: 'Events, Argo',
   description:
-    'Workshops, training sessions, screenings and demo nights — run in person and open to anyone who wants to build, move, and think alongside others.',
+    'Workshops, training sessions, screenings and demo nights: run in person and open to anyone who wants to build, move, and think alongside others.',
   openGraph: {
-    title: 'Events — Argo',
+    title: 'Events, Argo',
     description:
-      'Workshops, training sessions, screenings and demo nights — run in person and open to anyone who wants to build, move, and think alongside others.',
+      'Workshops, training sessions, screenings and demo nights: run in person and open to anyone who wants to build, move, and think alongside others.',
   },
 }
 
@@ -52,7 +52,7 @@ export default async function EventsPage({
           ) : (
             <div style={{ padding: '56px 0', textAlign: 'center' }}>
               <p style={{ fontSize: 17, color: 'var(--text2)', marginBottom: 18 }}>
-                Nothing on the calendar right now — new events appear here automatically.
+                Nothing on the calendar right now, new events appear here automatically.
               </p>
               <a href={LUMA_CALENDAR_URL} target="_blank" rel="noopener noreferrer" className="btn-amber">
                 Follow the calendar on Luma

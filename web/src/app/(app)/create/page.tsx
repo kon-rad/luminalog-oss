@@ -287,7 +287,7 @@ function CreateEntryScreen() {
         ))}
       </div>
       <p className="mt-2 text-center font-sans text-[11px]" style={{ color: 'var(--text3)' }}>
-        Voice, photo &amp; video capture are coming soon — text only for now.
+        Voice, photo &amp; video capture are coming soon, text only for now.
       </p>
 
       {closeConfirmOpen && (

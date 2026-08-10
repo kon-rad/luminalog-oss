@@ -56,7 +56,7 @@ export default function SettingsPage() {
             Your Soul
           </span>
           <span className="text-sm" style={{ color: 'var(--text2)' }}>
-            Your constellation — one star per 750-word day.
+            Your constellation, one star per 750-word day.
           </span>
         </span>
         <ChevronRight size={18} strokeWidth={2} className="shrink-0" style={{ color: 'var(--text2)' }} />

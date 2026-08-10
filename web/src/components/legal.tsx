@@ -151,7 +151,7 @@ export function PrivacyContent() {
 
       <H2>2. How we use your information</H2>
       <UL items={[
-        'To provide the core Service — storing your entries and generating transcripts, summaries, insights, prompts, daily insight cards, and conversational replies.',
+        'To provide the core Service, storing your entries and generating transcripts, summaries, insights, prompts, daily insight cards, and conversational replies.',
         'To maintain features such as your streak, daily 750-word goal, and statistics.',
         'To authenticate you, operate your account, and provide customer support.',
         'To keep the Service secure, prevent abuse, and diagnose technical problems.',
@@ -167,7 +167,7 @@ export function PrivacyContent() {
       <P>
         Voice and video journal entries are handled differently: to produce an accurate transcript,
         the recording&apos;s audio is sent over an encrypted connection to our speech-to-text
-        provider (Deepgram — see Section 6), transcribed to text, and not retained by that provider
+        provider (Deepgram, see Section 6), transcribed to text, and not retained by that provider
         for other purposes.
       </P>
 
@@ -180,25 +180,25 @@ export function PrivacyContent() {
 
       <H2>5. AI processing</H2>
       <P>
-        Some features — AI insights, pattern analysis, daily insight cards, emotional analysis,
-        and chat or live-voice conversations — are produced using the third-party AI providers
+        Some features (AI insights, pattern analysis, daily insight cards, emotional analysis,
+        and chat or live-voice conversations) are produced using the third-party AI providers
         named in Section 6. To generate them, the content a feature needs is sent to those
         providers over an encrypted connection so they can process it on our behalf.
       </P>
       <P>
         What is shared is largely up to you. It includes your journal text and, for voice
-        features, your audio — together with the details you chose to provide during onboarding:
+        features, your audio, together with the details you chose to provide during onboarding:
         the name you enter, the biography you write about yourself, and other profile information
         you add (for example your age, location, work, and interests). You decide how much of this
-        to share — you provide only what you feel comfortable sharing, and you can leave any
+        to share. You provide only what you feel comfortable sharing, and you can leave any
         onboarding field blank. We send a feature only the data it needs, and our providers may
         use it solely to provide these features to you.
       </P>
       <P style={{ fontWeight: 600, color: 'var(--text)' }}>
-        Your journal is never used to train AI models — not ours, and not those of our providers.
+        Your journal is never used to train AI models, not ours, and not those of our providers.
       </P>
 
-      <H3>Live voice calls — a transient exception</H3>
+      <H3>Live voice calls, a transient exception</H3>
       <P>
         For storage and text features, our servers cannot read your journal: entries are kept
         encrypted and are only ever decrypted on your device. Live voice calls are the one
@@ -211,10 +211,10 @@ export function PrivacyContent() {
       </P>
       <P>
         For live voice calls specifically, the model that reasons over those memories currently
-        runs on a conventional AI model provider (Together AI — see Section 6), <strong>not</strong>{' '}
+        runs on a conventional AI model provider (Together AI, see Section 6), <strong>not</strong>{' '}
         inside a hardware secure enclave, because no enclave model is yet fast enough for real-time
         speech. Moving live voice to enclave-based inference is on our roadmap. Every other AI
-        feature — chat, insights, summaries, and daily prompts — runs inside a hardware secure
+        feature (chat, insights, summaries, and daily prompts) runs inside a hardware secure
         enclave (Morpheus). This transient, in-memory decryption happens only during a live voice
         call; your stored entries, text features, transcription, and search continue to work
         without our servers reading your journal.
@@ -223,16 +223,18 @@ export function PrivacyContent() {
       <H2>6. Third-party service providers</H2>
       <P>
         We share only what is necessary with a limited set of processors who help us run the
-        Service, each acting under contractual confidentiality and security obligations. These
-        currently include, by category:
+        Service, each acting under contractual confidentiality and security obligations. Each of
+        these providers is contractually bound to protect your data to the same or an equivalent
+        standard as described in this policy, and to process it only to provide these features,
+        never to train their models and never for advertising. These currently include, by
+        category:
       </P>
       <UL items={[
         'Cloud hosting and database / authentication providers (for example, Google Firebase / Firestore) to store accounts and encrypted data.',
         'AI model providers (for example, Together AI) to generate insights, summaries, prompts, and conversation, and to run the conversational model during live voice calls.',
         'Speech-to-text providers (for example, Deepgram) to transcribe your voice and video journal entries into text.',
-        'Live voice-conversation transport (for example, Vapi) — which carries the call audio and uses Deepgram for speech-to-text — to run real-time spoken conversations with your AI companion; your audio is processed to run the call.',
-        'Confidential AI inference (Morpheus) — a network that runs our models inside a hardware secure enclave (a trusted execution environment), covering chat, insights, summaries, and daily prompts. Live voice calls are the exception: they currently run on a conventional AI model provider (Together AI, above), so the past entries our server transiently decrypts during a call (see Section 5) go to that provider rather than to an enclave. Moving live voice into the enclave is on our roadmap.',
-        'Emotion-analysis providers (for example, Hume AI) used to estimate the emotional tone of an entry.',
+        'Live voice-conversation transport (for example, Vapi), which carries the call audio and uses Deepgram for speech-to-text, to run real-time spoken conversations with your AI companion; your audio is processed to run the call.',
+        'Confidential AI inference (Morpheus), a network that runs our models inside a hardware secure enclave (a trusted execution environment), covering chat, insights, summaries, and daily prompts. Live voice calls are the exception: they currently run on a conventional AI model provider (Together AI, above), so the past entries our server transiently decrypts during a call (see Section 5) go to that provider rather than to an enclave. Moving live voice into the enclave is on our roadmap.',
         'Subscription-management providers (for example, RevenueCat) to process purchases and manage your subscription and entitlement status.',
         'An image provider (for example, Unsplash) used to match a themed photograph to your daily insight card; photographer attribution is shown on the card.',
         'Apple, for sign-in, subscriptions, and in-app purchases.',
@@ -276,7 +278,7 @@ export function PrivacyContent() {
 
       <H2>11. Security</H2>
       <P>
-        We use technical and organizational measures — including encryption and access controls —
+        We use technical and organizational measures, including encryption and access controls,
         to protect your information. No method of transmission or storage
         is completely secure, but we work to protect your data and to limit who can access it.
       </P>
@@ -290,7 +292,7 @@ export function PrivacyContent() {
       <H2>13. Open source</H2>
       <P>
         The Argo iOS app and backend are publicly available on GitHub. Our privacy practices
-        are not only a promise — much of the implementation can be read and verified in the code.
+        are not only a promise: much of the implementation can be read and verified in the code.
       </P>
 
       <H2>14. Changes to this policy</H2>

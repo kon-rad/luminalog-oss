@@ -9,9 +9,9 @@ import {
   BookText,
   Check,
 } from 'lucide-react'
-import { CourseLayout, DaySchedule, Pill, SectionHeading } from '@/components/course'
+import { CourseLayout, Pill, SectionHeading } from '@/components/course'
 import CourseQuiz from '@/components/CourseQuiz'
-import { COURSE_BASE, DAYS } from '@/lib/ai-power-users/course'
+import { COURSE_BASE, MODULES } from '@/lib/ai-power-users/course'
 import {
   TOOLSTACK,
   MODULE_1_AGENDA,
@@ -24,18 +24,18 @@ import {
 } from '@/lib/ai-power-users/program'
 
 export const metadata: Metadata = {
-  title: 'Module 1 · Build Your Private AI Second Brain — Argo',
+  title: 'Module 1 · Build Your Private AI Second Brain, Argo',
   description:
-    'The live first session of AI Power Users. Install a complete private AI stack — offline speech-to-text, Obsidian, the Hermes agent, and a private Morpheus model — and build your first agent skill. Free, no coding required.',
+    'The live first session of AI Power Users. Install a complete private AI stack (offline speech-to-text, Obsidian, the Hermes agent, and a private Morpheus model) and build your first agent skill. Free, no coding required.',
 }
 
 const STEPS = [
-  'Install Obsidian — your notes window',
-  'Install VS Code — inspect your files, skills, and config',
-  'Install Handy — offline speech-to-text',
-  'Install cmux — your agent terminal (macOS)',
-  'Install Hermes — your AI agent',
-  'Create a Morpheus account & API key — the private brain',
+  'Install Obsidian, your notes window',
+  'Install VS Code, inspect your files, skills, and config',
+  'Install Handy, offline speech-to-text',
+  'Install cmux, your agent terminal (macOS)',
+  'Install Hermes, your AI agent',
+  'Create a Morpheus account & API key, the private brain',
   'Build your second brain with the PARA method',
   'Run Hermes in your folder and connect it to Morpheus',
   'Create your first skill: a daily standup',
@@ -101,7 +101,7 @@ export default function ModuleOnePage() {
             Build Your Private AI Second Brain
           </h1>
           <p style={{ fontSize: 18.5, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 620, margin: '0 auto' }}>
-            In 45 minutes we install a complete private AI stack, live — a personal agent that
+            In 45 minutes we install a complete private AI stack, live: a personal agent that
             lives inside your own notes, thinks with a private model, and works offline. Then we
             build your first agent skill: a daily standup with your AI.
           </p>
@@ -234,7 +234,7 @@ export default function ModuleOnePage() {
           <div style={{ textAlign: 'center', marginBottom: 38 }}>
             <SectionHeading>The build, step by step</SectionHeading>
             <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', marginTop: 12 }}>
-              The full walkthrough — every command, link, and description — is in the student guide.
+              The full walkthrough (every command, link, and description) is in the student guide.
             </p>
           </div>
           <div className="flex flex-col" style={{ gap: 12 }}>
@@ -301,15 +301,15 @@ export default function ModuleOnePage() {
       <section>
         <div className="wrap" style={{ padding: '64px 0' }}>
           <div style={{ textAlign: 'center', marginBottom: 38 }}>
-            <SectionHeading>Part of a 5-day week</SectionHeading>
+            <SectionHeading>Part of a 5-module course</SectionHeading>
             <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 560, margin: '12px auto 0' }}>
-              One topic a day, Monday to Friday — a 45-minute workshop plus a 45-minute hands-on
-              mentoring session, with a 15-minute break after each. This is Day 1, Module 1.
+              Each module is a standalone hands-on session. This is Module 1. If you are on
+              Windows 11 and have never opened a terminal, start with Module 0.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5" style={{ gap: 16 }}>
-            {DAYS.map((day) => {
-              const isCurrent = day.slug === 'day-1'
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6" style={{ gap: 16 }}>
+            {MODULES.map((mod) => {
+              const isCurrent = mod.slug === 'module-1'
               const card = (
                 <div
                   style={{
@@ -318,20 +318,16 @@ export default function ModuleOnePage() {
                     borderRadius: 'var(--r-card)',
                     background: isCurrent ? 'var(--accentTint)' : 'var(--surface)',
                     border: `1px solid ${isCurrent ? 'var(--accent)' : 'var(--hairline)'}`,
-                    opacity: day.tbd ? 0.7 : 1,
+                    opacity: mod.tbd ? 0.7 : 1,
                   }}
                 >
                   <div style={{ textAlign: 'center', marginBottom: 12 }}>
                     <div className="serif" style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
-                      {day.weekday}
+                      Module {mod.n}
                     </div>
-                    <div style={{ fontSize: 12.5, color: 'var(--text3)' }}>Day {day.day}</div>
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accentDeep)', marginBottom: 4 }}>
-                    {day.tbd ? 'Topic' : 'Module 1'}
                   </div>
                   <div style={{ fontWeight: 500, lineHeight: 1.35, color: 'var(--text)', fontSize: 14.5 }}>
-                    {day.tbd ? 'TBD' : 'Build Your Private AI Second Brain'}
+                    {mod.title}
                   </div>
                   {isCurrent && (
                     <div
@@ -343,33 +339,14 @@ export default function ModuleOnePage() {
                   )}
                 </div>
               )
-              return isCurrent ? (
-                <Link key={day.slug} href={`${COURSE_BASE}/module-1`} style={{ display: 'block', textDecoration: 'none' }}>
+              return mod.tbd ? (
+                <div key={mod.slug}>{card}</div>
+              ) : (
+                <Link key={mod.slug} href={`${COURSE_BASE}/${mod.slug}`} style={{ display: 'block', textDecoration: 'none' }}>
                   {card}
                 </Link>
-              ) : (
-                <div key={day.slug}>{card}</div>
               )
             })}
-          </div>
-          <div
-            className="card"
-            style={{ marginTop: 20, padding: '20px 22px', maxWidth: 420, marginLeft: 'auto', marginRight: 'auto' }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                color: 'var(--text3)',
-                marginBottom: 12,
-                textAlign: 'center',
-              }}
-            >
-              Every day
-            </div>
-            <DaySchedule />
           </div>
         </div>
       </section>
@@ -398,7 +375,7 @@ export default function ModuleOnePage() {
   )
 }
 
-/* lucide dropped brand marks, so the GitHub logo is inline — same approach as
+/* lucide dropped brand marks, so the GitHub logo is inline, same approach as
  * the Apple/Google glyphs in Navbar. */
 function GithubGlyph() {
   return (

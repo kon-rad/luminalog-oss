@@ -415,7 +415,7 @@ function EmotionTrendsCard({
               .filter((name) => hover.values[name] !== undefined)
               .map((name) => (
                 <p key={name}>
-                  {capitalize(name)} — {Math.round((hover.values[name] ?? 0) * 100)}%
+                  {capitalize(name)}, {Math.round((hover.values[name] ?? 0) * 100)}%
                 </p>
               ))}
           </div>
@@ -514,7 +514,7 @@ function ActivityHeatmapCard({ days }: { days: ActivityDay[] }) {
         <p className="font-sans text-xs" style={{ color: 'var(--text2)' }}>
           {hover
             ? `${formatLongDate(hover.day)} · ${hover.count} ${hover.count === 1 ? 'entry' : 'entries'}`
-            : 'The last 17 weeks — hover a day to see its count.'}
+            : 'The last 17 weeks, hover a day to see its count.'}
         </p>
       </div>
 

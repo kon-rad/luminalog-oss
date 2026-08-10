@@ -134,7 +134,7 @@ export default function ChatsPage() {
                 type="button"
                 role="menuitem"
                 disabled
-                title="Voice chat — coming soon"
+                title="Voice chat, coming soon"
                 className="flex w-full cursor-not-allowed items-center gap-2.5 rounded-xl px-3 py-2.5 text-left font-sans text-sm font-medium opacity-40"
                 style={{ color: 'var(--text2)' }}
               >
@@ -166,7 +166,7 @@ export default function ChatsPage() {
       {empty && (
         <EmptyState
           title="Talk to your journal"
-          message="Start a conversation with your AI companion — it remembers what you've written."
+          message="Start a conversation with your AI companion, it remembers what you've written."
           actionLabel="Start Text Chat"
           onAction={handleStartTextChat}
         />

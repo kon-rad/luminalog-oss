@@ -168,7 +168,7 @@ export default function JournalPage() {
       {empty && (
         <EmptyState
           title="No entries yet"
-          message="Your journal is waiting — write your first entry to get started."
+          message="Your journal is waiting, write your first entry to get started."
           actionLabel="Write your first entry"
           onAction={() => router.push('/create')}
         />
@@ -214,7 +214,7 @@ function ToolbarButton({
       <button
         type="button"
         disabled
-        title={`${label} — coming soon`}
+        title={`${label}, coming soon`}
         aria-label={label}
         className="flex h-9 w-9 cursor-not-allowed items-center justify-center rounded-full opacity-40"
         style={{ color: 'var(--text2)' }}

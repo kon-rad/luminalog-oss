@@ -68,7 +68,7 @@ struct CreditsView: View {
                 .font(.statValue)
                 .foregroundStyle(Color.textPrimary)
             Text(viewModel.balanceWasSlow
-                 ? "This can take a moment after purchase — it'll update shortly."
+                 ? "This can take a moment after purchase, it'll update shortly."
                  : "Your balance is updated.")
                 .font(.captionText)
                 .foregroundStyle(Color.textSecondary)

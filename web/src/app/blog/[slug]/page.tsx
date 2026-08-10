@@ -9,9 +9,9 @@ export function generateStaticParams() {
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const post = getPost(params.slug)
-  if (!post) return { title: 'Not found — Argo' }
+  if (!post) return { title: 'Not found, Argo' }
   return {
-    title: `${post.title} — Argo`,
+    title: `${post.title}, Argo`,
     description: post.description,
     openGraph: {
       title: post.title,

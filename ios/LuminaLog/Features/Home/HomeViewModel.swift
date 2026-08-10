@@ -338,7 +338,7 @@ final class HomeViewModel: ObservableObject {
 
     /// Shown when the AI service fails and there is no cached set for today.
     private static let fallbackPrompts: [DailyPromptItem] = [
-        DailyPromptItem(area: "Reflection", text: "Take a moment to reflect — what thought or feeling has been quietly sitting with you that you haven't had a chance to put into words yet?"),
+        DailyPromptItem(area: "Reflection", text: "Take a moment to reflect, what thought or feeling has been quietly sitting with you that you haven't had a chance to put into words yet?"),
     ]
 
     /// The profile's cached prompts, only if their date is today in the user's timezone.

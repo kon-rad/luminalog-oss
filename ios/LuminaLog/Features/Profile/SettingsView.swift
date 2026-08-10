@@ -366,7 +366,7 @@ struct SettingsView: View {
                     .foregroundStyle(Color.textPrimary)
 
                 // Public / on-chain disclosure (privacy).
-                Text("Your Soul is a public NFT on the Base blockchain. It publishes your first name and journaling stats — days journaled, current & longest streak, and total word count — on-chain, where anyone can view them. It never includes your journal entries.")
+                Text("Your Soul is a public NFT on the Base blockchain. It publishes your first name and journaling stats (days journaled, current & longest streak, and total word count) on-chain, where anyone can view them. It never includes your journal entries.")
                     .font(.footnote)
                     .foregroundStyle(Color.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -605,7 +605,7 @@ struct SettingsView: View {
                         .font(.uiBody)
                         .foregroundStyle(Color.textPrimary)
                     Text(generateReportFailed
-                         ? "Generation failed — tap to retry"
+                         ? "Generation failed, tap to retry"
                          : "Append a fresh insights card to Home")
                         .font(.captionText)
                         .foregroundStyle(generateReportFailed ? Color.danger : Color.textSecondary)
@@ -722,10 +722,10 @@ struct SettingsView: View {
                 }
                 let ok = entries.count - failed
                 reindexStatus = failed == 0
-                    ? "Done — re-indexed \(ok) entr\(ok == 1 ? "y" : "ies")"
-                    : "\(ok) ok, \(failed) failed — \(firstError ?? "unknown error") (tap to retry)"
+                    ? "Done, re-indexed \(ok) entr\(ok == 1 ? "y" : "ies")"
+                    : "\(ok) ok, \(failed) failed: \(firstError ?? "unknown error") (tap to retry)"
             } catch {
-                reindexStatus = "Re-index failed — tap to retry"
+                reindexStatus = "Re-index failed, tap to retry"
             }
         }
     }

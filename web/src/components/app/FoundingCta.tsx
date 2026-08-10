@@ -72,7 +72,7 @@ export default function FoundingCta() {
       await purchases.purchase({ rcPackage: pkg })
       window.location.href = '/dashboard?founding=welcome'
     } catch (e: any) {
-      setErr(e?.message ?? 'Something went wrong — please try again.')
+      setErr(e?.message ?? 'Something went wrong, please try again.')
       setBusy(false)
     }
   }

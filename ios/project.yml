@@ -73,7 +73,10 @@ targets:
         CFBundleDisplayName: Argo
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        UILaunchScreen: {}
+        # Ink launch screen so the system splash matches SplashView (and the
+        # Argo emblem's own dark plate) instead of flashing system white.
+        UILaunchScreen:
+          UIColorName: LaunchBackground
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         # Keeps the VAPI voice call's mic + audio alive when the screen locks

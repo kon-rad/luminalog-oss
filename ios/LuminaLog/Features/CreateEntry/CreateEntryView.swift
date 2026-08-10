@@ -125,7 +125,7 @@ struct CreateEntryView: View {
             }
             Button("Keep Editing", role: .cancel) {}
         } message: {
-            Text("Your draft is saved automatically — keep it on the home screen, or discard it.")
+            Text("Your draft is saved automatically, keep it on the home screen, or discard it.")
         }
         .confirmationDialog("Add Photos", isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
             if CameraPicker.isCameraAvailable {
@@ -430,7 +430,7 @@ struct CreateEntryView: View {
             // drop the instant chip (there's no clip to keep).
             viewModel.clearPendingRecording()
             isRecorderPresented = true
-            viewModel.attachmentNotice = "Couldn't finish the recording — tap Stop to try again."
+            viewModel.attachmentNotice = "Couldn't finish the recording, tap Stop to try again."
             return false
         }
         // No clip attached (e.g. empty recording): make sure the instant chip

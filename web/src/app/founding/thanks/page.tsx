@@ -5,7 +5,7 @@ import Navbar from '@/components/Navbar'
 import ColophonEndpiece from '@/components/ColophonEndpiece'
 
 export const metadata: Metadata = {
-  title: 'Thanks for your order — Argo',
+  title: 'Thanks for your order, Argo',
   description:
     'Thank you for becoming an Argo Founding Member. We’ll email you the moment we launch, with your access.',
   robots: { index: false, follow: false },
@@ -36,7 +36,7 @@ export default function FoundingThanksPage() {
           </h1>
           <p style={{ marginTop: 22, fontSize: 19, lineHeight: 1.65, color: 'var(--text2)', maxWidth: 540, margin: '22px auto 0' }}>
             You’re an Argo Founding Member. We’ll email you the moment we launch,
-            with your access — keep an eye on your inbox.
+            with your access, keep an eye on your inbox.
           </p>
 
           <div style={{ marginTop: 36 }}>

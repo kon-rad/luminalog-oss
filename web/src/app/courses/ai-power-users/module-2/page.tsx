@@ -24,9 +24,9 @@ import {
 } from '@/lib/ai-power-users/program'
 
 export const metadata: Metadata = {
-  title: 'Module 2 · Agent Mastery and Vibe Coding a Pro Website — Argo',
+  title: 'Module 2 · Agent Mastery and Vibe Coding a Pro Website, Argo',
   description:
-    'Your AI agent writes its own tools, then builds a real client website — live, start to finish, deployed to a working URL. Model research, cost tracking, and a full site in one session. Free, no coding required.',
+    'Your AI agent writes its own tools, then builds a real client website: live, start to finish, deployed to a working URL. Model research, cost tracking, and a full site in one session. Free, no coding required.',
 }
 
 const outlineButton: React.CSSProperties = {
@@ -41,7 +41,7 @@ const outlineButton: React.CSSProperties = {
 
 /* The four named model profiles students set up in Part 1. */
 const PROFILES: { name: string; use: string; basis: string }[] = [
-  { name: 'private', use: 'Client, financial and personal work', basis: 'Privacy — Morpheus, always' },
+  { name: 'private', use: 'Client, financial and personal work', basis: 'Privacy: Morpheus, always' },
   { name: 'fast', use: 'Bulk, boring, summarising, tidying', basis: 'Price' },
   { name: 'smart', use: 'Judgment calls, client-facing writing', basis: 'General capability' },
   { name: 'coding', use: 'Building software, multi-file projects', basis: 'Agentic coding ability' },
@@ -117,7 +117,7 @@ export default function ModuleTwoPage() {
             Agent Mastery and Vibe Coding a Pro Website
           </h1>
           <p style={{ fontSize: 18.5, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 640, margin: '0 auto' }}>
-            Your agent writes three tools for itself, then builds a real client website — from a
+            Your agent writes three tools for itself, then builds a real client website: from a
             blank folder to a live, deployed URL, in one session. An agency quotes this at
             $4,000–8,000 and six to eight weeks.
           </p>
@@ -206,7 +206,7 @@ export default function ModuleTwoPage() {
             <SectionHeading>Four models, one command</SectionHeading>
             <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', marginTop: 12 }}>
               No single model is right for everything. You set up four named profiles and switch
-              between them in one command — at task boundaries, where switching is free.
+              between them in one command, at task boundaries, where switching is free.
             </p>
           </div>
           <div className="flex flex-col" style={{ gap: 12 }}>
@@ -236,26 +236,28 @@ export default function ModuleTwoPage() {
       <section>
         <div className="wrap" style={{ padding: '64px 0', maxWidth: 800 }}>
           <div style={{ textAlign: 'center', marginBottom: 38 }}>
-            <SectionHeading>The 110-minute session</SectionHeading>
+            <SectionHeading>The 60-minute session</SectionHeading>
             <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', marginTop: 12 }}>
-              Two parts with a break in the middle. Hands-on the whole way through — you finish
-              with a live URL.
+              Hands-on the whole way through, you finish with a live URL.
             </p>
           </div>
           <div className="flex flex-col" style={{ gap: 12 }}>
-            {MODULE_2_AGENDA.map((item) => (
-              <div key={item.time} className="card flex gap-5" style={{ padding: '20px 22px' }}>
+            {MODULE_2_AGENDA.map((item, i) => (
+              <div key={item.title} className="card flex gap-5" style={{ padding: '20px 22px' }}>
                 <div
+                  className="inline-flex items-center justify-center"
                   style={{
                     flexShrink: 0,
-                    width: 46,
-                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                    width: 30,
+                    height: 30,
+                    borderRadius: '50%',
+                    background: 'var(--accentSoft)',
                     fontSize: 14,
                     fontWeight: 700,
                     color: 'var(--accentDeep)',
                   }}
                 >
-                  {item.time}
+                  {i + 1}
                 </div>
                 <div>
                   <h3 style={{ fontSize: 16.5, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
@@ -275,7 +277,7 @@ export default function ModuleTwoPage() {
           <div style={{ textAlign: 'center', marginBottom: 38 }}>
             <SectionHeading>The website, step by step</SectionHeading>
             <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 620, margin: '12px auto 0' }}>
-              We build for a fence installation company — unglamorous, real, and every town has
+              We build for a fence installation company, unglamorous, real, and every town has
               fifty with terrible websites. Swap in roofing, landscaping or plumbing; the process
               is identical.
             </p>
@@ -340,34 +342,6 @@ export default function ModuleTwoPage() {
         </div>
       </section>
 
-      {/* Honest caveat */}
-      <section style={{ background: 'var(--surfaceAlt)', borderTop: '1px solid var(--hairline)', borderBottom: '1px solid var(--hairline)' }}>
-        <div className="wrap" style={{ padding: '56px 0', maxWidth: 720 }}>
-          <div className="card" style={{ padding: '28px 30px' }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                color: 'var(--text3)',
-                marginBottom: 12,
-              }}
-            >
-              The honest part
-            </div>
-            <p style={{ fontSize: 16.5, lineHeight: 1.65, color: 'var(--text2)' }}>
-              What you build in an hour is an excellent starting point, not a finished client
-              delivery. Real client work adds their photos, their copy, their domain, revisions and
-              support. The hour you save is the hour of <em>building</em> — which was never the
-              valuable hour. The valuable hour is working out what to build, and the agent cannot
-              do that part. It does not know the business, and it does not know the owner. That is
-              the job you are selling.
-            </p>
-          </div>
-        </div>
-      </section>
-
       {/* Quiz */}
       <section>
         <div className="wrap" style={{ padding: '64px 0', maxWidth: 800 }}>
@@ -421,7 +395,7 @@ export default function ModuleTwoPage() {
           <SectionHeading>Join us live</SectionHeading>
           <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', margin: '14px 0 30px' }}>
             Register on Luma to get the student guide and the livestream link. Everything you need
-            to install beforehand is in the guide — start there.
+            to install beforehand is in the guide, start there.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <a href={LUMA_URL} target="_blank" rel="noopener noreferrer" className="btn-amber">

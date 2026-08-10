@@ -77,7 +77,7 @@ export function BlogPostLayout({
               Start your 750 words today
             </h3>
             <p style={{ fontSize: 16, color: 'var(--text2)', marginBottom: 20 }}>
-              Argo turns a daily entry — typed, spoken, or filmed — into clarity you can
+              Argo turns a daily entry (typed, spoken, or filmed) into clarity you can
               actually see. Private, encrypted, and built entirely from your own life.
             </p>
             <Link href="/#waitlist" className="btn-amber">Join the waitlist</Link>
@@ -100,7 +100,7 @@ export function BlogIndexLayout({ children }: { children: React.ReactNode }) {
             <Link href="/" className="eyebrow" style={{ marginBottom: 18 }}>← Back to Argo</Link>
             <h1 className="serif" style={{ marginTop: 14, fontSize: 'clamp(34px,5vw,52px)', fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1.05, color: 'var(--text)' }}>Writing</h1>
             <p style={{ marginTop: 14, fontSize: 17, color: 'var(--text2)', maxWidth: 560 }}>
-              On the science and practice of daily reflection — why putting your life into
+              On the science and practice of daily reflection, why putting your life into
               words changes how you think, feel, and grow.
             </p>
           </div>

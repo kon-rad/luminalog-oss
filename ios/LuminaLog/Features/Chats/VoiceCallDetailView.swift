@@ -182,7 +182,7 @@ struct VoiceCallDetailView: View {
             MetadataTile(label: "Duration", value: formatDuration(duration))
             MetadataTile(
                 label: "Date",
-                value: date.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "—"
+                value: date.map { $0.formatted(date: .abbreviated, time: .omitted) } ?? "-"
             )
             MetadataTile(label: "Messages", value: "\(viewModel.messages.count)")
         }
@@ -234,7 +234,7 @@ struct VoiceCallDetailView: View {
     }
 
     private func formatDuration(_ seconds: Double?) -> String {
-        guard let s = seconds, s > 0 else { return "—" }
+        guard let s = seconds, s > 0 else { return "-" }
         return formatTime(s)
     }
 }

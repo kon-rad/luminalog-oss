@@ -147,7 +147,7 @@ final class VapiVoiceCallService: VoiceCallService {
         // speak, the ADR-0093 classifier scored that as a normal end, leaving the user
         // talking to a companion that never responds. ADR-0110.
         guard await requestMicPermission() else {
-            Self.logger.error("mic permission denied — refusing to start a call that could not hear the user")
+            Self.logger.error("mic permission denied, refusing to start a call that could not hear the user")
             broadcaster.send(.failed(message: VoiceCallError.microphonePermissionDenied.localizedDescription))
             throw VoiceCallError.microphonePermissionDenied
         }
@@ -253,7 +253,7 @@ final class VapiVoiceCallService: VoiceCallService {
             let endEvent = Self.endEvent(assistantDidSpeak: assistantDidSpeak, userWasHeard: userWasHeard)
             if case .failed = endEvent {
                 Self.logger.error(
-                    "call ended abnormally — assistantDidSpeak=\(self.assistantDidSpeak, privacy: .public) userWasHeard=\(self.userWasHeard, privacy: .public)"
+                    "call ended abnormally, assistantDidSpeak=\(self.assistantDidSpeak, privacy: .public) userWasHeard=\(self.userWasHeard, privacy: .public)"
                 )
             } else {
                 Self.logger.log("call ended")

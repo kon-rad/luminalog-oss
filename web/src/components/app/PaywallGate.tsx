@@ -46,7 +46,7 @@ export default function PaywallGate({ children }: { children: ReactNode }) {
           Argo Pro
         </p>
         <p className="max-w-sm" style={{ color: 'var(--text2)' }}>
-          Unlimited insights, prompts, chat, and voice — your whole journal, always with you.
+          Unlimited insights, prompts, chat, and voice: your whole journal, always with you.
         </p>
         <a href="/founding" className="btn-amber">
           See plans

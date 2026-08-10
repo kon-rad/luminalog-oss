@@ -157,12 +157,12 @@ export default function ContestTabs() {
 /* ──────────────────────────────── Event ───────────────────────────────── */
 
 const AGENDA: string[] = [
-  '11:00am — meet at the museum front entrance.',
+  '11:00am, meet at the museum front entrance.',
   'Spend 40 minutes touring the museum, in pairs, individually, or in smaller groups.',
   'Network, bond, discuss, exchange ideas, pitch decks, degen strategies and contacts, make content, and enjoy the museum exhibits and art galleries.',
-  'Spend 40 minutes having coffee, talking, and writing about the experience — ideas about technology, crypto, money, Malaysia, governance, and the evolution of humanity.',
+  'Spend 40 minutes having coffee, talking, and writing about the experience: ideas about technology, crypto, money, Malaysia, governance, and the evolution of humanity.',
   'Opt in to appear in a banger of a group drone photo and video in front of the museum.',
-  '12:30pm — event concludes; make your way back to the venue walking or otherwise.',
+  '12:30pm, event concludes; make your way back to the venue walking or otherwise.',
 ]
 
 function EventPanel({
@@ -176,11 +176,11 @@ function EventPanel({
     <div>
       <Section title="What happened">
         <p style={proseStyle}>
-          On the morning of Thursday 30 July 2026 — day two of{' '}
+          On the morning of Thursday 30 July 2026, day two of{' '}
           <a href={MYBW_URL} target="_blank" rel="noopener noreferrer" style={linkStyle}>
             Malaysia Blockchain Week 2026
-          </a>{' '}
-          — a group of crypto natives left the conference floor and toured the Bank Negara Malaysia
+          </a>,{' '}
+a group of crypto natives left the conference floor and toured the Bank Negara Malaysia
           Museum &amp; Art Gallery together. We came back with{' '}
           <button type="button" onClick={() => onOpenTopic('museum-galleries')} style={inlineLinkStyle}>
             {GALLERY_IMAGES.filter((i) => i.kind === 'image').length} photographs
@@ -188,7 +188,7 @@ function EventPanel({
           , a lot of transcribed wall text, and an essay contest.
         </p>
         <p style={{ ...proseStyle, marginTop: 14 }}>
-          The contest is still open, and it is now open to <b style={{ color: 'var(--text)' }}>everyone</b> —
+          The contest is still open, and it is now open to <b style={{ color: 'var(--text)' }}>everyone</b>,
           you did not have to be there.
         </p>
       </Section>
@@ -272,8 +272,8 @@ function EventPanel({
           If you work with an AI agent, point it at{' '}
           <a href="/mybw2026-contest/skill.md" style={linkStyle}>
             /mybw2026-contest/skill.md
-          </a>{' '}
-          — a machine-readable skill file with the rules, the research and the submission API.
+          </a>,{' '}
+a machine-readable skill file with the rules, the research and the submission API.
         </p>
       </Section>
 
@@ -294,7 +294,7 @@ function EventPanel({
         <ul style={listStyle}>
           <Bullet>Admission is free and requires no advance booking.</Bullet>
           <Bullet>
-            Bags are strictly not allowed inside — they are only kept in an unlocked store area, so leave
+            Bags are strictly not allowed inside, they are only kept in an unlocked store area, so leave
             valuables at your hotel.
           </Bullet>
           <Bullet>

@@ -74,7 +74,7 @@ export const MYBW_SESSIONS: MybwSession[] = [
     title: "From Skepticism to Adoption: Malaysia's Crypto Journey and the Next Five Years",
     speakers: ['David Low (Hata)'],
     whyItMatters:
-      'A licensed Malaysian exchange operator framing the last decade of domestic adoption and the next five years — the clearest statement of the local arc the essay prompt is asking about.',
+      'A licensed Malaysian exchange operator framing the last decade of domestic adoption and the next five years, the clearest statement of the local arc the essay prompt is asking about.',
   },
   { day: 1, stage: 'retail', time: '10:45', kind: 'fireside', title: 'Fireside Chat with Etherscan', speakers: ['Matthew Tan (Etherscan)'], moderator: 'Noelle Lee (ACTIV8)' },
   { day: 1, stage: 'retail', time: '11:15', kind: 'panel', title: 'The Consumer Use Cases That Finally Make Web3 Feel Useful', speakers: ['Cris D. Tran (Open Campus)', 'YC (Universe Pro)', 'Josh Dominic (MoonExe)'], moderator: 'Han (Superteam Malaysia)' },
@@ -144,7 +144,7 @@ export const MYBW_SESSIONS: MybwSession[] = [
     title: "Malaysia's Digital Asset Regulatory Landscape: Code is Law… But So Is the Law",
     speakers: ['Derrick Leong (GRVT)'],
     whyItMatters:
-      'A direct treatment of the Malaysian regulatory perimeter — the SC on the securities side, Bank Negara on the money side — and of the limits of "code is law" inside a real jurisdiction.',
+      'A direct treatment of the Malaysian regulatory perimeter (the SC on the securities side, Bank Negara on the money side) and of the limits of "code is law" inside a real jurisdiction.',
   },
   { day: 2, stage: 'retail', time: '10:45', kind: 'keynote', title: 'Internet Money: How Stablecoins Are Rebuilding Finance From the Payment Layer Up', speakers: ['Kenneth Bok (SC Ventures)'] },
   {
@@ -186,7 +186,7 @@ export const MYBW_SESSIONS: MybwSession[] = [
   { day: 2, stage: 'institutional', time: '12:15', kind: 'panel', title: 'Prediction Markets: Smarter Internet Signal or Just Better Gambling?', speakers: ['YellowPanther (CRISP / GamingGrid)', 'Jarod Cheah (Swipe 1)'], moderator: 'Pukerainbow (Pukecast)' },
   {
     day: 2, stage: 'institutional', time: '14:00', kind: 'keynote',
-    title: 'Three Years Later — What We Learned Running a Ringgit Stablecoin',
+    title: 'Three Years Later, What We Learned Running a Ringgit Stablecoin',
     speakers: ['Ethan Chung (BLOX)'],
     whyItMatters:
       'Three years of operating experience, not a proposal. The most concrete evidence at the conference that a ringgit-denominated stablecoin is a real product with real lessons rather than a thought experiment.',
@@ -204,21 +204,21 @@ export const MYBW_SESSIONS: MybwSession[] = [
     speakers: ['Triston Khoo (Ecosync FZ LLC)', 'Ines Yong (Ark Labs)', 'Bobby Sim Si Han (DatoDurian)'],
     moderator: 'Alvin Ng (Mooniverse X Ventures)',
     whyItMatters:
-      'DatoDurian tokenises Malaysian durian orchards — a rare, concrete, unmistakably Malaysian real-world-asset case an essay can name.',
+      'DatoDurian tokenises Malaysian durian orchards, a rare, concrete, unmistakably Malaysian real-world-asset case an essay can name.',
   },
 ]
 
 /** Facts about the Malaysian market that were the backdrop to the conference. */
 export const MYBW_MARKET_FACTS: { fact: string; note: string }[] = [
   {
-    fact: 'MYRC — a proposed ringgit-backed stablecoin ecosystem',
+    fact: 'MYRC, a proposed ringgit-backed stablecoin ecosystem',
     note:
       'Discussed throughout the week alongside tokenised deposits, and echoed on stage by BLOX, which reported three years of operating experience running a ringgit stablecoin.',
   },
   {
     fact: 'Khazanah Nasional is exploring tokenised sukuk and tokenised money-market funds',
     note:
-      "Malaysia's sovereign wealth fund looking at the instrument Malaysia already leads the world in — tokenised.",
+      "Malaysia's sovereign wealth fund looking at the instrument Malaysia already leads the world in, tokenised.",
   },
   {
     fact: 'Both conventional and Islamic tokenised money-market funds are in development',
@@ -258,7 +258,7 @@ export const MYBW_LOCAL_ECOSYSTEM: { name: string; what: string }[] = [
   { name: 'CryptoBilis', what: 'Malaysian crypto community and media' },
   { name: 'Superteam Malaysia', what: 'Local builder and developer community' },
   { name: 'Masverse', what: 'Malaysian metaverse and Web3 studio' },
-  { name: 'DatoDurian', what: 'Tokenised Malaysian durian orchards — real-world assets, literally' },
+  { name: 'DatoDurian', what: 'Tokenised Malaysian durian orchards, real-world assets, literally' },
   { name: 'MYRT', what: 'Malaysian Women in Web3 community' },
   {
     name: "Taylor's, APU, Monash and Sunway blockchain clubs",
@@ -267,13 +267,13 @@ export const MYBW_LOCAL_ECOSYSTEM: { name: string; what: string }[] = [
 ]
 
 export const MYBW_SOURCES: MybwSource[] = [
-  { label: 'Malaysia Blockchain Week 2026 — official site and agenda', url: 'https://myblockchainweek.com/' },
+  { label: 'Malaysia Blockchain Week 2026, official site and agenda', url: 'https://myblockchainweek.com/' },
   { label: '#MYBW2026 side-event calendar (Luma)', url: 'https://luma.com/mybw2026' },
-  { label: 'The Edge Malaysia — Malaysia blockchain scene in spotlight as MYBW returns to KL', url: 'https://theedgemalaysia.com/node/811492' },
-  { label: 'crypto.news — MYBW 2026 positions Kuala Lumpur as APAC’s emerging Web3 and AI hub', url: 'https://crypto.news/malaysia-blockchain-week-2026-positions-kuala-lumpur-as-apacs-emerging-web3-and-ai-hub-for-global-builders-capital-and-innovation/' },
-  { label: 'BitPinas — Malaysia Blockchain Week 2026 spotlights Web3’s financial future', url: 'https://bitpinas.com/pr/malaysia-blockchain-week-2026-spotlights' },
-  { label: 'PR Newswire — MYBW 2026 media launch', url: 'https://www.prnewswire.com/apac/news-releases/mybw-2026-media-launch-sets-the-stage-for-blockchains-next-chapter-302682258.html' },
-  { label: 'Malaysia Blockchain Association — MYBW 2026 preview', url: 'https://malaysiablockchain.org/blog/malaysia-blockchain-week-2026-preview/' },
+  { label: 'The Edge Malaysia, Malaysia blockchain scene in spotlight as MYBW returns to KL', url: 'https://theedgemalaysia.com/node/811492' },
+  { label: 'crypto.news, MYBW 2026 positions Kuala Lumpur as APAC’s emerging Web3 and AI hub', url: 'https://crypto.news/malaysia-blockchain-week-2026-positions-kuala-lumpur-as-apacs-emerging-web3-and-ai-hub-for-global-builders-capital-and-innovation/' },
+  { label: 'BitPinas, Malaysia Blockchain Week 2026 spotlights Web3’s financial future', url: 'https://bitpinas.com/pr/malaysia-blockchain-week-2026-spotlights' },
+  { label: 'PR Newswire, MYBW 2026 media launch', url: 'https://www.prnewswire.com/apac/news-releases/mybw-2026-media-launch-sets-the-stage-for-blockchains-next-chapter-302682258.html' },
+  { label: 'Malaysia Blockchain Association, MYBW 2026 preview', url: 'https://malaysiablockchain.org/blog/malaysia-blockchain-week-2026-preview/' },
   { label: 'MY Blockchain Week on X (@MalaysiaBCW)', url: 'https://x.com/MalaysiaBCW' },
 ]
 

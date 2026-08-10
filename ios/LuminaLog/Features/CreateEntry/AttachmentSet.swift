@@ -180,7 +180,7 @@ struct AttachmentSet: Equatable {
         var notice: String?
         if audio != nil {
             audio = nil
-            notice = "Voice recording removed — photo entries keep photos only."
+            notice = "Voice recording removed, photo entries keep photos only."
         }
         photos.append(contentsOf: newPhotos)
         if photos.count > Self.maxPhotos {
@@ -211,7 +211,7 @@ struct AttachmentSet: Equatable {
     @discardableResult
     mutating func setAudio(_ newAudio: AudioAttachment) -> String? {
         guard canRecordAudio else {
-            return "Recording wasn't kept — photo and video entries don't include voice memos."
+            return "Recording wasn't kept, photo and video entries don't include voice memos."
         }
         audio = newAudio
         return nil

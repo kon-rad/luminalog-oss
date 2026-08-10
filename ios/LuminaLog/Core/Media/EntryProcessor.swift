@@ -143,7 +143,7 @@ final class BackgroundEntryProcessor: EntryProcessor {
         // nothing to re-upload; log it so this is diagnosable rather than a silent
         // no-op. The entry stays `.failed` and the user's recourse is to re-record.
         // (Durable ciphertext staging prevents new entries from reaching this state.)
-        Self.logger.error("retry \(draftId, privacy: .public): no job/record/draft — media unrecoverable; user must re-record")
+        Self.logger.error("retry \(draftId, privacy: .public): no job/record/draft, media unrecoverable; user must re-record")
     }
 
     /// Flip a media entry back to `.uploading` in Firestore (mirrors the shape the

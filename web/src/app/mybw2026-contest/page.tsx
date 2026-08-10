@@ -14,7 +14,7 @@ import {
 const LUMA_URL = 'https://luma.com/iem7mv3u'
 
 export const metadata: Metadata = {
-  title: 'Malaysia Blockchain Week 2026 Essay Contest — Argo',
+  title: 'Malaysia Blockchain Week 2026 Essay Contest, Argo',
   description:
     `Write a ${CONTEST_WORDS_MIN}–${CONTEST_WORDS_MAX} word essay on "${CONTEST_PROMPT}" and win ${CONTEST_PRIZE}. ` +
     `Open to everyone; entries close ${CONTEST_DEADLINE_SHORT}. Includes a photo gallery and knowledge base ` +

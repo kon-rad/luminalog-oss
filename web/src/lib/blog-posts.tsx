@@ -167,18 +167,18 @@ function AshishSoodContent() {
       <UL
         items={[
           <>
-            <A href="https://curiousventures.xyz">Curious Ventures</A> &mdash; Ashish&apos;s fund
+            <A href="https://curiousventures.xyz">Curious Ventures</A>, Ashish&apos;s fund
             following network states
           </>,
           <>
-            <A href="https://house.curiousventures.xyz">house.curiousventures.xyz</A> &mdash; his
+            <A href="https://house.curiousventures.xyz">house.curiousventures.xyz</A>, his
             private tracker of founders he has met in person
           </>,
           <>
-            <A href="https://x.com/soodgen">Ashish Sood on X</A> &mdash; @soodgen
+            <A href="https://x.com/soodgen">Ashish Sood on X</A>, @soodgen
           </>,
-          'Amplify AI — AI content startup (founders Nacho and Sam), Curious Ventures’ first investment',
-          'Courage to be Disliked — book by Ichiro Kishimi and Fumitake Koga',
+          'Amplify AI, AI content startup (founders Nacho and Sam), Curious Ventures’ first investment',
+          'Courage to be Disliked, book by Ichiro Kishimi and Fumitake Koga',
         ]}
       />
 
@@ -212,15 +212,15 @@ function BuildYourMindContent() {
         it&apos;s carrying.
       </P>
       <P>
-        That&apos;s true, and it&apos;s well-evidenced. But it&apos;s only half the story — and,
+        That&apos;s true, and it&apos;s well-evidenced. But it&apos;s only half the story, and,
         it turns out, the smaller half.
       </P>
       <P>
         Because there is a second tradition of journaling that runs in exactly the opposite
-        direction. Where catharsis <em>subtracts</em> — drain the tank, feel lighter — this other
+        direction. Where catharsis <em>subtracts</em> (drain the tank, feel lighter) this other
         practice <em>adds</em>. It uses the page not as a drain but as a forge: a place to develop
         an idea that didn&apos;t exist yet, to grow an emotion by paying attention to it, to turn a
-        raw experience into understanding. Call it <strong>generative journaling</strong> — writing
+        raw experience into understanding. Call it <strong>generative journaling</strong>, writing
         to <em>build</em> your mind rather than empty it.
       </P>
       <P>
@@ -233,17 +233,17 @@ function BuildYourMindContent() {
       <P>
         Notice the metaphors in the cathartic story. Windshield wipers. Caging the monkey mind.
         Getting the bullet out of your skull. Every image is <em>removal</em>. You end with less
-        than you started — less noise, less weight, less dread. That&apos;s the point, and on a bad
+        than you started, less noise, less weight, less dread. That&apos;s the point, and on a bad
         morning it&apos;s exactly the right tool.
       </P>
       <P>
         Generative journaling inverts the arrow. You end with <strong>more</strong> than you
         started: an idea you didn&apos;t have, a feeling you&apos;d have missed, a piece of meaning
-        you built from something that happened to you. Same physical act — a person, a page, a few
-        quiet minutes — pointed the other way. Here are the three ways to point it.
+        you built from something that happened to you. Same physical act, a person, a page, a few
+        quiet minutes, pointed the other way. Here are the three ways to point it.
       </P>
 
-      <H2>Mode 1 — Write to think</H2>
+      <H2>Mode 1: Write to think</H2>
       <Figure
         src="/blog/write-to-think.jpg"
         alt="A growing, branching network of glowing amber nodes connected by fine threads of light"
@@ -260,13 +260,13 @@ function BuildYourMindContent() {
         <A href="https://lithub.com/joan-didion-why-i-write/">Why I Write</A>:{' '}
         <strong>&ldquo;I write entirely to find out what I&apos;m thinking, what I&apos;m looking
         at, what I see and what it means.&rdquo;</strong> She wasn&apos;t being modest. She meant
-        that the sentence comes first and the understanding second — that she didn&apos;t{' '}
+        that the sentence comes first and the understanding second, that she didn&apos;t{' '}
         <em>have</em> the thought and then record it; she found the thought by writing it.
       </P>
       <P>
         Paul Graham made the same case with an engineer&apos;s precision in{' '}
         <A href="https://paulgraham.com/words.html">Putting Ideas Into Words</A>. Writing, he
-        argues, forces an idea to become complete and precise — and mercilessly exposes that it
+        argues, forces an idea to become complete and precise, and mercilessly exposes that it
         wasn&apos;t. &ldquo;A good writer will almost always discover new things in the process of
         writing,&rdquo; he notes; half the ideas that end up in an essay are ones you thought of{' '}
         <em>while writing it</em>. His conclusion is bracing: anyone who hasn&apos;t written about a
@@ -276,7 +276,7 @@ function BuildYourMindContent() {
       <P>
         This is why serious thinkers have always kept generative notebooks. Renaissance scholars
         had <em>commonplace books</em>. The sociologist Niklas Luhmann built a <em>Zettelkasten</em>
-        {' '}— a slip-box of over 90,000 interlinked notes he described as a literal{' '}
+        ,{' '}a slip-box of over 90,000 interlinked notes he described as a literal{' '}
         <strong>&ldquo;thinking partner,&rdquo;</strong> and credited with 70 books and nearly 400
         articles. The modern descendants are Obsidian, Roam, and Tiago Forte&apos;s
         &ldquo;second brain.&rdquo; The through-line across five centuries: your best ideas
@@ -288,7 +288,7 @@ function BuildYourMindContent() {
         one.
       </Pull>
 
-      <H2>Mode 2 — Write to appreciate</H2>
+      <H2>Mode 2: Write to appreciate</H2>
       <Figure
         src="/blog/write-to-appreciate.jpg"
         alt="An open journal on a sunlit windowsill beside a small green sprig catching golden morning light"
@@ -305,12 +305,12 @@ function BuildYourMindContent() {
         In a landmark experiment, Robert Emmons and Michael McCullough had people keep a weekly{' '}
         <A href="https://greatergood.berkeley.edu/pdfs/GratitudePDFs/6Emmons-BlessingsBurdens.pdf">
           gratitude list
-        </A>{' '}
-        — versus lists of hassles, or neutral events. The gratitude group exercised more, had fewer
+        </A>,{' '}
+versus lists of hassles, or neutral events. The gratitude group exercised more, had fewer
         physical complaints, felt better about their lives, and slept longer and better. Some of the
         effects were visible to their <em>spouses.</em> Martin Seligman tested a version he called{' '}
         <strong>Three Good Things</strong>: each night, write down three things that went well and{' '}
-        <em>why</em>. In a randomized trial it raised well-being and lowered depressive symptoms —
+        <em>why</em>. In a randomized trial it raised well-being and lowered depressive symptoms,
         with effects still measurable <em>six months later.</em>
       </P>
       <P>
@@ -318,20 +318,20 @@ function BuildYourMindContent() {
         <A href="https://journals.sagepub.com/doi/10.1177/0146167201277003">
           &ldquo;best possible self&rdquo;
         </A>{' '}
-        — life imagined going as well as it realistically could — became more optimistic, more
+ (life imagined going as well as it realistically could) became more optimistic, more
         satisfied, and, months later, made fewer illness-related trips to the doctor (King, 2001).
         The mechanism is almost embarrassingly simple: <strong>you notice more of whatever you
         practice writing about.</strong>
       </P>
       <Note>
         <strong>The one place &ldquo;do it daily&rdquo; backfires.</strong> More is not better with
-        gratitude. Sonja Lyubomirsky found journaling it about <em>once a week</em> beat every day —
+        gratitude. Sonja Lyubomirsky found journaling it about <em>once a week</em> beat every day,
         because daily practice becomes a chore, the mind adapts, and you end up <em>performing</em>{' '}
         gratitude instead of feeling it. Keep it fresh, specific, and a little surprising: three
         genuine things beat fifteen rote ones.
       </Note>
 
-      <H2>Mode 3 — Write to understand</H2>
+      <H2>Mode 3: Write to understand</H2>
       <Figure
         src="/blog/write-to-understand.jpg"
         alt="A person seen from behind at a window, looking out over a wide, calm landscape at dawn"
@@ -343,20 +343,20 @@ function BuildYourMindContent() {
         The third mode is the most delicate, because it&apos;s the one that most easily goes wrong.
         When something painful happens, the natural move is to journal your way through it. Sometimes
         that helps. But it often collapses into <em>rumination</em>: you replay the event, relive the
-        feeling, and end up worse. This is the danger our first post flagged — the reason venting
+        feeling, and end up worse. This is the danger our first post flagged, the reason venting
         isn&apos;t safe for everyone.
       </P>
       <P>
         Ethan Kross&apos;s research points to the fix, and it&apos;s remarkably specific:{' '}
         <strong>self-distancing.</strong> Instead of writing from inside the experience
         (&ldquo;<em>I</em> was humiliated, <em>I</em> can&apos;t believe <em>I</em>…&rdquo;), write
-        about it from a step back — as an observer, even in the third person: &ldquo;Why did she feel
+        about it from a step back, as an observer, even in the third person: &ldquo;Why did she feel
         that way? What was really going on?&rdquo; In{' '}
         <A href="https://journals.sagepub.com/doi/abs/10.1177/0963721411408883">
           study after study
         </A>, that small shift in vantage point stops the spiral, letting you <em>reconstrue</em> the
         event and make meaning instead of drowning in it. Grossmann and Kross even found that
-        reasoning from a distance produced measurably <strong>wiser</strong> thinking — more
+        reasoning from a distance produced measurably <strong>wiser</strong> thinking, more
         willingness to see other perspectives, more humility about the limits of what you know.
       </P>
       <P>
@@ -367,17 +367,17 @@ function BuildYourMindContent() {
       <Note>
         <strong>Same honest caveat as last time.</strong> For people at high risk of depression,
         even distanced reflection can worsen mood. None of these techniques is universally safe. If
-        writing consistently leaves you worse, stop — and if you&apos;re struggling, talk to someone
+        writing consistently leaves you worse, stop, and if you&apos;re struggling, talk to someone
         qualified. Argo is a tool for reflection, not treatment.
       </Note>
 
       <H2>The finding that unites both halves</H2>
       <P>
-        Here&apos;s the twist that ties the whole thing together — and it comes from inside the{' '}
+        Here&apos;s the twist that ties the whole thing together, and it comes from inside the{' '}
         <em>catharsis</em> research itself. When James Pennebaker and colleagues looked at{' '}
         <em>who actually got healthier</em> from expressive writing, the answer surprised everyone.
         It <strong>wasn&apos;t</strong> the people who vented the most emotion. It was the people
-        whose writing <em>changed</em> over the days — evolving from raw, fragmented venting into a
+        whose writing <em>changed</em> over the days, evolving from raw, fragmented venting into a
         coherent story, marked by a rising use of <strong>insight words</strong> (<em>realize,
         understand, know</em>) and <strong>causal words</strong> (<em>because, cause, effect</em>).
       </P>
@@ -386,25 +386,25 @@ function BuildYourMindContent() {
         {' '}Emptying was the on-ramp. <strong>Building meaning was the destination.</strong> That
         single result dissolves the apparent contradiction between our two posts. Cathartic writing
         gets the noise out so you can think. Generative writing is the thinking. You often need both,
-        in that order — clear the desk, then build something on it.
+        in that order, clear the desk, then build something on it.
       </P>
 
       <H2>How to actually do it</H2>
       <P>You already know how to empty the page. Here&apos;s how to build on it:</P>
       <UL items={[
         <><strong>To think better,</strong> don&apos;t wait until you &ldquo;have something to say.&rdquo; Take the problem you keep circling and write your way through it until the page tells you something you didn&apos;t know you knew.</>,
-        <><strong>To feel better,</strong> keep a <em>weekly</em> — not daily — list of what went well and <em>why</em>. Be specific and be surprised. Or spend fifteen minutes describing your best realistic future self.</>,
+        <><strong>To feel better,</strong> keep a <em>weekly</em> (not daily) list of what went well and <em>why</em>. Be specific and be surprised. Or spend fifteen minutes describing your best realistic future self.</>,
         <><strong>To understand something hard,</strong> write about it from a step back. Use your own name. Ask what was <em>really</em> going on, as if advising a friend. Aim for the wise version, not the raw one.</>,
         <><strong>Keep the two directions straight.</strong> A morning brain-dump and an evening &ldquo;three good things&rdquo; are different tools for different jobs. Don&apos;t expect a broom to build you a shelf.</>,
       ]} />
       <P>
         Strip it back, and the insight is this: the noise leaving your head was never the point. It
-        was clearing space. <strong>What you build in that space — an idea, an appreciation, a piece
-        of meaning — is where journaling actually changes you.</strong>
+        was clearing space. <strong>What you build in that space, an idea, an appreciation, a piece
+        of meaning, is where journaling actually changes you.</strong>
       </P>
       <P>
         That&apos;s the half of the practice we care about most. Emptying your mind is a good place
-        to start your day. Building your mind is how you change your life — and it&apos;s exactly
+        to start your day. Building your mind is how you change your life, and it&apos;s exactly
         what Argo is designed to help you do: a daily entry in text, voice, or video, kept
         private and encrypted, and you choose what you share with the AI to help you see the ideas,
         patterns, and progress you&apos;d never catch alone. Not a drain. A workbench.
@@ -428,13 +428,13 @@ function SevenFiftyHabitContent() {
         There is a particular kind of person you can spot in a coffee shop at 6:45 a.m.:
         notebook open, pen moving, eyes half-focused, clearly not writing anything for anyone.
         They aren&apos;t drafting an email or working on a novel. They&apos;re filling three pages
-        with whatever falls out of their head — grocery lists, grudges, dread about a meeting, a
-        half-remembered dream — and then, most likely, they will never read it again.
+        with whatever falls out of their head, grocery lists, grudges, dread about a meeting, a
+        half-remembered dream, and then, most likely, they will never read it again.
       </P>
       <P>
         That&apos;s the practice: roughly <strong>750 words</strong>, every morning, first thing,
         unedited, and private. It has quietly become one of the most widely adopted personal
-        habits of the last thirty years — kept by bestselling authors, startup founders,
+        habits of the last thirty years, kept by bestselling authors, startup founders,
         burned-out nurses, and people white-knuckling their way through a divorce. The obvious
         question is why anyone would do this. The more interesting one:{' '}
         <em>does it actually do anything?</em>
@@ -463,7 +463,7 @@ function SevenFiftyHabitContent() {
       <P>
         Fast-forward to 2009. A developer named Buster Benson loved the idea but not the paper, so
         he built <A href="https://750words.com/about">750words.com</A> to port Morning Pages into
-        the digital age — a word counter, streaks, badges, and one promise a notebook can&apos;t
+        the digital age, a word counter, streaks, badges, and one promise a notebook can&apos;t
         make: that nothing you write will ever be seen by anyone. That last part turns out to
         matter enormously. So &ldquo;the 750-word practice&rdquo; is really Morning Pages with a
         progress bar, and the word count is a proxy for the real spec: long enough to get past
@@ -491,7 +491,7 @@ function SevenFiftyHabitContent() {
         </A>{' '}
         from his users over fifteen years, the reasons they gave were rarely about creativity.
         They wrote to survive things. One called the site their &ldquo;therapy dojo&rdquo; during
-        a divorce. Others used it through grief and heartbreak — a place to put the weight down
+        a divorce. Others used it through grief and heartbreak, a place to put the weight down
         each morning so they could carry the day. Most people don&apos;t stick with this because
         it makes them better artists. They stick with it because it makes them feel better.
       </P>
@@ -511,7 +511,7 @@ function SevenFiftyHabitContent() {
         thoughts and feelings. Four decades and{' '}
         <A href="https://pubmed.ncbi.nlm.nih.gov/17073523/">146 randomized studies later</A>, a
         meta-analysis confirmed the effect is real: lower anxiety and stress, better immune
-        markers, fewer visits to the doctor. Modest in size — but remarkable for something so
+        markers, fewer visits to the doctor. Modest in size, but remarkable for something so
         brief, portable, and nearly free.
       </P>
       <P>
@@ -535,19 +535,19 @@ function SevenFiftyHabitContent() {
         alt="A single closed journal resting in a pool of warm lamplight in a dark, quiet room"
         width={1216}
         height={800}
-        caption="The most therapeutic page is the one no one — and no algorithm — will ever read."
+        caption="The most therapeutic page is the one no one (and no algorithm) will ever read."
       />
       <P>
         The effects are real but <strong>modest</strong>. A 2022 review pooling{' '}
         <A href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8935176/">
           20 randomized trials of journaling
         </A>{' '}
-        found roughly a 5% greater reduction in symptoms versus control — meaningful for anxiety,
+        found roughly a 5% greater reduction in symptoms versus control, meaningful for anxiety,
         smaller for depression. This is a low-cost, low-side-effect <em>edge</em> that compounds,
         not a cure. Anyone promising transformation is overselling.
       </P>
       <P>
-        And the creativity claim — the origin story&apos;s headline — is the one the research
+        And the creativity claim (the origin story&apos;s headline) is the one the research
         supports <em>least</em>. The strong evidence is for emotional regulation and clarity; a
         calmer, less-cluttered mind is simply a better instrument, and the art tends to happen
         later, off the page.
@@ -556,7 +556,7 @@ function SevenFiftyHabitContent() {
         There&apos;s a finding almost nobody mentions, and it&apos;s the most important one: in
         that same meta-analysis, the studies where researchers <em>collected and read</em>{' '}
         participants&apos; journals produced <strong>worse</strong> outcomes. The moment you write
-        for an audience — even a well-meaning one — your neocortex refuses to let its guard down.
+        for an audience (even a well-meaning one) your neocortex refuses to let its guard down.
         Privacy isn&apos;t a nice-to-have; it&apos;s the active ingredient. It&apos;s also a quiet
         warning for the current wave of AI-powered journaling apps: a journal that gets analyzed
         may be undermining the very mechanism it&apos;s selling.
@@ -565,7 +565,7 @@ function SevenFiftyHabitContent() {
         <strong>It&apos;s not for everyone.</strong> For most people, writing out a dark thought
         discharges it. But for people prone to depression, the same act can give negative thoughts
         more power and feed circular rumination. The rule is simple: if the practice consistently
-        leaves you feeling worse, it isn&apos;t working — stop, or switch to structured or
+        leaves you feeling worse, it isn&apos;t working: stop, or switch to structured or
         gratitude prompts. Argo is a tool for reflection, not treatment; if you&apos;re
         struggling, talk to someone qualified.
       </Note>
@@ -576,12 +576,12 @@ function SevenFiftyHabitContent() {
         alt="A winding path of small warm lights receding toward a glowing dawn horizon"
         width={1216}
         height={800}
-        caption="Not one big payoff — a small daily one that compounds."
+        caption="Not one big payoff, a small daily one that compounds."
       />
       <P>
         Given that the effects are modest, why do so many people keep at it for years? Buried in
         those 11,000 testimonials, Benson found a loop that feeds itself. You process an emotion
-        and gain a little clarity. That clarity rebuilds confidence — you start to see your own
+        and gain a little clarity. That clarity rebuilds confidence, you start to see your own
         patterns. The unbroken streak becomes an identity: you&apos;re someone who writes. The
         cleared mind creates. And a solved problem or a good idea sends you back to the page
         tomorrow to do it again.
@@ -593,10 +593,10 @@ function SevenFiftyHabitContent() {
 
       <H2>How to actually do it</H2>
       <UL items={[
-        <>Write about 750 words, or three pages, <strong>first thing</strong> — before email, before the phone.</>,
+        <>Write about 750 words, or three pages, <strong>first thing</strong>: before email, before the phone.</>,
         <>By hand if you can (&ldquo;velocity is the enemy&rdquo;); if a keyboard is what gets you to do it, use that. Consistency beats purity.</>,
         <>Write badly, on purpose. Page one is usually junk; page three is where the honest material arrives.</>,
-        <>Keep it radically private — no audience, no rereading required, no algorithm summarizing it. That&apos;s the mechanism, not a preference.</>,
+        <>Keep it radically private, no audience, no rereading required, no algorithm summarizing it. That&apos;s the mechanism, not a preference.</>,
         <>Don&apos;t try to solve anything. You&apos;re emptying your head so you can go live your day.</>,
       ]} />
       <P>
@@ -607,7 +607,7 @@ function SevenFiftyHabitContent() {
         has turned out to be enough.
       </P>
       <P>
-        That&apos;s exactly what Argo is built for — a substantial daily entry, in text,
+        That&apos;s exactly what Argo is built for, a substantial daily entry, in text,
         voice, or video, kept private and encrypted, and you choose what you share with the AI so
         the honest version always stays yours.
       </P>
@@ -622,16 +622,16 @@ function SevenFiftyWordsContent() {
       <P>
         You already know the day got away from you. You reacted to it instead of thinking
         through it. Decisions got made on a full head. You lay down at night and your mind
-        kept running — a dozen open loops, none of them closed. By morning, whatever insight
+        kept running, a dozen open loops, none of them closed. By morning, whatever insight
         you had is gone.
       </P>
       <P>
         Daily journaling is the oldest fix for this, and it turns out to be one of the
         best-studied ones. For forty years, researchers have handed people a pen and a few
-        quiet minutes and measured what happens next — to their focus, their stress, their
+        quiet minutes and measured what happens next, to their focus, their stress, their
         sleep, even their immune systems. The findings are consistent enough, and the cost is
-        low enough, that it&apos;s worth understanding exactly what a substantial daily entry —
-        on the order of <strong>750 words</strong> — actually does to your mind.
+        low enough, that it&apos;s worth understanding exactly what a substantial daily entry,
+        on the order of <strong>750 words</strong>, actually does to your mind.
       </P>
 
       <H2>Where 750 words comes from</H2>
@@ -639,7 +639,7 @@ function SevenFiftyWordsContent() {
         The number isn&apos;t arbitrary. It traces back to Julia Cameron&apos;s{' '}
         <em>Morning Pages</em> from <em>The Artist&apos;s Way</em>: three longhand pages,
         which come to roughly 750 words. The classic psychology studies used a close cousin of
-        this — 15 to 20 minutes of continuous writing — which for most people lands in the
+        this (15 to 20 minutes of continuous writing) which for most people lands in the
         same several-hundred-to-750-word range. It&apos;s enough to get past the surface layer
         of logistics and venting and into the part where you write the thing you didn&apos;t
         know you were thinking.
@@ -647,7 +647,7 @@ function SevenFiftyWordsContent() {
       <P>
         And 750 words is format-independent. Three handwritten pages, a typed entry, or about
         ten minutes of talking all land in the same place. The benefits below come from the
-        act of getting your inner life <em>out</em> — not from how you do it.
+        act of getting your inner life <em>out</em>, not from how you do it.
       </P>
 
       <H2>1. It frees up your working memory</H2>
@@ -663,7 +663,7 @@ function SevenFiftyWordsContent() {
         &ldquo;handled&rdquo; and stop recycling it.
       </P>
       <P>
-        This isn&apos;t only about feeling calmer — it shows up in performance. When
+        This isn&apos;t only about feeling calmer, it shows up in performance. When
         researchers had anxious students{' '}
         <A href="https://www.science.org/doi/abs/10.1126/science.1199427">
           write for ten minutes before an exam
@@ -696,7 +696,7 @@ function SevenFiftyWordsContent() {
         the vague dread you were carrying an hour earlier.
       </P>
 
-      <H2>3. It measurably improves well-being — and even physical health</H2>
+      <H2>3. It measurably improves well-being, and even physical health</H2>
       <P>
         The foundational work here is James Pennebaker&apos;s. In his original study, people
         who wrote about their deepest thoughts and feelings for 15 minutes a day over four
@@ -704,7 +704,7 @@ function SevenFiftyWordsContent() {
         that followed. Four decades and{' '}
         <A href="https://pubmed.ncbi.nlm.nih.gov/17073523/">
           146 randomized studies later
-        </A>, a meta-analysis confirmed the effect is real and positive (Frattaroli, 2006) —
+        </A>, a meta-analysis confirmed the effect is real and positive (Frattaroli, 2006),
         modest in size, but remarkable given how brief, portable, and nearly free the practice
         is, and larger for people actually going through something hard.
       </P>
@@ -713,7 +713,7 @@ function SevenFiftyWordsContent() {
         <A href="https://journals.sagepub.com/doi/10.1177/0146167201277003">
           &ldquo;best possible future self&rdquo;
         </A>{' '}
-        for 20 minutes a day, their well-being rose and — five months later — they&apos;d made
+        for 20 minutes a day, their well-being rose and (five months later) they&apos;d made
         fewer illness-related doctor visits (King, 2001). And people who kept a{' '}
         <A href="https://greatergood.berkeley.edu/pdfs/GratitudePDFs/6Emmons-BlessingsBurdens.pdf">
           gratitude journal
@@ -756,7 +756,7 @@ function SevenFiftyWordsContent() {
       <Note>
         <strong>An honest note.</strong> The effects above are real but modest, and they show
         up most for people under genuine strain. Journaling is a low-cost daily edge that
-        compounds — not a cure, and not a substitute for professional care. If you&apos;re
+        compounds, not a cure, and not a substitute for professional care. If you&apos;re
         struggling, talk to someone qualified. Argo is a tool for reflection, not
         treatment.
       </Note>
@@ -768,11 +768,11 @@ function SevenFiftyWordsContent() {
         Argo is designed for.
       </P>
       <UL items={[
-        <>A daily 750-word goal that&apos;s enough to reach real depth — framed as an invitation, never guilt.</>,
-        <>Capture in text, voice, or video — talk for ten minutes on a walk and reach the same depth as three written pages.</>,
+        <>A daily 750-word goal that&apos;s enough to reach real depth, framed as an invitation, never guilt.</>,
+        <>Capture in text, voice, or video: talk for ten minutes on a walk and reach the same depth as three written pages.</>,
         <>AI summaries that turn a rambling brain-dump into something you can actually review and act on.</>,
         <>Insights that surface the patterns across weeks you&apos;d never catch alone.</>,
-        <>Private and encrypted, and you choose what you share with the AI — because you can only write the honest version if it stays yours.</>,
+        <>Private and encrypted, and you choose what you share with the AI, because you can only write the honest version if it stays yours.</>,
       ]} />
       <P>
         Your mind moves faster than your day. Seven hundred and fifty words is how you catch up
@@ -793,8 +793,8 @@ function SoulConstellationContent() {
         you. You can&apos;t prove it to anyone. And it vanishes the day the company does.
       </P>
       <P>
-        We think the record of your own reflection — one of the most personal things you can
-        build — deserves better than that. So we&apos;re building something different: a
+        We think the record of your own reflection, one of the most personal things you can
+        build, deserves better than that. So we&apos;re building something different: a
         living piece of art, grown entirely from your journaling, that is provably yours,
         provably earned, and impossible to fake. We call it the <strong>Soul
         Constellation.</strong>
@@ -803,7 +803,7 @@ function SoulConstellationContent() {
       <H2>What it is</H2>
       <P>
         Your journaling, rendered as a galaxy. A three-dimensional field of stars where{' '}
-        <strong>every star is a day you showed up and reflected</strong> — a day you crossed
+        <strong>every star is a day you showed up and reflected</strong>, a day you crossed
         your 750-word goal. It grows only when you do the work. And where each star sits in the
         galaxy is decided by the <em>meaning</em> of what you actually wrote that day, so no two
         souls are ever alike. It&apos;s a fingerprint of your inner life, drawn by you.
@@ -818,14 +818,14 @@ function SoulConstellationContent() {
         whole journey, start to finish:
       </P>
       <UL items={[
-        <><strong>You journal.</strong> Write in Argo the way you already do — typed, spoken, or filmed.</>,
-        <><strong>You earn a star.</strong> Cross 750 words in a day (the amount the science says gets you past the surface — <A href="/blog/the-science-of-750-words-a-day">more on that here</A>) and a new star is born.</>,
-        <><strong>The star is placed by meaning.</strong> Everything you wrote that day is distilled into a single mathematical fingerprint of its meaning. We then lay out the whole galaxy along the directions your days differ most — so <strong>similar days cluster, and distinct days spread apart.</strong></>,
+        <><strong>You journal.</strong> Write in Argo the way you already do, typed, spoken, or filmed.</>,
+        <><strong>You earn a star.</strong> Cross 750 words in a day (the amount the science says gets you past the surface, <A href="/blog/the-science-of-750-words-a-day">more on that here</A>) and a new star is born.</>,
+        <><strong>The star is placed by meaning.</strong> Everything you wrote that day is distilled into a single mathematical fingerprint of its meaning. We then lay out the whole galaxy along the directions your days differ most, so <strong>similar days cluster, and distinct days spread apart.</strong></>,
         <><strong>It updates itself.</strong> Every new star reshapes the picture a little, sharpening the map of who you are as the months accumulate.</>,
-        <><strong>It&apos;s yours — with no wallet to set up.</strong> On your first sign-in we quietly create a wallet for you and mint the artifact to it. No seed phrase, no coin to buy, no gas fees. You just watch your soul grow.</>,
+        <><strong>It&apos;s yours, with no wallet to set up.</strong> On your first sign-in we quietly create a wallet for you and mint the artifact to it. No seed phrase, no coin to buy, no gas fees. You just watch your soul grow.</>,
       ]} />
       <P>
-        Under the hood it&apos;s a <strong>soulbound token</strong> — a non-transferable NFT.
+        Under the hood it&apos;s a <strong>soulbound token</strong>, a non-transferable NFT.
         But the blockchain does exactly one quiet job here: it makes your constellation provably
         yours and impossible to counterfeit. That&apos;s all. No trading, no speculation, no
         market. The crypto is invisible, and it works for you in the background.
@@ -833,17 +833,17 @@ function SoulConstellationContent() {
 
       <H2>Your words never leave your side</H2>
       <P>
-        This is the part we care about most. Your journal is sacred, and none of it — not your
-        entries, not the mathematical fingerprints we compute from them — is ever put on a
+        This is the part we care about most. Your journal is sacred, and none of it, not your
+        entries, not the mathematical fingerprints we compute from them: is ever put on a
         blockchain or exposed to anyone.
       </P>
       <P>
         The only thing that ever gets published is <strong>three numbers per star</strong>: its
         position in space. Those three coordinates are a deliberately lossy shadow of a
-        thousand-dimensional fingerprint — a shadow that <strong>cannot be reversed back into
+        thousand-dimensional fingerprint, a shadow that <strong>cannot be reversed back into
         your writing.</strong> It&apos;s the difference between a shadow on the wall and the
         object that cast it: you can see the shape, but you can never reconstruct the thing
-        itself. Privacy isn&apos;t a promise we&apos;re asking you to trust — it&apos;s built
+        itself. Privacy isn&apos;t a promise we&apos;re asking you to trust, it&apos;s built
         into the math.
       </P>
 
@@ -853,11 +853,11 @@ function SoulConstellationContent() {
       </P>
       <UL items={[
         <><strong>You finally own it.</strong> Minted to your wallet, it outlives the app, the account, even us. It&apos;s the first journaling artifact that is genuinely yours to keep.</>,
-        <><strong>It can&apos;t be faked.</strong> Because it&apos;s soulbound — un-buyable, un-giftable, non-transferable — a 365-star soul is <em>proof</em> of 365 real days of reflection. You cannot purchase discipline. That&apos;s exactly what makes it worth having.</>,
+        <><strong>It can&apos;t be faked.</strong> Because it&apos;s soulbound (un-buyable, un-giftable, non-transferable) a 365-star soul is <em>proof</em> of 365 real days of reflection. You cannot purchase discipline. That&apos;s exactly what makes it worth having.</>,
         <><strong>It can open doors.</strong> An uncheatable record of showing up is a kind of credential. Today it&apos;s a keepsake; tomorrow it could be a passport into communities, cohorts, and programs that reward the people who genuinely do the inner work.</>,
       ]} />
       <P>
-        And beneath all of that, it&apos;s simply <strong>beautiful</strong> — a piece of
+        And beneath all of that, it&apos;s simply <strong>beautiful</strong>: a piece of
         generative art you&apos;d actually want to look at, watch grow, and share. Not a vanity
         metric. Not a flex. A mirror of a life examined, that happens to be yours forever.
       </P>
@@ -866,24 +866,24 @@ function SoulConstellationContent() {
       <P>
         We started Argo on a simple belief: in a world engineered to pull your attention
         outward, the most valuable thing we can build is a way back to yourself. Journaling is
-        that way back. The Soul Constellation is us asking the next question — <em>if you do
+        that way back. The Soul Constellation is us asking the next question, <em>if you do
         this quiet, difficult, meaningful work every day, what should you have to show for it?</em>
       </P>
       <P>
         Our answer is: something real. Something that&apos;s yours. Something no one can take,
-        fake, or buy. A galaxy grown from your own words — proof, in the end, of a life you
+        fake, or buy. A galaxy grown from your own words, proof, in the end, of a life you
         actually paid attention to.
       </P>
 
       <Note>
         <strong>Building in the open.</strong> The engine that turns your journaling into a
         constellation is built and working. The wallet, the on-chain token, and the interactive
-        galaxy you&apos;ll hold in your hand are rolling out in stages — starting on a test
+        galaxy you&apos;ll hold in your hand are rolling out in stages, starting on a test
         network, then live. We&apos;re sharing the <em>why</em> now because we think the idea is
         worth talking about before it&apos;s finished.
       </Note>
       <P>
-        Own the shape of your mind. A galaxy you can&apos;t buy — only earn.
+        Own the shape of your mind. A galaxy you can&apos;t buy, only earn.
       </P>
     </>
   )
@@ -904,25 +904,25 @@ function RuminationContent() {
         You know the loop. It&apos;s 1 a.m. and the ceiling has become a screen replaying the thing
         you said in the meeting, the text that went unanswered, the version of your life where you
         made the other choice. You aren&apos;t solving anything. You aren&apos;t even really thinking.
-        You&apos;re <em>circling</em> — the same thoughts, the same feelings, worn smoother each pass
+        You&apos;re <em>circling</em>, the same thoughts, the same feelings, worn smoother each pass
         like a stone in a stream.
       </P>
       <P>
         Psychologists have a precise name for this: <strong>rumination.</strong> And decades of
-        research have landed on an uncomfortable finding — rumination isn&apos;t just a symptom of
+        research have landed on an uncomfortable finding, rumination isn&apos;t just a symptom of
         feeling bad. It&apos;s one of the most reliable <em>predictors</em> of who will become
         clinically depressed, and who won&apos;t.
       </P>
       <P>
         Here&apos;s the twist worth an entire post. There is a habit that looks almost identical to
-        rumination — sitting alone with your hardest thoughts and feelings, turning them over — that
+        rumination (sitting alone with your hardest thoughts and feelings, turning them over) that
         produces the <em>opposite</em> result. It measurably improves mood, immune function, even how
         fast people find work after a layoff. That habit is <strong>writing.</strong> Same raw
-        material, opposite outcome. This is the story of what separates them — and how to stay on the
+        material, opposite outcome. This is the story of what separates them, and how to stay on the
         right side of the line.
       </P>
       <P>
-        We read across roughly twenty primary sources for this — the foundational work of Susan
+        We read across roughly twenty primary sources for this, the foundational work of Susan
         Nolen-Hoeksema, James Pennebaker, and Ethan Kross, plus several meta-analyses. Where the
         evidence is strong we&apos;ll say so. Where it&apos;s thinner than the internet pretends,
         we&apos;ll say that too.
@@ -937,12 +937,12 @@ function RuminationContent() {
         caption="The same thought, worn smoother each pass. Circling is not processing."
       />
       <P>
-        The word comes from cattle — the way a cow brings food back up to chew again. The late Yale
+        The word comes from cattle, the way a cow brings food back up to chew again. The late Yale
         psychologist Susan Nolen-Hoeksema borrowed it for a specific mental habit and built a research
         program around it. Her{' '}
         <A href="https://journals.sagepub.com/doi/10.1111/j.1745-6924.2008.00088.x">definition</A>{' '}
         is worth reading slowly: rumination is <em>repetitively and passively focusing on symptoms of
-        distress and on the possible causes and consequences of these symptoms</em> — while{' '}
+        distress and on the possible causes and consequences of these symptoms</em>, while{' '}
         <strong>not</strong> moving toward doing anything about it.
       </P>
       <P>
@@ -967,7 +967,7 @@ function RuminationContent() {
         alt="A forked path at dawn: one branch descends into cold grey mist, the other turns uphill into warm golden light"
         width={1536}
         height={1024}
-        caption="Same starting point, opposite destinations. The difference isn&rsquo;t whether you look inward — it&rsquo;s how."
+        caption="Same starting point, opposite destinations. The difference isn&rsquo;t whether you look inward, it&rsquo;s how."
       />
       <P>
         This is where the science gets useful, and where &ldquo;stop overthinking!&rdquo; gets it
@@ -975,13 +975,13 @@ function RuminationContent() {
         <A href="https://link.springer.com/article/10.1023/A:1023910315561">two different things</A>:
       </P>
       <UL items={[
-        <><strong>Brooding</strong> — a passive comparison of your situation to some standard you&apos;ve fallen short of. The self-critical voice: <em>&ldquo;Why do I always react this way? What&apos;s wrong with me?&rdquo;</em> Brooding predicts <strong>more</strong> depression over time.</>,
-        <><strong>Reflection</strong> — purposefully turning inward to problem-solve. It looks similar in the moment, but it predicts <strong>less</strong> depression a year later.</>,
+        <><strong>Brooding</strong>, a passive comparison of your situation to some standard you&apos;ve fallen short of. The self-critical voice: <em>&ldquo;Why do I always react this way? What&apos;s wrong with me?&rdquo;</em> Brooding predicts <strong>more</strong> depression over time.</>,
+        <><strong>Reflection</strong>, purposefully turning inward to problem-solve. It looks similar in the moment, but it predicts <strong>less</strong> depression a year later.</>,
       ]} />
       <P>
         That distinction is the hinge the whole topic turns on. The problem was never introspection.
-        People who reflect on their difficulties often feel worse in the moment — that&apos;s{' '}
-        <em>why</em> they&apos;re reflecting — yet they end up better off later. Brooders feel bad and
+        People who reflect on their difficulties often feel worse in the moment, that&apos;s{' '}
+        <em>why</em> they&apos;re reflecting, yet they end up better off later. Brooders feel bad and
         stay bad. The toxic ingredient is the passive, self-critical, going-in-circles quality of
         brooding, not the act of looking inward. Hold onto that, because it&apos;s exactly the lever
         writing lets you pull.
@@ -989,7 +989,7 @@ function RuminationContent() {
 
       <H2>How a thought loop becomes a disorder</H2>
       <P>
-        Why is brooding so corrosive? The research points to several converging mechanisms — and the
+        Why is brooding so corrosive? The research points to several converging mechanisms, and the
         experiments are causal, not just correlational. When you <em>induce</em> rumination in the
         lab, distressed people become measurably more pessimistic, recall more negative memories, and
         rate their problems as more unsolvable. The same task does nothing to people who aren&apos;t
@@ -997,7 +997,7 @@ function RuminationContent() {
       </P>
       <P>
         It also freezes you. Depressed ruminators often recognize that some activity would lift their
-        mood — and still won&apos;t do it. In one striking study, women with a chronic ruminative
+        mood, and still won&apos;t do it. In one striking study, women with a chronic ruminative
         style who found a breast lump <strong>delayed seeking care by more than two months</strong>{' '}
         versus non-ruminators. The loop doesn&apos;t just hurt; it makes you inert.
       </P>
@@ -1013,7 +1013,7 @@ function RuminationContent() {
         One last thing raises the stakes: rumination isn&apos;t depression-specific. A meta-analysis
         of 114 studies found that, of six common ways people manage emotion, rumination had{' '}
         <A href="https://pubmed.ncbi.nlm.nih.gov/20015584/">the largest association</A> with
-        psychopathology overall — depression, yes, but also anxiety, eating disorders, and substance
+        psychopathology overall, depression, yes, but also anxiety, eating disorders, and substance
         abuse. It may be a single engine feeding many kinds of suffering. Which makes learning to
         interrupt it one of the higher-leverage moves in all of mental health.
       </P>
@@ -1028,14 +1028,14 @@ function RuminationContent() {
       />
       <P>
         If sitting alone with painful thoughts is so dangerous, how can writing them down help?
-        Sometimes it doesn&apos;t. But done a particular way, it&apos;s close to the opposite — and the
+        Sometimes it doesn&apos;t. But done a particular way, it&apos;s close to the opposite, and the
         evidence goes back forty years to James Pennebaker. His original protocol was almost
         absurdly simple: write for <strong>15 minutes a night, four nights</strong>, about your
         deepest thoughts and feelings on the most upsetting experience of your life. Over the
         following six months, those writers{' '}
         <A href="https://www.apa.org/research/action/writing">visited the health center at
         roughly half the rate</A> of a control group who wrote about neutral topics. Later studies
-        added better mood, improved immune markers, and — across a large literature — fewer doctor
+        added better mood, improved immune markers, and (across a large literature) fewer doctor
         visits, lower blood pressure, better sleep, and faster re-employment after a layoff.
       </P>
       <Note>
@@ -1043,7 +1043,7 @@ function RuminationContent() {
         <em>modest.</em> One review put the average benefit around{' '}
         <A href="https://www.cambridge.org/core/journals/advances-in-psychiatric-treatment/article/emotional-and-physical-health-benefits-of-expressive-writing/ED2976A61F5DE56B46F07A1CE9EA9F9F">d = 0.47</A>{' '}
         in healthy people; the largest meta-analysis, pooling 146 studies, found an overall effect of
-        just <A href="https://pubmed.ncbi.nlm.nih.gov/17073523/">r = 0.075</A> — small, though real.
+        just <A href="https://pubmed.ncbi.nlm.nih.gov/17073523/">r = 0.075</A>, small, though real.
         Journaling is a genuine, no-side-effect nudge in the right direction. It is not a cure, and
         anyone selling it as one is overselling.
       </Note>
@@ -1051,14 +1051,14 @@ function RuminationContent() {
         The most important clue is <em>who</em> got better. It wasn&apos;t the people who wrote the
         most, or the most emotionally. When Pennebaker&apos;s team analyzed the language, the people
         who improved showed a <em>trajectory</em>: they started with few{' '}
-        <strong>insight and causal words</strong> — <em>realize, understand, because, reason</em> —
+        <strong>insight and causal words</strong>, <em>realize, understand, because, reason</em>,
         and used more of them by the last day. That&apos;s the fingerprint of a mind{' '}
-        <em>making sense</em> of an experience, building an explanation, arriving somewhere new — not
+        <em>making sense</em> of an experience, building an explanation, arriving somewhere new, not
         re-feeling the same raw emotion on repeat.
       </P>
       <Pull>
         Writing about the same story in the same way is really the same as rumination. It&apos;s
-        almost a marker that writing is not beneficial. — James Pennebaker
+        almost a marker that writing is not beneficial., James Pennebaker
       </Pull>
       <P>
         There it is, from the founder of the field himself. Writing isn&apos;t automatically healing.
@@ -1068,7 +1068,7 @@ function RuminationContent() {
         Nolen-Hoeksema&apos;s rumination work (reflection heals, brooding harms), and Kross&apos;s
         distancing work (below). <strong>Repetition without reframing is rumination. Writing that
         moves toward meaning is the antidote.</strong> The page just happens to be an unusually good
-        tool for forcing that move — a complete sentence has to lead somewhere the last one
+        tool for forcing that move, a complete sentence has to lead somewhere the last one
         didn&apos;t.
       </P>
 
@@ -1084,9 +1084,9 @@ function RuminationContent() {
         The single most actionable finding comes from Ethan Kross and Özlem Ayduk. Why does trying to
         understand your feelings sometimes yield insight and sometimes spiral? Their answer is{' '}
         <strong>psychological distance.</strong> Analyze a painful memory from an{' '}
-        <em>immersed</em> perspective — reliving it through your own eyes — and you get more upset and
-        more ruminative. Analyze the same event from a <em>distanced</em> perspective — watching
-        yourself from a step back, even in the third person — and you process it with cooler insight,
+        <em>immersed</em> perspective (reliving it through your own eyes) and you get more upset and
+        more ruminative. Analyze the same event from a <em>distanced</em> perspective, watching
+        yourself from a step back, even in the third person, and you process it with cooler insight,
         and report{' '}
         <A href="https://journals.sagepub.com/doi/abs/10.1177/0963721411408883">fewer intrusive
         thoughts weeks later.</A>
@@ -1106,35 +1106,35 @@ function RuminationContent() {
         read on how solid the research really is.
       </P>
       <UL items={[
-        <><strong>Expressive writing — for a specific wound.</strong> 15–20 minutes a day, three or four days running, on one genuinely unresolved experience. Ignore grammar; write only for yourself. The key: by the last day, push past re-narrating toward <em>why it happened and what it means.</em> If you&apos;re writing the same story the same way, stop. Use it as targeted medicine, not a daily vitamin. <em>(Strong evidence.)</em></>,
-        <><strong>Self-distanced reflection — to process pain without spiraling.</strong> Write about the hard thing in the third person, using your own name, and ask &ldquo;why&rdquo; from that distance — aiming for insight, not a replay. <em>(Strong, with physiological data.)</em></>,
-        <><strong>Best possible self — to build optimism.</strong> Imagine your life having gone as well as it realistically could, in vivid detail, ~20 minutes for a few days. Meta-analytic effect around <A href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6756746/">d = 0.5</A> for positive emotion. <em>(Strong.)</em></>,
-        <><strong>Gratitude — but weekly, not daily.</strong> List a few <em>specific</em> things you&apos;re grateful for about <A href="https://greatergood.berkeley.edu/pdfs/GratitudePDFs/6Emmons-BlessingsBurdens.pdf">once a week</A>. Doing it daily makes it mechanical and blunts the effect. Specificity beats volume. <em>(Strong, with a real frequency caveat.)</em></>,
-        <><strong>Structured reframes — to turn loops into action.</strong> A CBT thought record (situation → automatic thought → evidence for and against → balanced thought) or <A href="https://woopmylife.org/en/practice">WOOP</A> (Wish, Outcome, Obstacle, then an if-then Plan) converts a spiral into a next step — fixing rumination&apos;s fatal flaw: insight that never becomes action. <em>(Strong for the parent methods.)</em></>,
-        <><strong>Morning pages / free-writing — popular, but unproven.</strong> Millions swear by it; it has no dedicated controlled research. Likely useful by overlap with expressive writing — just don&apos;t let it curdle into a daily venting loop. <em>(Weak / anecdotal — and we&apos;ll be honest about that.)</em></>,
+        <><strong>Expressive writing, for a specific wound.</strong> 15–20 minutes a day, three or four days running, on one genuinely unresolved experience. Ignore grammar; write only for yourself. The key: by the last day, push past re-narrating toward <em>why it happened and what it means.</em> If you&apos;re writing the same story the same way, stop. Use it as targeted medicine, not a daily vitamin. <em>(Strong evidence.)</em></>,
+        <><strong>Self-distanced reflection, to process pain without spiraling.</strong> Write about the hard thing in the third person, using your own name, and ask &ldquo;why&rdquo; from that distance, aiming for insight, not a replay. <em>(Strong, with physiological data.)</em></>,
+        <><strong>Best possible self, to build optimism.</strong> Imagine your life having gone as well as it realistically could, in vivid detail, ~20 minutes for a few days. Meta-analytic effect around <A href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6756746/">d = 0.5</A> for positive emotion. <em>(Strong.)</em></>,
+        <><strong>Gratitude, but weekly, not daily.</strong> List a few <em>specific</em> things you&apos;re grateful for about <A href="https://greatergood.berkeley.edu/pdfs/GratitudePDFs/6Emmons-BlessingsBurdens.pdf">once a week</A>. Doing it daily makes it mechanical and blunts the effect. Specificity beats volume. <em>(Strong, with a real frequency caveat.)</em></>,
+        <><strong>Structured reframes, to turn loops into action.</strong> A CBT thought record (situation → automatic thought → evidence for and against → balanced thought) or <A href="https://woopmylife.org/en/practice">WOOP</A> (Wish, Outcome, Obstacle, then an if-then Plan) converts a spiral into a next step, fixing rumination&apos;s fatal flaw: insight that never becomes action. <em>(Strong for the parent methods.)</em></>,
+        <><strong>Morning pages / free-writing, popular, but unproven.</strong> Millions swear by it; it has no dedicated controlled research. Likely useful by overlap with expressive writing, just don&apos;t let it curdle into a daily venting loop. <em>(Weak / anecdotal, and we&apos;ll be honest about that.)</em></>,
       ]} />
       <P>
-        Strip away the specifics and the same design rules emerge every time — the checklist that
+        Strip away the specifics and the same design rules emerge every time, the checklist that
         separates growth journaling from rumination on paper:
       </P>
       <UL items={[
         <><strong>Time-box it.</strong> Rumination is unbounded by definition; every effective protocol has a clock.</>,
-        <><strong>Move toward meaning or action — never stop at the feeling.</strong> If the entry could&apos;ve been written word-for-word yesterday, you&apos;re brooding.</>,
+        <><strong>Move toward meaning or action, never stop at the feeling.</strong> If the entry could&apos;ve been written word-for-word yesterday, you&apos;re brooding.</>,
         <><strong>Get distance on the hard stuff.</strong> Ask &ldquo;why&rdquo; about <em>you</em>, from the shore, not from inside the wave.</>,
-        <><strong>End facing forward.</strong> A reframe, an if-then plan, one next action. That&apos;s the step rumination can never take — and the one that turns writing into growth.</>,
+        <><strong>End facing forward.</strong> A reframe, an if-then plan, one next action. That&apos;s the step rumination can never take, and the one that turns writing into growth.</>,
       ]} />
       <Note>
         <strong>An honest caveat.</strong> None of these techniques is universally safe. For people at
         high risk of depression, even distanced reflection can worsen mood. If writing consistently
-        leaves you worse, stop — and if you&apos;re struggling, talk to someone qualified. Argo
+        leaves you worse, stop, and if you&apos;re struggling, talk to someone qualified. Argo
         is a tool for reflection, not treatment.
       </Note>
       <P>
         The same 1 a.m. thoughts that keep you circling can become the raw material of actually
-        growing — if you change what you do with them. Move from re-feeling to making sense, from up
+        growing, if you change what you do with them. Move from re-feeling to making sense, from up
         close to a step back, from the problem to the next step. That&apos;s the whole difference
         between the loop and the page, and it&apos;s exactly what Argo is built to help you do: a
-        daily entry in text, voice, or video — private and encrypted — and you choose what you
+        daily entry in text, voice, or video (private and encrypted) and you choose what you
         share with the AI to help you see the patterns, insights, and progress you&apos;d never catch
         while circling. Not a drain. A way out.
       </P>
@@ -1158,8 +1158,8 @@ function KossSignalsContent() {
         Some conversations start with a handshake. This one started with six breaths.
       </P>
       <P>
-        I sat down with <strong>Koss</strong> &mdash; a builder I met at Network School, though we&apos;d
-        apparently crossed paths somewhere before that &mdash; for one of an ongoing series of chats with
+        I sat down with <strong>Koss</strong>, a builder I met at Network School, though we&apos;d
+        apparently crossed paths somewhere before that, for one of an ongoing series of chats with
         people in technology doing interesting things. Koss goes by a pseudonym (his real last name, he
         says, is &ldquo;very long&rdquo;), grew up between Venezuela and Europe, and has spent the better
         part of a decade in and around Ethereum. What made the conversation worth publishing wasn&apos;t
@@ -1168,26 +1168,26 @@ function KossSignalsContent() {
 
       <H2>It starts with six breaths</H2>
       <P>
-        Before any of the &ldquo;so, who are you&rdquo; questions, we took six slow breaths together
-        &mdash; a small ritual to reset the nervous system and actually arrive in the room. Koss&apos;s
+        Before any of the &ldquo;so, who are you&rdquo; questions, we took six slow breaths together,
+a small ritual to reset the nervous system and actually arrive in the room. Koss&apos;s
         take: you can get good at anything if you practice it, and breathing is no exception. &ldquo;That
         skill is your mind&ndash;body connection.&rdquo; It&apos;s a fitting way to open a conversation
-        that keeps circling back to the same question &mdash; how do we pay better attention to what&apos;s
+        that keeps circling back to the same question, how do we pay better attention to what&apos;s
         actually happening, in ourselves and around us?
       </P>
 
       <H2>From hyperinflation to Ethereum</H2>
       <P>
         Koss&apos;s route into crypto was, in his words, &ldquo;kind of easy.&rdquo; Growing up in a
-        country living through hyperinflation &mdash; thousands, then hundreds of thousands, then millions
-        of percent &mdash; makes the question <em>what could sound money mean for a financial system?</em>{' '}
+        country living through hyperinflation, thousands, then hundreds of thousands, then millions
+        of percent, makes the question <em>what could sound money mean for a financial system?</em>{' '}
         feel less theoretical. Bitcoin, arriving around 2009&ndash;2010, was the first crack of light. But
         he couldn&apos;t stop at money.
       </P>
       <P>
         When the DAO came around, Ethereum felt closer to what he actually cared about: not just financial
-        applications, but governance. That pulled him into years of work in decentralized governance
-        &mdash; on-chain mutual credit, managing commons goods on-chain in the spirit of Elinor
+        applications, but governance. That pulled him into years of work in decentralized governance,
+on-chain mutual credit, managing commons goods on-chain in the spirit of Elinor
         Ostrom&apos;s work, community after community. His day job now is in decentralized storage, but the
         through-line has always been the same: <strong>we need new systems, and the interesting part is how
         you govern them.</strong>
@@ -1195,12 +1195,12 @@ function KossSignalsContent() {
 
       <H2>Community as an excuse to connect</H2>
       <P>
-        Koss has been organizing communities &ldquo;since forever&rdquo; &mdash; Ethereum Venezuela,
+        Koss has been organizing communities &ldquo;since forever&rdquo; Ethereum Venezuela,
         civic-innovation groups, a Singularity University chapter, meetups that ran from roughly 2015 until
         the pandemic. His framing of <em>why</em> is the most useful thing anyone&apos;s said to me about
         events in a while. An organized gathering, he says, is really just a good excuse: to read the
         things you were already going to read, to meet people chasing similar questions, to flesh out your
-        own half-formed ideas out loud, and &mdash; crucially &mdash; to talk to people you admire.
+        own half-formed ideas out loud, and (crucially) to talk to people you admire.
       </P>
       <Pull>
         Reach out to your heroes. It&apos;s courageous, and most people shy away from it. That&apos;s
@@ -1208,7 +1208,7 @@ function KossSignalsContent() {
       </Pull>
       <P>
         The payoff compounds. He described an early online Venezuela event featuring one of the founders of
-        Axie Infinity &mdash; who then turned up at Network School years later. &ldquo;Connections compound
+        Axie Infinity, who then turned up at Network School years later. &ldquo;Connections compound
         over time.&rdquo;
       </P>
 
@@ -1228,12 +1228,12 @@ function KossSignalsContent() {
       <P>
         The first sounds like science fiction until you sit with it: <strong>a social network based not on
         how people perform online, but on how they actually feel in each other&apos;s presence.</strong>{' '}
-        Telegram and WhatsApp connect us by text; what would it mean to connect people by biology &mdash;
+        Telegram and WhatsApp connect us by text; what would it mean to connect people by biology,
         by the real, embodied signal of being in a room together?
       </P>
       <P>
         He&apos;s clear-eyed about the hard part. A biomarker on its own is close to meaningless. Someone
-        with an elevated heart rate could be stressed, or thrilled, or both at once &mdash; &ldquo;I want to
+        with an elevated heart rate could be stressed, or thrilled, or both at once: &ldquo;I want to
         go to a metal concert; my body is getting all this stress signal, but at the same time I&apos;m in
         bliss.&rdquo; Context, he estimates, is 75% of correctly interpreting any single reading. You need
         more than one data point, across time, plus the environment around it. This isn&apos;t a gadget
@@ -1243,12 +1243,12 @@ function KossSignalsContent() {
       <H2>Reading the signals of life</H2>
       <P>
         The second obsession scales the same idea up from a person to a planet. Koss is drawn to
-        interspecies research &mdash; the work of translating, say, the vocalizations of whales &mdash; and
+        interspecies research (the work of translating, say, the vocalizations of whales) and
         more broadly to the signals streaming off <em>all</em> of life: plants, animals, geology, even
         tectonic movement. What if that signal fed into the decisions we make?
       </P>
       <P>
-        He&apos;s especially interested in <strong>bioregions</strong> &mdash; the stretch from southern
+        He&apos;s especially interested in <strong>bioregions</strong>, the stretch from southern
         Mexico through Central America, for instance, where climates, crops, and weather patterns behave
         similarly across national borders. Capture that signal with open hardware and put it on-chain, and
         something quietly radical happens: an ecosystem can be shown to have measurable, economic value. And
@@ -1266,15 +1266,15 @@ function KossSignalsContent() {
         His model for doing this well is <strong>GainForest</strong> (the work of David and Charlie, whom
         he met through a Funding the Commons residency). A weather station in the woods isn&apos;t enough.
         GainForest triangulates: public satellite data (heavily filtered for clouds and noise), drones
-        flying the canopy directly, and people on the ground &mdash; three independent ways of validating
+        flying the canopy directly, and people on the ground: three independent ways of validating
         the same reality before anyone makes a decision from it.
       </P>
       <P>
         The logic he keeps returning to is simple and powerful: <strong>once you can measure something, you
         can manage it.</strong> And once you have clean raw data, you can point today&apos;s models at it.
-        For most of history we were bottlenecked by single experts &mdash; thirty years to grow a PhD, a
+        For most of history we were bottlenecked by single experts, thirty years to grow a PhD, a
         handful of good thinking-hours a day. Now you can throw state-of-the-art models at the data and
-        surface patterns no one person could ever hold in their head &mdash; not to extract from a system,
+        surface patterns no one person could ever hold in their head, not to extract from a system,
         but to figure out how to coexist with it.
       </P>
 
@@ -1282,32 +1282,32 @@ function KossSignalsContent() {
       <P>
         The back half turned to community organizing at scale. Koss has been a fixture at DevCon
         (Bogot&aacute;, Bangkok) and DevConnect (Amsterdam, Buenos Aires), and is deep in planning for{' '}
-        <strong>DevCon Mumbai</strong> later in 2026. His goal is to make it <em>cosmo-local</em> &mdash;
+        <strong>DevCon Mumbai</strong> later in 2026. His goal is to make it <em>cosmo-local</em>,
         following Michel Bauwens&apos;s language and the &ldquo;Ethereum localism&rdquo; work coming out of
-        Portland and Denver &mdash; so a global event genuinely plugs into the place that hosts it. His own
+        Portland and Denver, so a global event genuinely plugs into the place that hosts it. His own
         affiliations run through <strong>web3privacy now</strong> and the <strong>Cypherpunk Congress</strong>,
         and he&apos;s helping plan a week-long Network School activation ahead of the conference.
       </P>
       <P>
         One reframe stuck with me: the shift some crypto communities are making from talking about the
-        &ldquo;global south&rdquo; to the <strong>&ldquo;global majority&rdquo;</strong> &mdash; a subtle
+        &ldquo;global south&rdquo; to the <strong>&ldquo;global majority&rdquo;</strong>, a subtle
         but real change from <em>market to be captured</em> toward <em>bloc that aligns for itself</em>, as
         regions in Southeast Asia, Africa, and Latin America build stronger ties with one another.
       </P>
 
       <H2>Inventing the future</H2>
       <P>
-        We wound down where these conversations often do &mdash; on the tension between roots and
+        We wound down where these conversations often do, on the tension between roots and
         acceleration. Both of us grew up far from the center of things (Venezuela; Eastern Europe), and we
         share the sense of standing between two pulls: the deep connection to ancestors and centuries of
         human continuity on one side, and technology remaking the world every single day on the other.
-        Industrial, electrical, computer, and now AI revolutions each force the same question &mdash; how do
+        Industrial, electrical, computer, and now AI revolutions each force the same question: how do
         we want to live, together, and what do we actually value?
       </P>
       <P>
         Koss&apos;s answer, borrowing Alan Kay, is the note to end on: <strong>the best way to predict the
         future is to invent it.</strong> (And the name? &ldquo;Koss&rdquo; is short for Cosmo, itself short
-        for <em>cosmostasis</em> &mdash; a play on homeostasis, balance held not just in a body but on a
+        for <em>cosmostasis</em>, a play on homeostasis, balance held not just in a body but on a
         cosmic scale.)
       </P>
 
@@ -1316,10 +1316,10 @@ function KossSignalsContent() {
         items={[
           'Lived experience of hyperinflation makes the case for sound money and better systems viscerally, not abstractly.',
           'Organizing a community is really an excuse to learn in public, meet your heroes, and let connections compound.',
-          'A biomarker without context is noise; interpretation — time, environment, meaning — is most of the work.',
+          'A biomarker without context is noise; interpretation (time, environment, meaning) is most of the work.',
           'Measuring living systems (bodies, forests, bioregions) is what lets us value, manage, and protect them.',
           'Triangulate your data (satellite + drones + people on the ground) before you make decisions from it.',
-          'Point AI at clean raw data to find patterns no single expert could — in order to coexist, not just extract.',
+          'Point AI at clean raw data to find patterns no single expert could, in order to coexist, not just extract.',
         ]}
       />
       <Note>
@@ -1345,7 +1345,7 @@ function ChongIngKaiContent() {
       />
       <P>
         I met <strong>Chong Ing Kai</strong> an hour after we&apos;d both spent a Saturday at a robot
-        hackathon at Network School &mdash; a room of maybe forty kids and adults building machines out of
+        hackathon at Network School, a room of maybe forty kids and adults building machines out of
         what look like chopsticks. He&apos;s 22, the founder and CEO of <strong>Stick &apos;Em</strong>, and
         one of the more clear-headed builders I&apos;ve talked to in a while. So I asked him to tell me the
         whole story.
@@ -1354,7 +1354,7 @@ function ChongIngKaiContent() {
       <H2>A maker who never stopped</H2>
       <P>
         Kai has been taking things apart and putting them back together since he was six or seven. For a few
-        years that meant building <em>dangerous</em> things &mdash; flamethrowers, air cannons, tasers,
+        years that meant building <em>dangerous</em> things, flamethrowers, air cannons, tasers,
         &ldquo;things that harm people,&rdquo; as he put it cheerfully. The turn came in primary five, when
         his dad introduced him to Engineering Good, a Singapore nonprofit that pairs makers with people with
         disabilities. Building a button that lets someone who can&apos;t turn a lock open their own door
@@ -1364,7 +1364,7 @@ function ChongIngKaiContent() {
 
       <H2>Why STEAM, and why it&apos;s broken</H2>
       <P>
-        Stick &apos;Em exists to make STEAM education accessible. The &ldquo;A&rdquo; &mdash; arts &mdash; is
+        Stick &apos;Em exists to make STEAM education accessible. The &ldquo;A&rdquo; (arts) is
         the part people misunderstand. Kai&apos;s point is that Da Vinci was an inventor as much as a
         painter, and without that inventive, human streak &ldquo;people would just build boring computers and
         very boring things.&rdquo;
@@ -1372,7 +1372,7 @@ function ChongIngKaiContent() {
       <P>
         But the deeper problem he saw as a robotics teacher was exclusion. &ldquo;When I looked at my
         classroom, everybody was a rich kid. 99% of them had the money.&rdquo; Every other school he visited,
-        the kids were bored &mdash; because they weren&apos;t building anything, they were <em>copying</em> a
+        the kids were bored, because they weren&apos;t building anything, they were <em>copying</em> a
         robot off a screen. &ldquo;The whole approach to STEM education was so broken, so inaccessible, so
         exclusive. So what if I can build something to solve it?&rdquo;
       </P>
@@ -1386,19 +1386,19 @@ function ChongIngKaiContent() {
       <H2>Problem clarity beats vibe-coding</H2>
       <P>
         I asked how a maker becomes a founder. His answer was about <strong>problem clarity</strong>.
-        &ldquo;Y Combinator always said, build something people want. It&apos;s deceptively simple &mdash; the
+        &ldquo;Y Combinator always said, build something people want. It&apos;s deceptively simple, the
         real question is how <em>many</em> people want it.&rdquo; Today&apos;s tools make it trivially easy to
         build things, he argues, which is exactly why so many entrepreneurs build things no one needs. Stick
         &apos;Em has run six years without a meaningful pivot, and he credits that entirely to having spent
         enough time inside a problem to actually understand it.
       </P>
       <Pull>
-        Ten customers is easy &mdash; I can WhatsApp every one. Getting to the next thousand, the next ten
+        Ten customers is easy, I can WhatsApp every one. Getting to the next thousand, the next ten
         thousand, is a completely different problem.
       </Pull>
       <P>
-        Getting started was almost accidental. He built in public &mdash; the first 3D print of a Stick
-        &apos;Em part was posted with a one-word, frustrated caption &mdash; and a teacher who followed him
+        Getting started was almost accidental. He built in public, the first 3D print of a Stick
+        &apos;Em part was posted with a one-word, frustrated caption, and a teacher who followed him
         from his robotics days asked, &ldquo;What is this? Tell me more.&rdquo; That became the first
         customer, then a second, a third. Today Stick &apos;Em reaches roughly 35,000 students and 3,500
         teachers across 300&ndash;400 schools in 18 countries, with the most active markets clustered in
@@ -1410,15 +1410,15 @@ function ChongIngKaiContent() {
       <P>
         His teaching philosophy is almost anti-instruction. &ldquo;At the core of it, it&apos;s really to{' '}
         <em>not</em> guide the kids.&rdquo; Give them a general problem statement, step back, and let them
-        create &mdash; which is why nothing in that hackathon room looked the same. Problem-solving, he
+        create, which is why nothing in that hackathon room looked the same. Problem-solving, he
         believes, doesn&apos;t come from sitting in front of a screen pressing buttons; it comes from touching
         and building things, immersed for four hours instead of scrolling TikTok.
       </P>
       <P>
         That belief extends to AI. Counterintuitively for a founder who&apos;s &ldquo;back coding
         nowadays,&rdquo; Kai would <em>delay</em> giving kids the tools. &ldquo;Creativity is like an
-        instinct, an innate skill. If you don&apos;t sharpen it &mdash; if you chop it off and let the
-        computer do it &mdash; you&apos;re cooked.&rdquo; Hand a kid a challenge and they throw it straight to
+        instinct, an innate skill. If you don&apos;t sharpen it, if you chop it off and let the
+        computer do it, you&apos;re cooked.&rdquo; Hand a kid a challenge and they throw it straight to
         ChatGPT; the packaged, perfect solution is, he thinks, exactly the wrong way to educate.
       </P>
 
@@ -1432,21 +1432,21 @@ function ChongIngKaiContent() {
       />
       <P>
         The best stretch of the conversation was about risk. Last September, Stick &apos;Em made the Hult
-        Prize final in London &mdash; but Kai was in mandatory national service in Singapore and couldn&apos;t
+        Prize final in London, but Kai was in mandatory national service in Singapore and couldn&apos;t
         leave the country without permission. He calculated it: fly secretly, and if they win a million
         dollars, a week in jail is worth it. He went. They won.
       </P>
       <P>
         The second story is tamer but just as telling. Singapore&apos;s president publishes his email
-        address. So Kai, fresh off the win, simply wrote to him &mdash; and within a week was shaking hands at
+        address. So Kai, fresh off the win, simply wrote to him, and within a week was shaking hands at
         the Istana. &ldquo;If I had a boring mentality, if I didn&apos;t dare to play outside the system, I
         wouldn&apos;t have taken the risk. The outcome is usually so much greater than the potential
         risk.&rdquo;
       </P>
       <Note>
         He&apos;s careful not to glorify it: risk-taking is also a <strong>privilege</strong>. Being able to
-        attend Network School, he notes, means being able to pay for it &mdash; &ldquo;some random kid in
-        Bangladesh can&apos;t take that risk&rdquo; &mdash; and those who can should stay aware of it.
+        attend Network School, he notes, means being able to pay for it: &ldquo;some random kid in
+        Bangladesh can&apos;t take that risk&rdquo; and those who can should stay aware of it.
       </Note>
 
       <H2>Documenting a life, and the Experience Cube</H2>
@@ -1455,14 +1455,14 @@ function ChongIngKaiContent() {
         alt="Chong Ing Kai and the interviewer discussing journaling and self-awareness"
         width={1280}
         height={720}
-        caption="On journaling: observe, think, feel, want — and how most people stop at the first."
+        caption="On journaling: observe, think, feel, want, and how most people stop at the first."
       />
       <P>
-        We ended on something close to my own work &mdash; journaling. Kai connected it back to
+        We ended on something close to my own work, journaling. Kai connected it back to
         self-awareness and a framework he&apos;d just learned, the Experience Cube: what you{' '}
         <em>observed</em>, what you <em>thought</em>, what you <em>felt</em>, and what you <em>want</em>.
         &ldquo;Many people just observe. They don&apos;t think hard, don&apos;t notice how they feel,
-        don&apos;t know what they want.&rdquo; Documenting, done honestly, is how you close that gap &mdash;
+        don&apos;t know what they want.&rdquo; Documenting, done honestly, is how you close that gap,
         the same reason Da Vinci filled notebooks the moment paper became affordable.
       </P>
       <P>
@@ -1474,11 +1474,11 @@ function ChongIngKaiContent() {
       <H2>Key takeaways</H2>
       <UL
         items={[
-          <><strong>Problem clarity is the moat.</strong> Six years, no pivot &mdash; because he understood the problem before he built the product.</>,
+          <><strong>Problem clarity is the moat.</strong> Six years, no pivot, because he understood the problem before he built the product.</>,
           <><strong>Accessibility is a design choice.</strong> Chopsticks, three-hour training, and open-ended lessons are what let STEAM reach a floating village or a rural classroom.</>,
-          <><strong>Don&apos;t guide the kids.</strong> Real problem-solving comes from building, not copying &mdash; and that&apos;s why he&apos;d delay AI, not rush it.</>,
-          <><strong>Take the risk, but know it&apos;s a privilege.</strong> The upside usually dwarfs the downside &mdash; for those who can afford the downside.</>,
-          <><strong>Hold the tension.</strong> Between profit and impact, awareness and ambition &mdash; giving in to either means you&apos;ve stopped.</>,
+          <><strong>Don&apos;t guide the kids.</strong> Real problem-solving comes from building, not copying, and that&apos;s why he&apos;d delay AI, not rush it.</>,
+          <><strong>Take the risk, but know it&apos;s a privilege.</strong> The upside usually dwarfs the downside: for those who can afford the downside.</>,
+          <><strong>Hold the tension.</strong> Between profit and impact, awareness and ambition, giving in to either means you&apos;ve stopped.</>,
         ]}
       />
       <P>
@@ -1512,7 +1512,7 @@ function QuantumProofBitcoinContent() {
         Some conversations start with small talk. This one started with Fourier. Chris Smith and I
         first met in the Network School caf&eacute; months ago, and within minutes we were thirty
         deep into a French mathematician who was laughed out of academia for suggesting you could
-        decompose any wave into its constituent frequencies &mdash; the same math that now underpins
+        decompose any wave into its constituent frequencies, the same math that now underpins
         every piece of audio and video you touch. It was the perfect opening for a guest who moves
         fluidly between the technical and the human: Chris, known online as UV Lightman, is a
         founder, a musician, a comedian, and someone building a blockchain to survive a threat most
@@ -1522,7 +1522,7 @@ function QuantumProofBitcoinContent() {
       <H2>The threat is an efficient attack</H2>
       <P>
         Quantus exists because of a tip. Chris and his co-founder Joe heard that quantum computing
-        was advancing faster than the public was being told &mdash; and if you know where to look,
+        was advancing faster than the public was being told, and if you know where to look,
         that&apos;s an alarming sentence. Modern cryptography rests on problems that are easy to
         state and astronomically hard to reverse: factoring large numbers (RSA), and elliptic-curve
         math. Shor&apos;s algorithm collapses both.
@@ -1532,11 +1532,11 @@ function QuantumProofBitcoinContent() {
         alt="Chris explaining Shor's algorithm and the threat quantum computing poses to Bitcoin's cryptography"
         width={1280}
         height={720}
-        caption="The risk isn&rsquo;t that an attack exists &mdash; it&rsquo;s that an efficient one does."
+        caption="The risk isn&rsquo;t that an attack exists, it&rsquo;s that an efficient one does."
       />
       <P>
-        The framing Chris uses is the one worth keeping: the danger isn&apos;t that an attack exists
-        &mdash; every algorithm has known attacks. The danger is that an <em>efficient</em> attack
+        The framing Chris uses is the one worth keeping: the danger isn&apos;t that an attack exists,
+every algorithm has known attacks. The danger is that an <em>efficient</em> attack
         exists. A well-designed system assumes even the world&apos;s biggest supercomputer would need
         thousands of years to break it. Shor&apos;s algorithm turns that from millennia into
         something tractable, provided someone builds the machine. Over a trillion dollars in Bitcoin
@@ -1546,13 +1546,13 @@ function QuantumProofBitcoinContent() {
       <H2>A &ldquo;new Bitcoin&rdquo; as a backstop</H2>
       <P>
         Quantus is a deliberate throwback. It&apos;s a proof-of-work chain focused entirely on the
-        money use case &mdash; not a smart-contract platform. Chris built on Ethereum for years and
+        money use case, not a smart-contract platform. Chris built on Ethereum for years and
         respects it, but he&apos;s blunt that &ldquo;the average quality of a smart contract is
         somewhere between malicious and completely broken.&rdquo; So Quantus keeps the surface area
         small: 21 million coins, mined on your GPU, no ASICs, no KYC to acquire it.
       </P>
       <P>
-        The pitch is audacious, and he knows it. VCs have told him he&apos;s crazy &mdash; not only
+        The pitch is audacious, and he knows it. VCs have told him he&apos;s crazy, not only
         launching an L1, but positioning it against Bitcoin itself. His answer is that someone has to
         solve this, the timelines are compressing (the US government has already cut its own quantum
         estimates by more than half), and it might as well be a Bitcoin-Cash veteran who once wrote
@@ -1565,26 +1565,26 @@ function QuantumProofBitcoinContent() {
       <P>
         The most clarifying stretch of the conversation isn&apos;t about quantum at all. It&apos;s
         about money. When Chris first encountered Bitcoin in 2011, the hardest part wasn&apos;t the
-        peer-to-peer networking or the proof of work &mdash; it was understanding why anyone would
+        peer-to-peer networking or the proof of work, it was understanding why anyone would
         call it money. Digging in, he found that money has been &ldquo;dramatically
         over-complicated.&rdquo; At its core it&apos;s almost embarrassingly simple: if I do things
         for you, my number goes up; if you do things for me, my number goes down. Everything else
-        &mdash; consensus, mining, the elaborate machinery &mdash; exists so a group of strangers can
+ (consensus, mining, the elaborate machinery) exists so a group of strangers can
         agree on that ledger without trusting a single point of failure.
       </P>
       <Pull>
         There&apos;s an Argo lesson buried in there. The things we treat as impossibly complex
-        often turn out to have a simple core we&apos;ve buried under jargon. Naming that core &mdash;
-        putting it into plain words &mdash; is most of the work.
+        often turn out to have a simple core we&apos;ve buried under jargon. Naming that core,
+        putting it into plain words, is most of the work.
       </Pull>
 
       <H2>A warning from a stranger</H2>
       <P>
         The origin story has a cinematic beat. At a Token 2049 side event, Chris demoed a Bluetooth
-        peer-to-peer chat app he&apos;d built &mdash; a geographic 4chan where you don&apos;t know who
+        peer-to-peer chat app he&apos;d built, a geographic 4chan where you don&apos;t know who
         anyone is, but you know you&apos;ve shared a room with them. Afterward a man approached, said
-        he worked for NIST &mdash; the agency that effectively decides what cryptography the US
-        government, and much of the world, uses &mdash; and told him quantum computers were further
+        he worked for NIST, the agency that effectively decides what cryptography the US
+        government, and much of the world, uses, and told him quantum computers were further
         along than anyone was admitting, and that the public would not be warned.
       </P>
       <Figure
@@ -1603,12 +1603,12 @@ function QuantumProofBitcoinContent() {
 
       <H2>Local AI and the exocortex</H2>
       <P>
-        When the conversation turned to Argo &mdash; the private, AI-assisted journaling
-        practice this podcast is part of &mdash; Chris was thoughtfully cautious, and that&apos;s
+        When the conversation turned to Argo, the private, AI-assisted journaling
+        practice this podcast is part of, Chris was thoughtfully cautious, and that&apos;s
         exactly why it&apos;s worth hearing. He&apos;s protective of his inner life; he doesn&apos;t
         want a model on his phone reporting his mind-state back to the network. But he lit up at the
         <em>idea</em> underneath it: AI as an exocortex. An external memory where the patterns that
-        shape our lives &mdash; the ones that recur too infrequently to notice &mdash; could finally
+        shape our lives (the ones that recur too infrequently to notice) could finally
         become visible. &ldquo;Imagine someone who knows everything about you,&rdquo; he said,
         &ldquo;and can tell you: in the past few relationships, you had this pattern.&rdquo;
       </P>
@@ -1627,11 +1627,11 @@ function QuantumProofBitcoinContent() {
 
       <H2>Both halves of the brain</H2>
       <P>
-        We closed where Chris lives most comfortably &mdash; the seam between logic and intuition.
+        We closed where Chris lives most comfortably, the seam between logic and intuition.
         &ldquo;God gave us two hemispheres,&rdquo; he said; treating yourself as a
         &ldquo;left-brain person&rdquo; or a &ldquo;right-brain person&rdquo; is a way of amputating
         half your capacity. Language, in his view, should be a set of toys you pick up, play with,
-        and put down &mdash; never a master. He makes music as UV Lightman, writes a Substack called
+        and put down, never a master. He makes music as UV Lightman, writes a Substack called
         <em>weaponized schizophrenia</em> about cybernetics and sense-making, and points out that the
         very conversation we were having was improvised: nobody rehearsed it, and it worked fine. The
         plan-everything-or-it-fails instinct, he argues, is a profound misunderstanding of how your
@@ -1641,10 +1641,10 @@ function QuantumProofBitcoinContent() {
       <H2>Key takeaways</H2>
       <UL
         items={[
-          <><strong>The real cryptographic risk is efficiency.</strong> Not that an attack exists &mdash; that an <em>efficient</em> one does. Shor&apos;s algorithm targets the RSA and elliptic-curve math securing most of the internet and over a trillion dollars in Bitcoin.</>,
+          <><strong>The real cryptographic risk is efficiency.</strong> Not that an attack exists, that an <em>efficient</em> one does. Shor&apos;s algorithm targets the RSA and elliptic-curve math securing most of the internet and over a trillion dollars in Bitcoin.</>,
           <><strong>Quantus is a narrow, quantum-secure backstop.</strong> A proof-of-work chain focused only on money, in case Bitcoin&apos;s cryptography fails.</>,
           <><strong>Money is simpler than we make it.</strong> A shared ledger of who did what for whom; the complexity exists to remove the trusted third party.</>,
-          <><strong>AI&apos;s best use may be self-knowledge.</strong> An exocortex that surfaces your patterns &mdash; but only if it runs locally and keeps your sovereignty intact.</>,
+          <><strong>AI&apos;s best use may be self-knowledge.</strong> An exocortex that surfaces your patterns, but only if it runs locally and keeps your sovereignty intact.</>,
           <><strong>Don&apos;t pick a hemisphere.</strong> Logic and intuition are tools that snap together, and most of what you do well, you already improvise.</>,
         ]}
       />
@@ -1683,13 +1683,13 @@ function DavidJohnstonMorpheusContent() {
         Some people chase trends. David Johnston seems to <em>feel</em> them arriving a few years
         early and then spend the next decade building at the front of the wave. When we sat down at
         Network School in Malaysia, his LinkedIn still listed his education as &ldquo;autodidact,
-        self-taught polymath&rdquo; &mdash; and by the end of the hour that felt less like a flex and
+        self-taught polymath&rdquo; and by the end of the hour that felt less like a flex and
         more like an accurate description of how he&apos;s lived.
       </P>
       <P>
         He started his first multimillion-dollar company at 19. He got into Bitcoin in 2012. In 2013
-        he wrote the paper that coined the term &ldquo;DApps&rdquo; &mdash; decentralized
-        applications &mdash; and helped shape the language Ethereum still uses to describe itself.
+        he wrote the paper that coined the term &ldquo;DApps&rdquo; decentralized
+        applications, and helped shape the language Ethereum still uses to describe itself.
         Now he&apos;s the lead technologist on Morpheus, a permissionless network for decentralized
         AI. What connects all of it isn&apos;t a technology. It&apos;s a method, and a conviction.
       </P>
@@ -1699,7 +1699,7 @@ function DavidJohnstonMorpheusContent() {
         Ask David how he built any given project and you get the same answer, scaled up or down.
         &ldquo;With every project, I come up with a thesis first.&rdquo; As a teenager, the thesis
         was that people would read books on the internet, so he aggregated 300 works of fiction and
-        nonfiction into a subscription site called Wired Fiction &mdash; at 16, incorporating in
+        nonfiction into a subscription site called Wired Fiction, at 16, incorporating in
         Delaware to get himself released from a school he was bored by. Later the thesis was that
         scarcer crude oil would make renewables viable, so he raised $5.9 million to turn poultry fat
         into biodiesel in Maryland, then grew algae to beat the feedstock bottleneck and sold the
@@ -1707,7 +1707,7 @@ function DavidJohnstonMorpheusContent() {
       </P>
       <P>
         The mechanics never changed. &ldquo;A lot of times I&apos;ll just register a domain name. It
-        gives it a name. And once something has a name, then it exists &mdash; because you can talk
+        gives it a name. And once something has a name, then it exists, because you can talk
         to people about it.&rdquo; Then a website, which forces the idea into real words. Then,
         crucially, building in public. He&apos;s convinced that keeping ideas secret is
         self-defeating: publishing the DApps paper, he says, is precisely what attracted every
@@ -1719,13 +1719,13 @@ function DavidJohnstonMorpheusContent() {
         alt="David Johnston explaining his four-part framework for a real decentralized application"
         width={1280}
         height={720}
-        caption="David&rsquo;s four-part test for a real DApp — peer-to-peer, open source, a blockchain backend, and a token — became the framing Ethereum adopted."
+        caption="David&rsquo;s four-part test for a real DApp (peer-to-peer, open source, a blockchain backend, and a token) became the framing Ethereum adopted."
       />
 
       <H2>From an uncensorable Linden dollar to &ldquo;DApps&rdquo;</H2>
       <P>
         The Bitcoin insight came from an unlikely place: Second Life. David had watched the virtual
-        world&apos;s economy boom on its in-game currency, the Linden dollar &mdash; until, he
+        world&apos;s economy boom on its in-game currency, the Linden dollar, until, he
         recalls, regulators moved in around 2007 and shut down its most interesting uses overnight.
         The lesson stuck: a currency run by a company will inevitably be censored by a government. So
         when Bitcoin appeared, he understood it instantly. &ldquo;It&apos;s an uncensorable Linden
@@ -1733,11 +1733,11 @@ function DavidJohnstonMorpheusContent() {
         down.&rdquo;
       </P>
       <P>
-        His DApps paper tried to generalize the Bitcoin model into a repeatable framework &mdash;
+        His DApps paper tried to generalize the Bitcoin model into a repeatable framework,
         peer-to-peer, open source, a blockchain backend, and a token to reward behavior. Ethereum
         adopted the framing so completely that &ldquo;a platform for smart contracts and
         decentralized applications&rdquo; became its subtitle. Some of the best moments in the
-        conversation are the small human ones from that era &mdash; meeting a teenage Vitalik
+        conversation are the small human ones from that era, meeting a teenage Vitalik
         Buterin running the check-in desk at the Atlanta Bitcoin conference, then sneaking him into
         the bars afterward because he wasn&apos;t 21.
       </P>
@@ -1745,21 +1745,21 @@ function DavidJohnstonMorpheusContent() {
       <H2>What Morpheus actually is</H2>
       <P>
         When AI&apos;s transformer breakthrough matured around 2022, David saw the pattern again:
-        everything people had dreamed of doing with AI a decade earlier was suddenly possible &mdash;
+        everything people had dreamed of doing with AI a decade earlier was suddenly possible,
         but it was consolidating into a handful of companies. His response was a 2023 paper coining
         &ldquo;smart agents&rdquo;: AI connected to a crypto wallet, so it can hold value and
-        complete tasks, not just answer questions. The pseudonymous authors of Morpheus &mdash;
-        named, fittingly, after Matrix characters &mdash; took that idea and added the missing piece:
+        complete tasks, not just answer questions. The pseudonymous authors of Morpheus,
+        named, fittingly, after Matrix characters, took that idea and added the missing piece:
         a network where anyone can connect powerful GPUs to those agents.
       </P>
       <P>
         Morpheus itself runs no hardware. It&apos;s a set of smart contracts on Ethereum and Base
         that coordinate a global marketplace: providers bring GPUs and open-source models (Llama,
         GLM, and others), users open a session and pay for inference, and the protocol records the
-        work and hands out rewards &mdash; to people providing compute, code, and capital alike, with
+        work and hands out rewards, to people providing compute, code, and capital alike, with
         no pre-mine and no company. For privacy, providers can run inference inside trusted execution
-        environments &mdash; chips like NVIDIA&apos;s H100 that decrypt your prompt only inside the
-        silicon and re-encrypt the output &mdash; so even the person running the GPU can&apos;t read
+        environments, chips like NVIDIA&apos;s H100 that decrypt your prompt only inside the
+        silicon and re-encrypt the output, so even the person running the GPU can&apos;t read
         what you sent.
       </P>
       <Figure
@@ -1767,7 +1767,7 @@ function DavidJohnstonMorpheusContent() {
         alt="David Johnston describing how inference works on the Morpheus network"
         width={1280}
         height={720}
-        caption="Morpheus runs no GPUs of its own — it&rsquo;s a marketplace where anyone can provide open-source model inference and get paid on-chain."
+        caption="Morpheus runs no GPUs of its own, it&rsquo;s a marketplace where anyone can provide open-source model inference and get paid on-chain."
       />
 
       <H2>Own your AI, or be a serf</H2>
@@ -1790,11 +1790,11 @@ function DavidJohnstonMorpheusContent() {
       />
       <P>
         That question landed for me personally. The product I&apos;m building,{' '}
-        <A href="https://Argo.com">Argo</A>, is a private AI journaling companion &mdash; a
+        <A href="https://Argo.com">Argo</A>, is a private AI journaling companion: a
         space to think through your most personal thoughts, which is exactly the kind of thing you
         don&apos;t want flowing through someone else&apos;s servers. David&apos;s closing advice for
         builders was the same one he&apos;d have given in 2013, updated for the moment: get started,
-        build in public, take small steps &mdash; and get an agent you actually own.
+        build in public, take small steps, and get an agent you actually own.
       </P>
 
       <H2>Key takeaways</H2>
@@ -1805,7 +1805,7 @@ function DavidJohnstonMorpheusContent() {
             a teenage e-book site to a decentralized AI network.
           </>,
           <>
-            <strong>Censorship resistance is a design goal, not a slogan</strong> &mdash; Morpheus is
+            <strong>Censorship resistance is a design goal, not a slogan</strong>: Morpheus is
             built to keep running regardless of any single government&apos;s AI policy.
           </>,
           <>
@@ -1813,7 +1813,7 @@ function DavidJohnstonMorpheusContent() {
             the gap between owning and renting your tools widens over a lifetime.
           </>,
           <>
-            <strong>Fair distribution builds durable networks</strong> &mdash; rewarding code,
+            <strong>Fair distribution builds durable networks</strong>, rewarding code,
             compute, and capital with no pre-mine echoes what gave early Ethereum its developer
             network effect.
           </>,
@@ -1824,22 +1824,22 @@ function DavidJohnstonMorpheusContent() {
       <UL
         items={[
           <>
-            <A href="https://x.com/DJohnstonEC">David Johnston on X</A> &mdash; @DJohnstonEC
+            <A href="https://x.com/DJohnstonEC">David Johnston on X</A>, @DJohnstonEC
           </>,
           <>
-            <A href="https://app.mor.org">Morpheus API for developers</A> &mdash; one button to a key
+            <A href="https://app.mor.org">Morpheus API for developers</A>, one button to a key
           </>,
           <>
             <A href="https://tech.mor.org">Morpheus privacy &amp; tech walkthrough</A>
           </>,
           <>
-            <A href="https://mor.org">Morpheus</A> &mdash; the protocol&apos;s site
+            <A href="https://mor.org">Morpheus</A>, the protocol&apos;s site
           </>,
           <>
-            <A href="https://openclaw.xyz">OpenClaw</A> &mdash; one-click agent creation
+            <A href="https://openclaw.xyz">OpenClaw</A>, one-click agent creation
           </>,
-          <>Based AI &mdash; David&apos;s project built on open-weight models</>,
-          <>Network School &mdash; Balaji Srinivasan&apos;s community, where this was recorded</>,
+          <>Based AI, David&apos;s project built on open-weight models</>,
+          <>Network School, Balaji Srinivasan&apos;s community, where this was recorded</>,
         ]}
       />
 
@@ -1872,14 +1872,14 @@ function PeterDonaldsonContent() {
         development at a company building an exchange for tokenized stocks.
       </P>
       <P>
-        We met at Network School &mdash; first at the Muay Thai booth at the NS fair, then hauling
-        mats after a yoga class &mdash; and this conversation is the long version of &ldquo;so,
+        We met at Network School, first at the Muay Thai booth at the NS fair, then hauling
+        mats after a yoga class, and this conversation is the long version of &ldquo;so,
         what&apos;s your story?&rdquo;
       </P>
 
       <H2>From cassette tapes to a life in music</H2>
       <P>
-        Peter&apos;s first computer was a Commodore that loaded games from a cassette tape &mdash;
+        Peter&apos;s first computer was a Commodore that loaded games from a cassette tape,
         flick up the little door on the corner, press play, and wait half an hour for a program to
         appear. That patience for a slow-loading machine sits oddly well next to the rest of his
         story, which is mostly about following sound wherever it led.
@@ -1892,7 +1892,7 @@ function PeterDonaldsonContent() {
         funk and soul. His brother, a DJ, filled the house with sound systems, and Peter eventually
         found his own corner of electronic music in psychedelic trance. He can trace the grooves of a
         Shpongle or Green Nuns of the Revolution track back to the funk pioneers and their Moog
-        synthesizers &mdash; which is why, he says, he doesn&apos;t really hear genres as separate
+        synthesizers, which is why, he says, he doesn&apos;t really hear genres as separate
         things. They&apos;re all the same conversation, influencing each other across decades.
       </P>
       <Figure
@@ -1900,13 +1900,13 @@ function PeterDonaldsonContent() {
         alt="Peter Donaldson talking about his musical roots, from cello to funk and psytrance"
         width={1280}
         height={720}
-        caption="From cello at three to psychedelic trance — Peter traces every genre he loves back to the same synthesizer lineage."
+        caption="From cello at three to psychedelic trance, Peter traces every genre he loves back to the same synthesizer lineage."
       />
 
       <H2>Fifteen years in China</H2>
       <P>
         Peter went to China almost by accident and stayed for fifteen years. It started with tai chi
-        in Manchester &mdash; taken up for health reasons, and specifically Chen style, which led him
+        in Manchester, taken up for health reasons, and specifically Chen style, which led him
         and his teacher to Chenjiagou, the village in Henan where the style originates, not far from
         the Shaolin Temple. When two of the record labels he worked for went bust, he went back to
         university to learn Chinese, &ldquo;the only other thing I was interested in outside of
@@ -1917,7 +1917,7 @@ function PeterDonaldsonContent() {
         In Yunnan he built the thing he&apos;s proudest of as a producer: Spirit Tribe, a festival on
         a patch of land outside Kunming with room for three stages of electronic dance music, run for
         about four years until COVID made live events impossible. Before the fixed site there were
-        one-off parties in spectacular places &mdash; including one where you walked five kilometres
+        one-off parties in spectacular places, including one where you walked five kilometres
         into a valley, across streams and through forest, to reach a cave with a stream running past
         it. The DJ played from inside the cave; the dancefloor was the sand out front, mountains on
         either side. It was, understandably, called Forest Magic.
@@ -1927,25 +1927,25 @@ function PeterDonaldsonContent() {
       <P>
         The pivot into technology came through music, too. A famous Chinese radio-DJ friend launched
         a tech company in Shenzhen and asked Peter to help build a music-streaming platform to fix the
-        pain points of the recorded-music industry &mdash; using blockchain. Writing the
+        pain points of the recorded-music industry, using blockchain. Writing the
         project&apos;s own white paper sent Peter to the Bitcoin white paper, and, as he puts it,
         &ldquo;the penny dropped.&rdquo; He got blockchain-pilled.
       </P>
       <P>
         The product, Soundario, was genuinely ahead of its time. Artists uploaded directly, cutting
-        out the middlemen, and got paid within 24 hours of a play &mdash; payments calculated on
+        out the middlemen, and got paid within 24 hours of a play: payments calculated on
         precise measurements of total play time divided by the artists on the platform. It even had a
         built-in curation reward: build a popular playlist and you&apos;d earn a share of the play
         time, but never more than the creator. They shipped it to the App Store and Android and were
         chasing distribution deals. The problem was timing. In 2017 and 2018 the venture money was
         flowing into layer ones and infrastructure, not consumer apps, and the company ran out of
-        runway despite doing well. &ldquo;We were too early&rdquo; &mdash; the recurring epitaph of
+        runway despite doing well. &ldquo;We were too early&rdquo; the recurring epitaph of
         good ideas.
       </P>
 
       <H2>MEV, and an old human behavior on a new rail</H2>
       <P>
-        From there Peter moved through the industry &mdash; a small exchange trading exotic options, a
+        From there Peter moved through the industry, a small exchange trading exotic options, a
         bigger one, and then, through a former Soundario advisor who had been CTO of Huobi, a data
         company called EigenPhi focused on MEV transaction analysis. He caught the MEV wave near its
         peak, and it taught him the most, in part because it put him in rooms with some of the most
@@ -1953,12 +1953,12 @@ function PeterDonaldsonContent() {
       </P>
       <Pull>
         &ldquo;It&apos;s not really a new human concept. I have an advantage of knowledge and speed,
-        and that allows me to extract value. It&apos;s a very old pattern of human behavior &mdash;
+        and that allows me to extract value. It&apos;s a very old pattern of human behavior,
         it&apos;s just how that pattern happens on a blockchain.&rdquo;
       </Pull>
       <P>
         His framing of MEV is the sort of thing this show exists for. Technically it began as
-        &ldquo;miner extractable value&rdquo; &mdash; miners reordering transactions in a block &mdash;
+        &ldquo;miner extractable value&rdquo; miners reordering transactions in a block,
         and grew into &ldquo;maximal extractable value,&rdquo; an edge that lets someone extract value
         through reordering, front-running, or sandwich attacks. But Peter refuses to treat it as
         something new. The blockchain is just where this version of a very old game plays out.
@@ -1967,19 +1967,19 @@ function PeterDonaldsonContent() {
       <H2>Tokenized equities: what STOX is building</H2>
       <P>
         Today Peter works on{' '}
-        <A href="https://st0x.io">STOX</A>, where he&apos;s known the founding team for years &mdash;
+        <A href="https://st0x.io">STOX</A>, where he&apos;s known the founding team for years,
         he first met one co-founder on a project to tokenize gold, and stayed in touch as they built a
         higher-level language for the EVM that now underpins their tokenization stack. STOX is a fully
         intent-based order-book DEX for tokenized equities, live on Base with close to twenty assets.
       </P>
       <P>
         He draws a clear line between this and a typical automated market maker. An AMM is passive
-        liquidity: it sits somewhere and waits to be used. On STOX, every order carries an intention
-        &mdash; a user says &ldquo;I want this at this price, or as close as possible,&rdquo; and other
+        liquidity: it sits somewhere and waits to be used. On STOX, every order carries an intention,
+a user says &ldquo;I want this at this price, or as close as possible,&rdquo; and other
         participants compete to solve that order efficiently. The tokens are fully one-to-one backed:
         each on-chain token has an underlying off-chain share held in custody, and a qualified holder
         can redeem it back into the real share and exit into the traditional system. Peter&apos;s own
-        role is less about the mechanism and more about connective tissue &mdash; finding lending
+        role is less about the mechanism and more about connective tissue, finding lending
         protocols, exchanges and use cases so the tokens actually get adopted. &ldquo;My job,&rdquo;
         he says, &ldquo;is creating options.&rdquo;
       </P>
@@ -1988,20 +1988,20 @@ function PeterDonaldsonContent() {
         alt="Peter Donaldson explaining how STOX trades tokenized equities on Base"
         width={1280}
         height={720}
-        caption="On STOX, every order carries its own price and intention — the opposite of an AMM's passive liquidity."
+        caption="On STOX, every order carries its own price and intention: the opposite of an AMM's passive liquidity."
       />
 
       <H2>Convenience that builds community</H2>
       <P>
         The most quietly profound part of the conversation isn&apos;t about crypto at all. Asked what
         he makes of Network School, Peter offers a small thesis about technology. Most modern
-        technology creates convenience, and convenience tends to create isolation &mdash; you can do
+        technology creates convenience, and convenience tends to create isolation: you can do
         everything on your own. What impressed him here was seeing technologists point that same
         convenience the other way.
       </P>
       <P>
         It&apos;s not convenient to leave your house, get to the gym, or set up a dinner conversation;
-        here, the whole environment &mdash; two gyms, co-working, co-living, workshops, events &mdash;
+        here, the whole environment: two gyms, co-working, co-living, workshops, events,
         makes community &ldquo;effortless.&rdquo; You can dip in and out, say hi in passing or talk for
         an hour, as much as you want. That flip, from technology-as-isolation to
         technology-as-augmented-community, is why he&apos;s decided to stay long-term.
@@ -2011,14 +2011,14 @@ function PeterDonaldsonContent() {
         alt="Peter Donaldson reflecting on how Network School points convenience at community"
         width={1280}
         height={720}
-        caption="Peter's sharpest observation: technology's convenience usually isolates us — the interesting move is to aim it at community instead."
+        caption="Peter's sharpest observation: technology's convenience usually isolates us, the interesting move is to aim it at community instead."
       />
       <P>
         He rounds the hour out with the practices he&apos;s building into a healthier routine:
         kettlebells, meditation, and Kalaripayattu, an old martial art from Kerala whose animal-posture
         conditioning he does as a kind of fluid yoga. And he leaves a piece of advice that fits all
         three of his lives at once. In a world that bombards us with information of wildly varying
-        quality, the key skill is discernment &mdash; judging not what&apos;s profitable but
+        quality, the key skill is discernment: judging not what&apos;s profitable but
         what&apos;s genuinely beneficial, for you and for others. &ldquo;Think about what you post
         before you post it.&rdquo;
       </P>
@@ -2028,10 +2028,10 @@ function PeterDonaldsonContent() {
         items={[
           <>
             <strong>Good ideas fail on timing, not merit.</strong> Soundario paid artists within 24
-            hours in 2017 &mdash; the tech worked; the market wasn&apos;t ready.
+            hours in 2017, the tech worked; the market wasn&apos;t ready.
           </>,
           <>
-            <strong>MEV is an old human pattern, not a new invention</strong> &mdash; an edge of
+            <strong>MEV is an old human pattern, not a new invention</strong>: an edge of
             knowledge and speed, expressed on a blockchain.
           </>,
           <>
@@ -2039,7 +2039,7 @@ function PeterDonaldsonContent() {
             intention, instead of sitting as passive liquidity.
           </>,
           <>
-            <strong>Fully-backed tokenized equities are redeemable</strong> &mdash; each token maps to
+            <strong>Fully-backed tokenized equities are redeemable</strong>, each token maps to
             a real share in custody that a qualified holder can exit into fiat.
           </>,
           <>
@@ -2053,23 +2053,23 @@ function PeterDonaldsonContent() {
       <UL
         items={[
           <>
-            <A href="https://st0x.io">STOX</A> &mdash; intent-based order-book DEX for tokenized
+            <A href="https://st0x.io">STOX</A>, intent-based order-book DEX for tokenized
             equities on Base
           </>,
-          <>Soundario &mdash; the blockchain music-streaming app Peter co-founded</>,
-          <>EigenPhi &mdash; the MEV / on-chain analytics company he worked at</>,
-          <>Spirit Tribe &amp; Forest Magic &mdash; his festival and cave party in Yunnan, China</>,
+          <>Soundario, the blockchain music-streaming app Peter co-founded</>,
+          <>EigenPhi, the MEV / on-chain analytics company he worked at</>,
+          <>Spirit Tribe &amp; Forest Magic, his festival and cave party in Yunnan, China</>,
           <>
-            Jamiroquai, Stevie Wonder, Roy Ayers, Shpongle, Green Nuns of the Revolution &mdash; his
+            Jamiroquai, Stevie Wonder, Roy Ayers, Shpongle, Green Nuns of the Revolution: his
             musical touchstones
           </>,
           <>
-            Chenjiagou (Henan) &amp; Kalaripayattu (Kerala) &mdash; the tai chi village and the martial
+            Chenjiagou (Henan) &amp; Kalaripayattu (Kerala), the tai chi village and the martial
             art he practices
           </>,
-          <>Network School &mdash; Balaji Srinivasan&apos;s community, where this was recorded</>,
+          <>Network School, Balaji Srinivasan&apos;s community, where this was recorded</>,
           <>
-            Peter&apos;s music aliases: Tone Splendor, The Sneaky Tweaker, Mr Snookums &mdash; find him
+            Peter&apos;s music aliases: Tone Splendor, The Sneaky Tweaker, Mr Snookums: find him
             on X (Mr Snookums) and LinkedIn (Peter Donaldson)
           </>,
         ]}
@@ -2099,8 +2099,8 @@ function DanielImContent() {
       <P>
         Some founder stories are a straight line. Daniel Jiwoong Im&apos;s is not. When I sat down
         with him at Network School for this episode of the Argo podcast, the phrase he kept
-        returning to was that almost nothing in his life was planned. And yet the path &mdash; from a
-        deep-learning lab, through crypto market data, to a social app about opinions &mdash; has a
+        returning to was that almost nothing in his life was planned. And yet the path, from a
+        deep-learning lab, through crypto market data, to a social app about opinions: has a
         logic to it that only becomes visible when you lay the pieces side by side.
       </P>
 
@@ -2109,13 +2109,13 @@ function DanielImContent() {
         Daniel studied computer science and mathematics at the University of Toronto, and he happened
         to be there at an extraordinary moment. He learned machine learning directly from Geoffrey
         Hinton, the researcher often called the godfather of AI and, more recently, a Nobel laureate
-        in physics. His teaching assistants at the time included Ilya Sutskever and Andrej Karpathy
-        &mdash; names that would go on to define the field.
+        in physics. His teaching assistants at the time included Ilya Sutskever and Andrej Karpathy,
+names that would go on to define the field.
       </P>
       <P>
         What hooked him wasn&apos;t the math so much as the way Hinton explained it. He described
         following Hinton to his office hours day after day, then going back to read his papers from
-        the 1980s &mdash; including work that analyzed the weights of a neural network to reason about
+        the 1980s, including work that analyzed the weights of a neural network to reason about
         what &ldquo;brain damage&rdquo; might look like inside it. The lesson underneath the story is a
         quietly useful one: sometimes a whole career turns on a single teacher who makes an idea feel
         alive.
@@ -2125,19 +2125,19 @@ function DanielImContent() {
         alt="Daniel Im recalling learning from Geoffrey Hinton at the University of Toronto"
         width={1280}
         height={720}
-        caption="Daniel learned ML from Geoffrey Hinton at Toronto — where Ilya Sutskever and Andrej Karpathy were his TAs."
+        caption="Daniel learned ML from Geoffrey Hinton at Toronto, where Ilya Sutskever and Andrej Karpathy were his TAs."
       />
       <P>
         From Toronto he did a master&apos;s at Guelph, worked on generative models at MILA in Montreal
         in Yoshua Bengio&apos;s orbit, and then took a turn into neuroscience at the Janelia Research
-        Campus (part of the Howard Hughes Medical Institute). There he built AI models of fruit flies
-        &mdash; not physically, but simulating how flies of different genotypes move and socially
+        Campus (part of the Howard Hughes Medical Institute). There he built AI models of fruit flies,
+not physically, but simulating how flies of different genotypes move and socially
         interact, so that a group of simulated flies would reproduce the behavior of the real ones.
       </P>
 
       <H2>Why he left research to build</H2>
       <P>
-        After Janelia came a PhD at NYU focused on causal inference &mdash; the study of telling
+        After Janelia came a PhD at NYU focused on causal inference, the study of telling
         causation apart from correlation. He gives a clean example in the episode: heat a cup of coffee
         and a thermometer rises, but a rising thermometer doesn&apos;t make coffee hot. In data, the
         two look identical; the whole discipline is about recovering the direction of the arrow.
@@ -2147,8 +2147,8 @@ function DanielImContent() {
         He spent four and a half years on that PhD and then left. Part of the reasoning was
         refreshingly practical: if he finished the doctorate, he&apos;d be around thirty, likely with
         more commitments, and a worse position from which to take startup risk. Better, he decided, to
-        try when he had nothing tying him down. His first company, AIFounded, was an AI search engine
-        &mdash; built on the intuition that models, like people, need a way to retrieve information
+        try when he had nothing tying him down. His first company, AIFounded, was an AI search engine,
+built on the intuition that models, like people, need a way to retrieve information
         beyond what they already &ldquo;know.&rdquo; An acquisition by Element AI fell through in a way
         he describes vividly (the deal talks alone were enough to drain the team), but the search IP
         was ultimately sold to Clearview AI. A small first exit, and a big first lesson.
@@ -2161,7 +2161,7 @@ function DanielImContent() {
         Ethereum was taking shape. During the 2017 ICO era he joined Coinscious, a startup mining
         millisecond-level market data across roughly nineteen exchanges. One of its most interesting
         jobs: statistically inferring how much of an exchange&apos;s reported volume was fake wash
-        trading &mdash; analysis that helped the hedge fund 3iQ meet compliance requirements for the
+        trading, analysis that helped the hedge fund 3iQ meet compliance requirements for the
         first Bitcoin ETF.
       </P>
       <P>
@@ -2169,7 +2169,7 @@ function DanielImContent() {
         pointed it at sports betting, launching UBet. But after three years he&apos;d absorbed two
         lessons that reshaped everything: don&apos;t improve something that already exists (he prefers
         &ldquo;all or nothing&rdquo; bets where you create a new category and quickly learn whether it
-        works), and don&apos;t build only for the small web3 audience &mdash; go where the consumers
+        works), and don&apos;t build only for the small web3 audience: go where the consumers
         are.
       </P>
 
@@ -2177,11 +2177,11 @@ function DanielImContent() {
       <P>
         That&apos;s the path that led to{' '}
         <A href="https://www.belief.market/">Belief Market</A>. He describes it as &ldquo;a TikTok for
-        opinions&rdquo; &mdash; a social app where anyone can create a market on a claim
+        opinions&rdquo; a social app where anyone can create a market on a claim
         (&ldquo;Donald Trump is an alien,&rdquo; say), pick a side, argue, and stake money that pays out
         to the winning side when the market closes. Crucially, he insists it&apos;s not a prediction
         market. It isn&apos;t about forecasting the world; it&apos;s about participation, tribes, and
-        internet drama &mdash; food rivalries, anime-character showdowns, a community member posting her
+        internet drama, food rivalries, anime-character showdowns, a community member posting her
         paintings for feedback. He&apos;s even weighing a rebrand, because the word &ldquo;market&rdquo;
         makes people expect Polymarket-style prediction when the real DNA is closer to social media for
         Gen Z.
@@ -2195,7 +2195,7 @@ function DanielImContent() {
       />
       <P>
         The most honest stretch of the conversation is about motivation. Belief Market rewards new users
-        with cash to get them in the door, but Daniel knows money can crowd out intrinsic fun &mdash; and
+        with cash to get them in the door, but Daniel knows money can crowd out intrinsic fun, and
         cites the classic study where kids who loved drawing drew <em>less</em> once a reward was
         introduced and then removed. The real retention, he thinks, has to come from something
         intangible: identity, the way your Instagram feed becomes a kind of public autobiography. Right
@@ -2206,7 +2206,7 @@ function DanielImContent() {
       <P>
         Near the end, alongside some grounded advice about work-life balance (&ldquo;it&apos;s a
         marathon, not a sprint; be kind to all parts of yourself&rdquo;), he offered the line I keep
-        thinking about. It&apos;s easy, he said, to just run &mdash; to execute so hard and so busily
+        thinking about. It&apos;s easy, he said, to just run: to execute so hard and so busily
         that you look up and realize you haven&apos;t gone far, because you never stopped to think about{' '}
         <em>what</em> to execute. His fix is almost algorithmic: a greedy approach that solves the single
         most important priority rather than juggling many at once.
@@ -2216,12 +2216,12 @@ function DanielImContent() {
         alt="Daniel Im giving advice about thinking versus executing"
         width={1280}
         height={720}
-        caption="His most useful advice: busyness isn't progress — think about what to execute, then solve the single most important thing."
+        caption="His most useful advice: busyness isn't progress, think about what to execute, then solve the single most important thing."
       />
       <P>
         And then he closed the loop on his whole story. The connective tissue between machine learning and
         Belief Market, he said, is the wisdom of crowds. In ML, a mixture of experts beats any single
-        model; in life, prediction markets and trading rest on the same premise &mdash; the aggregate is
+        model; in life, prediction markets and trading rest on the same premise: the aggregate is
         smarter than the individual. Money is just a reward function, and the market, in the end, is what
         chooses you. It&apos;s a fitting thesis for a founder whose own path looks random up close and
         coherent from a distance.
@@ -2235,8 +2235,8 @@ function DanielImContent() {
             math itself, pulled Daniel into AI for good.
           </>,
           <>
-            <strong>He optimizes for &ldquo;all or nothing&rdquo; bets</strong> &mdash; new categories
-            where you quickly learn whether the thing works &mdash; over incremental improvements.
+            <strong>He optimizes for &ldquo;all or nothing&rdquo; bets</strong>, new categories
+            where you quickly learn whether the thing works, over incremental improvements.
           </>,
           <>
             <strong>Rewards are double-edged.</strong> Cash gets users in the door, but durable retention
@@ -2247,7 +2247,7 @@ function DanielImContent() {
             single most important priority beats multitasking.
           </>,
           <>
-            <strong>The wisdom of crowds is his through-line</strong> &mdash; from mixture-of-experts
+            <strong>The wisdom of crowds is his through-line</strong>, from mixture-of-experts
             models to prediction markets, the aggregate beats the individual.
           </>,
         ]}
@@ -2257,24 +2257,24 @@ function DanielImContent() {
       <UL
         items={[
           <>
-            <A href="https://www.belief.market/">Belief Market</A> &mdash; Daniel&apos;s current company, a
+            <A href="https://www.belief.market/">Belief Market</A>, Daniel&apos;s current company, a
             social opinion app
           </>,
           <>
-            <A href="https://www.miso.care/">MisoCare</A> &mdash; his healthcare venture
+            <A href="https://www.miso.care/">MisoCare</A>, his healthcare venture
           </>,
-          <>UBet Sports &mdash; his earlier on-chain sports prediction market</>,
-          <>AIFounded &mdash; his first company, an AI search engine (IP sold to Clearview AI)</>,
-          <>Coinscious &mdash; crypto market-data startup that worked with 3iQ</>,
-          <>Cosmos / Tendermint &mdash; blockchain project by his former colleague Ethan Buchman</>,
+          <>UBet Sports, his earlier on-chain sports prediction market</>,
+          <>AIFounded, his first company, an AI search engine (IP sold to Clearview AI)</>,
+          <>Coinscious, crypto market-data startup that worked with 3iQ</>,
+          <>Cosmos / Tendermint, blockchain project by his former colleague Ethan Buchman</>,
           <>
-            Geoffrey Hinton, Ilya Sutskever, Andrej Karpathy, Alex Graves &mdash; University of Toronto AI
+            Geoffrey Hinton, Ilya Sutskever, Andrej Karpathy, Alex Graves: University of Toronto AI
             figures
           </>,
-          <>Yoshua Bengio (MILA), Yann LeCun &mdash; deep-learning pioneers mentioned</>,
-          <>Janelia Research Campus &mdash; where he did ML for neuroscience</>,
-          <>Polymarket, Augur, Kalshi &mdash; prediction markets discussed</>,
-          <>Network School &mdash; where this conversation was recorded</>,
+          <>Yoshua Bengio (MILA), Yann LeCun: deep-learning pioneers mentioned</>,
+          <>Janelia Research Campus, where he did ML for neuroscience</>,
+          <>Polymarket, Augur, Kalshi, prediction markets discussed</>,
+          <>Network School, where this conversation was recorded</>,
           <>
             Daniel on <A href="https://x.com/daniel_j_im">X</A>,{' '}
             <A href="https://www.instagram.com/iam_daniel_iam/">Instagram</A>, and{' '}
@@ -2618,28 +2618,28 @@ function AntonPecherkinContent() {
         items={[
           <>
             <A href="https://www.linkedin.com/in/antony-peech/">Anton Pecherkin on LinkedIn</A>
-            {' '}— connect with the guest
+            ,{' '}connect with the guest
           </>,
           <>
-            <A href="https://x.com/ContentDAOapp">ContentDAO on X</A> — follow the company
+            <A href="https://x.com/ContentDAOapp">ContentDAO on X</A>, follow the company
           </>,
           <>
-            <A href="https://contentdao.app">ContentDAO</A> — Anton&apos;s current company, a
+            <A href="https://contentdao.app">ContentDAO</A>, Anton&apos;s current company, a
             distribution channel for small content creators
           </>,
           <>
-            <A href="https://b4b.app">B4B.app</A> — his earlier influencer / KOL marketplace
+            <A href="https://b4b.app">B4B.app</A>, his earlier influencer / KOL marketplace
           </>,
           <>
-            <A href="https://startblock.online">StartBlock</A> — his blockchain agency; past work is
+            <A href="https://startblock.online">StartBlock</A>, his blockchain agency; past work is
             under /cases
           </>,
-          'Semakau Island / REIDS — Renewable Energy Integration Demonstrator, Singapore',
-          'Hyperledger Besu and Hyperledger Fabric — private blockchain frameworks used in the green-energy pilot',
-          'Skoltech / Yuri Yanovich — his master’s advisor in blockchain research',
-          'Stellar — the ecosystem that gave ContentDAO its first grant',
-          'Belief Market — Daniel’s prediction-market startup',
-          'Claude Code — the tool behind his shift to agentic coding',
+          'Semakau Island / REIDS, Renewable Energy Integration Demonstrator, Singapore',
+          'Hyperledger Besu and Hyperledger Fabric, private blockchain frameworks used in the green-energy pilot',
+          'Skoltech / Yuri Yanovich, his master’s advisor in blockchain research',
+          'Stellar, the ecosystem that gave ContentDAO its first grant',
+          'Belief Market, Daniel’s prediction-market startup',
+          'Claude Code, the tool behind his shift to agentic coding',
         ]}
       />
 
@@ -2802,7 +2802,7 @@ function VelveteenArtistFounderStoriesContent() {
       <UL
         items={[
           <>
-            <A href="https://www.instagram.com/velveteengallery/">Velveteen on Instagram</A> — her art
+            <A href="https://www.instagram.com/velveteengallery/">Velveteen on Instagram</A>, her art
           </>,
           <>
             <A href="https://x.com/Velveteen0x">Velveteen on X</A>
@@ -2811,16 +2811,16 @@ function VelveteenArtistFounderStoriesContent() {
             <A href="https://www.linkedin.com/in/miriam-reza-95455a106/">Miriam Reza on LinkedIn</A>
           </>,
           <>
-            <A href="https://www.chymira.com/">Chymira</A> — branding and pitch for deep tech founders
+            <A href="https://www.chymira.com/">Chymira</A>, branding and pitch for deep tech founders
           </>,
           <>
-            <A href="https://www.miriamreza.com/">Miriam Reza Design</A> — graphic design portfolio
+            <A href="https://www.miriamreza.com/">Miriam Reza Design</A>, graphic design portfolio
           </>,
-          'North Carolina State University, and RISD — where she studied and where she had hoped to go',
-          'NFT the Movie, and NFT NYC — her work in the NFT and film world',
-          'Island DAO, Forma Bristol, and Little Unusual — the communities and video agency along the way',
-          'Scott Page (Pink Floyd) — the LA Oscars art collection',
-          'The Artist’s Way, and The War of Art — books that shaped how she takes her art seriously',
+          'North Carolina State University, and RISD, where she studied and where she had hoped to go',
+          'NFT the Movie, and NFT NYC: her work in the NFT and film world',
+          'Island DAO, Forma Bristol, and Little Unusual: the communities and video agency along the way',
+          'Scott Page (Pink Floyd), the LA Oscars art collection',
+          'The Artist’s Way, and The War of Art: books that shaped how she takes her art seriously',
         ]}
       />
 
@@ -3191,18 +3191,18 @@ function Llp024AnnaSokolContent() {
       <UL
         items={[
           <>
-            <A href="https://www.instagram.com/anna_paradanta/">Anna Sokol on Instagram</A> &mdash;
+            <A href="https://www.instagram.com/anna_paradanta/">Anna Sokol on Instagram</A>,
             @anna_paradanta, where she shares about community and practice
           </>,
           <>
-            <A href="https://giving-school.eu/">Giving School</A> &mdash; the meditation school and
+            <A href="https://giving-school.eu/">Giving School</A>, the meditation school and
             community she works with
           </>,
-          'Network School — where this was recorded, in Malaysia',
-          'Lorna Jane — the Australian activewear brand from her attention story',
-          'Psycho-Cybernetics by Maxwell Maltz — the book on self-image she references',
-          'Jane Addams and Hull House — the Chicago settlement house Konrad brought up on social activism',
-          '42 — the tuition-free coding school from Konrad’s own story',
+          'Network School, where this was recorded, in Malaysia',
+          'Lorna Jane, the Australian activewear brand from her attention story',
+          'Psycho-Cybernetics by Maxwell Maltz, the book on self-image she references',
+          'Jane Addams and Hull House, the Chicago settlement house Konrad brought up on social activism',
+          '42, the tuition-free coding school from Konrad’s own story',
         ]}
       />
 
@@ -3241,8 +3241,8 @@ function FrancisGoonLosingTheFearOfAiContent() {
         seven years as an R&amp;D engineer at semiconductor and electronics multinationals, the kind
         of names that anchor Penang&apos;s industry. After that came fourteen years at MIMOS,
         Malaysia&apos;s national applied research center, a government agency under the Ministry of
-        Science, Technology and Innovation whose job is to create technology platforms &mdash; in
-        software, hardware, semiconductors, and services &mdash; and then &ldquo;seed&rdquo; them to
+        Science, Technology and Innovation whose job is to create technology platforms: in
+        software, hardware, semiconductors, and services, and then &ldquo;seed&rdquo; them to
         industry so companies can take them up and mature them into products.
       </P>
       <P>
@@ -3261,7 +3261,7 @@ function FrancisGoonLosingTheFearOfAiContent() {
       <P>
         What makes this concrete is the example he reached for: a handheld biosensor. Instead of
         going to a hospital and having blood drawn to check your parameters, MIMOS built a device you
-        can hold in your palm that uses photonics &mdash; light &mdash; to triangulate and map your
+        can hold in your palm that uses photonics (light) to triangulate and map your
         blood and physiological parameters, closely correlated to an actual lab result. No needle,
         no sample.
       </P>
@@ -3357,11 +3357,11 @@ function FrancisGoonLosingTheFearOfAiContent() {
 
       <H2>Links &amp; mentions</H2>
       <P>
-        <A href="https://www.linkedin.com/in/francisgoon/">Ts. Francis Goon on LinkedIn</A> &mdash;
+        <A href="https://www.linkedin.com/in/francisgoon/">Ts. Francis Goon on LinkedIn</A>,
         technical writer, former R&amp;D engineer, AI trainer.{' '}
-        <A href="https://theailanguagehub.lovable.app/">The AI Language Hub</A> &mdash; his venture
+        <A href="https://theailanguagehub.lovable.app/">The AI Language Hub</A>, his venture
         pairing AI skills with English and Malay coaching.{' '}
-        <A href="https://www.mimos.my/">MIMOS</A> &mdash; Malaysia&apos;s national applied R&amp;D
+        <A href="https://www.mimos.my/">MIMOS</A>, Malaysia&apos;s national applied R&amp;D
         center, where Francis spent fourteen years. Also mentioned: Crypto CSR, a friend&apos;s
         crypto education program; Horizon, an AI conference in Penang; and MTUN, the Malaysia
         Technical University Network.
@@ -3393,7 +3393,7 @@ function PrivateAIEnclavesContent() {
         coding assistant gets your source. A journal gets the thing you would not say out loud.
       </P>
       <P>
-        Usually that trust is a policy — a paragraph promising your data will not be stored or
+        Usually that trust is a policy, a paragraph promising your data will not be stored or
         trained on. Policies are worth something. But a policy is a promise about what a company
         chooses to do, and promises can be revised, breached, subpoenaed, or quietly ignored by one
         employee with database access.
@@ -3401,25 +3401,25 @@ function PrivateAIEnclavesContent() {
       <P>
         There is a different approach, and it is the one Argo is built on: make it so the company
         <em> cannot</em> read your data, even if it wanted to. Not &ldquo;will not.&rdquo;{' '}
-        <em>Cannot.</em> That is a claim about architecture, not intent — and unlike a policy, you
+        <em>Cannot.</em> That is a claim about architecture, not intent, and unlike a policy, you
         can check it.
       </P>
       <P>
         This post explains the machinery: what a secure enclave actually is, how a TEE protects
         computation, what remote attestation proves, what none of it protects against, and exactly
-        how Argo uses it — including the one place we currently do not.
+        how Argo uses it, including the one place we currently do not.
       </P>
 
       <H2>The problem: encryption stops at the CPU</H2>
       <P>
         We already know how to protect data in two of its three states. Data <strong>at rest</strong>{' '}
-        — sitting in a database — is protected by disk and field encryption. Data{' '}
-        <strong>in transit</strong> — moving across a network — is protected by TLS. Both are
+ (sitting in a database) is protected by disk and field encryption. Data{' '}
+        <strong>in transit</strong> (moving across a network) is protected by TLS. Both are
         solved, boring, and effective.
       </P>
       <P>
-        The gap is data <strong>in use</strong>. To do anything with your words — run a model over
-        them, generate a reflection — a processor has to load them into memory in plaintext.
+        The gap is data <strong>in use</strong>. To do anything with your words, run a model over
+        them, generate a reflection: a processor has to load them into memory in plaintext.
         Multiplying encrypted numbers gives you nonsense. At the instant of computation, the data is
         readable, and anyone with sufficient privilege on that machine can read it: the operating
         system, the hypervisor, the cloud provider, an administrator, or malware that escalated far
@@ -3441,7 +3441,7 @@ function PrivateAIEnclavesContent() {
       </P>
       <P>
         The mechanism is a hardware memory encryption engine sitting between the processor and RAM.
-        Memory belonging to the enclave is encrypted with a key generated inside the CPU at boot —
+        Memory belonging to the enclave is encrypted with a key generated inside the CPU at boot,
         a key that never leaves the silicon and that no software, at any privilege level, can read.
         Data is decrypted only inside the processor package while executing, then re-encrypted
         before it goes back to RAM.
@@ -3449,14 +3449,14 @@ function PrivateAIEnclavesContent() {
       <P>
         The consequence is the interesting part. Dump the physical memory of that server and you get
         ciphertext. Attach a debugger from the host OS and you are blocked. The hypervisor can
-        schedule the enclave, start it, and kill it — but it cannot look inside it. The trust
+        schedule the enclave, start it, and kill it, but it cannot look inside it. The trust
         boundary stops being &ldquo;the company and everyone with root&rdquo; and becomes &ldquo;the
         CPU vendor and the code in the enclave.&rdquo;
       </P>
       <P>
         In practice this is implemented by a handful of technologies: <strong>Intel TDX</strong> and{' '}
         <strong>AMD SEV-SNP</strong> for confidential virtual machines, and{' '}
-        <strong>NVIDIA confidential computing</strong> on H100-class GPUs — the last of which is
+        <strong>NVIDIA confidential computing</strong> on H100-class GPUs, the last of which is
         what makes this relevant to AI at all. Protecting the CPU is useless if the model runs on a
         GPU whose memory is wide open, so the encrypted boundary has to extend across the PCIe bus
         to GPU memory. That capability is recent, and it is the reason private LLM inference became
@@ -3474,8 +3474,8 @@ function PrivateAIEnclavesContent() {
         concept here.
       </P>
       <P>
-        As an enclave boots, the hardware computes a cryptographic hash — a{' '}
-        <strong>measurement</strong> — of exactly what was loaded: firmware, kernel, and the
+        As an enclave boots, the hardware computes a cryptographic hash, a{' '}
+        <strong>measurement</strong>, of exactly what was loaded: firmware, kernel, and the
         application code. The CPU then signs that measurement with a private key fused into the chip
         at manufacture, whose certificate chains back to the vendor. The result is a signed{' '}
         <strong>quote</strong>.
@@ -3519,8 +3519,8 @@ function PrivateAIEnclavesContent() {
       <H2>Where Morpheus comes in</H2>
       <P>
         <A href="https://mor.org">Morpheus</A> is a permissionless network for AI inference. We
-        covered it in depth with David Johnston — the man who coined &ldquo;DApps&rdquo; in 2013,
-        now its lead technologist — in{' '}
+        covered it in depth with David Johnston, the man who coined &ldquo;DApps&rdquo; in 2013,
+        now its lead technologist, in{' '}
         <A href="https://myargoquest.com/blog/david-johnston-morpheus">an earlier conversation</A>.
       </P>
       <P>
@@ -3528,11 +3528,11 @@ function PrivateAIEnclavesContent() {
         contracts on Ethereum and Base that coordinate a marketplace: independent providers supply
         model inference on their own machines and are paid on-chain. There is no company operating a
         datacenter that could decide to retain your prompts, because there is no company in the
-        serving path at all — there is a protocol, and a set of providers competing under it.
+        serving path at all, there is a protocol, and a set of providers competing under it.
       </P>
       <P>
         That decentralization solves a governance problem, not a privacy one. Spreading inference
-        across many independent operators means no single company holds everything — but on its own,
+        across many independent operators means no single company holds everything, but on its own,
         it means your prompt is now readable by <em>whichever</em> operator happened to serve it.
         Decentralization without confidentiality can widen the exposure rather than narrow it.
       </P>
@@ -3540,8 +3540,8 @@ function PrivateAIEnclavesContent() {
         The two ideas only work together. Decentralization removes the single trusted company;
         enclaves remove the need to trust the individual operator who replaces it. Morpheus
         providers running confidential hardware serve requests they cannot themselves read. That
-        combination — an open marketplace where participants are structurally unable to inspect what
-        passes through them — is what attracted us.
+        combination, an open marketplace where participants are structurally unable to inspect what
+        passes through them, is what attracted us.
       </P>
       <P>
         From an engineering standpoint it is refreshingly ordinary to consume: an OpenAI-compatible
@@ -3563,7 +3563,7 @@ function PrivateAIEnclavesContent() {
       </P>
       <P>
         <strong>Second, confidential inference.</strong> When you ask for a reflection, the model has
-        to see plaintext. That work — chat, insights, summaries, and daily prompts — runs on Morpheus
+        to see plaintext. That work (chat, insights, summaries, and daily prompts) runs on Morpheus
         inside a hardware enclave, so the plaintext exists only inside a boundary the compute
         provider cannot read.
       </P>
@@ -3584,7 +3584,7 @@ function PrivateAIEnclavesContent() {
       </P>
       <P>
         A spoken conversation has a deadline that text does not. If a reply takes four seconds, the
-        conversation is broken — you start talking over it, or you assume it hung up. Our voice
+        conversation is broken, you start talking over it, or you assume it hung up. Our voice
         pipeline gives the language model roughly a two-second budget to produce its first token,
         and when the enclave-backed models we had been using could no longer meet that budget, voice
         calls stopped working entirely.
@@ -3615,7 +3615,7 @@ function PrivateAIEnclavesContent() {
         Model availability on an open marketplace is <em>volatile</em> in a way that a commercial API
         is not. Capacity is finite and gets reallocated toward priority models, and when that
         happens a model id you have been using for months starts returning{' '}
-        <code>503 model_unavailable</code> — not deprecated, not announced, just gone. During a
+        <code>503 model_unavailable</code>, not deprecated, not announced, just gone. During a
         recent incident we swept the full catalogue and found that the large majority of listed
         models were refusing traffic, including every one from two major families.
       </P>
@@ -3652,7 +3652,7 @@ function PrivateAIEnclavesContent() {
 
       <H2>Read more</H2>
       <P>
-        <A href="https://mor.org">Morpheus</A> — the protocol.{' '}
+        <A href="https://mor.org">Morpheus</A>, the protocol.{' '}
         <A href="https://tech.mor.org">Morpheus tech and privacy walkthrough</A>.{' '}
         <A href="https://myargoquest.com/privacy">Our privacy policy</A>, including the third-party
         processors named in Section 6.
@@ -3666,7 +3666,7 @@ export const posts: BlogPost[] = [
     slug: 'how-private-ai-works-morpheus-tees-enclaves',
     title: 'How private AI actually works: Morpheus, TEEs, and secure enclaves',
     description:
-      'Encryption protects your data at rest and in transit — but not at the moment a model reads it. A plain-English explanation of secure enclaves, how remote attestation turns “trust us” into something checkable, what TEEs genuinely do not protect against, and exactly how Argo uses Morpheus for confidential inference — including the one feature that does not run in the enclave today, and why.',
+      'Encryption protects your data at rest and in transit, but not at the moment a model reads it. A plain-English explanation of secure enclaves, how remote attestation turns “trust us” into something checkable, what TEEs genuinely do not protect against, and exactly how Argo uses Morpheus for confidential inference, including the one feature that does not run in the enclave today, and why.',
     date: 'August 5, 2026',
     isoDate: '2026-08-05T10:00',
     readingTime: '9 min read',
@@ -3674,7 +3674,7 @@ export const posts: BlogPost[] = [
   },
   {
     slug: 'francis-goon-losing-the-fear-of-ai',
-    title: 'LLP#025 — Francis Goon: losing the fear of AI',
+    title: 'LLP#025, Francis Goon: losing the fear of AI',
     description:
       'A conversation at the Ultra Web3 festival with Ts. Francis Goon, a technical writer and former R&D engineer who spent seven years in semiconductors and fourteen years translating dense technology at MIMOS, Malaysia’s national research center. On the handheld biosensor that reads blood with light, why a year of job hunting in Penang pushed him into teaching, how a childhood fear of the computer mirrors the fear beginners feel about AI, and his simplest advice: try one tool a day, because it is just a screen with a box in the middle.',
     date: 'July 31, 2026',
@@ -3684,7 +3684,7 @@ export const posts: BlogPost[] = [
   },
   {
     slug: 'llp024-anna-sokol',
-    title: 'LLP#024 — Anna Sokol: a life given to a meditation community',
+    title: 'LLP#024, Anna Sokol: a life given to a meditation community',
     description:
       'A Network School conversation with Anna Sokol, a meditation and awareness instructor who left Ukraine for Australia at sixteen and gave much of her twenties to Giving School, a meditation community with retreat centers in Latvia. On attention as the one tool we have, why most fear lives in the head, and what actually makes a community last: a whole-hearted shared goal, ongoing education, and everyone treating the project as their own.',
     date: 'July 29, 2026',
@@ -3694,7 +3694,7 @@ export const posts: BlogPost[] = [
   },
   {
     slug: 'velveteen-artist-founder-stories',
-    title: 'LLP#023 — Velveteen: the artist who helps founders tell their story',
+    title: 'LLP#023, Velveteen: the artist who helps founders tell their story',
     description:
       'A Network School conversation with the artist Velveteen (Miriam Reza): a senior-year car crash that broke both hands, learning to draw left-handed to finish her art-school portfolio, studying design at NC State, moving from dark charcoal to bright animal-filled paintings meant to bring people joy, hidden symbols in her community pieces, her years in NFTs and film, and founding Chymira to turn deep tech research into a clear story. On what separates human art from AI: you put a piece of your soul into it.',
     date: 'July 28, 2026',
@@ -3704,7 +3704,7 @@ export const posts: BlogPost[] = [
   },
   {
     slug: 'llp022-daria-chernozub',
-    title: 'LLP#022 — Daria Chernozub: going global by going local',
+    title: 'LLP#022, Daria Chernozub: going global by going local',
     description:
       'A Network School conversation with Daria Chernozub (Dasha), who leads global adoption for Dash. From a Russian central-bank sandbox and a first coin bought because it shared her name, to DevRel in Cyprus, local hubs for the Internet Computer, a year on Koh Phangan, and her rule for scaling anything: go global by going local.',
     date: 'July 26, 2026',
@@ -3714,7 +3714,7 @@ export const posts: BlogPost[] = [
   },
   {
     slug: 'llp021-anton-contentdao',
-    title: 'LLP#021 — Anton Pecherkin: from 40+ hackathons to ContentDAO',
+    title: 'LLP#021, Anton Pecherkin: from 40+ hackathons to ContentDAO',
     description:
       'A conversation at Network School with Anton Pecherkin, a Web3 engineer who won something like forty to fifty hackathons across Europe, then built a blockchain agency (green-energy NFT certificates piloted on Semakau Island in Singapore) before founding ContentDAO. On treating judges as the spec, hating dependency hell, and building &ldquo;Google Ads for small content creators&rdquo; with pay held in escrow until the post ships.',
     date: 'July 25, 2026',
@@ -3724,9 +3724,9 @@ export const posts: BlogPost[] = [
   },
   {
     slug: 'ashish-sood-network-states',
-    title: 'LLP#020 — The Best Consumer in the World: Ashish Sood',
+    title: 'LLP#020, The Best Consumer in the World: Ashish Sood',
     description:
-      'A conversation at Network School with Ashish Sood — a serial founder (a nightlife app, personal lending in India, an RWA tokenization platform) who now runs Curious Ventures, a fund that follows network states. On &ldquo;founder fraud&rdquo; and living where founders live, why money is only a multiplier, the paper prototype that got his first app built for free, and reading with your ears and eyes at once.',
+      'A conversation at Network School with Ashish Sood, a serial founder (a nightlife app, personal lending in India, an RWA tokenization platform) who now runs Curious Ventures, a fund that follows network states. On &ldquo;founder fraud&rdquo; and living where founders live, why money is only a multiplier, the paper prototype that got his first app built for free, and reading with your ears and eyes at once.',
     date: 'July 21, 2026',
     isoDate: '2026-07-21T18:00',
     readingTime: '6 min read',
@@ -3734,9 +3734,9 @@ export const posts: BlogPost[] = [
   },
   {
     slug: 'tony-lopez-robotics-shenzhen-claude-code',
-    title: 'LLP#019 — 30 Years in Robotics, Shenzhen, and Claude Code: Tony Lopez',
+    title: 'LLP#019, 30 Years in Robotics, Shenzhen, and Claude Code: Tony Lopez',
     description:
-      'A conversation at Network School with Tony Lopez — an electronics and robotics engineer who went from a childhood MSX computer in Spain to aerospace work with the European Space Agency, four years building lithium iron phosphate batteries in Shenzhen, and a nomadic decade through Georgia and Southeast Asia. On how a PID controller works, why he reads Shenzhen as a learning environment, the &ldquo;Claude Code moment,&rdquo; and creativity as the human edge.',
+      'A conversation at Network School with Tony Lopez, an electronics and robotics engineer who went from a childhood MSX computer in Spain to aerospace work with the European Space Agency, four years building lithium iron phosphate batteries in Shenzhen, and a nomadic decade through Georgia and Southeast Asia. On how a PID controller works, why he reads Shenzhen as a learning environment, the &ldquo;Claude Code moment,&rdquo; and creativity as the human edge.',
     date: 'July 20, 2026',
     isoDate: '2026-07-20T18:00',
     readingTime: '6 min read',
@@ -3744,9 +3744,9 @@ export const posts: BlogPost[] = [
   },
   {
     slug: 'llp018-daniel-im',
-    title: 'LLP#018 — From Hinton’s Class to “TikTok for Opinions”: Daniel Im',
+    title: 'LLP#018, From Hinton’s Class to “TikTok for Opinions”: Daniel Im',
     description:
-      'A conversation at Network School with Daniel Jiwoong Im — who learned ML from Geoffrey Hinton at Toronto (with Sutskever and Karpathy as TAs), trained AI models of fruit-fly brains at Janelia, and left a PhD to build companies. On the arc from an AI search engine and crypto market data to UBet’s betting AMM and Belief Market, a “TikTok for opinions,” and the wisdom of crowds that ties it all together.',
+      'A conversation at Network School with Daniel Jiwoong Im, who learned ML from Geoffrey Hinton at Toronto (with Sutskever and Karpathy as TAs), trained AI models of fruit-fly brains at Janelia, and left a PhD to build companies. On the arc from an AI search engine and crypto market data to UBet’s betting AMM and Belief Market, a “TikTok for opinions,” and the wisdom of crowds that ties it all together.',
     date: 'July 16, 2026',
     isoDate: '2026-07-16T18:00',
     readingTime: '6 min read',
@@ -3754,9 +3754,9 @@ export const posts: BlogPost[] = [
   },
   {
     slug: 'llp017-peter-donaldson',
-    title: 'LLP#017 — Psytrance Festivals to Tokenized Stocks: Peter Donaldson',
+    title: 'LLP#017, Psytrance Festivals to Tokenized Stocks: Peter Donaldson',
     description:
-      'A wide-ranging conversation at Network School with Peter Donaldson — cellist at three, festival producer in China for fifteen years, now business development at STOX, an intent-based exchange for tokenized equities. On a music app that paid artists in 24 hours, MEV as an old human habit, and why convenience should build community instead of isolating us.',
+      'A wide-ranging conversation at Network School with Peter Donaldson, cellist at three, festival producer in China for fifteen years, now business development at STOX, an intent-based exchange for tokenized equities. On a music app that paid artists in 24 hours, MEV as an old human habit, and why convenience should build community instead of isolating us.',
     date: 'July 15, 2026',
     isoDate: '2026-07-15T18:00',
     readingTime: '6 min read',
@@ -3764,9 +3764,9 @@ export const posts: BlogPost[] = [
   },
   {
     slug: 'david-johnston-morpheus',
-    title: 'LLP#016 — Own Your AI, or Be Owned By It: David Johnston',
+    title: 'LLP#016, Own Your AI, or Be Owned By It: David Johnston',
     description:
-      'A conversation at Network School with David Johnston — the man who coined the term “DApps” in 2013 — now lead technologist on Morpheus, a permissionless network for decentralized, private AI. On riding every tech wave from biodiesel to Bitcoin, what Morpheus actually is, and why owning your AI is the new question of freedom.',
+      'A conversation at Network School with David Johnston (the man who coined the term “DApps” in 2013) now lead technologist on Morpheus, a permissionless network for decentralized, private AI. On riding every tech wave from biodiesel to Bitcoin, what Morpheus actually is, and why owning your AI is the new question of freedom.',
     date: 'July 14, 2026',
     isoDate: '2026-07-14T18:00',
     readingTime: '5 min read',
@@ -3774,9 +3774,9 @@ export const posts: BlogPost[] = [
   },
   {
     slug: 'quantum-proof-bitcoin-chris-quantus',
-    title: 'LLP#015 — Building a Quantum-Proof Bitcoin: Chris of Quantus',
+    title: 'LLP#015, Building a Quantum-Proof Bitcoin: Chris of Quantus',
     description:
-      'A wide-ranging conversation at Network School with Chris Smith — UV Lightman — founder of Quantus, a proof-of-work blockchain built to survive the day quantum computers can break Bitcoin’s cryptography. On Shor’s algorithm and the efficient-attack problem, what money actually is, a stranger from NIST, local AI as an exocortex, and using both halves of your brain.',
+      'A wide-ranging conversation at Network School with Chris Smith (UV Lightman) founder of Quantus, a proof-of-work blockchain built to survive the day quantum computers can break Bitcoin’s cryptography. On Shor’s algorithm and the efficient-attack problem, what money actually is, a stranger from NIST, local AI as an exocortex, and using both halves of your brain.',
     date: 'July 13, 2026',
     isoDate: '2026-07-13T18:00',
     readingTime: '6 min read',
@@ -3786,7 +3786,7 @@ export const posts: BlogPost[] = [
     slug: 'chong-ing-kai-stickem',
     title: 'The Founder Who Teaches Kids to Build With Chopsticks',
     description:
-      'A conversation at Network School with Chong Ing Kai, the 22-year-old founder of Stick ’Em — who went from building flamethrowers to winning a US$1M Hult Prize for making STEAM education accessible. On problem clarity, why he’d delay AI for kids, the day he risked jail to win a million dollars, and holding the tension every social entrepreneur faces.',
+      'A conversation at Network School with Chong Ing Kai, the 22-year-old founder of Stick ’Em, who went from building flamethrowers to winning a US$1M Hult Prize for making STEAM education accessible. On problem clarity, why he’d delay AI for kids, the day he risked jail to win a million dollars, and holding the tension every social entrepreneur faces.',
     date: 'July 11, 2026',
     isoDate: '2026-07-11T18:00',
     readingTime: '8 min read',
@@ -3794,9 +3794,9 @@ export const posts: BlogPost[] = [
   },
   {
     slug: 'koss-ethereum-biomarkers-and-the-signals-of-nature',
-    title: 'The Signals of Life: Ethereum, Biomarkers, and Bioregions — a Conversation with Koss',
+    title: 'The Signals of Life: Ethereum, Biomarkers, and Bioregions, a Conversation with Koss',
     description:
-      'A wide-ranging chat recorded at Network School with Koss — a Venezuelan builder who came to Ethereum through hyperinflation and now works in decentralized storage. On crypto’s grassroots origins, social networks built on biomarkers instead of screens, reading the signals of living systems and whole bioregions, and inventing the future rather than predicting it.',
+      'A wide-ranging chat recorded at Network School with Koss, a Venezuelan builder who came to Ethereum through hyperinflation and now works in decentralized storage. On crypto’s grassroots origins, social networks built on biomarkers instead of screens, reading the signals of living systems and whole bioregions, and inventing the future rather than predicting it.',
     date: 'July 9, 2026',
     isoDate: '2026-07-09T18:00',
     readingTime: '8 min read',
@@ -3804,9 +3804,9 @@ export const posts: BlogPost[] = [
   },
   {
     slug: 'why-rumination-predicts-depression-and-journaling-is-different',
-    title: 'The Loop and the Page: Why Rumination Predicts Depression — and Journaling Can Do the Opposite',
+    title: 'The Loop and the Page: Why Rumination Predicts Depression, and Journaling Can Do the Opposite',
     description:
-      'Replaying a bad day in your head reliably predicts depression. Writing it down — done right — is one of the most studied self-help tools in psychology. Same raw material, opposite outcomes. Here is the difference, the science behind it, and how to journal for growth instead of feeding the loop.',
+      'Replaying a bad day in your head reliably predicts depression. Writing it down (done right) is one of the most studied self-help tools in psychology. Same raw material, opposite outcomes. Here is the difference, the science behind it, and how to journal for growth instead of feeding the loop.',
     date: 'July 4, 2026',
     isoDate: '2026-07-04T20:00',
     readingTime: '11 min read',
@@ -3816,7 +3816,7 @@ export const posts: BlogPost[] = [
     slug: 'writing-to-build-your-mind-not-just-empty-it',
     title: 'The Other Half of Journaling: Writing to Build Your Mind, Not Just Empty It',
     description:
-      'Most journaling advice tells you to dump the noise and walk away lighter. But there’s an older, opposite practice — writing to think, to appreciate, and to understand — and the research says it’s where the real returns are.',
+      'Most journaling advice tells you to dump the noise and walk away lighter. But there’s an older, opposite practice (writing to think, to appreciate, and to understand) and the research says it’s where the real returns are.',
     date: 'July 4, 2026',
     isoDate: '2026-07-04T18:00',
     readingTime: '10 min read',
@@ -3826,7 +3826,7 @@ export const posts: BlogPost[] = [
     slug: 'the-750-word-habit-who-does-it-and-why',
     title: 'The 750-Word Habit: Who Does It, Why It Works, and When It Doesn’t',
     description:
-      'Authors, founders, and ordinary people empty their minds onto the page every morning — roughly 750 words, private, unedited. Where the habit comes from, what four decades of research says it does, why privacy is the active ingredient, and the honest fine print.',
+      'Authors, founders, and ordinary people empty their minds onto the page every morning: roughly 750 words, private, unedited. Where the habit comes from, what four decades of research says it does, why privacy is the active ingredient, and the honest fine print.',
     date: 'July 4, 2026',
     isoDate: '2026-07-04',
     readingTime: '9 min read',
@@ -3836,7 +3836,7 @@ export const posts: BlogPost[] = [
     slug: 'the-soul-constellation-a-galaxy-you-own',
     title: 'The Soul Constellation: A Galaxy You Own',
     description:
-      'Why we’re turning your journaling into a living, one-of-one piece of art you truly own — how every 750-word day becomes a star placed by the meaning of your words, and why privacy is guaranteed by the math, not a promise.',
+      'Why we’re turning your journaling into a living, one-of-one piece of art you truly own, how every 750-word day becomes a star placed by the meaning of your words, and why privacy is guaranteed by the math, not a promise.',
     date: 'July 3, 2026',
     isoDate: '2026-07-03T12:00',
     readingTime: '6 min read',
@@ -3846,7 +3846,7 @@ export const posts: BlogPost[] = [
     slug: 'the-science-of-750-words-a-day',
     title: 'What 750 Words a Day Does to Your Mind',
     description:
-      'Forty years of research on daily journaling — from working memory and focus to sleep, mood, and well-being. The science behind a 750-word daily entry, and why it compounds.',
+      'Forty years of research on daily journaling, from working memory and focus to sleep, mood, and well-being. The science behind a 750-word daily entry, and why it compounds.',
     date: 'July 3, 2026',
     isoDate: '2026-07-03',
     readingTime: '7 min read',
