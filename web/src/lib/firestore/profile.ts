@@ -87,7 +87,15 @@ export const ensureUserDocument = async (): Promise<boolean> => {
 
   const ref = doc(db, 'users', user.uid)
   const snap = await getDoc(ref)
-  if (snap.exists()) return false
+  // Test for the SEED, not for the document. The zero-knowledge key enrollment
+  // PUT (`PUT /v1/keys/wrapped`) writes users/{uid} with {merge:true} and
+  // therefore CREATES the document before the seed is ever written. Enrollment
+  // necessarily runs first, because the seed encrypts `biography` and so needs
+  // the DEK. Treating existence as "already seeded" would leave a brand-new web
+  // signup with no stats, no createdAt and no encrypted biography, and would
+  // report isNewUser as false. `createdAt` is written only here, so its presence
+  // is the reliable marker.
+  if (snap.exists() && snap.get('createdAt') !== undefined) return false
 
   const dek = getCachedDEK() ?? (await bootstrapDEK())
   const seed = await buildUserSeed(user, dek)

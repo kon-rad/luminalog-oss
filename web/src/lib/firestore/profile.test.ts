@@ -117,8 +117,14 @@ describe('buildUserSeed (design §5 exact seed)', () => {
 })
 
 describe('ensureUserDocument', () => {
-  it('returns false and never writes when the doc already exists', async () => {
-    mocks.getDoc.mockResolvedValue({ exists: () => true })
+  /** A snapshot stub. `fields` is the document body the stub reports. */
+  const snapshot = (exists: boolean, fields: Record<string, unknown> = {}) => ({
+    exists: () => exists,
+    get: (field: string) => fields[field],
+  })
+
+  it('returns false and never writes when the doc is already seeded', async () => {
+    mocks.getDoc.mockResolvedValue(snapshot(true, { createdAt: 'a-timestamp', stats: {} }))
 
     const isNew = await ensureUserDocument()
 
@@ -127,7 +133,7 @@ describe('ensureUserDocument', () => {
   })
 
   it('seeds with merge:true and returns true for a new user', async () => {
-    mocks.getDoc.mockResolvedValue({ exists: () => false })
+    mocks.getDoc.mockResolvedValue(snapshot(false))
 
     const isNew = await ensureUserDocument()
 
@@ -137,6 +143,30 @@ describe('ensureUserDocument', () => {
     expect(options).toEqual({ merge: true })
     expect(isEncryptedField((seed as Record<string, unknown>).biography)).toBe(true)
     expect(seed).toHaveProperty('stats')
+  })
+
+  it('seeds a document that key enrollment created with only wrappedKeys', async () => {
+    // `PUT /v1/keys/wrapped` writes users/{uid} with {merge:true}, so it CREATES
+    // the document before the seed is ever written. Enrollment necessarily runs
+    // first, because the seed encrypts `biography` and therefore needs the DEK.
+    // Reading mere existence as "already seeded" would leave a brand-new web
+    // signup with no stats, no createdAt and no biography, and would report
+    // isNewUser as false.
+    mocks.getDoc.mockResolvedValue(
+      snapshot(true, { wrappedKeys: { recovery: {} }, zkKeyVersion: 1 }),
+    )
+
+    const isNew = await ensureUserDocument()
+
+    expect(isNew).toBe(true)
+    expect(mocks.setDoc).toHaveBeenCalledTimes(1)
+    const [, seed, options] = mocks.setDoc.mock.calls[0]
+    // merge:true is what keeps the enrollment-written wrappedKeys intact.
+    expect(options).toEqual({ merge: true })
+    expect(seed).toHaveProperty('stats')
+    expect(seed).toHaveProperty('createdAt')
+    expect(seed).toHaveProperty('timezone')
+    expect(isEncryptedField((seed as Record<string, unknown>).biography)).toBe(true)
   })
 })
 
