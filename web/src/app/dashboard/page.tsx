@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic'
 import { useAuth } from '@/lib/auth-context'
 import { useSoul, basescanNftUrl } from '@/lib/useSoul'
 import QuizHistory from '@/components/QuizHistory'
+import { APP_STORE_URL } from '@/lib/appStore'
 
 const SoulGalaxy = dynamic(() => import('@/components/SoulGalaxy'), { ssr: false })
 
@@ -213,7 +214,7 @@ export default function Dashboard() {
               <h3 className="serif" style={{ fontSize: 20, fontWeight: 600, lineHeight: 1.2 }}>Get the iOS app</h3>
               <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4, lineHeight: 1.5 }}>Start journaling and your stats will appear here.</p>
             </div>
-            <a href={process.env.NEXT_PUBLIC_APP_STORE_URL || '#'} style={{ flexShrink: 0, position: 'relative', zIndex: 1, display: 'inline-flex', alignItems: 'center', gap: 10, background: '#fff', color: 'var(--accentDeep)', padding: '12px 22px', borderRadius: 14, fontWeight: 700, fontSize: 14, boxShadow: '0 4px 16px rgba(0,0,0,0.15)', whiteSpace: 'nowrap', transition: 'transform .15s' }}
+            <a href={APP_STORE_URL} target="_blank" rel="noopener" style={{ flexShrink: 0, position: 'relative', zIndex: 1, display: 'inline-flex', alignItems: 'center', gap: 10, background: '#fff', color: 'var(--accentDeep)', padding: '12px 22px', borderRadius: 14, fontWeight: 700, fontSize: 14, boxShadow: '0 4px 16px rgba(0,0,0,0.15)', whiteSpace: 'nowrap', transition: 'transform .15s' }}
               onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
               onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}>
               <svg width="14" height="17" viewBox="0 0 20 24" fill="var(--accentDeep)"><path d="M16.4 12.7c0-2.6 2.1-3.9 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.1 2.5-1.8 3-.5 7.5 1.2 9.9.8 1.2 1.8 2.5 3.1 2.4 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.5-1-2.5-3.7zM13.9 3.5c.7-.8 1.1-2 1-3.2-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.3z"/></svg>

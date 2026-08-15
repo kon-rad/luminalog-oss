@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
+import AppStoreButton from '@/components/AppStoreButton'
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Shared presentational helpers for the blog (/blog and /blog/[slug]).
@@ -80,7 +81,7 @@ export function BlogPostLayout({
               Argo turns a daily entry (typed, spoken, or filmed) into clarity you can
               actually see. Private, encrypted, and built entirely from your own life.
             </p>
-            <Link href="/#waitlist" className="btn-amber">Join the waitlist</Link>
+            <AppStoreButton />
           </div>
         </section>
       </main>

@@ -14,7 +14,7 @@
 
 import type { AgeExplanation, HistoryBeat, QuizMCQ } from './course'
 
-export const MODULE_2_SLUG = 'what-is-blockchain'
+export const MODULE_2_SLUG = 'module-2'
 
 export const MODULE_2_TITLE = 'What Is a Blockchain? The Notebook Nobody Can Erase'
 

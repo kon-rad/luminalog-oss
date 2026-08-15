@@ -1,0 +1,245 @@
+/* ──────────────────────────────────────────────────────────────────────────
+ * Core Skills parent presentation.
+ *
+ * Each slide is the faithful render of the source PowerPoint, one JPEG per
+ * slide, so the deck looks exactly as designed. Slide 3 carries the Patrick
+ * Winston clip, positioned over the video slot drawn on that slide.
+ * Chrome around the slide uses the site tokens so both themes work.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.deck {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+}
+
+/* ── Stage and slide ─────────────────────────────────────────────────────── */
+
+.deck-stage {
+  display: flex;
+  justify-content: center;
+}
+
+.deck-slide {
+  position: relative;
+  width: 100%;
+  max-width: 1100px;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--r-card);
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow);
+  background: var(--surfaceAlt);
+}
+
+/* The standalone page hands the slide whatever viewport height it can spare. */
+.deck:not(.deck-embedded):not(.deck-fullscreen) .deck-slide {
+  max-width: min(1100px, calc((100vh - 280px) * 16 / 9));
+}
+
+.deck-slide-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  user-select: none;
+}
+
+/* The clip sits exactly over the video slot printed on slide 3. */
+.deck-video {
+  position: absolute;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #000;
+  border: none;
+}
+
+/* ── Full screen ─────────────────────────────────────────────────────────── */
+
+.deck-fullscreen {
+  background: #14110e;
+  padding: 24px;
+  gap: 16px;
+  justify-content: center;
+  height: 100%;
+}
+
+.deck-fullscreen .deck-slide {
+  max-width: min(100%, calc((100vh - 190px) * 16 / 9));
+  margin: 0 auto;
+  border-color: transparent;
+}
+
+.deck-fullscreen .deck-notes {
+  background: rgba(255, 253, 250, 0.06);
+  border-color: rgba(243, 238, 228, 0.14);
+  max-height: 22vh;
+  overflow-y: auto;
+}
+
+.deck-fullscreen .deck-note {
+  color: rgba(243, 238, 228, 0.82);
+}
+
+.deck-fullscreen .deck-btn {
+  background: rgba(255, 253, 250, 0.08);
+  border-color: rgba(243, 238, 228, 0.18);
+  color: #f3eee4;
+}
+
+.deck-fullscreen .deck-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.deck-fullscreen .deck-count {
+  color: rgba(243, 238, 228, 0.6);
+}
+
+/* ── Controls ────────────────────────────────────────────────────────────── */
+
+.deck-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.deck-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--hairline2);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.deck-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.deck-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.deck-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.deck-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.deck-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.deck-btn-quiet {
+  color: var(--text2);
+}
+
+.deck-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+  min-width: 62px;
+  text-align: center;
+}
+
+/* ── Notes ───────────────────────────────────────────────────────────────── */
+
+.deck-notes {
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  background: var(--surfaceAlt);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.deck-notes-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.deck-note {
+  font-size: 16.5px;
+  line-height: 1.65;
+  color: var(--text2);
+  max-width: 68ch;
+}
+
+.deck-note-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding-top: 4px;
+}
+
+.deck-note-links a {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accentDeep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.deck-note-links a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.deck-fullscreen .deck-note-links a {
+  color: var(--accent);
+}
+
+/* ── Narrow screens ──────────────────────────────────────────────────────── */
+
+@media (max-width: 720px) {
+  .deck-notes {
+    padding: 16px 18px;
+  }
+  .deck-note {
+    font-size: 15.5px;
+  }
+  .deck-btn {
+    height: 38px;
+    padding: 0 13px;
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-btn {
+    transition: none;
+  }
+  .deck-btn:hover:not(:disabled) {
+    transform: none;
+  }
+}

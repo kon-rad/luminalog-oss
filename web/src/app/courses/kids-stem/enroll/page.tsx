@@ -1,25 +1,41 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Sparkles, Bot, ShieldCheck, BookOpen, Check, Trophy, ArrowRight } from 'lucide-react'
+import {
+  Sparkles,
+  Bot,
+  ShieldCheck,
+  BookOpen,
+  Check,
+  Trophy,
+  ArrowRight,
+  Presentation,
+  PlayCircle,
+} from 'lucide-react'
 import { CourseLayout, SectionHeading } from '@/components/course'
 import {
   KIDS_COURSE_BASE,
   CLASS_AGENDA,
-  ASSIGNMENTS_INTRO,
-  MONTHLY_OUTCOME,
+  GOAL_STATEMENT,
   POINTS_RULE,
   REWARDS,
+  REWARDS_KEEPSAKE,
 } from '@/lib/kids-stem/course'
 import {
   CLASS_FACTS,
   INCLUDED,
-  NFT_NOTE,
+  PURPOSE_HEADING,
+  PURPOSE_BODY,
+  PRACTICE_HEADING,
+  PRACTICE_BODY,
+  PRACTICE_CLOSE,
   ROBOT_LEAD,
   ROBOT_BODY,
   TIERS,
   PLAN_INTRO,
   TERMS,
   PAYMENT_RAILS,
+  PORTAL_NOTE,
+  REPORT_NOTE,
   BOOK,
   PRIVACY_INTRO,
   PRIVACY_POINTS,
@@ -29,6 +45,7 @@ import {
   WHATSAPP_NUMBER,
   WHATSAPP_URL,
 } from '@/lib/kids-stem/enroll'
+import { DECK_URL, DECK_VIDEO_URL } from '@/lib/kids-stem/deck'
 
 export const metadata: Metadata = {
   title: 'Join the Kids Class, Core Skills · Argo',
@@ -45,7 +62,15 @@ export const metadata: Metadata = {
 const body: React.CSSProperties = { fontSize: 16.5, lineHeight: 1.65, color: 'var(--text2)' }
 const bodySm: React.CSSProperties = { fontSize: 15.5, lineHeight: 1.6, color: 'var(--text2)' }
 
-function CheckRow({ title, detail, children }: { title: string; detail: string; children?: React.ReactNode }) {
+function CheckRow({
+  title,
+  detail,
+  children,
+}: {
+  title: string
+  detail: string
+  children?: React.ReactNode
+}) {
   return (
     <li className="flex gap-3" style={{ alignItems: 'flex-start' }}>
       <span
@@ -75,6 +100,22 @@ function CheckRow({ title, detail, children }: { title: string; detail: string; 
 export default function KidsStemEnrollPage() {
   return (
     <CourseLayout>
+      {/* ── The presentation ─────────────────────────────────────────────── */}
+      <section style={{ borderBottom: '1px solid var(--hairline)', background: 'var(--surfaceAlt)' }}>
+        <div className="wrap" style={{ padding: '28px 0', display: 'flex', justifyContent: 'center' }}>
+          <div className="flex flex-wrap items-center justify-center" style={{ gap: 12 }}>
+            <Link href={DECK_URL} className="btn-ghost">
+              <Presentation style={{ width: 16, height: 16 }} />
+              Slide deck
+            </Link>
+            <Link href={DECK_VIDEO_URL} className="btn-ghost">
+              <PlayCircle style={{ width: 16, height: 16 }} />
+              Video
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section style={{ borderBottom: '1px solid var(--hairline)', background: 'var(--surfaceAlt)' }}>
         <div className="wrap" style={{ padding: '72px 0 56px', textAlign: 'center' }}>
@@ -94,16 +135,13 @@ export default function KidsStemEnrollPage() {
           >
             Kids Wholistic Creativity &amp; STEM
           </h1>
-          <p style={{ fontSize: 19, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 680, margin: '0 auto' }}>
-            Three times per week, sixty minutes, in a small group we practice drawing, journaling,
-            learn a concept in STEM, and teach it back using just pen and paper. These are core
-            skills that will serve them all their lives, to be able to express themselves,
-            communicate their ideas, to learn to use drawing and words on paper as thinking
-            augmentation tools. These help us think, remember, communicate and express. Key values
-            are celebrating small wins, sharing what we created, valuing that we are creating and
-            learning, not comparing ourselves to others but rather what is important to us, what is
-            significant to us, what is our story and how can we communicate it. After each session
-            of drawing, journaling, and teaching, we share with the group our work.
+          <p
+            style={{ fontSize: 19, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 680, margin: '0 auto' }}
+          >
+            Three times a week, sixty minutes, a small group practises drawing, journaling, and one STEM
+            concept taught back in their own words, using nothing but pen and paper. These are the skills
+            that let them think, remember and say what matters to them, and we celebrate what each child
+            creates rather than comparing them to anyone else.
           </p>
 
           <div
@@ -138,8 +176,7 @@ export default function KidsStemEnrollPage() {
         <div className="wrap" style={{ padding: '52px 0 8px', maxWidth: 820 }}>
           <SectionHeading>The sixty minutes</SectionHeading>
           <p style={{ ...body, margin: '14px 0 28px' }}>
-            The same shape every session, so children know exactly what to expect and can settle
-            quickly.
+            The same shape every session, so children know exactly what to expect and can settle quickly.
           </p>
           <div className="flex flex-col" style={{ gap: 14 }}>
             {CLASS_AGENDA.map((s) => (
@@ -164,7 +201,10 @@ export default function KidsStemEnrollPage() {
                   min
                 </span>
                 <div>
-                  <h4 className="serif" style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)', marginBottom: 5 }}>
+                  <h4
+                    className="serif"
+                    style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)', marginBottom: 5 }}
+                  >
                     {s.title}
                   </h4>
                   <p style={{ fontSize: 15, lineHeight: 1.55, color: 'var(--text2)' }}>{s.detail}</p>
@@ -175,19 +215,50 @@ export default function KidsStemEnrollPage() {
         </div>
       </section>
 
-      {/* ── Three assignments and points ─────────────────────────────────── */}
+      {/* ── What this is for ────────────────────────────────────────────── */}
       <section>
         <div className="wrap" style={{ padding: '52px 0 8px', maxWidth: 820 }}>
-          <SectionHeading>One concept, three assignments</SectionHeading>
-          <p style={{ ...body, margin: '14px 0 18px' }}>{ASSIGNMENTS_INTRO}</p>
-          <p style={{ ...body, margin: '0 0 26px' }}>{MONTHLY_OUTCOME}</p>
+          <SectionHeading>{PURPOSE_HEADING}</SectionHeading>
+          <div className="flex flex-col" style={{ gap: 16, marginTop: 20 }}>
+            {PURPOSE_BODY.map((para) => (
+              <p key={para.slice(0, 24)} style={body}>
+                {para}
+              </p>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── How we practise it ──────────────────────────────────────────── */}
+      <section>
+        <div className="wrap" style={{ padding: '52px 0 8px', maxWidth: 820 }}>
+          <SectionHeading>{PRACTICE_HEADING}</SectionHeading>
+          <div className="flex flex-col" style={{ gap: 16, marginTop: 20 }}>
+            {PRACTICE_BODY.map((para) => (
+              <p key={para.slice(0, 24)} style={body}>
+                {para}
+              </p>
+            ))}
+            <p
+              className="serif"
+              style={{
+                fontSize: 19,
+                lineHeight: 1.6,
+                color: 'var(--text)',
+                paddingTop: 16,
+                borderTop: '1px solid var(--hairline)',
+              }}
+            >
+              {PRACTICE_CLOSE}
+            </p>
+          </div>
 
           <div className="card flex flex-col" style={{ padding: '26px 28px', gap: 18 }}>
             <p className="eyebrow">
               <Trophy style={{ width: 14, height: 14 }} /> Points
             </p>
             <p style={bodySm}>{POINTS_RULE}</p>
-            <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 16 }}>
+            <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
               {REWARDS.map((r) => (
                 <div
                   key={r.title}
@@ -199,7 +270,14 @@ export default function KidsStemEnrollPage() {
                     background: 'var(--accentSoft)',
                   }}
                 >
-                  <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--accentDeep)' }}>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      color: 'var(--accentDeep)',
+                    }}
+                  >
                     {r.cost} POINTS
                   </span>
                   <h3 className="serif" style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)' }}>
@@ -209,6 +287,7 @@ export default function KidsStemEnrollPage() {
                 </div>
               ))}
             </div>
+            <p style={bodySm}>{REWARDS_KEEPSAKE}</p>
           </div>
         </div>
       </section>
@@ -240,15 +319,6 @@ export default function KidsStemEnrollPage() {
             ))}
           </ul>
 
-          <div
-            className="card"
-            style={{ padding: '18px 22px', marginTop: 24, background: 'var(--accentSoft)', borderColor: 'var(--accentTint)' }}
-          >
-            <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--text2)' }}>
-              <span style={{ fontWeight: 700, color: 'var(--text)' }}>About the NFTs: </span>
-              {NFT_NOTE}
-            </p>
-          </div>
         </div>
       </section>
 
@@ -259,7 +329,10 @@ export default function KidsStemEnrollPage() {
             <Bot style={{ width: 14, height: 14 }} /> In the room with us
           </p>
           <SectionHeading>Friendly M Helper</SectionHeading>
-          <p className="serif" style={{ fontSize: 20, lineHeight: 1.55, color: 'var(--text)', margin: '16px 0 26px' }}>
+          <p
+            className="serif"
+            style={{ fontSize: 20, lineHeight: 1.55, color: 'var(--text)', margin: '16px 0 26px' }}
+          >
             {ROBOT_LEAD}
           </p>
           <div className="card flex flex-col" style={{ padding: '26px 28px', gap: 16 }}>
@@ -292,8 +365,15 @@ export default function KidsStemEnrollPage() {
                 >
                   {t.name}
                 </span>
-                <div className="serif" style={{ fontSize: 34, fontWeight: 600, lineHeight: 1.1, color: 'var(--text)' }}>
-                  <span style={{ fontSize: 16, color: 'var(--text3)', marginRight: 3, verticalAlign: '0.4em' }}>RM</span>
+                <div
+                  className="serif"
+                  style={{ fontSize: 34, fontWeight: 600, lineHeight: 1.1, color: 'var(--text)' }}
+                >
+                  <span
+                    style={{ fontSize: 16, color: 'var(--text3)', marginRight: 3, verticalAlign: '0.4em' }}
+                  >
+                    RM
+                  </span>
                   {t.price}
                 </div>
                 <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--accentDeep)' }}>{t.rate}</span>
@@ -303,7 +383,10 @@ export default function KidsStemEnrollPage() {
           </div>
 
           {/* Terms */}
-          <div className="card flex flex-col" style={{ padding: '24px 26px', marginTop: 20, gap: 10, maxWidth: 820 }}>
+          <div
+            className="card flex flex-col"
+            style={{ padding: '24px 26px', marginTop: 20, gap: 10, maxWidth: 820 }}
+          >
             <h3 className="serif" style={{ fontSize: 19, fontWeight: 600, color: 'var(--text)' }}>
               How it works, plainly
             </h3>
@@ -341,6 +424,14 @@ export default function KidsStemEnrollPage() {
               </span>
             ))}
           </div>
+
+          <div className="card flex flex-col" style={{ padding: '24px 26px', marginTop: 24, gap: 12 }}>
+            <h3 className="serif" style={{ fontSize: 19, fontWeight: 600, color: 'var(--text)' }}>
+              Everything runs through the portal
+            </h3>
+            <p style={bodySm}>{PORTAL_NOTE}</p>
+            <p style={bodySm}>{REPORT_NOTE}</p>
+          </div>
         </div>
       </section>
 
@@ -351,7 +442,10 @@ export default function KidsStemEnrollPage() {
             <BookOpen style={{ width: 14, height: 14 }} /> Every twelve classes
           </p>
           <SectionHeading>The book</SectionHeading>
-          <p className="serif" style={{ fontSize: 20, lineHeight: 1.55, color: 'var(--text)', margin: '16px 0 8px' }}>
+          <p
+            className="serif"
+            style={{ fontSize: 20, lineHeight: 1.55, color: 'var(--text)', margin: '16px 0 8px' }}
+          >
             {BOOK.lead}
           </p>
           <p style={{ ...bodySm, marginBottom: 26 }}>
@@ -361,7 +455,10 @@ export default function KidsStemEnrollPage() {
           <div className="card flex flex-col" style={{ padding: '26px 28px', gap: 20 }}>
             <p style={body}>{BOOK.body[1]}</p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 20, paddingTop: 20, borderTop: '1px solid var(--hairline)' }}>
+            <div
+              className="grid grid-cols-1 md:grid-cols-2"
+              style={{ gap: 20, paddingTop: 20, borderTop: '1px solid var(--hairline)' }}
+            >
               <div className="flex flex-col" style={{ gap: 7 }}>
                 <h3 className="serif" style={{ fontSize: 18, fontWeight: 600, color: 'var(--text)' }}>
                   {BOOK.digital.heading}
@@ -402,7 +499,9 @@ export default function KidsStemEnrollPage() {
       {/* ── Who teaches it ───────────────────────────────────────────────── */}
       <section>
         <div className="wrap" style={{ padding: '52px 0 8px', maxWidth: 820 }}>
-          <p className="eyebrow" style={{ marginBottom: 10 }}>Who teaches it</p>
+          <p className="eyebrow" style={{ marginBottom: 10 }}>
+            Who teaches it
+          </p>
           <SectionHeading>Konrad Gnat</SectionHeading>
           <div className="flex flex-col" style={{ gap: 16, marginTop: 20 }}>
             {BIO.map((p) => (
@@ -432,7 +531,8 @@ export default function KidsStemEnrollPage() {
         <div className="wrap" style={{ padding: '52px 0 80px', maxWidth: 820 }}>
           <div className="card" style={{ padding: '34px 32px', background: 'var(--surfaceAlt)' }}>
             <SectionHeading>Come and see</SectionHeading>
-            <p style={{ ...body, margin: '14px 0 26px' }}>{CLOSING}</p>
+            <p style={{ ...body, margin: '14px 0 18px' }}>{GOAL_STATEMENT}</p>
+            <p style={{ ...body, margin: '0 0 26px' }}>{CLOSING}</p>
             <div className="flex flex-wrap items-center" style={{ gap: 12 }}>
               <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="btn-amber">
                 WhatsApp {WHATSAPP_NUMBER}
@@ -440,6 +540,9 @@ export default function KidsStemEnrollPage() {
               </a>
               <Link href={KIDS_COURSE_BASE} className="btn-ghost">
                 See the course
+              </Link>
+              <Link href={DECK_URL} className="btn-ghost">
+                View the slide deck
               </Link>
             </div>
           </div>

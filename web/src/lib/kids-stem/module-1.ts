@@ -11,7 +11,7 @@ import type { AgeExplanation, HistoryBeat, QuizMCQ } from './course'
 
 export type { HistoryBeat }
 
-export const MODULE_1_SLUG = 'what-is-ai'
+export const MODULE_1_SLUG = 'module-1'
 
 export const MODULE_1_TITLE = 'What Is AI? Learning from Examples'
 
@@ -52,7 +52,10 @@ export const AI_PIECES: { piece: string; what: string }[] = [
   { piece: 'Training data', what: 'The examples, images, text, audio. Millions or billions of them.' },
   { piece: 'Neural network', what: 'Layers of simple connected units. Each connection has a strength.' },
   { piece: 'Training', what: 'Predict, measure the error, adjust every connection a tiny bit. Repeat.' },
-  { piece: 'Prediction', what: "The trained network's best guess, usually with a confidence for each option." },
+  {
+    piece: 'Prediction',
+    what: "The trained network's best guess, usually with a confidence for each option.",
+  },
 ]
 
 /* The same idea at five depths. */
@@ -61,7 +64,10 @@ export const AI_LADDER: { age: string; idea: string }[] = [
   { age: 'Age 5', idea: 'It learns from examples, like you learned what a dog is.' },
   { age: 'Age 7', idea: 'Examples → find the pattern → guess about new things.' },
   { age: 'Age 10', idea: 'It is trained, not programmed. Its answers are guesses with a confidence.' },
-  { age: 'Age 13', idea: 'Weights in a neural network, adjusted billions of times to reduce error. It predicts; it does not verify.' },
+  {
+    age: 'Age 13',
+    idea: 'Weights in a neural network, adjusted billions of times to reduce error. It predicts; it does not verify.',
+  },
 ]
 
 /* ── The story of AI ──────────────────────────────────────────────────────── */
@@ -261,12 +267,7 @@ export const MODULE_1_MCQ: QuizMCQ[] = [
   },
   {
     question: 'What are the three steps of how AI learns?',
-    options: [
-      'Examples → Learn → Guess',
-      'On → Off → On',
-      'Read → Sleep → Wake',
-      'Draw → Colour → Share',
-    ],
+    options: ['Examples → Learn → Guess', 'On → Off → On', 'Read → Sleep → Wake', 'Draw → Colour → Share'],
     answer: 0,
   },
   {

@@ -8,7 +8,6 @@ import {
   Radio,
   BookText,
   Check,
-  AlertTriangle,
 } from 'lucide-react'
 import { CourseLayout, Pill, SectionHeading } from '@/components/course'
 import CourseQuiz from '@/components/CourseQuiz'
@@ -245,22 +244,6 @@ export default function ModuleZeroPage() {
                 <span style={{ fontSize: 16, color: 'var(--text)' }}>{item}</span>
               </div>
             ))}
-          </div>
-          <div
-            className="flex gap-3"
-            style={{
-              marginTop: 20,
-              padding: '16px 20px',
-              borderRadius: 'var(--r-btn)',
-              background: 'rgba(229,84,75,0.08)',
-              border: '1px solid rgba(229,84,75,0.22)',
-            }}
-          >
-            <AlertTriangle style={{ width: 18, height: 18, color: 'var(--danger)', flexShrink: 0, marginTop: 2 }} />
-            <p style={{ fontSize: 15.5, lineHeight: 1.55, color: 'var(--text2)' }}>
-              Download the Whisper model at home. It is over a gigabyte and will not finish on
-              venue wifi with thirty people trying at once.
-            </p>
           </div>
         </div>
       </section>

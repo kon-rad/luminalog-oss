@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
-import WaitlistForm from '@/components/WaitlistForm'
+import AppStoreButton from '@/components/AppStoreButton'
 
 export default function Home() {
   useEffect(() => {
@@ -41,10 +41,10 @@ export default function Home() {
               <p style={{ marginTop: 22, fontSize: 19, lineHeight: 1.65, color: 'var(--text2)', maxWidth: 500 }}>
                 Argo is a private AI journaling companion. Capture your days in voice, text, video, or handwriting, and talk to an AI that has read every entry you&apos;ve written. Hit your daily 750-word goal, keep your streak alive, and grow more articulate and whole as it comes to know you.
               </p>
-              <div id="waitlist" style={{ marginTop: 34 }}>
-                <WaitlistForm source="hero" />
+              <div id="download" style={{ marginTop: 34 }}>
+                <AppStoreButton />
                 <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
-                  <span style={{ fontSize: 14, color: 'var(--text3)' }}>Not yet on the App Store. Join the waitlist for early access.</span>
+                  <span style={{ fontSize: 14, color: 'var(--text3)' }}>Free to download. Requires iPhone with iOS 17 or later.</span>
                   <a href="#how" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent)', fontSize: 15, fontWeight: 600 }}>
                     See how it works
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
@@ -684,7 +684,7 @@ export default function Home() {
                 ))}
               </ul>
               <div style={{ marginTop: 28 }}>
-                <a href="#waitlist" className="btn-amber-full">Join the waitlist</a>
+                <AppStoreButton variant="full" label="Download on the App Store" />
               </div>
             </div>
             {/* Annual */}
@@ -705,7 +705,7 @@ export default function Home() {
                 ))}
               </ul>
               <div style={{ marginTop: 28 }}>
-                <a href="#waitlist" className="btn-amber-full">Join the waitlist</a>
+                <AppStoreButton variant="full" label="Download on the App Store" />
               </div>
               <div style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--text3)', marginTop: 10 }}>Cancel anytime. No tricks.</div>
             </div>
@@ -749,9 +749,9 @@ export default function Home() {
               <div style={{ position: 'absolute', bottom: -100, left: -40, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.09)', filter: 'blur(10px)' }} />
               <h2 className="serif" style={{ position: 'relative', zIndex: 1, fontSize: 'clamp(30px,4.2vw,52px)', fontWeight: 600, lineHeight: 1.06, letterSpacing: '-0.025em' }}>Merge with AI.<br />One conversation at a time.</h2>
               <p className="serif" style={{ position: 'relative', zIndex: 1, fontStyle: 'italic', fontSize: 26, color: 'rgba(255,255,255,0.88)', marginTop: 14 }}>It starts with one entry.</p>
-              <p style={{ position: 'relative', zIndex: 1, fontSize: 17, color: 'rgba(255,255,255,0.75)', marginTop: 10 }}>Founding Members: 3 months for $29.99, then $19.99 / month. Be first in line when we open.</p>
+              <p style={{ position: 'relative', zIndex: 1, fontSize: 17, color: 'rgba(255,255,255,0.75)', marginTop: 10 }}>Free to download. Pro is $19.99 / month or $199.99 / year.</p>
               <div style={{ position: 'relative', zIndex: 1, marginTop: 36, display: 'flex', justifyContent: 'center' }}>
-                <WaitlistForm variant="onAccent" source="final-cta" />
+                <AppStoreButton variant="white" />
               </div>
             </div>
           </div>

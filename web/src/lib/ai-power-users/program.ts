@@ -105,8 +105,7 @@ export const MODULE_0_OBJECTIVES: string[] = [
   'Open the same folder in VS Code and install an extension.',
 ]
 
-/* Install these before the session. The Whisper model download is over a
- * gigabyte and will not finish on venue wifi with thirty people trying at once. */
+/* Install these before the session. */
 export const MODULE_0_PREREQS: string[] = [
   'Windows 11, 8 GB RAM, and 5 GB free disk.',
   'Install Handy, Obsidian, and VS Code from their websites.',

@@ -2,7 +2,7 @@
  * Content for the Kids STEM enrolment page (/courses/kids-stem/enroll).
  *
  * The parent-facing proposal: schedule, what a family gets, Friendly M Helper,
- * plans and pricing, the printed magazine, privacy, and who teaches it.
+ * plans and pricing, the printed book, privacy, and who teaches it.
  *
  * The sixty-minute class agenda is NOT duplicated here. It lives in
  * CLASS_AGENDA in ./course and is rendered from there, so the class shape
@@ -34,9 +34,9 @@ export interface IncludedItem {
 
 export const INCLUDED: IncludedItem[] = [
   {
-    title: 'Notebook, pens and pencils',
+    title: 'A notebook of their own',
     detail:
-      'Provided and kept by your child. They bring it back each session, and the work compounds: each class builds on the last.',
+      'Theirs to keep. They bring it back each session, and the work compounds: each class builds on the last. Pens and pencils are part of the class and stay in the room.',
   },
   {
     title: 'Kids and parents dashboard',
@@ -46,23 +46,48 @@ export const INCLUDED: IncludedItem[] = [
     linkLabel: 'See the course',
   },
   {
-    title: 'An NFT collectible for every class attended',
+    title: 'Argo Private AI Journal, two subscriptions',
     detail:
-      'Minted to your account on the dashboard. Twelve classes builds a complete set, an on-chain record of showing up.',
+      'One month included with the monthly plan: an account for your child and an account for you. A private, AI-powered place to write, think and be asked good questions by an AI that only you can see. Speaking and writing are the two skills this class is built around, and this is where they get practised the other four days of the week.',
+    href: '/journal',
+    linkLabel: 'See the journal',
+  },
+  {
+    title: 'Lifetime membership of the Argo community',
+    detail:
+      'The Argo subscription mints a membership NFT: a lifetime membership of the Argo high-alignment community and network state. While the subscription is active it also opens the community Telegram, where you connect and coordinate with other Argonauts, global travellers, creative technologists and innovators. What holds the community together is a shared practice: our weapon is the ability to speak, to write, and to generate and develop ideas. That is what we train here, in the AI Power Users class, and in the journal itself.',
   },
   {
     title: 'Friendly M Helper',
     detail: 'Our robot assistant, in every session. More on him below.',
   },
   {
-    title: 'A small group',
+    title: 'A short video of their work',
     detail:
-      'Every child gets personalised exercises and room for their own creativity, play and pace.',
+      'In every class your child can optionally record a short video showing their drawings, their journaling and their explanation of the concept. An AI agent edits it and it comes back to you.',
   },
 ]
 
-export const NFT_NOTE =
-  'Minting is opt-in and held in the parent’s account, not the child’s. There’s no cost, nothing to sell or trade, and your child never handles a wallet or any money. If you’d rather skip it entirely, say so. Everything else about the class is unchanged.'
+/* ── What this is for ────────────────────────────────────────────────────── */
+
+export const PURPOSE_HEADING = 'What this is for'
+
+export const PURPOSE_BODY: string[] = [
+  'Our goal is to give your child armor to go out into the world and succeed. That armor is their ability to speak, their ability to write, and their ability to generate and refine their own ideas.',
+  'Patrick Winston, who ran the MIT Artificial Intelligence Laboratory, put the formula plainly. How far those abilities take you is knowledge times practice times talent. K times P times T. Two of those three are things you can actually work on, so that is what we do here: we give them the time to practise, in a group.',
+]
+
+export const PRACTICE_HEADING = 'How we practise it'
+
+export const PRACTICE_BODY: string[] = [
+  'We exercise imagination first, through drawing. Then we share with the group what we drew, and we record a short video.',
+  'Then we journal. A written entry about something related to the day\u2019s concept, and again we share it with the group.',
+  'Then we learn one STEM concept, and they teach it back and present it to the group.',
+  'At the end everyone walks away with a short video, a memento the parents and the child keep, to look back on and see their progress.',
+]
+
+export const PRACTICE_CLOSE =
+  'We do not critique. We celebrate their creativity, their imagination, their curiosity, and their effort.'
 
 /* ── Friendly M Helper ───────────────────────────────────────────────────── */
 
@@ -93,14 +118,14 @@ export const TIERS: Tier[] = [
   },
   {
     name: 'One Month',
-    price: 360,
-    rate: '≈ RM 28 / class',
-    note: 'Every Monday, Wednesday and Friday for a calendar month. Roughly thirteen sessions.',
+    price: 400,
+    rate: '≈ RM 33 / class',
+    note: 'Every Monday, Wednesday and Friday for a calendar month. Twelve classes, twelve concepts.',
   },
 ]
 
 export const PLAN_INTRO =
-  'Two options, nothing else to work out. The class runs three times a week, so the monthly rate is where most families land: it pays for itself at six visits out of roughly thirteen.'
+  'Two options, nothing else to work out. The class runs three times a week, so the monthly rate is where most families land: it pays for itself at seven visits out of twelve.'
 
 export const TERMS: string[] = [
   'Payment is for the month ahead, collected at the last class of the previous month.',
@@ -109,26 +134,32 @@ export const TERMS: string[] = [
   'Months are not refunded, but nobody loses money either.',
 ]
 
+export const PORTAL_NOTE =
+  'Your subscription is managed entirely through the web portal at myargoquest.com/courses. You start it, pause it and cancel it there yourself, and every lesson, prompt and quiz score sits in the same place.'
+
+export const REPORT_NOTE =
+  'You can also opt in to a personalised report on your child’s activity and progress, written by Friendly M Helper from what he sees in class and what your child submits. It arrives through the portal, it is private to your family, and you can turn it off at any time.'
+
 export const PAYMENT_RAILS = ['Stripe (card)', 'Wise', 'Venmo', 'Crypto (USDC)']
 
-/* ── The magazine ────────────────────────────────────────────────────────── */
+/* ── The book ────────────────────────────────────────────────────────── */
 
 export const BOOK = {
   title: 'August 2026 Core Skills: Kids Wholistic Creativity and STEM Class',
-  lead: 'Every twelve classes becomes a magazine your child keeps.',
+  lead: 'Every twelve classes becomes a book your child keeps.',
   body: [
-    'Magazine size and format, with content drawn from every session.',
+    'Book size and format, with content drawn from every session.',
     'Each class gets its own spread. On one page, the three graphics that explain the concept: one pitched for a three-year-old, one for a seven-year-old, one for a twelve-year-old. Facing it, three infographics the children made explaining the very same idea. Also included: an optional group photo and a photo scrapbook page from the class.',
   ],
   digital: {
     heading: 'The digital edition is included',
     detail:
-      'Every enrolled family receives the complete magazine as a digital edition on the dashboard, included with enrolment. Nothing about the book sits behind an extra payment.',
+      'Every enrolled family receives the complete book as a digital edition on the dashboard, included with enrolment. Nothing about the book sits behind an extra payment.',
   },
   print: {
     heading: 'The printed copy is optional: RM 100',
     detail:
-      'A physical full-colour magazine. Collect it from me in person at no extra cost, or have it shipped to you for the cost of shipping. Ordered at the end of the twelve classes and printed only to order, nothing is printed unless a family asks for it.',
+      'A physical full-colour book. Collect it from me in person at no extra cost, or have it shipped to you for the cost of shipping. Ordered at the end of the twelve classes and printed only to order, nothing is printed unless a family asks for it.',
   },
   consent:
     'Group and scrapbook photos are included only with your written consent, and any child can be left out at your request with no effect on anything else.',
@@ -165,7 +196,7 @@ export const PRIVACY_POINTS: { title: string; detail: string }[] = [
 
 export const BIO: string[] = [
   'Konrad learned how to teach from his mother, a career teacher. Before moving into engineering he taught Chemistry to students, and he holds a bachelor’s degree in Polish Studies from the University of Illinois at Chicago.',
-  'He has been a software engineer for the past ten years, building at fintech SaaS companies at $50 million in revenue, and at crypto DeFi startups holding $500 million in total value locked. He has spoken at Ethereum conferences including Devconnect in Buenos Aires, and won prizes at hackathons including ETHTokyo, AGI House in Silicon Valley, ETHVietnam and ETHNYC.',
+  'He has been a software engineer for the past ten years, building web applications at fintech SaaS companies at $50 million in revenue, and at crypto DeFi startups holding $500 million in total value locked. He has spoken at Ethereum conferences including Devconnect in Buenos Aires, and won prizes at hackathons including ETHTokyo, AGI House in Silicon Valley, ETHVietnam and ETHNYC.',
   'Today he is the founder of Argo, a private AI journaling app, teaches AI agents to a global audience, and speaks at and organises conferences and network state events.',
 ]
 

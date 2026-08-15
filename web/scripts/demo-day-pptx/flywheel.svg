@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1000" viewBox="-50 0 600 500">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#CE7F44"/>
+    </marker>
+  </defs>
+  <rect x="-50" y="0" width="600" height="500" fill="#16130E"/>
+  <circle cx="250" cy="250" r="222" stroke="#CE7F44" stroke-opacity="0.3" stroke-width="1.5" fill="none" stroke-dasharray="5 8"/>
+  <text x="93" y="98" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="2.4" fill="#CE7F44">CONTENT</text>
+
+  <line x1="250" y1="74"  x2="250" y2="158" stroke="#CE7F44" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="426" y1="250" x2="342" y2="250" stroke="#CE7F44" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="250" y1="426" x2="250" y2="342" stroke="#CE7F44" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="74"  y1="250" x2="158" y2="250" stroke="#CE7F44" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <text x="250" y="48"  text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="600" fill="#F3EEE4">Podcast</text>
+  <text x="446" y="255" text-anchor="start"  font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="600" fill="#F3EEE4">Kids class</text>
+  <text x="250" y="466" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="600" fill="#F3EEE4">Community</text>
+  <text x="54"  y="255" text-anchor="end"    font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="600" fill="#F3EEE4">AI course</text>
+
+  <polygon points="321,209 321,291 250,332 179,291 179,209 250,168" fill="#221E18" stroke="#F5C842" stroke-width="2"/>
+  <text x="250" y="263" text-anchor="middle" font-family="Georgia, serif" font-size="40" fill="#F5C842">Argo</text>
+</svg>

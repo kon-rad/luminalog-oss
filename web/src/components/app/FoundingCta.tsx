@@ -1,17 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useSession } from '@/lib/session/session-context'
+import { APP_STORE_URL } from '@/lib/appStore'
 import { getPurchases, BILLING_ENABLED, PRO_ENTITLEMENT_ID } from '@/lib/billing/revenuecat'
 
 // Founding-offer CTA (design: /founding offer card). Client island so
 // `founding/page.tsx` can stay a server component with `metadata`.
 //
-// BILLING_ENABLED === false (shipped/production default): renders the exact
-// "Coming soon" pill + waitlist paragraph that shipped pre-billing — copied
-// verbatim from the old inline markup in founding/page.tsx so the flag-off
-// experience is byte-for-byte unchanged.
+// BILLING_ENABLED === false (shipped/production default): renders the
+// "Coming soon" pill from the old inline markup in founding/page.tsx. The
+// paragraph under it used to point at the pre-launch waitlist; now that the
+// iOS app has shipped it points at the App Store listing instead, so the
+// flag-off experience still has somewhere useful to send people.
 //
 // BILLING_ENABLED === true: a real RevenueCat Web Billing purchase for the
 // `founding` offering (see lib/billing/revenuecat.ts for the BILLING_ENABLED
@@ -19,7 +20,7 @@ import { getPurchases, BILLING_ENABLED, PRO_ENTITLEMENT_ID } from '@/lib/billing
 // @revenuecat/purchases-js types (dist/Purchases.es.d.ts): `getOfferings()`
 // returns `Offerings { all: Record<string, Offering>, current: Offering | null }`,
 // `Offering.availablePackages: Package[]`, and `purchase(params: PurchaseParams)`
-// takes `{ rcPackage: Package }` — matches this implementation as written.
+// takes `{ rcPackage: Package }`, matching this implementation as written.
 const COMING_SOON = (
   <>
     <span
@@ -36,10 +37,10 @@ const COMING_SOON = (
     </span>
     <p style={{ marginTop: 18, fontSize: 14, color: 'rgba(255,255,255,0.75)' }}>
       Founding checkout opens shortly.{' '}
-      <Link href="/#waitlist" style={{ color: '#fff', fontWeight: 600, textDecoration: 'underline' }}>
-        Join the waitlist
-      </Link>{' '}
-      to be first in line.
+      <a href={APP_STORE_URL} target="_blank" rel="noopener" style={{ color: '#fff', fontWeight: 600, textDecoration: 'underline' }}>
+        Download Argo
+      </a>{' '}
+      and start journaling today.
     </p>
   </>
 )
@@ -53,7 +54,7 @@ export default function FoundingCta() {
 
   async function buy() {
     if (!uid) {
-      window.location.href = '/#waitlist' // not signed in — send to sign-in/waitlist
+      window.location.href = '/#download' // not signed in, send to the landing CTA
       return
     }
     setBusy(true)
@@ -62,7 +63,7 @@ export default function FoundingCta() {
       const purchases = await getPurchases(uid)
       const info = await purchases.getCustomerInfo()
       if (info?.entitlements?.active?.[PRO_ENTITLEMENT_ID]) {
-        window.location.href = '/dashboard' // already Pro — don't double-charge
+        window.location.href = '/dashboard' // already Pro, don't double-charge
         return
       }
       const offerings = await purchases.getOfferings()

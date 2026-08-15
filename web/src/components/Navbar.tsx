@@ -6,8 +6,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { FirebaseError } from 'firebase/app'
 import { useAuth } from '@/lib/auth-context'
+import AppStoreButton from '@/components/AppStoreButton'
 
-// Popup cancellations aren't errors — the user just dismissed the sheet.
+// Popup cancellations aren't errors; the user just dismissed the sheet.
 const CANCEL_CODES = new Set(['auth/popup-closed-by-user', 'auth/cancelled-popup-request'])
 
 // The section anchors shared by the desktop bar and the mobile drawer.
@@ -163,9 +164,7 @@ export default function Navbar() {
                       </div>
                     )}
                   </div>
-                  <a href="#waitlist" className="nav-cta">
-                    Join waitlist
-                  </a>
+                  <AppStoreButton variant="nav" label="Download" />
                 </div>
               )
             )}
@@ -249,14 +248,11 @@ export default function Navbar() {
                     <GoogleGlyph />
                     Continue with Google
                   </button>
-                  <a
-                    href="#waitlist"
-                    onClick={() => setDrawerOpen(false)}
-                    className="btn-amber-full"
+                  <AppStoreButton
+                    variant="full"
+                    label="Download on the App Store"
                     style={{ marginTop: 10 }}
-                  >
-                    Join waitlist
-                  </a>
+                  />
                 </>
               )
             )}
