@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ChevronRight, Sparkles } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
+import { useSession } from '@/lib/session/session-context'
 import { ThemeToggle } from '@/lib/theme'
 
 // Settings tab root — minimal M2 subset of design B.17: just Appearance +
@@ -13,8 +14,20 @@ import { ThemeToggle } from '@/lib/theme'
 // Account, Legal) are later milestones.
 export default function SettingsPage() {
   const { signOut } = useAuth()
+  const { forgetThisBrowser } = useSession()
   const router = useRouter()
   const [signingOut, setSigningOut] = useState(false)
+  const [confirmingForget, setConfirmingForget] = useState(false)
+
+  // Signing out afterward is deliberate: clearing the slot while the DEK is
+  // still cached in memory would leave a session that keeps working until the
+  // next reload, which reads as the control having silently failed.
+  const handleForgetBrowser = async () => {
+    await forgetThisBrowser()
+    setConfirmingForget(false)
+    await signOut()
+    router.push('/')
+  }
 
   const handleSignOut = async () => {
     if (!window.confirm('Sign out of Argo?')) return
@@ -65,6 +78,51 @@ export default function SettingsPage() {
       {/* Later milestones: Profile, Leaderboard, User Information, Daily
           Reminder, Subscription, AI Summary Config, Voice Credits, Delete
           Account, Legal (design B.17). */}
+
+      <section className="card flex flex-col gap-2 p-4">
+        <h2
+          className="text-sm font-semibold uppercase tracking-wide"
+          style={{ color: 'var(--text2)' }}
+        >
+          Encryption
+        </h2>
+        <p className="text-sm" style={{ color: 'var(--text2)' }}>
+          Your key is stored on this browser so you do not have to enter your recovery code every
+          visit. Forgetting it removes the key from this device only. Your journal is untouched.
+        </p>
+        {confirmingForget ? (
+          <div className="flex flex-col gap-2 pt-1">
+            <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+              You will need your recovery code to open Argo here again.
+            </p>
+            <button
+              type="button"
+              onClick={() => void handleForgetBrowser()}
+              className="w-full rounded-btn py-2.5 text-sm font-semibold"
+              style={{ color: 'var(--danger)', border: '1px solid var(--hairline2)' }}
+            >
+              Forget and sign out
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingForget(false)}
+              className="w-full py-2 text-sm font-medium"
+              style={{ color: 'var(--text2)' }}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmingForget(true)}
+            className="self-start pt-1 text-sm font-semibold"
+            style={{ color: 'var(--accent)' }}
+          >
+            Forget this browser
+          </button>
+        )}
+      </section>
 
       <section className="card p-4">
         <button
