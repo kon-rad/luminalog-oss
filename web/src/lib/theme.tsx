@@ -2,9 +2,14 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 
+/* The OS colour-scheme preference is deliberately NOT consulted. Argo is a
+ * light, warm-paper product; dark is an explicit opt-in only, never something a
+ * system setting can impose. 'system' survives in the type solely so previously
+ * persisted values still parse, and it resolves to light. */
 export type ThemeMode = 'system' | 'light' | 'dark'
 
 const STORAGE_KEY = 'll-theme'
+const DEFAULT_MODE: ThemeMode = 'light'
 
 interface ThemeContextType {
   mode: ThemeMode
@@ -13,42 +18,41 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  mode: 'system',
+  mode: DEFAULT_MODE,
   resolvedMode: 'light',
   setMode: () => {},
 })
 
-function resolve(mode: ThemeMode, prefersDark: boolean): 'light' | 'dark' {
-  if (mode === 'system') return prefersDark ? 'dark' : 'light'
-  return mode
+function resolve(mode: ThemeMode): 'light' | 'dark' {
+  // Only an explicit 'dark' is dark. 'system' (legacy stored value) is light.
+  return mode === 'dark' ? 'dark' : 'light'
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>('system')
-  const [prefersDark, setPrefersDark] = useState(false)
+  const [mode, setModeState] = useState<ThemeMode>(DEFAULT_MODE)
   const [hydrated, setHydrated] = useState(false)
 
-  // Read persisted mode + current system preference after mount (SSR-safe, avoids hydration mismatch)
+  // Read the persisted mode after mount (SSR-safe, avoids a hydration mismatch).
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY)
-    if (stored === 'system' || stored === 'light' || stored === 'dark') {
+    // A stored 'system' is intentionally ignored: it used to mean "follow the
+    // OS", which is exactly the behaviour being removed.
+    if (stored === 'light' || stored === 'dark') {
       setModeState(stored)
     }
-    const mql = window.matchMedia('(prefers-color-scheme: dark)')
-    setPrefersDark(mql.matches)
     setHydrated(true)
-
-    const handleChange = (e: MediaQueryListEvent) => setPrefersDark(e.matches)
-    mql.addEventListener('change', handleChange)
-    return () => mql.removeEventListener('change', handleChange)
   }, [])
 
-  const resolvedMode = resolve(mode, prefersDark)
+  const resolvedMode = resolve(mode)
 
-  // Apply .dark class to <html> whenever the resolved mode changes
+  // Apply .dark to <html> whenever the resolved mode changes, and strip it on
+  // unmount. Without the cleanup the class outlives this provider: it is only
+  // mounted under (app), so a client-side navigation out to a marketing page
+  // (which has no ThemeProvider to reset it) would leave that page dark.
   useEffect(() => {
     if (!hydrated) return
     document.documentElement.classList.toggle('dark', resolvedMode === 'dark')
+    return () => document.documentElement.classList.remove('dark')
   }, [resolvedMode, hydrated])
 
   const setMode = (next: ThemeMode) => {
@@ -65,8 +69,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export const useTheme = () => useContext(ThemeContext)
 
+/* No 'System' option: following the OS is no longer a behaviour we offer, so
+ * showing it would promise something the resolver does not do. */
 const OPTIONS: { value: ThemeMode; label: string }[] = [
-  { value: 'system', label: 'System' },
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' },
 ]
