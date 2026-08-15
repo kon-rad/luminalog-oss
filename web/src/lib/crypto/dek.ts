@@ -48,6 +48,32 @@ export async function bootstrapDEK(): Promise<CryptoKey> {
   return key
 }
 
+/**
+ * Import raw DEK bytes as the session key. The ONLY way a key enters the cache
+ * now that `/bootstrap` is gone: callers obtain the bytes by unwrapping a
+ * client-held wrap (recovery code or browser slot) and hand them here.
+ *
+ * Imported non-extractable, so the key cannot be read back out of the browser
+ * even by this app's own code.
+ */
+export async function installDEK(bytes: Uint8Array): Promise<CryptoKey> {
+  if (bytes.length !== 32) {
+    throw new Error(`installDEK: expected a 32-byte key, got ${bytes.length} bytes`)
+  }
+  const gen = generation
+  const key = await crypto.subtle.importKey(
+    'raw',
+    bytes as Uint8Array<ArrayBuffer>,
+    'AES-GCM',
+    /* extractable */ false,
+    ['encrypt', 'decrypt'],
+  )
+  // Same generation guard as bootstrapDEK: never poison the shared cache with a
+  // key belonging to a user who signed out while this import was in flight.
+  if (gen === generation) cachedDEK = key
+  return key
+}
+
 /** The in-memory DEK, or null if not yet bootstrapped this session. */
 export function getCachedDEK(): CryptoKey | null {
   return cachedDEK
