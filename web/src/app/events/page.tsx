@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { EventsLayout, UpcomingEventCard } from '@/components/events'
 import PastEvents from '@/components/PastEvents'
 import { getUpcomingEvents, LUMA_CALENDAR_URL } from '@/lib/events/luma'
-import { PAST_EVENTS } from '@/lib/events/pastEvents'
+import { getPastEvents } from '@/lib/events/pastEvents'
 
 export const metadata: Metadata = {
   title: 'Events, Argo',
@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 }
 
 // Upcoming events are fetched live from Luma at request time (cached 30 min).
+// Past events come from our own archive via the API server (cached 1 hour).
 export const dynamic = 'force-dynamic'
 
 export default async function EventsPage({
@@ -25,7 +26,8 @@ export default async function EventsPage({
   searchParams?: { show?: string }
 }) {
   const showPast = searchParams?.show === 'past'
-  const upcoming = await getUpcomingEvents()
+  // Both lists on every render, so the tab counts are right on either tab.
+  const [upcoming, pastEvents] = await Promise.all([getUpcomingEvents(), getPastEvents()])
 
   return (
     <EventsLayout>
@@ -37,12 +39,23 @@ export default async function EventsPage({
               Upcoming ({upcoming.length})
             </Tab>
             <Tab href="/events?show=past" active={showPast}>
-              Past ({PAST_EVENTS.length})
+              Past ({pastEvents.length})
             </Tab>
           </div>
 
           {showPast ? (
-            <PastEvents />
+            pastEvents.length > 0 ? (
+              <PastEvents pastEvents={pastEvents} />
+            ) : (
+              <div style={{ padding: '56px 0', textAlign: 'center' }}>
+                <p style={{ fontSize: 17, color: 'var(--text2)', marginBottom: 18 }}>
+                  The past-events archive is briefly unavailable. Please try again shortly.
+                </p>
+                <a href={LUMA_CALENDAR_URL} target="_blank" rel="noopener noreferrer" className="btn-amber">
+                  Browse the calendar on Luma
+                </a>
+              </div>
+            )
           ) : upcoming.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 22 }}>
               {upcoming.map((event) => (

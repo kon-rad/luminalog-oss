@@ -129,5 +129,13 @@ service cloud.firestore {
     match /courseBadgeTokens/{tokenId} {
       allow read, write: if false;
     }
+
+    // Past-events archive for the website (public marketing content, no user
+    // data). Written by the local sync script and read by the API server's
+    // public GET /v1/events/past, both via the Admin SDK, so clients never need
+    // direct access. See ADR-0124.
+    match /pastEvents/{slug} {
+      allow read, write: if false;
+    }
   }
 }

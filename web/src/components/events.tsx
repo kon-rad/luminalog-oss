@@ -20,6 +20,11 @@ export const TYPE_LABELS: Record<string, string> = {
   WRITERS_CLUB: 'Writing',
   FILM_DISCUSSION: 'Film',
   HACKATHON: 'Hackathon',
+  KIDS_STEM: 'Kids STEM',
+  YOGA: 'Yoga',
+  DANCE: 'Dance',
+  SOCIAL: 'Social',
+  WELLNESS: 'Wellness',
   OTHER: 'Event',
 }
 
@@ -34,6 +39,11 @@ export const TYPE_COLORS: Record<string, string> = {
   WRITERS_CLUB: 'var(--dim-intellect)',
   FILM_DISCUSSION: 'var(--dim-spirit)',
   HACKATHON: 'var(--accent)',
+  KIDS_STEM: 'var(--dim-art)',
+  YOGA: 'var(--dim-spirit)',
+  DANCE: 'var(--dim-emotion)',
+  SOCIAL: 'var(--accent)',
+  WELLNESS: 'var(--dim-intellect)',
   OTHER: 'var(--text2)',
 }
 

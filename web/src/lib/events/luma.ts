@@ -6,6 +6,8 @@
  * as events are added. Fetches are cached for 30 minutes.
  * ────────────────────────────────────────────────────────────────────────── */
 
+import { classify } from './classify'
+
 const CALENDAR_ID = 'cal-Ou3HZASzgTI50zJ'
 const API = 'https://api.lu.ma'
 const HEADERS = { 'User-Agent': 'Mozilla/5.0', accept: 'application/json' }
@@ -24,19 +26,6 @@ export interface UpcomingEvent {
   description: string
   lumaUrl: string
   coverUrl: string
-}
-
-function classify(name: string): string {
-  const n = name.toLowerCase()
-  if (/(muay thai|martial|\bbjj\b)/.test(n)) return 'MUAY_THAI'
-  if (n.includes('robotic')) return 'ROBOTICS_CLUB'
-  if (n.includes('demo') || n.includes('pitch')) return 'DEMO_DAY'
-  if (n.includes('film') || n.includes('screening')) return 'FILM_DISCUSSION'
-  if (n.includes('writer')) return 'WRITERS_CLUB'
-  if (n.includes('speak')) return 'PUBLIC_SPEAKERS'
-  if (n.includes('hackathon')) return 'HACKATHON'
-  if (/(workshop|claude code|openclaw|agent)/.test(n)) return 'WORKSHOP'
-  return 'OTHER'
 }
 
 /* Flatten a Luma ProseMirror description document into plain text. */

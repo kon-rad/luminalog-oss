@@ -9,19 +9,19 @@ import {
   TypePill,
   formatEventDate,
 } from '@/components/events'
-import { PAST_EVENTS, type PastEvent } from '@/lib/events/pastEvents'
+import { type PastEvent } from '@/lib/events/pastEvents'
 
 interface LightboxState {
   event: PastEvent
   index: number
 }
 
-export default function PastEvents() {
+export default function PastEvents({ pastEvents }: { pastEvents: PastEvent[] }) {
   const [onlyPhotos, setOnlyPhotos] = useState(false)
   const [lightbox, setLightbox] = useState<LightboxState | null>(null)
 
-  const events = onlyPhotos ? PAST_EVENTS.filter((e) => e.photos.length > 0) : PAST_EVENTS
-  const withPhotos = PAST_EVENTS.filter((e) => e.photos.length > 0).length
+  const events = onlyPhotos ? pastEvents.filter((e) => e.photos.length > 0) : pastEvents
+  const withPhotos = pastEvents.filter((e) => e.photos.length > 0).length
 
   const close = useCallback(() => setLightbox(null), [])
   const step = useCallback((dir: number) => {
@@ -52,7 +52,7 @@ export default function PastEvents() {
       {/* Filter */}
       <div className="flex items-center gap-2.5" style={{ marginBottom: 26 }}>
         <FilterChip active={!onlyPhotos} onClick={() => setOnlyPhotos(false)}>
-          All ({PAST_EVENTS.length})
+          All ({pastEvents.length})
         </FilterChip>
         <FilterChip active={onlyPhotos} onClick={() => setOnlyPhotos(true)}>
           <CameraGlyph /> With photos ({withPhotos})

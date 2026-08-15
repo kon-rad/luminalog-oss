@@ -12,6 +12,24 @@ SSH_KEY="${LUMINALOG_DEPLOY_SSH_KEY:?set LUMINALOG_DEPLOY_SSH_KEY, e.g. ~/.ssh/y
 REMOTE_DIR="/root/luminalog/luminalog-web"
 SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# Refresh the past-events archive before the rsync, so a finished event reaches
+# the site on the next deploy rather than waiting for someone to notice.
+#
+# This runs LOCALLY on purpose: the rsync below uses --delete, so a cover image
+# written on the server but absent from this tree would be destroyed on the next
+# deploy. Credentials come from the API server's .env, which is not in this repo.
+#
+# Fail-soft: Luma being down, slow, or having changed shape must never block a
+# deploy. The archive already lives in Firestore, so a skipped sync just means
+# the newest events wait for the next one.
+echo "==> Refreshing the past-events archive from Luma ..."
+if [ -f "$SRC_DIR/../server/.env" ]; then
+  ( cd "$SRC_DIR" && npm run events:sync ) || \
+    echo " WARNING: events sync failed, deploying with the existing archive"
+else
+  echo " skipped (../server/.env not found, so no Firestore credentials)"
+fi
+
 echo "==> Syncing $SRC_DIR -> $SERVER:$REMOTE_DIR ..."
 # NOTE: .env.local is intentionally excluded — the server keeps its own .env.local
 # with NEXT_PUBLIC_* vars baked in at build time. Never let a local file overwrite it.

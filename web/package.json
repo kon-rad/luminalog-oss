@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "contest:media": "python3 scripts/process-contest-media.py"
+    "contest:media": "python3 scripts/process-contest-media.py",
+    "events:sync": "node --env-file=../server/.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/sync-luma-past-events.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
@@ -35,6 +36,7 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.5",
     "fake-indexeddb": "^6.2.5",
+    "firebase-admin": "^14.2.0",
     "jsdom": "^29.1.1",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
