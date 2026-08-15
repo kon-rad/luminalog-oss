@@ -4,7 +4,7 @@ import { auth } from '../firebase'
 // Attaches the signed-in user's Firebase ID token as a Bearer header and
 // retries once with a force-refreshed token on a 401 (matches the iOS
 // ProxyAPIClient behavior). `path` must be a same-origin route like
-// '/api/keys/bootstrap' — never a cross-origin API_URL (avoids CORS).
+// '/api/keys/wrapped', never a cross-origin API_URL (avoids CORS).
 //
 // Dates in `body` serialize via JSON.stringify's default Date -> ISO-8601
 // toJSON() behavior, so no custom replacer is needed.
@@ -15,7 +15,7 @@ async function getIdToken(forceRefresh: boolean): Promise<string> {
   return user.getIdToken(forceRefresh)
 }
 
-type Method = 'GET' | 'POST' | 'DELETE'
+type Method = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
 function doFetch(method: Method, path: string, token: string, body?: unknown): Promise<Response> {
   const init: RequestInit = {
@@ -58,6 +58,11 @@ export async function apiPostRaw(path: string, body: unknown): Promise<Response>
 /** POST to a same-origin proxy route and parse the JSON response body as `T`. */
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   return requestJson<T>('POST', path, body)
+}
+
+/** PUT to a same-origin proxy route and parse the JSON response body as `T`. */
+export async function apiPut<T>(path: string, body: unknown): Promise<T> {
+  return requestJson<T>('PUT', path, body)
 }
 
 /** GET a same-origin proxy route and parse the JSON response body as `T`. */
