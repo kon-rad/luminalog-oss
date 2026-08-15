@@ -7,13 +7,9 @@
 //
 // Live-decodes the doc via a single-doc `onSnapshot` (so an async summary/
 // insights/prompts write from the server appears without a refresh) rather
-// than a one-shot `getEntry`. The DEK may not be cached yet on the very first
-// tick (e.g. deep-linking straight to a detail page before the session
-// bootstrap's `bootstrapDEK()` resolves) — we keep the latest raw snapshot in
-// a ref and ALSO kick off `bootstrapDEK()` ourselves; whichever of the two
-// (the snapshot tick or the DEK becoming available) finishes last triggers
-// the actual decode, so we never get stuck waiting on a snapshot event that
-// won't re-fire just because our local key cache changed.
+// than a one-shot `getEntry`. The DEK is guaranteed present here: `KeyUnlockGate`
+// resolves the key before any authenticated route renders, so this page never
+// mounts without one. That is why there is no key-arrival race to handle.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -21,7 +17,7 @@ import { useRouter } from 'next/navigation'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { ArrowRight, AudioLines, ChevronDown, Ellipsis, Loader2, MessageCircle, Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { auth, db } from '@/lib/firebase'
-import { bootstrapDEK, getCachedDEK } from '@/lib/crypto/dek'
+import { getCachedDEK } from '@/lib/crypto/dek'
 import { decodeEntry } from '@/lib/firestore/codec'
 import { createChat } from '@/lib/firestore/chats'
 import { deleteEntry, setExcludeFromShare } from '@/lib/firestore/journals'
@@ -74,15 +70,10 @@ export default function JournalDetailPage({ params }: { params: { id: string } }
     setEntry(null)
     setTab('main')
 
-    // The most recent raw doc payload — decoded as soon as a DEK is
-    // available, whether that happens inside the snapshot callback or once
-    // the `bootstrapDEK()` call below resolves.
-    const latestRaw = { current: null as Record<string, unknown> | null }
-
-    const decodeLatest = async (dek: CryptoKey) => {
-      if (cancelled || !latestRaw.current) return
+    const decodeLatest = async (raw: Record<string, unknown>, dek: CryptoKey) => {
+      if (cancelled) return
       try {
-        const decoded = await decodeEntry(id, latestRaw.current, dek)
+        const decoded = await decodeEntry(id, raw, dek)
         if (cancelled) return
         if (decoded === null) setStatus('decryptFailed')
         else if (decoded.userId !== auth.currentUser?.uid) {
@@ -113,11 +104,15 @@ export default function JournalDetailPage({ params }: { params: { id: string } }
           setStatus('notFound')
           return
         }
-        latestRaw.current = snap.data()
         const dek = getCachedDEK()
-        if (dek) void decodeLatest(dek)
-        // else: the `bootstrapDEK()` call below resolves independently and
-        // will call `decodeLatest` once a key is available.
+        if (!dek) {
+          // Unreachable behind KeyUnlockGate. Fail closed rather than render
+          // ciphertext or an empty entry that would read as data loss.
+          console.error('[journal-detail] no encryption key loaded')
+          setStatus('decryptFailed')
+          return
+        }
+        void decodeLatest(snap.data(), dek)
       },
       (err) => {
         if (!cancelled) {
@@ -126,15 +121,6 @@ export default function JournalDetailPage({ params }: { params: { id: string } }
         }
       },
     )
-
-    bootstrapDEK()
-      .then((dek) => decodeLatest(dek))
-      .catch((err) => {
-        if (!cancelled) {
-          console.error('[journal-detail] bootstrapDEK failed:', err)
-          setStatus((prev) => (prev === 'loading' ? 'decryptFailed' : prev))
-        }
-      })
 
     return () => {
       cancelled = true

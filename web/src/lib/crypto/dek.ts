@@ -1,52 +1,24 @@
-import { apiPost } from '../api/client'
-
-// DEK (data encryption key) lifecycle. Bootstraps the user's raw 32-byte AES-256
-// key from the server (`POST /v1/keys/bootstrap` via the same-origin proxy),
-// imports it as a non-extractable WebCrypto AES-GCM key, and caches it in
-// memory for the session. No KDF/salt — the raw 32 bytes are the AES-256 key
-// directly (matches iOS `SymmetricKey(data:)`).
+// DEK (data encryption key) lifecycle: the in-memory cache of the user's raw
+// 32-byte AES-256 key, imported as a non-extractable WebCrypto AES-GCM key. No
+// KDF and no salt, because the raw 32 bytes ARE the AES-256 key (matching iOS
+// `SymmetricKey(data:)`).
+//
+// The key arrives ONLY from `installDEK`, called by `keys/keyEnrollment.ts`
+// after unwrapping a client-held wrap (the recovery code, or this browser's
+// local slot). The old server-held path, `POST /v1/keys/bootstrap`, was deleted
+// at the zero-knowledge cutover: the server holds none of the KEKs and can no
+// longer produce a DEK for anyone.
 
 let cachedDEK: CryptoKey | null = null
 
-// Bumped by `clearDEK()` (sign-out). A bootstrap in flight when a sign-out
-// happens captures its own generation before the fetch; if the generation has
-// moved on by the time the fetch resolves, the (now stale/wrong-user) key is
-// returned to the caller but NOT written into the shared `cachedDEK` — closes
-// a cross-user key contamination window (bootstrap in flight → sign-out →
-// different user signs in → stale fetch resolves and would otherwise
-// re-poison the cache).
+// Bumped by `clearDEK()` (sign-out). An install in flight when a sign-out
+// happens captures its own generation first; if the generation has moved on by
+// the time the import resolves, the (now stale, wrong-user) key is returned to
+// the caller but NOT written into the shared `cachedDEK`. That closes a
+// cross-user key contamination window: install in flight, then sign-out, then a
+// different user signs in, then the stale import resolves and would otherwise
+// re-poison the cache.
 let generation = 0
-
-// Tiny atob-based base64 decoder (works in browser + node/vitest).
-function base64ToBytes(b64: string): Uint8Array<ArrayBuffer> {
-  const binary = atob(b64)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-  return bytes
-}
-
-/** Returns the cached DEK, bootstrapping it from the server on first call. */
-export async function bootstrapDEK(): Promise<CryptoKey> {
-  if (cachedDEK) return cachedDEK
-
-  const gen = generation
-  const { dek } = await apiPost<{ dek: string }>('/api/keys/bootstrap', {})
-  const bytes = base64ToBytes(dek)
-  if (bytes.length !== 32) {
-    throw new Error(`bootstrapDEK: expected a 32-byte key, got ${bytes.length} bytes`)
-  }
-
-  const key = await crypto.subtle.importKey('raw', bytes, 'AES-GCM', /* extractable */ false, [
-    'encrypt',
-    'decrypt',
-  ])
-  // Only poison the shared cache if no sign-out happened while we were
-  // awaiting the network — otherwise a stale/wrong-user key could survive a
-  // `clearDEK()` and leak into a subsequently signed-in user's session. The
-  // caller still gets `key` back for whatever operation is in flight.
-  if (gen === generation) cachedDEK = key
-  return key
-}
 
 /**
  * Import raw DEK bytes as the session key. The ONLY way a key enters the cache
@@ -68,13 +40,13 @@ export async function installDEK(bytes: Uint8Array): Promise<CryptoKey> {
     /* extractable */ false,
     ['encrypt', 'decrypt'],
   )
-  // Same generation guard as bootstrapDEK: never poison the shared cache with a
-  // key belonging to a user who signed out while this import was in flight.
+  // Never poison the shared cache with a key belonging to a user who signed
+  // out while this import was in flight (see `generation` above).
   if (gen === generation) cachedDEK = key
   return key
 }
 
-/** The in-memory DEK, or null if not yet bootstrapped this session. */
+/** The in-memory DEK, or null if no key has been installed this session. */
 export function getCachedDEK(): CryptoKey | null {
   return cachedDEK
 }

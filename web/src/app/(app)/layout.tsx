@@ -7,6 +7,7 @@ import { ReactNode } from 'react'
 import { ThemeProvider } from '@/lib/theme'
 import { SessionProvider } from '@/lib/session/session-context'
 import PaywallGate from '@/components/app/PaywallGate'
+import KeyUnlockGate from '@/components/app/keys/KeyUnlockGate'
 import AppShell from '@/components/app/AppShell'
 
 export default function AppGroupLayout({ children }: { children: ReactNode }) {
@@ -14,7 +15,9 @@ export default function AppGroupLayout({ children }: { children: ReactNode }) {
     <ThemeProvider>
       <SessionProvider>
         <PaywallGate>
-          <AppShell>{children}</AppShell>
+          <KeyUnlockGate>
+            <AppShell>{children}</AppShell>
+          </KeyUnlockGate>
         </PaywallGate>
       </SessionProvider>
     </ThemeProvider>

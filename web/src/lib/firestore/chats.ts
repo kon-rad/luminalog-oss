@@ -21,7 +21,7 @@ import {
   type DocumentData,
 } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
-import { bootstrapDEK, getCachedDEK } from '@/lib/crypto/dek'
+import { getCachedDEK } from '@/lib/crypto/dek'
 import {
   decodeChat,
   decodeMessage,
@@ -40,7 +40,17 @@ const requireUser = () => {
   return user
 }
 
-const requireDEK = async (): Promise<CryptoKey> => getCachedDEK() ?? (await bootstrapDEK())
+// The DEK is installed by the key-unlock gate before any authenticated route
+// renders, so a missing key here is a programming error, not a state to
+// recover from. Reject rather than return empty: silence is precisely the
+// failure mode this subsystem exists to eliminate. Kept async so the
+// streaming call sites can keep their existing `.then(...).catch(...)` shape,
+// where a missing key arrives as a rejection their catch already handles.
+const requireDEK = async (): Promise<CryptoKey> => {
+  const dek = getCachedDEK()
+  if (!dek) throw new Error('requireDEK: no encryption key loaded')
+  return dek
+}
 
 export interface CreateChatInput {
   kind?: ChatKind

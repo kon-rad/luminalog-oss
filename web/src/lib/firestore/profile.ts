@@ -19,7 +19,7 @@ import type { User } from 'firebase/auth'
 import { auth, db } from '@/lib/firebase'
 import { AAD } from '@/lib/crypto/aad'
 import { encryptField } from '@/lib/crypto/envelope'
-import { bootstrapDEK, getCachedDEK } from '@/lib/crypto/dek'
+import { getCachedDEK } from '@/lib/crypto/dek'
 import { decodeProfile, decodeStats, encodeStats } from '@/lib/firestore/codec'
 import { nextStats } from '@/lib/stats/dailyGoalStreak'
 import type { Stats, UserProfile } from '@/lib/firestore/models'
@@ -99,7 +99,8 @@ export const ensureUserDocument = async (): Promise<boolean> => {
   // is the reliable marker.
   if (snap.exists() && snap.get('createdAt') !== undefined) return false
 
-  const dek = getCachedDEK() ?? (await bootstrapDEK())
+  const dek = getCachedDEK()
+  if (!dek) throw new Error('ensureUserDocument: no encryption key loaded')
   const seed = await buildUserSeed(user, dek)
   await setDoc(ref, seed, { merge: true })
   return true

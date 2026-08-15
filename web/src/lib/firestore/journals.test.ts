@@ -22,7 +22,7 @@ vi.mock('@/lib/firebase', () => ({
 
 vi.mock('@/lib/crypto/dek', () => ({
   getCachedDEK: () => mocks.dek,
-  bootstrapDEK: async () => mocks.dek,
+  installDEK: async () => mocks.dek,
 }))
 
 vi.mock('@/lib/api/client', () => ({
