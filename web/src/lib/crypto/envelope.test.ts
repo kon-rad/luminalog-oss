@@ -25,7 +25,7 @@ const OTHER_CTX = AAD.journalsTitle
 
 const SAMPLES: Array<[string, string]> = [
   ['ascii', 'The quick brown fox jumps over the lazy dog.'],
-  ['unicode/emoji', 'héllo 🌌 世界 — journaling ✨ naïve café'],
+  ['unicode/emoji', 'héllo 🌌 世界, journaling ✨ naïve café'],
   ['empty', ''],
 ]
 
@@ -37,11 +37,16 @@ beforeAll(async () => {
 })
 
 describe('cross-client parity (web ⇄ server)', () => {
+  // NOTE the two argument orders, which are NOT the same and must not be
+  // "tidied" into agreement: the web helpers take the key first
+  // (`encryptField(key, plaintext, context)`) while the shipping server helpers
+  // take the payload first (`encryptField(plaintext, dek, context)`). Passing
+  // key-first to the server functions is what silently broke this whole file.
   describe('web encrypt → server decrypt', () => {
     for (const [name, plaintext] of SAMPLES) {
       it(name, async () => {
         const field = await webEncrypt(webKey, plaintext, CTX)
-        expect(srvDecrypt(srvKey, field, CTX)).toBe(plaintext)
+        expect(srvDecrypt(field, srvKey, CTX)).toBe(plaintext)
       })
     }
   })
@@ -49,8 +54,8 @@ describe('cross-client parity (web ⇄ server)', () => {
   describe('server encrypt → web decrypt', () => {
     for (const [name, plaintext] of SAMPLES) {
       it(name, async () => {
-        const field = srvEncrypt(srvKey, plaintext, CTX)
-        expect(await webDecrypt(webKey, field, CTX)).toBe(plaintext)
+        const field = srvEncrypt(plaintext, srvKey, CTX)
+        expect(await webDecrypt(webKey, field as EncryptedField, CTX)).toBe(plaintext)
       })
     }
   })
@@ -58,12 +63,12 @@ describe('cross-client parity (web ⇄ server)', () => {
   describe('wrong AAD fails (fail closed)', () => {
     it('server rejects a web envelope under a different context', async () => {
       const field = await webEncrypt(webKey, 'secret', CTX)
-      expect(() => srvDecrypt(srvKey, field, OTHER_CTX)).toThrow()
+      expect(() => srvDecrypt(field, srvKey, OTHER_CTX)).toThrow()
     })
 
     it('web rejects a server envelope under a different context', async () => {
-      const field = srvEncrypt(srvKey, 'secret', CTX)
-      await expect(webDecrypt(webKey, field, OTHER_CTX)).rejects.toThrow()
+      const field = srvEncrypt('secret', srvKey, CTX)
+      await expect(webDecrypt(webKey, field as EncryptedField, OTHER_CTX)).rejects.toThrow()
     })
   })
 })
