@@ -1,0 +1,41 @@
+{
+  "note": "See generate-vectors.mjs. Do not edit by hand.",
+  "cases": [
+    {
+      "code": "ABCD-2345-WXYZ-0000-1111-2222-3333-4444-5555-6666-7777-8888-9999",
+      "normalized": "ABCD2345WXYZ0000111122223333444455556666777788889999",
+      "kekHex": "a805228b360c666d5e279ebfca49a17ff3a27c45a51ed8a2dd3dc52d41cc64fd",
+      "dekHex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "envelope": {
+        "v": 1,
+        "iv": "v4CWHXX62UFRccko",
+        "ct": "AwwGZLvDIvpJieT6YJxLOi6v8DWqJt7aAyo6YkEiMjs=",
+        "tag": "JmU2767kWPjTFLGEIfDjPw=="
+      }
+    },
+    {
+      "code": "abcd 2345 wxyz 0000 1111 2222 3333 4444 5555 6666 7777 8888 9999",
+      "normalized": "ABCD2345WXYZ0000111122223333444455556666777788889999",
+      "kekHex": "a805228b360c666d5e279ebfca49a17ff3a27c45a51ed8a2dd3dc52d41cc64fd",
+      "dekHex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "envelope": {
+        "v": 1,
+        "iv": "I/OpYy4ZQn/fUHSZ",
+        "ct": "cB3ry3NRPf4IvT8VWN1UICQW8QNEV8SAZ6rPAdNStHk=",
+        "tag": "m7xU8T/yIYKjEOmqo+EgJA=="
+      }
+    },
+    {
+      "code": "OILU-OILU-OILU-OILU",
+      "normalized": "011V011V011V011V",
+      "kekHex": "25817e9a151257d3e5cf99dbcf830f3eb155558b84be3c16fbbc517d0e8bb469",
+      "dekHex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "envelope": {
+        "v": 1,
+        "iv": "ASsYQGbNK1s1atg7",
+        "ct": "Su/+uriFRQPQ5GQI0zaP/0hXC7KYz0SZrLpQEvbpAqk=",
+        "tag": "GCxt9H39skvaQOsgz4ULWg=="
+      }
+    }
+  ]
+}
