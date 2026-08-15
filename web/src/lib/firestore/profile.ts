@@ -75,11 +75,13 @@ export const buildUserSeed = async (
 
 /**
  * Seed `users/{uid}` on first sign-in. Returns `isNewUser` (true iff the doc
- * did not exist). Existing docs are never overwritten — returning users keep
- * their biography, stats, and any proxy-written fields. Writes with
- * `merge:true` so a concurrent first sign-in (or a proxy write racing the
- * exists-check) can't be clobbered. Requires the DEK (to encrypt the empty
- * biography); bootstraps it if not yet cached.
+ * had not been seeded yet, tested by the absence of `createdAt`, not by the
+ * absence of the document; see the guard below). Seeded docs are never
+ * overwritten, so returning users keep their biography, stats, and any
+ * proxy-written fields. Writes with `merge:true` so a concurrent first sign-in,
+ * a proxy write racing the check, or the key-enrollment PUT that created the
+ * document cannot be clobbered. Requires the DEK to encrypt the empty
+ * biography, which is why this runs after key resolution.
  */
 export const ensureUserDocument = async (): Promise<boolean> => {
   const user = auth.currentUser
