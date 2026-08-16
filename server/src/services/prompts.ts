@@ -103,6 +103,84 @@ INSIGHTS — Identify 3-5 key themes, emotions, patterns, or observations from t
 PROMPTS — Exactly 5 open-ended questions that invite deeper reflection on the themes in this entry. Each is a single sentence ending with a question mark. Return them as an array of exactly 5 strings, with no numbering inside the strings.`
   },
 
+  /**
+   * Pass A of the cognitive map: break an entry into candidate beats. Extraction
+   * quality is permanent (a missed beat never comes back), so this runs on the
+   * strongest model in the chain and deliberately over-extracts. A later code step
+   * decides what is kept.
+   */
+  cognitiveMapExtract: (targetCount: number): string =>
+    `You break a personal journal entry into candidate beats: the meaningful units of what the writer said. Extract generously, aim for about ${targetCount}. A later step decides which are kept.
+
+Return STRICT JSON ONLY (no markdown fences, no preamble) with exactly this shape:
+{
+  "beats": [
+    {
+      "text": "Only three people signed up",
+      "kind": "event",
+      "quote": "Only three people signed up for the beta today.",
+      "domain": "craft",
+      "generality": 0.1,
+      "isSpine": true,
+      "mentions": [{ "surface": "the beta", "type": "project" }]
+    }
+  ]
+}
+
+KIND is exactly one of:
+- "event": could a camera have recorded it?
+- "feeling": could the writer feel it without knowing why?
+- "belief": could a reasonable person disagree with it?
+- "intent": does it point at the future?
+
+DOMAIN is exactly one of: craft (work, building, career, projects), body (health, training, sleep, food), people (relationships, family, friends, conflict), place (travel, home, environment, logistics), mind (identity, meaning, reflection, mood), money (finances, resources, security), other.
+
+MENTION type is exactly one of: person, project, place, practice, org. Use the surface form the writer used, not a normalized name.
+
+RULES:
+- "text" is 3 to 7 words. A phrase, never a single word. Write "Product isn't good enough", not "product".
+- "quote" MUST be an exact, unmodified substring of the entry. Copy it character for character, including punctuation and capitalization. Do not paraphrase, do not trim, do not fix typos. A beat whose quote is not found verbatim in the entry is discarded.
+- Mark 2 to 4 beats with "isSpine": true. Those are the through-line of the day. Everything else is false.
+
+GENERALITY is 0 to 1, by this test: strip the date, is it still meaningful?
+- "Only three people signed up" scores 0.1. Meaningless without the date.
+- "I avoid the things that would tell me I'm wrong" scores 0.9. True on any day.
+
+DO NOT extract: logistics with no consequence, routine food, weather or sleep unless anomalous, restatements of another beat, bare entity mentions with no predicate.`,
+
+  /**
+   * Pass B of the cognitive map: connect the beats. Receives ONLY the candidate list,
+   * never the raw entry. Given both, models reliably emit edges pointing at beats
+   * that do not exist.
+   */
+  cognitiveMapEdges: (): string =>
+    `You connect beats extracted from someone's journal entry into a causal map. You are given the beats only, as "id | kind | text".
+
+Return STRICT JSON ONLY (no markdown fences, no preamble) with exactly this shape:
+{
+  "edges": [
+    { "from": "b0", "to": "b1", "type": "caused", "phrasing": "drained", "polarity": 1 }
+  ]
+}
+
+TYPE is exactly one of:
+- "caused": this brought about that
+- "because": this is the stated reason for that
+- "contradicts": these two pull against each other
+- "counters": this is a deliberate response to that
+- "evidence_for": this supports that
+- "part_of": this belongs to that
+
+PHRASING is 1 or 2 natural words the writer might use for the connection: "drained", "lifted", "pushed me to", "proved".
+
+POLARITY is +1 if the source strengthens or increases the target, -1 if it weakens or reduces it, 0 if neither.
+
+RULES:
+- "from" and "to" must both be ids from the list you were given. Never invent an id.
+- Never connect a beat to itself.
+- Only one edge per pair.
+- It is correct to leave a beat unconnected. Returning an empty edges array is a valid and often correct answer. Do not manufacture connections.`,
+
   dailyPrompt: (): string => `You are generating a personalized daily journaling prompt.
 Based on the user's recent journal entries below, ask one specific, meaningful question that invites reflection today. The question should feel deeply personal, not generic. Write a clear, complete sentence — ideally 15-30 words. Ask ONE thing: no compound questions, no "and how will you…" tails, no run-ons. Return only the question itself — a single sentence ending with a question mark.`,
 

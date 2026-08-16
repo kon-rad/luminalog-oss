@@ -65,6 +65,7 @@ final class InsightsViewModelTests: XCTestCase {
         func entry(id: String) -> AsyncStream<JournalEntry?> { AsyncStream { $0.finish() } }
         func save(_ entry: JournalEntry) async throws {}
         func updateAIFields(id: String, summary: AIGeneration?, insights: AIGeneration?, prompts: AIPrompts?) async throws {}
+        func updateCognitiveMap(id: String, map: CognitiveMapGeneration) async throws {}
         func updateContent(id: String, content: String, wordCount: Int, contentEditedAt: Date, appendedMedia: [MediaItem]) async throws {}
         func applyEntryEdit(id: String, title: String, content: String, wordCount: Int, contentEditedAt: Date?, edit: EditRecord) async throws {}
         func delete(id: String) async throws {}

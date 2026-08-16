@@ -26,14 +26,18 @@ import EntryEditModal from '@/components/app/EntryEditModal'
 import TypePill from '@/components/app/TypePill'
 import { Skeleton, SkeletonRow } from '@/components/app/Skeleton'
 import EmptyState from '@/components/app/EmptyState'
+import { CognitiveMapPanel } from '@/components/app/CognitiveMapPanel'
 import { formatEntryDateTime, truncatePreview } from '@/components/app/entryFormat'
 import type { JournalEntry } from '@/lib/firestore/models'
 
 type DetailStatus = 'loading' | 'ready' | 'notFound' | 'decryptFailed'
-type DetailTab = 'main' | 'insights' | 'prompts' | 'related'
+type DetailTab = 'main' | 'map' | 'insights' | 'prompts' | 'related'
 
+// Map sits second, right after Main, because it is the second thing you do with an
+// entry. Matches the iOS `JournalDetailTab` ordering.
 const TABS: { key: DetailTab; label: string }[] = [
   { key: 'main', label: 'Main' },
+  { key: 'map', label: 'Map' },
   { key: 'insights', label: 'Insights' },
   { key: 'prompts', label: 'Prompts' },
   { key: 'related', label: 'Related' },
@@ -526,6 +530,7 @@ function DetailLoaded({
           onRegenerate={() => runSummaryFetch(entryId)}
         />
       )}
+      {tab === 'map' && <CognitiveMapPanel entry={entry} />}
       {tab === 'insights' && <InsightsTab entry={entry} analyzing={analyzing} />}
       {tab === 'prompts' && <PromptsTab entry={entry} analyzing={analyzing} />}
       {tab === 'related' && (

@@ -1,0 +1,101 @@
+{
+  "v": 1,
+  "beats": [
+    {
+      "id": "b0",
+      "tier": "map",
+      "kind": "event",
+      "text": "Only three people signed up",
+      "quote": "Only three people signed up for the beta today.",
+      "quoteStart": 0,
+      "domain": "craft",
+      "isSpine": true,
+      "isKeeper": false,
+      "generality": 0.1,
+      "keepScore": 0.24,
+      "degree": 1,
+      "mentions": [{ "surface": "the beta", "type": "project" }]
+    },
+    {
+      "id": "b1",
+      "tier": "map",
+      "kind": "feeling",
+      "text": "Scared the product isn't good",
+      "quote": "I'm scared the product just isn't good enough.",
+      "quoteStart": 48,
+      "domain": "mind",
+      "isSpine": true,
+      "isKeeper": false,
+      "generality": 0.35,
+      "keepScore": 0.41,
+      "degree": 2,
+      "mentions": []
+    },
+    {
+      "id": "b2",
+      "tier": "map",
+      "kind": "belief",
+      "text": "I avoid what proves me wrong",
+      "quote": "I realized I avoid the things that would tell me I'm wrong.",
+      "quoteStart": 95,
+      "domain": "mind",
+      "isSpine": false,
+      "isKeeper": true,
+      "generality": 0.9,
+      "keepScore": 0.79,
+      "degree": 1,
+      "mentions": []
+    },
+    {
+      "id": "b3",
+      "tier": "map",
+      "kind": "intent",
+      "text": "Call ten users this week",
+      "quote": "I'm going to call ten users this week.",
+      "quoteStart": 155,
+      "domain": "craft",
+      "isSpine": true,
+      "isKeeper": false,
+      "generality": 0.2,
+      "keepScore": 0.33,
+      "degree": 1,
+      "mentions": []
+    },
+    {
+      "id": "b4",
+      "tier": "map",
+      "kind": "event",
+      "text": "Trained at the gym",
+      "quote": "Trained at the gym anyway.",
+      "quoteStart": 194,
+      "domain": "body",
+      "isSpine": false,
+      "isKeeper": false,
+      "generality": 0.15,
+      "keepScore": 0.22,
+      "degree": 1,
+      "mentions": [{ "surface": "the gym", "type": "place" }]
+    },
+    {
+      "id": "b5",
+      "tier": "ledger",
+      "kind": "event",
+      "text": "Paid the rent",
+      "quote": "Paid the rent.",
+      "quoteStart": 221,
+      "domain": "money",
+      "isSpine": false,
+      "isKeeper": false,
+      "generality": 0.05,
+      "keepScore": 0.02,
+      "degree": 0,
+      "mentions": []
+    }
+  ],
+  "edges": [
+    { "from": "b0", "to": "b1", "type": "caused", "phrasing": "drained", "polarity": 1 },
+    { "from": "b1", "to": "b2", "type": "evidence_for", "phrasing": "showed me", "polarity": 1 },
+    { "from": "b4", "to": "b1", "type": "counters", "phrasing": "lifted", "polarity": -1 },
+    { "from": "b2", "to": "b3", "type": "because", "phrasing": "pushed me to", "polarity": 0 }
+  ]
+}

@@ -92,6 +92,16 @@ final class ProxyAIService: AIService {
         let generatedAt: Date?
     }
 
+    /// `POST /v1/ai/entry-map`. Internal (not private) so the pure response-to-model
+    /// mapping below can be unit-tested without a network.
+    struct EntryMapResponse: Decodable {
+        let v: Int?
+        let beats: [Beat]
+        let edges: [MapEdge]
+        let model: String?
+        let generatedAt: Date?
+    }
+
     private struct DailyPromptResponse: Decodable {
         /// The five area-anchored prompts (new server). Optional so an older
         /// server that returns only `text` still decodes.
@@ -167,6 +177,33 @@ final class ProxyAIService: AIService {
             summary: AIGeneration(text: response.summary, generatedAt: at, model: model),
             insights: AIGeneration(text: response.insights, generatedAt: at, model: model),
             prompts: AIPrompts(items: response.prompts, generatedAt: at, model: model)
+        )
+    }
+
+    func generateEntryMap(journalId: String) async throws -> CognitiveMapGeneration {
+        // Zero-knowledge only: send the entry's PLAINTEXT content. The stateless
+        // /entry-map endpoint returns beats + edges and retains nothing; the caller
+        // encrypts and persists the map itself.
+        guard DevFlags.aiModel1, let journals,
+              let entry = await firstEmission(journals.entry(id: journalId)).flatMap({ $0 }) else {
+            throw AIServiceError.unavailable
+        }
+        let response: EntryMapResponse = try await api.post(
+            path: "/v1/ai/entry-map",
+            body: Model1Requests.EntryMapBody(content: entry.content, type: entry.type.rawValue)
+        )
+        return Self.generation(from: response)
+    }
+
+    /// Pure mapping from the wire response to the stored model. Split out so it is
+    /// unit-testable without a network, and `nonisolated` because it touches no actor
+    /// state (the enclosing type is @MainActor).
+    nonisolated static func generation(from response: EntryMapResponse) -> CognitiveMapGeneration {
+        CognitiveMapGeneration(
+            map: CognitiveMap(v: response.v ?? 1, beats: response.beats, edges: response.edges),
+            generatedAt: response.generatedAt ?? Date(),
+            model: response.model ?? "",
+            version: CognitiveMapGeneration.currentVersion
         )
     }
 

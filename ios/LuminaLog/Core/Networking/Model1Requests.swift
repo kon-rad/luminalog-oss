@@ -12,6 +12,7 @@ import Foundation
 /// The field names below mirror the server contract EXACTLY:
 /// - chat:         server/src/routes/chat.ts       (name, bio, profile, history[], journalContext, focalEntry)
 /// - summary:      server/src/routes/ai.ts          (content, type)
+/// - entry-map:    server/src/routes/ai.ts          (content, type)
 /// - daily-prompt: server/src/routes/ai.ts          (entries[], profile, name)
 /// - daily-report: server/src/routes/dailyReport.ts (todayText, relatedContext, sourceEntryIds, name)
 /// Do NOT rename a field here without changing the matching server branch.
@@ -82,6 +83,14 @@ enum Model1Requests {
 
     /// Model-1 full-entry-AI body: PLAINTEXT content + type → summary/insights/prompts.
     struct EntryAIBody: Encodable {
+        let content: String
+        let type: String
+    }
+
+    /// Model-1 cognitive-map body: PLAINTEXT content + type → beats + edges.
+    /// Same shape as `EntryAIBody`; kept separate so the two endpoints can diverge
+    /// without one silently changing the other's contract.
+    struct EntryMapBody: Encodable {
         let content: String
         let type: String
     }

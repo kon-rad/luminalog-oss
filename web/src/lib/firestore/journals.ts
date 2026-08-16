@@ -27,9 +27,9 @@ import { AAD } from '@/lib/crypto/aad'
 import { encryptField } from '@/lib/crypto/envelope'
 import { getCachedDEK } from '@/lib/crypto/dek'
 import { apiPost } from '@/lib/api/client'
-import { decodeEntry, encodeTextEntryCreate } from '@/lib/firestore/codec'
+import { decodeEntry, encodeCognitiveMap, encodeTextEntryCreate } from '@/lib/firestore/codec'
 import { wordCount } from '@/lib/wordCount'
-import type { JournalEntry } from '@/lib/firestore/models'
+import type { CognitiveMapGeneration, JournalEntry } from '@/lib/firestore/models'
 
 const COLLECTION = 'journals'
 
@@ -200,6 +200,23 @@ export const updateContent = async (
     wordCount: wordCount(content),
     contentEditedAt: Timestamp.fromDate(contentEditedAt ?? new Date()),
     updatedAt: serverTimestamp(),
+  })
+}
+
+/**
+ * Writes ONLY the cognitive map field.
+ *
+ * `updateDoc` (unlike `setDoc`) never resurrects a deleted document, which matters
+ * because generation is asynchronous and the entry can be deleted while a map is in
+ * flight. Mirrors the iOS `updateCognitiveMap`.
+ */
+export const updateCognitiveMap = async (
+  id: string,
+  generation: CognitiveMapGeneration,
+): Promise<void> => {
+  const dek = await requireDEK()
+  await updateDoc(doc(db, COLLECTION, id), {
+    cognitiveMap: await encodeCognitiveMap(generation, dek),
   })
 }
 

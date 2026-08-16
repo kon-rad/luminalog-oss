@@ -8,6 +8,7 @@ import { chatCompletion, transcribeAudio, streamToBuffer } from '../services/aiC
 import { extractAudio } from '../services/audioExtractor'
 import { PROMPTS } from '../services/prompts'
 import { generateSummaryText, generateEntryAI } from '../services/summaryGenerator'
+import { generateEntryMap } from '../services/cognitiveMap'
 import { config } from '../config'
 import type { ProfileFields } from '../services/profileContext'
 import { decryptMedia } from '../crypto/mediaCipher'
@@ -114,6 +115,39 @@ export async function entryAiHandler(req: Request, res: Response): Promise<void>
 }
 
 aiRouter.post('/entry-ai', firebaseAuth, requireAiConsent, entryAiHandler)
+
+// Zero-knowledge cognitive map: the client sends the entry's PLAINTEXT content and
+// gets back { beats, edges } from two LLM calls plus one embedding call.
+//
+// STATELESS, exactly like /entry-ai: no getOrCreateDEK, no Firestore read, no
+// Firestore write, no vector write. The client encrypts the map itself and persists
+// it to journals/{id}.cognitiveMap, so the server never holds a readable copy of
+// anything derived from the entry.
+export async function entryMapHandler(req: Request, res: Response): Promise<void> {
+  const { content } = req.body as { content?: string }
+
+  try {
+    if (typeof content !== 'string' || content.trim().length === 0) {
+      res.status(400).json({ error: 'Missing content' }); return
+    }
+    const map = await generateEntryMap({ content })
+    res.json({
+      v: map.v,
+      beats: map.beats,
+      edges: map.edges,
+      model: map.model,
+      generatedAt: map.generatedAt,
+    })
+  } catch (err: any) {
+    console.error('[ai/entry-map]', err)
+    // 502, not 500: every model in the chain refused or returned nothing usable,
+    // which is an upstream failure. The client records an attempt and retries on a
+    // later launch; the entry itself is untouched either way.
+    res.status(502).json({ error: err?.message ?? 'Cognitive map generation failed' })
+  }
+}
+
+aiRouter.post('/entry-map', firebaseAuth, requireAiConsent, entryMapHandler)
 
 // Per-entry insights and follow-up prompts are no longer generated on demand:
 // they are produced together with the summary in ONE LLM call at index time
