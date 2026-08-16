@@ -53,6 +53,7 @@ final class EntryProcessorDraftRetryTests: XCTestCase {
             if let i = store.firstIndex(where: { $0.id == entry.id }) { store[i] = entry } else { store.append(entry) }
         }
         func updateAIFields(id: String, summary: AIGeneration?, insights: AIGeneration?, prompts: AIPrompts?) async throws {}
+        func updateCognitiveMap(id: String, map: CognitiveMapGeneration) async throws {}
         func updateContent(id: String, content: String, wordCount: Int, contentEditedAt: Date, appendedMedia: [MediaItem]) async throws {}
         func applyEntryEdit(id: String, title: String, content: String, wordCount: Int, contentEditedAt: Date?, edit: EditRecord) async throws {}
         func delete(id: String) async throws { store.removeAll { $0.id == id } }

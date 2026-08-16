@@ -70,6 +70,11 @@ protocol JournalRepository: AnyObject {
         prompts: AIPrompts?
     ) async throws
 
+    /// Writes ONLY the cognitive map field on an existing entry. Throws
+    /// `JournalRepositoryError.entryNotFound` if the document does not exist: it must
+    /// NEVER recreate a deleted entry.
+    func updateCognitiveMap(id: String, map: CognitiveMapGeneration) async throws
+
     /// Updates an entry's canonical text and appends audio attachments.
     /// Seals `content`, sets `contentEditedAt`, and array-unions
     /// `appendedMedia`. Throws `JournalRepositoryError.entryNotFound` if the

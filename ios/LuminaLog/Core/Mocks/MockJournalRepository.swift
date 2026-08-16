@@ -125,6 +125,19 @@ final class MockJournalRepository: JournalRepository {
         broadcast(changedId: id)
     }
 
+    /// Cognitive maps written through this mock, keyed by entry id, so a test can
+    /// assert that generation actually persisted rather than merely ran.
+    private(set) var updatedMaps: [String: CognitiveMapGeneration] = [:]
+
+    func updateCognitiveMap(id: String, map: CognitiveMapGeneration) async throws {
+        guard let index = store.firstIndex(where: { $0.id == id }) else {
+            throw JournalRepositoryError.entryNotFound(id: id)
+        }
+        updatedMaps[id] = map
+        store[index].cognitiveMap = map
+        broadcast(changedId: id)
+    }
+
     func updateContent(
         id: String,
         content: String,

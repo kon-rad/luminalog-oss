@@ -208,6 +208,24 @@ final class FirestoreJournalRepository: JournalRepository {
         }
     }
 
+    func updateCognitiveMap(id: String, map: CognitiveMapGeneration) async throws {
+        guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
+        let payload: [String: Any] = ["cognitiveMap": try map.firestoreData(cipher: cipher)]
+        // Same fire-and-forget shape as updateAIFields: Firestore applies the mutation
+        // to the local cache synchronously and fires local listeners immediately, so
+        // the Map tab lights up without waiting on durability. `updateData` (unlike
+        // `setData`) never resurrects a deleted document, which matters because
+        // generation is async and the entry can be deleted while a map is in flight.
+        journals.document(id).updateData(payload) { error in
+            if let error {
+                Self.logger.error("""
+                updateCognitiveMap background flush failed (journals/\(id, privacy: .private)): \
+                \(error.localizedDescription, privacy: .public)
+                """)
+            }
+        }
+    }
+
     func updateContent(
         id: String,
         content: String,

@@ -111,7 +111,11 @@ struct CognitiveMap: Codable, Equatable, Sendable {
 
 /// The stored field: the map plus the metadata that stays plaintext in Firestore,
 /// mirroring `AIGeneration`.
-struct CognitiveMapGeneration: Equatable, Sendable {
+///
+/// `Codable` because `JournalEntry` is, and every stored property of a Codable type
+/// must be too. The Firestore representation is NOT this synthesized encoding: see
+/// `firestoreData(cipher:)` in FirestoreMapping, which seals `map` into an envelope.
+struct CognitiveMapGeneration: Codable, Equatable, Sendable {
     var map: CognitiveMap
     var generatedAt: Date
     var model: String
