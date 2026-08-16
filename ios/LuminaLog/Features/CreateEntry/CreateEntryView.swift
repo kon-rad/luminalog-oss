@@ -26,6 +26,9 @@ struct CreateEntryView: View {
     @State private var videoPickerItem: PhotosPickerItem?
     @State private var pendingVideo: VideoAttachment?
     @State private var confirmReplaceRecording = false
+    /// Set when the user taps the X on the audio or video chip. Non-nil presents
+    /// the delete confirmation; the removal only runs on confirm.
+    @State private var pendingDeletion: RecordingDeletionPrompt?
     @State private var showUploadPicker = false
     @FocusState private var editorFocused: Bool
 
@@ -182,6 +185,16 @@ struct CreateEntryView: View {
         } message: {
             Text("Enable Microphone access for Argo in Settings to record voice entries.")
         }
+        .alert(item: $pendingDeletion) { prompt in
+            Alert(
+                title: Text(prompt.title),
+                message: Text(prompt.message),
+                primaryButton: .destructive(Text("Delete")) {
+                    performPendingDeletion(prompt)
+                },
+                secondaryButton: .cancel(Text("Cancel"))
+            )
+        }
     }
 
     // MARK: - Header
@@ -333,18 +346,8 @@ struct CreateEntryView: View {
                     isLoadingVideo: viewModel.isLoadingVideo,
                     isDisabled: false,
                     onRemovePhoto: { viewModel.removePhoto(id: $0) },
-                    onRemoveVideo: { viewModel.removeVideo() },
-                    onRemoveAudio: {
-                        // Removing the instant chip while its merge is still
-                        // running must cancel that merge, or it would re-attach
-                        // the clip the user just dismissed.
-                        if viewModel.pendingRecordingDuration != nil {
-                            recorder.cancel()
-                            viewModel.clearPendingRecording()
-                        } else {
-                            viewModel.removeAudio()
-                        }
-                    }
+                    onRemoveVideo: { pendingDeletion = .video },
+                    onRemoveAudio: { pendingDeletion = .audio }
                 )
                 .padding(.bottom, Spacing.s)
             }
@@ -365,6 +368,25 @@ struct CreateEntryView: View {
     }
 
     // MARK: - Capture handlers
+
+    /// Runs the actual removal once the user confirms. The audio branch keeps
+    /// the pre-existing rule that removing the chip while its background merge
+    /// is still running must cancel that merge, or the clip would re-attach
+    /// itself the moment the merge lands.
+    private func performPendingDeletion(_ prompt: RecordingDeletionPrompt) {
+        switch prompt {
+        case .video:
+            viewModel.removeVideo()
+        case .audio:
+            if viewModel.pendingRecordingDuration != nil {
+                recorder.cancel()
+                viewModel.clearPendingRecording()
+            } else {
+                viewModel.removeAudio()
+            }
+        }
+        pendingDeletion = nil
+    }
 
     private func handleMicTap() {
         if recorder.isActive {
