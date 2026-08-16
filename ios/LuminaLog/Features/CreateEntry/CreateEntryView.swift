@@ -60,7 +60,7 @@ struct CreateEntryView: View {
                 editor
             }
 
-            // Bottom recording panel — slides up over the lower third when recording.
+            // Bottom recording panel, slides up over the lower third when recording.
             if isRecorderPresented {
                 RecordingOverlayView(
                     recorder: recorder,
@@ -228,7 +228,7 @@ struct CreateEntryView: View {
 
                 Button {
                     Task {
-                        // If Stop was just tapped, the merge may still be running —
+                        // If Stop was just tapped, the merge may still be running, so
                         // await it (and attach the clip) so the save includes the
                         // audio. Usually already done, so this is instant.
                         if await attachPendingRecording() {
@@ -258,7 +258,7 @@ struct CreateEntryView: View {
     private var saveDisabled: Bool {
         // `isActive` (recording OR paused), not just `isRecording`: a paused
         // recording still has unmerged segments on disk. Saving would delete the
-        // draft media dir and lose them — the user must Stop (merge) first.
+        // draft media dir and lose them: the user must Stop (merge) first.
         !viewModel.canSave || recorder.isActive
     }
 
@@ -422,7 +422,7 @@ struct CreateEntryView: View {
     /// Finalizes the in-flight recording and dismisses the recorder panel
     /// IMMEDIATELY. The segment merge runs in the background (`finishAndBeginMerge`
     /// returns to `.idle` synchronously), so Save un-grays and the panel slides
-    /// away the instant Stop is tapped — no waiting on the export. The merged clip
+    /// away the instant Stop is tapped, with no waiting on the export. The merged clip
     /// is attached when it's ready via `attachPendingRecording`. Shared by the
     /// overlay's X and Stop buttons.
     private func stopAndAttach() {

@@ -35,7 +35,7 @@ final class DraftStore: ObservableObject {
 
     // MARK: Paths (sanitized)
 
-    /// `nil` for empty/unsafe ids (path traversal guard) — callers become no-ops.
+    /// `nil` for empty/unsafe ids (path traversal guard): callers become no-ops.
     private func jsonURL(_ id: String) -> URL? {
         guard isSafe(id) else { return nil }
         return directory.appendingPathComponent("\(id).json")

@@ -376,7 +376,7 @@ struct SettingsView: View {
 
     /// Custodial wallet for the user's ArgoSoul: the full address (selectable,
     /// scales down rather than truncating) plus BaseScan links to the wallet and,
-    /// once minted, the token. Rendered as soon as the wallet is provisioned —
+    /// once minted, the token. Rendered as soon as the wallet is provisioned,
     /// before and independent of minting.
     @ViewBuilder
     private var walletCard: some View {
@@ -654,7 +654,7 @@ struct SettingsView: View {
     /// Force-generates a fresh report for today via the same `ai.generateDailyReport`
     /// the milestone flow uses, which saves a new document to Firestore. Posts
     /// `.dailyReportGenerated` so Home reloads its feed and the new card appears
-    /// in the Daily Reflections section — stored and rendered identically to any
+    /// in the Daily Reflections section, stored and rendered identically to any
     /// other daily report.
     private func generateDailyReport() {
         guard !isGeneratingReport else { return }
@@ -673,7 +673,7 @@ struct SettingsView: View {
 
     /// One-tap migration: re-index the ENTIRE journal corpus into the server RAG
     /// index (Morpheus BGE-M3 → Chroma). Because entries are zero-knowledge encrypted,
-    /// the server can't re-index them itself — this fetches + decrypts every entry
+    /// the server can't re-index them itself, so this fetches + decrypts every entry
     /// on-device, chunks it (`JournalChunker`), and sends the chunks to
     /// `PUT /v1/rag/index` via `ServerSemanticIndex`. Sequential to respect provider
     /// rate limits; surfaces live N/total progress inline.

@@ -19,7 +19,7 @@ struct DraftAttachment: Codable, Equatable {
 
 /// Manifest of an in-progress multi-segment voice recording attached to a draft.
 /// While `isFinalized == false`, the segments have not yet been merged into a
-/// single clip — the launch recovery sweep repairs these into a normal audio
+/// single clip. The launch recovery sweep repairs these into a normal audio
 /// attachment. Cleared (set to `nil` on the draft) once the recording is merged.
 struct DraftRecording: Codable, Equatable {
     /// Ordered segment filenames within the draft's media dir (each a `.caf`,
