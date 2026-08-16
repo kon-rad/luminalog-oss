@@ -302,23 +302,33 @@ final class CreateEntryViewModel: ObservableObject {
 
     func removePhoto(id: UUID) {
         attachments.removePhoto(id: id)
+        forgetPersistedMedia(id)
         persistDraftNow()
     }
 
     func removeVideo() {
-        if let url = attachments.video?.url {
-            deleteTempFile(at: url)
+        if let video = attachments.video {
+            deleteTempFile(at: video.url)
+            forgetPersistedMedia(video.id)
         }
         attachments.removeVideo()
         persistDraftNow()
     }
 
     func removeAudio() {
-        if let url = attachments.audio?.url {
-            deleteTempFile(at: url)
+        if let audio = attachments.audio {
+            deleteTempFile(at: audio.url)
+            forgetPersistedMedia(audio.id)
         }
         attachments.removeAudio()
         persistDraftNow()
+    }
+
+    /// Drops the durable draft-media copy of a confirmed-deleted attachment and
+    /// forgets its id, so re-adding the same attachment persists it again.
+    private func forgetPersistedMedia(_ id: UUID) {
+        deps.drafts.removeMedia(draftId: draftId, attachmentId: id)
+        persistedAttachmentIDs.remove(id)
     }
 
     /// Deletes the backing file of a picked video that was never attached
@@ -375,7 +385,7 @@ final class CreateEntryViewModel: ObservableObject {
         // Once saved, the entry is durable via the processor; never resurrect a draft.
         guard !didSave else { return }
         guard hasUnsavedContent else {
-            deps.drafts.delete(draftId)
+            deps.drafts.pruneIfDisposable(draftId)
             return
         }
         var descriptors: [DraftAttachment] = []
@@ -435,6 +445,14 @@ final class CreateEntryViewModel: ObservableObject {
         autosaveCancellable = nil
         deps.drafts.delete(draftId)
         cleanupTempFiles()
+    }
+
+    /// Close-without-content path: prunes the draft only when there is nothing
+    /// irreplaceable to keep. Unlike `discardDraft()` this is not a user
+    /// decision, so it must never remove a recording.
+    func pruneEmptyDraft() {
+        autosaveCancellable = nil
+        deps.drafts.pruneIfDisposable(draftId)
     }
 
     // MARK: - Save (hand off to the background processor)

@@ -47,6 +47,17 @@ final class DraftStore: ObservableObject {
             .appendingPathComponent(id, isDirectory: true)
     }
 
+    /// Root of the per-draft media directories (`Drafts/media/`). Exposed for
+    /// the recovery scanner's orphan walk.
+    var mediaRoot: URL {
+        directory.appendingPathComponent("media", isDirectory: true)
+    }
+
+    /// File extensions that count as an irreplaceable recording. Photos are
+    /// deliberately excluded: they usually still exist in the camera roll, and a
+    /// leftover thumbnail must not pin an empty draft on disk forever.
+    static let recordingExtensions: Set<String> = ["m4a", "caf", "mov", "mp4"]
+
     private func isSafe(_ id: String) -> Bool {
         guard !id.isEmpty, !id.contains("/"), !id.contains("\\"), !id.contains("..") else {
             Self.logger.error("Rejected unsafe draftId: \(id, privacy: .public)")
@@ -83,6 +94,25 @@ final class DraftStore: ObservableObject {
         reload()
     }
 
+    /// Auto-prune entry point: deletes the draft ONLY when it holds no recording
+    /// and no recording file remains in its media dir. Explicit, user-confirmed
+    /// deletes go through `delete(_:)` instead.
+    ///
+    /// The on-disk check is deliberately independent of the JSON: a torn write
+    /// that lost the attachment array must not make a recording disposable.
+    func pruneIfDisposable(_ id: String) {
+        if let draft = load(id), draft.holdsRecording { return }
+        if hasRecordingFilesOnDisk(id) { return }
+        delete(id)
+    }
+
+    /// True when the draft's media dir still contains an audio or video file.
+    func hasRecordingFilesOnDisk(_ id: String) -> Bool {
+        guard let dir = mediaDirectory(for: id) else { return false }
+        let files = (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
+        return files.contains { Self.recordingExtensions.contains($0.pathExtension.lowercased()) }
+    }
+
     // MARK: Media
 
     /// Writes raw bytes (e.g. a photo's in-memory data) into the draft's media
@@ -109,6 +139,24 @@ final class DraftStore: ObservableObject {
         guard let dir = mediaDirectory(for: draftId) else { return nil }
         let url = dir.appendingPathComponent(fileName)
         return fm.fileExists(atPath: url.path) ? url : nil
+    }
+
+    /// Deletes every file in the draft's media dir whose name begins with
+    /// `attachmentId`, which is the naming convention `persistDraftNow` uses
+    /// (`<uuid>.jpg` / `<uuid>.m4a` / `<uuid>.<videoExt>`). Matching on the id
+    /// rather than a reconstructed filename keeps this correct whatever
+    /// extension the source video happened to carry.
+    ///
+    /// Only an explicit, user-confirmed delete calls this. Every other removal
+    /// path leaves the durable copy on disk on purpose, where the recovery
+    /// scanner surfaces it as orphaned.
+    func removeMedia(draftId: String, attachmentId: UUID) {
+        guard let dir = mediaDirectory(for: draftId) else { return }
+        let prefix = attachmentId.uuidString
+        let files = (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
+        for url in files where url.lastPathComponent.hasPrefix(prefix) {
+            try? fm.removeItem(at: url)
+        }
     }
 
     func reload() {
@@ -178,11 +226,10 @@ final class DraftStore: ObservableObject {
                 }
             }
             repaired.recording = nil
-            if repaired.isEmpty {
-                delete(draft.draftId)
-            } else {
-                upsert(repaired)
-            }
+            upsert(repaired)
+            // Auto-prune, never a hard delete: a draft whose merge failed still
+            // has its segments on disk and must survive this sweep.
+            pruneIfDisposable(draft.draftId)
         }
     }
 }

@@ -54,6 +54,15 @@ struct DraftEntry: Codable, Equatable {
     var isEmpty: Bool {
         text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && attachments.isEmpty
     }
+
+    /// True when the draft holds irreplaceable capture: a merged audio or video
+    /// attachment, or an in-progress recording manifest. Such a draft is never
+    /// auto-pruned (see `DraftStore.pruneIfDisposable`). A recording exists in
+    /// exactly one place until it reaches the cloud, so only an explicit,
+    /// confirmed user delete or a successful upload may remove it.
+    var holdsRecording: Bool {
+        recording != nil || attachments.contains { $0.kind == .audio || $0.kind == .video }
+    }
 }
 
 // Custom `init(from:)` (in an extension so the memberwise init is preserved) so

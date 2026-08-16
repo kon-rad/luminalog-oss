@@ -198,7 +198,7 @@ struct CreateEntryView: View {
                         showCloseDialog = true
                     } else {
                         isDiscarding = true
-                        viewModel.discardDraft()   // nothing to keep; prune any empty draft
+                        viewModel.pruneEmptyDraft()   // nothing to keep, but never drop a recording
                         dismiss()
                     }
                 } label: {
