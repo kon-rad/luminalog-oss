@@ -20,6 +20,11 @@ export const DOMAIN_VARS: Record<Domain, string> = {
 export const INK_VARS = {
   text: '--cm-text',
   textMuted: '--cm-text-muted',
+  /**
+   * The ground the map sits on. Used ONLY to mask the edge curve behind its label,
+   * so it must match the surface the map is drawn on. Setting it to a card colour
+   * instead makes every edge label look like a pale box.
+   */
   surface: '--cm-surface',
   edge: '--cm-edge',
   keeper: '--cm-keeper',
@@ -45,7 +50,7 @@ export const DEFAULT_LIGHT: Record<string, string> = {
   [DOMAIN_VARS.other]: '#9A9287',
   [INK_VARS.text]: '#2B2722',
   [INK_VARS.textMuted]: '#7C7468',
-  [INK_VARS.surface]: '#FFFDFA',
+  [INK_VARS.surface]: '#F4F0E9',
   [INK_VARS.edge]: '#7C7468',
   [INK_VARS.keeper]: '#9C7C2A',
 }
@@ -60,7 +65,7 @@ export const DEFAULT_DARK: Record<string, string> = {
   [DOMAIN_VARS.other]: '#7E786D',
   [INK_VARS.text]: '#F3EEE4',
   [INK_VARS.textMuted]: '#A89E8F',
-  [INK_VARS.surface]: '#221E17',
+  [INK_VARS.surface]: '#16130E',
   [INK_VARS.edge]: '#A89E8F',
   [INK_VARS.keeper]: '#F2CB4C',
 }
