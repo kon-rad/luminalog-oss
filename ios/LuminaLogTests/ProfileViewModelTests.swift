@@ -181,7 +181,7 @@ final class ProfileViewModelTests: XCTestCase {
         }
         XCTAssertEqual(
             pro.viewModel.subscriptionLabel,
-            "Pro — renews \(expiry.formatted(date: .abbreviated, time: .omitted))"
+            "Pro, renews \(expiry.formatted(date: .abbreviated, time: .omitted))"
         )
     }
 
