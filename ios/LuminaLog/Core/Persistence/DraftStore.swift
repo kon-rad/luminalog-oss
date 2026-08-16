@@ -94,14 +94,17 @@ final class DraftStore: ObservableObject {
         reload()
     }
 
-    /// Auto-prune entry point: deletes the draft ONLY when it holds no recording
-    /// and no recording file remains in its media dir. Explicit, user-confirmed
-    /// deletes go through `delete(_:)` instead.
+    /// Auto-prune entry point: deletes the draft ONLY when it is empty, holds no
+    /// recording, and has no recording file left in its media dir. Explicit,
+    /// user-confirmed deletes go through `delete(_:)` instead.
     ///
     /// The on-disk check is deliberately independent of the JSON: a torn write
     /// that lost the attachment array must not make a recording disposable.
     func pruneIfDisposable(_ id: String) {
-        if let draft = load(id), draft.holdsRecording { return }
+        if let draft = load(id) {
+            // Text the user typed, or any attachment, is content worth keeping.
+            guard draft.isEmpty, !draft.holdsRecording else { return }
+        }
         if hasRecordingFilesOnDisk(id) { return }
         delete(id)
     }

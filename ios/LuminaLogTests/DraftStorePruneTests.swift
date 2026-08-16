@@ -65,6 +65,20 @@ final class DraftStorePruneTests: XCTestCase {
         XCTAssertNil(store.load("d1"))
     }
 
+    func testPruneKeepsADraftThatStillHasText() {
+        store.upsert(draft("d1", text: "keep me"))
+        store.pruneIfDisposable("d1")
+        XCTAssertEqual(store.load("d1")?.text, "keep me")
+    }
+
+    func testPruneKeepsADraftThatStillHasAPhoto() {
+        let photo = DraftAttachment(id: UUID(), kind: .photo, fileName: "p.jpg",
+                                    durationSec: nil, pixelWidth: 10, pixelHeight: 10, order: 0)
+        store.upsert(draft("d1", attachments: [photo]))
+        store.pruneIfDisposable("d1")
+        XCTAssertNotNil(store.load("d1"))
+    }
+
     func testExplicitDeleteStillRemovesADraftHoldingAudio() {
         store.upsert(draft("d1", attachments: [audioAttachment("a.m4a")]))
         store.delete("d1")
