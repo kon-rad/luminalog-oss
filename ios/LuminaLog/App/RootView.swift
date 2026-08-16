@@ -99,7 +99,11 @@ struct RootView: View {
                     reminders: reminders,
                     leaderboard: services.leaderboard,
                     ai: services.ai,
-                    soul: services.soul
+                    soul: services.soul,
+                    onResumeDraft: { draftId in
+                        selectedTab = .home
+                        createRequest = CreateEntryRequest(resumeDraftId: draftId)
+                    }
                 )
             }
         }

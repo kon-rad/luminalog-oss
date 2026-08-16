@@ -38,6 +38,9 @@ final class AppServices: ObservableObject {
     /// the Create flow, Home, the `EntryProcessor`, and the `EntryFinalizer` all
     /// share ONE instance (retry-rebuild reads what Save retained).
     let drafts: DraftStore
+    /// Durable record of in-flight uploads. Held so the recovery screen can tell
+    /// a recording that is mid-upload from one that is stuck.
+    let uploads: UploadJournal
     /// Live background-upload transport, exposed so the app can forward the
     /// system's background-URLSession completion handler to it (Task 6). Nil for
     /// `mocks()` (the mock transport isn't a `BackgroundUploadTransport`).
@@ -93,6 +96,7 @@ final class AppServices: ObservableObject {
         consentService: ConsentService,
         entryProcessor: EntryProcessor,
         drafts: DraftStore,
+        uploads: UploadJournal,
         api: ProxyAPIClient? = nil,
         uploadTransport: BackgroundUploadTransport? = nil,
         keyMigrator: ClientKeyEnroller? = nil,
@@ -120,6 +124,7 @@ final class AppServices: ObservableObject {
         self.consentService = consentService
         self.entryProcessor = entryProcessor
         self.drafts = drafts
+        self.uploads = uploads
         self.api = api
         self.uploadTransport = uploadTransport
         self.keyMigrator = keyMigrator
@@ -298,6 +303,7 @@ final class AppServices: ObservableObject {
                 )
             ),
             drafts: drafts,
+            uploads: uploadJournal,
             api: api,
             uploadTransport: transport,
             keyMigrator: keyMigrator,
@@ -380,6 +386,7 @@ final class AppServices: ObservableObject {
                 )
             ),
             drafts: drafts,
+            uploads: uploadJournal,
             keyEnrollment: KeyEnrollmentService(
                 keys: keys,
                 enroller: ClientKeyEnroller(

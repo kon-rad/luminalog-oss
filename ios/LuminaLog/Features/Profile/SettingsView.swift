@@ -18,12 +18,15 @@ struct SettingsView: View {
     private let currentUserId: String?
     /// Only used by the DEBUG-only "Generate Daily Report" developer tool.
     private let ai: AIService
+    /// Reopens a draft in the Create flow from the recordings recovery screen.
+    private let onResumeDraft: (String) -> Void
 
     @State private var showProfileDetail = false
     @State private var showLeaderboard = false
     @State private var showPaywall = false
     @State private var showCredits = false
     @State private var showConfig = false
+    @State private var showRecordings = false
     @State private var showSignOutDialog = false
     @State private var showDeleteExplainerAlert = false
     @State private var showDeleteFinalAlert = false
@@ -55,7 +58,8 @@ struct SettingsView: View {
         reminders: ReminderCoordinator,
         leaderboard: LeaderboardService,
         ai: AIService,
-        soul: SoulService
+        soul: SoulService,
+        onResumeDraft: @escaping (String) -> Void = { _ in }
     ) {
         self.init(
             viewModel: ProfileViewModel(
@@ -73,7 +77,8 @@ struct SettingsView: View {
             leaderboard: leaderboard,
             ai: ai,
             soul: soul,
-            currentUserId: auth.currentUserId
+            currentUserId: auth.currentUserId,
+            onResumeDraft: onResumeDraft
         )
     }
 
@@ -86,7 +91,8 @@ struct SettingsView: View {
         leaderboard: LeaderboardService = MockLeaderboardService(),
         ai: AIService,
         soul: SoulService = MockSoulService(),
-        currentUserId: String? = nil
+        currentUserId: String? = nil,
+        onResumeDraft: @escaping (String) -> Void = { _ in }
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         _soulViewModel = StateObject(wrappedValue: SoulViewModel(service: soul))
@@ -97,6 +103,7 @@ struct SettingsView: View {
         self.leaderboard = leaderboard
         self.ai = ai
         self.currentUserId = currentUserId
+        self.onResumeDraft = onResumeDraft
     }
 
     var body: some View {
@@ -133,6 +140,20 @@ struct SettingsView: View {
             }
             .navigationDestination(isPresented: $showLeaderboard) {
                 LeaderboardView(service: leaderboard, currentUserId: currentUserId)
+            }
+            .navigationDestination(isPresented: $showRecordings) {
+                RecordingsRecoveryView(
+                    viewModel: RecordingsRecoveryViewModel(
+                        inventory: RecordingInventory(drafts: services.drafts,
+                                                      uploads: services.uploads),
+                        drafts: services.drafts,
+                        processor: services.entryProcessor
+                    ),
+                    onResumeDraft: { draftId in
+                        showRecordings = false
+                        onResumeDraft(draftId)
+                    }
+                )
             }
         }
         .task { viewModel.start() }
@@ -501,6 +522,8 @@ struct SettingsView: View {
                 .padding(.bottom, Spacing.s)
 
             VStack(spacing: 0) {
+                recordingsRow
+                rowDivider
                 subscriptionRow
                 rowDivider
                 aiConfigRow
@@ -756,6 +779,34 @@ struct SettingsView: View {
         .accessibilityLabel("Show Onboarding, replay the full onboarding sequence")
     }
     #endif
+
+    /// Recovery surface for capture that has not reached the cloud. Always
+    /// present and deliberately quiet: no badge, no count, no banner.
+    private var recordingsRow: some View {
+        Button {
+            showRecordings = true
+        } label: {
+            HStack(spacing: Spacing.m) {
+                settingsIcon("waveform", tint: .accentWarm)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Recordings")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Audio and video not yet in the cloud")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+            }
+            .padding(Spacing.m)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Recordings, audio and video not yet in the cloud")
+    }
 
     private var subscriptionRow: some View {
         Button {
