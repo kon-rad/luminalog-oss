@@ -81,6 +81,33 @@ final class DraftStoreRecordingTests: XCTestCase {
             atPath: mediaDir.appendingPathComponent("rec-1.caf").path))
     }
 
+    func testRecoverySweepPreservesSegmentsWhenTheMergeFails() async throws {
+        /// Always throws, standing in for a corrupt or unreadable segment set.
+        struct FailingMerger: RecordingMerging {
+            func duration(of url: URL) async -> TimeInterval { 0 }
+            func merge(_ segments: [URL], to out: URL) async throws {
+                throw RecordingMergeError.noReadableSegments
+            }
+        }
+
+        let mediaDir = store.mediaDirectory(for: "d1")!
+        try FileManager.default.createDirectory(at: mediaDir, withIntermediateDirectories: true)
+        try writeSilentCAF(seconds: 1.0, to: mediaDir.appendingPathComponent("rec-0.caf"))
+        store.upsert(DraftEntry(draftId: "d1", text: "", promptText: nil,
+                                createdAtEpoch: 1, updatedAtEpoch: 1, attachments: [],
+                                recording: DraftRecording(segmentFileNames: ["rec-0.caf"],
+                                                          isFinalized: false)))
+
+        await store.recoverDanglingRecordings(using: FailingMerger())
+
+        // The segments are the only copy of this audio: a failed merge must
+        // leave them, the manifest, and the draft itself untouched.
+        XCTAssertTrue(FileManager.default.fileExists(
+            atPath: mediaDir.appendingPathComponent("rec-0.caf").path))
+        XCTAssertEqual(store.load("d1")?.recording?.segmentFileNames, ["rec-0.caf"])
+        XCTAssertNotNil(store.load("d1"))
+    }
+
     func testRecoverySweepIgnoresFinalizedManifests() async {
         store.upsert(DraftEntry(draftId: "d1", text: "hi", promptText: nil,
                                 createdAtEpoch: 1, updatedAtEpoch: 1, attachments: [],

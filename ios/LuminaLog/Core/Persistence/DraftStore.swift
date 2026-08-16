@@ -198,8 +198,12 @@ final class DraftStore: ObservableObject {
     /// Launch recovery: for every draft holding a non-finalized recording
     /// manifest (a crash or a sheet-dismiss-mid-recording left segments on disk),
     /// merge its segments into a single `.m4a` in the media dir, register that as
-    /// a normal audio `DraftAttachment`, and clear the manifest — so Home renders
+    /// a normal audio `DraftAttachment`, and clear the manifest, so Home renders
     /// it as an ordinary voice draft.
+    ///
+    /// A FAILED merge changes nothing on disk: the segments and the manifest both
+    /// survive, because they are the only copy of that audio. The next sweep
+    /// retries them, and `RecordingInventory` lists them as needing repair.
     func recoverDanglingRecordings(using merger: RecordingMerging) async {
         for draft in all() {
             guard let manifest = draft.recording, manifest.isFinalized == false else { continue }
@@ -211,21 +215,36 @@ final class DraftStore: ObservableObject {
             let mergedURL = mediaDir.appendingPathComponent(mergedName)
 
             var repaired = draft
-            if !segURLs.isEmpty, (try? await merger.merge(segURLs, to: mergedURL)) != nil {
+            // `&&` takes an autoclosure, which cannot be async, so the merge is
+            // awaited on its own line rather than folded into the condition.
+            var merged = false
+            if !segURLs.isEmpty {
+                merged = (try? await merger.merge(segURLs, to: mergedURL)) != nil
+            }
+
+            if merged {
                 let duration = await merger.duration(of: mergedURL)
                 let nextOrder = (draft.attachments.map(\.order).max() ?? -1) + 1
                 repaired.attachments.append(DraftAttachment(
                     id: UUID(), kind: .audio, fileName: mergedName,
                     durationSec: duration, pixelWidth: nil, pixelHeight: nil, order: nextOrder
                 ))
-            }
-            // Delete now-merged segment files; drop the manifest either way.
-            for name in manifest.segmentFileNames {
-                if let u = mediaURL(draftId: draft.draftId, fileName: name) {
-                    try? fm.removeItem(at: u)
+                // Only now are the segments redundant: their audio lives in the
+                // merged clip.
+                for name in manifest.segmentFileNames {
+                    if let u = mediaURL(draftId: draft.draftId, fileName: name) {
+                        try? fm.removeItem(at: u)
+                    }
                 }
+                repaired.recording = nil
+            } else {
+                // The merge failed, so the segments are still the ONLY copy of
+                // this audio. Keep both them and the manifest: the next sweep
+                // retries (a transient failure heals itself), and until then the
+                // recovery screen lists the draft as needing repair. Dropping
+                // either here would silently destroy the recording.
+                try? fm.removeItem(at: mergedURL)   // discard any partial export
             }
-            repaired.recording = nil
             upsert(repaired)
             // Auto-prune, never a hard delete: a draft whose merge failed still
             // has its segments on disk and must survive this sweep.
