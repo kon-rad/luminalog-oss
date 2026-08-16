@@ -71,6 +71,9 @@ struct EntryFinalizer {
             // app is backgrounded past the ~30s assertion mid-generation.
             if !entry.content.isEmpty {
                 await aiGenerator?.ensureAI(for: entry.id)
+                // Same deal for the cognitive map: built headlessly at save so the Map
+                // tab is already populated the first time the entry is opened.
+                await aiGenerator?.ensureMap(for: entry.id)
             }
             // The entry is now durable (Firestore + S3), so its retained handed-off
             // draft — kept only as the cross-launch retry source — is no longer

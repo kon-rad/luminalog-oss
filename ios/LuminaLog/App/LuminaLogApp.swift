@@ -154,6 +154,12 @@ struct LuminaLogApp: App {
                             // transcript recovery + its own AI regen finish first and
                             // this only mops up whatever is still missing.
                             await services.entryAIGenerator.sweep()
+                            // Bounded cognitive-map backfill for the most recent
+                            // entries. Capped (see `mapBackfillLimit`) because a
+                            // blanket sweep over a large corpus would fire three model
+                            // calls per entry on first launch; older entries map on
+                            // demand when their Map tab is first opened.
+                            await services.entryAIGenerator.sweepMaps()
                         }
                         .task(id: uid) {
                             await services.voiceRecordingImporter?.sweep()
