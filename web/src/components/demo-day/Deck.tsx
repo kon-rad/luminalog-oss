@@ -12,9 +12,15 @@ import { C, SANS, SERIF, STAGE_H, STAGE_W } from './theme'
  * No responsive reflow inside a slide: a deck that rewraps on a projector is a
  * deck you cannot rehearse against.
  *
- *   ← → space   move            N  speaker notes
- *   Home End    first / last    G  overview grid
- *   F           fullscreen      Esc close overview
+ *   ← → space   move            G  overview grid
+ *   Home End    first / last    F  fullscreen
+ *   Esc         close overview
+ *
+ * The deck carries no speaker notes, on purpose. Konrad presents from his own
+ * script kept outside this repo, and a .pptx that ships a rehearsal script in
+ * its notes pane is one forward to the wrong person away from being a problem.
+ * The text that used to live here is in the vault at
+ * Areas/argo/protocol-camp/final-demo-day/final-demo-day/speaker-notes.md.
  * ────────────────────────────────────────────────────────────────────────── */
 
 /* Breathing room between the scaled stage and the chrome around it. */
@@ -22,7 +28,6 @@ const STAGE_PAD = 20
 
 export default function Deck() {
   const [i, setI] = useState(0)
-  const [notesOpen, setNotesOpen] = useState(true)
   const [gridOpen, setGridOpen] = useState(false)
   const [scale, setScale] = useState(1)
   const stageWrapRef = useRef<HTMLDivElement>(null)
@@ -40,7 +45,7 @@ export default function Deck() {
    * measurement is the space actually available.
    *
    * ResizeObserver rather than a resize listener: the room changes when the
-   * notes panel opens or its content reflows, not only when the window moves. */
+   * chrome around the stage reflows, not only when the window moves. */
   useLayoutEffect(() => {
     const box = stageWrapRef.current
     if (!box) return
@@ -75,10 +80,6 @@ export default function Deck() {
           break
         case 'End':
           go(SLIDES.length - 1)
-          break
-        case 'n':
-        case 'N':
-          setNotesOpen((v) => !v)
           break
         case 'g':
         case 'G':
@@ -116,8 +117,6 @@ export default function Deck() {
         index={i}
         onPrev={() => go(i - 1)}
         onNext={() => go(i + 1)}
-        notesOpen={notesOpen}
-        onToggleNotes={() => setNotesOpen((v) => !v)}
         gridOpen={gridOpen}
         onToggleGrid={() => setGridOpen((v) => !v)}
       />
@@ -151,8 +150,6 @@ export default function Deck() {
 
       <ProgressRail index={i} onPick={go} />
 
-      {notesOpen && <NotesPanel index={i} />}
-
       {gridOpen && (
         <Overview
           index={i}
@@ -179,22 +176,21 @@ const btn: React.CSSProperties = {
   padding: '7px 14px',
   background: 'transparent',
 }
-const btnOn: React.CSSProperties = { ...btn, color: C.ink, background: C.accent, borderColor: C.accent }
+/* Full border shorthand rather than overriding borderColor: React warns when a
+ * shorthand and a longhand for the same property both change across a rerender,
+ * which is exactly what toggling this button does. */
+const btnOn: React.CSSProperties = { ...btn, color: C.ink, background: C.accent, border: `1px solid ${C.accent}` }
 
 function TopBar({
   index,
   onPrev,
   onNext,
-  notesOpen,
-  onToggleNotes,
   gridOpen,
   onToggleGrid,
 }: {
   index: number
   onPrev: () => void
   onNext: () => void
-  notesOpen: boolean
-  onToggleNotes: () => void
   gridOpen: boolean
   onToggleGrid: () => void
 }) {
@@ -225,13 +221,53 @@ function TopBar({
       <button style={gridOpen ? btnOn : btn} onClick={onToggleGrid}>
         Overview
       </button>
-      <button style={notesOpen ? btnOn : btn} onClick={onToggleNotes}>
-        Notes
-      </button>
-      <a style={{ ...btn, display: 'inline-block' }} href="/demo-day/argo-final-demo-day.pptx" download>
-        PPTX
-      </a>
+      <PptxLink />
     </header>
+  )
+}
+
+const PPTX_HREF = '/demo-day/argo-final-demo-day.pptx'
+
+/* Download the PowerPoint export.
+ *
+ * The size is worth stating rather than hiding. With both clips embedded the
+ * file is around 41 MB, and the difference between that and a 2 MB one is
+ * exactly the difference between a deck that plays the films on a machine with
+ * no network and a deck that shows two still frames. Reading it off the actual
+ * response means the label cannot drift away from what is really on disk.
+ *
+ * A HEAD is enough — no need to pull 41 MB just to label the button. */
+function PptxLink() {
+  const [size, setSize] = useState<number | null>(null)
+  const [missing, setMissing] = useState(false)
+
+  useEffect(() => {
+    let live = true
+    fetch(PPTX_HREF, { method: 'HEAD' })
+      .then((r) => {
+        if (!live) return
+        if (!r.ok) return setMissing(true)
+        const len = Number(r.headers.get('content-length'))
+        setSize(Number.isFinite(len) && len > 0 ? len : null)
+      })
+      .catch(() => live && setMissing(true))
+    return () => {
+      live = false
+    }
+  }, [])
+
+  if (missing) {
+    return (
+      <span style={{ ...btn, color: C.hairInk }} title="Run node scripts/demo-day-pptx/build.js">
+        PPTX not built
+      </span>
+    )
+  }
+
+  return (
+    <a style={{ ...btn, display: 'inline-block' }} href={PPTX_HREF} download>
+      PPTX{size ? ` · ${Math.round(size / 1e6)} MB` : ''}
+    </a>
   )
 }
 
@@ -252,59 +288,6 @@ function ProgressRail({ index, onPick }: { index: number; onPick: (n: number) =>
         />
       ))}
     </div>
-  )
-}
-
-function NotesPanel({ index }: { index: number }) {
-  const s = SLIDES[index]
-  return (
-    <section
-      style={{
-        borderTop: `1px solid ${C.hairInk}`,
-        background: '#16130E',
-        padding: '18px 26px 24px',
-        display: 'flex',
-        gap: 30,
-        alignItems: 'flex-start',
-        /* Long notes scroll rather than pushing the stage off the screen. */
-        maxHeight: '30vh',
-        overflowY: 'auto',
-        flexShrink: 0,
-      }}
-    >
-      <div style={{ flex: 1 }}>
-        <p
-          style={{
-            fontFamily: SANS,
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: '0.16em',
-            color: C.accentLight,
-            marginBottom: 10,
-          }}
-        >
-          SAID
-        </p>
-        <p style={{ fontFamily: SERIF, fontSize: 19, lineHeight: 1.6, color: C.cream }}>{s.notes}</p>
-      </div>
-      {s.todo && (
-        <div style={{ width: 340, borderLeft: `2px solid ${C.accent}`, paddingLeft: 18 }}>
-          <p
-            style={{
-              fontFamily: SANS,
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: '0.16em',
-              color: C.accent,
-              marginBottom: 10,
-            }}
-          >
-            STILL MISSING
-          </p>
-          <p style={{ fontFamily: SANS, fontSize: 16, lineHeight: 1.5, color: C.creamMuted }}>{s.todo}</p>
-        </div>
-      )}
-    </section>
   )
 }
 

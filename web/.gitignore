@@ -23,3 +23,23 @@ next-env.d.ts
 
 # local dev build dir (see next.config.js distDir)
 .next-dev/
+
+# The demo day launch film: 34 MB of video that git cannot delta-compress, in a
+# repo that is otherwise ~4 MB. It still reaches production, because deploy.sh
+# rsyncs the whole tree and does not consult this file. Master lives in the vault
+# at Areas/argo/protocol-camp/final-demo-day/launch-ad/launch-ad-1.mov — see
+# scripts/demo-day-pptx/README.md for the encode. The Winston clip next to it is
+# small enough to commit, so only this one is listed.
+public/demo-day/launch-film.mp4
+
+# The PowerPoint export: 42 MB, and a build artefact rather than a source. Both
+# films are embedded inside it, which is the whole point of the file and also why
+# it cannot be delta-compressed — every rebuild is 42 MB of new objects in a repo
+# that is otherwise ~4 MB.
+#
+# Regenerate it with `node scripts/demo-day-pptx/build.js`. Do that BEFORE a
+# deploy: deploy.sh rsyncs the tree and does not consult this file, so the copy
+# on your disk is the copy the site serves. With no copy present the deck's
+# download button reads "PPTX not built" rather than breaking, which is the
+# intended failure — see PptxLink in src/components/demo-day/Deck.tsx.
+public/demo-day/argo-final-demo-day.pptx
