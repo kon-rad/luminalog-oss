@@ -131,7 +131,7 @@ service cloud.firestore {
     }
 
     // Card game rooms. Deliberately public: the whole point of the feature is a
-    // public, attributed archive of spoken answers (see ADR-0127 and
+    // public, attributed archive of spoken answers (see ADR-0129 and
     // docs/superpowers/specs/2026-08-18-card-game-design.md). This is the one
     // place in the product where user content is world-readable by design.
     //
