@@ -17,6 +17,7 @@ import { eventsRouter } from './routes/events'
 import { vectorsRouter } from './routes/vectors'
 import { ragRouter } from './routes/rag'
 import { consentRouter } from './routes/consent'
+import { cardGameRouter } from './routes/cardGame'
 
 const app = express()
 
@@ -39,6 +40,9 @@ app.use('/v1/course', courseRouter) // authed — quiz submit + mint
 app.use('/v1/course-badge', courseBadgeRouter) // public (no auth) — ERC-721 metadata for tokenURI
 app.use('/v1/events', eventsRouter) // public (no auth) — past-events archive for the website
 app.use('/v1/consent', consentRouter) // ZK AI-data-sharing consent record (1b)
+// Card game: authed room/answer writes, public playback. Deliberately NOT
+// zero-knowledge; audio lives under the public/cardgame/ S3 prefix (ADR-0127).
+app.use('/v1/cardgame', cardGameRouter)
 
 // Backstop error middleware — catches anything routes forward via next(err).
 // (Express 4 does not auto-forward async-handler rejections; that's handled
