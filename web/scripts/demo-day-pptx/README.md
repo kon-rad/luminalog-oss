@@ -73,6 +73,30 @@ does not belong in a ~4 MB public repo. It still reaches production, because
 `deploy.sh` rsyncs the whole tree and does not consult `.gitignore`. The Winston
 clip is 5 MB and is committed.
 
+**`argo-final-demo-day.pptx` is gitignored too**, for the same reason and one
+more: at 42 MB with both films inside it, and rebuilt often, it would have added
+its whole size to the repo on every build. It is a build artefact — this script
+regenerates it.
+
+### How the two untracked files reach production
+
+`deploy.sh` owns this, because it is the only thing standing between a fresh
+clone and a production tree with two files missing. Before the rsync it:
+
+1. **Encodes `launch-film.mp4`** from the vault master if it is absent and
+   `ffmpeg` is available. Set `ARGO_VAULT_DIR` if the vault is not at
+   `~/Documents/secondbrain`.
+2. **Builds the pptx** if it is absent, or if `build.js`, `flywheel.svg` or the
+   launch film is newer than it. The film is handled first on purpose: building
+   the pptx without it silently produces the 7 MB rung-2 deck instead of the
+   42 MB one.
+
+Both steps are fail-soft — no ffmpeg, or no pptx toolchain, must not block a
+code deploy. The safety net is that the rsync carries `--filter='protect ...'`
+rules for both paths, so `--delete` cannot remove the server's copies when this
+machine cannot produce them. Without those rules a deploy from a clone would
+wipe 76 MB of video off production rather than merely fail to update it.
+
 ### When a video is missing
 
 The build never fails over an absent clip; it drops a rung and says so.
