@@ -118,30 +118,43 @@ struct JournalDetailView: View {
 
             DetailTabBar(selection: $selectedTab)
 
-            ScrollView {
-                VStack(spacing: 0) {
-                    Group {
-                        switch selectedTab {
-                        case .main:
-                            mainTab(entry)
-                        case .insights:
-                            insightsTab(entry)
-                        case .prompts:
-                            promptsTab(entry)
-                        case .related:
-                            RelatedTabView(entryId: entry.id, ai: ai)
-                        }
-                    }
-                    .padding(Spacing.m)
-
-                    // Colophon endpiece: a quiet decorative mark that greets the
-                    // reader at the bottom of every tab once they scroll to the end.
-                    ColophonEndpiece()
-                        .padding(.top, Spacing.l)
+            if selectedTab == .map {
+                // The map lives OUTSIDE the ScrollView: it needs the full remaining
+                // height, and it owns its own pan/zoom gestures, which would fight a
+                // parent scroll view.
+                CognitiveMapView(entry: entry) {
+                    await viewModel.generateCognitiveMap()
                 }
-                // Standard clearance so the root tab bar (and its raised "+")
-                // never overlaps the colophon when scrolled to the end.
                 .padding(.bottom, AppTabBar.scrollBottomPadding)
+            } else {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        Group {
+                            switch selectedTab {
+                            case .main:
+                                mainTab(entry)
+                            case .insights:
+                                insightsTab(entry)
+                            case .prompts:
+                                promptsTab(entry)
+                            case .related:
+                                RelatedTabView(entryId: entry.id, ai: ai)
+                            case .map:
+                                // Handled above, outside the ScrollView.
+                                EmptyView()
+                            }
+                        }
+                        .padding(Spacing.m)
+
+                        // Colophon endpiece: a quiet decorative mark that greets the
+                        // reader at the bottom of every tab once they scroll to the end.
+                        ColophonEndpiece()
+                            .padding(.top, Spacing.l)
+                    }
+                    // Standard clearance so the root tab bar (and its raised "+")
+                    // never overlaps the colophon when scrolled to the end.
+                    .padding(.bottom, AppTabBar.scrollBottomPadding)
+                }
             }
         }
         .sheet(isPresented: $isEditingTranscript) {

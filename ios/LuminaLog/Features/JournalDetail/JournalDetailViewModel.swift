@@ -46,6 +46,7 @@ final class JournalDetailViewModel: ObservableObject {
     /// profiles fallbacks), so pruning works from every entry point without threading
     /// `DraftStore` through the six `JournalDetailView` call sites; injectable for tests.
     private let drafts: DraftStore
+    private let aiGenerator: EntryAIGenerator
 
     /// Overall bound on one generate+persist cycle. 75s sits well above the ~40s
     /// worst case (a long voice transcript + opus + a retry pass), so it only fires
@@ -72,7 +73,8 @@ final class JournalDetailViewModel: ObservableObject {
         media: MediaUploader? = nil,
         profiles: ProfileRepository? = nil,
         backgroundActivity: BackgroundActivityGranting? = nil,
-        drafts: DraftStore? = nil
+        drafts: DraftStore? = nil,
+        aiGenerator: EntryAIGenerator? = nil
     ) {
         self.entryId = entryId
         self.journals = journals
@@ -88,6 +90,19 @@ final class JournalDetailViewModel: ObservableObject {
         self.media = media ?? MockMediaUploader()
         self.profiles = profiles ?? MockProfileRepository()
         self.backgroundActivity = backgroundActivity ?? ImmediateBackgroundActivity()
+        // Production passes the app-wide generator so the in-flight claim and the
+        // per-session attempt cap are shared with the launch sweep. The fallback keeps
+        // the argument optional for tests, same as media/profiles above.
+        self.aiGenerator = aiGenerator
+            ?? EntryAIGenerator(journals: journals, ai: ai, backgroundActivity: self.backgroundActivity)
+    }
+
+    /// Generates this entry's cognitive map on demand, for entries written before the
+    /// feature shipped (or whose earlier attempt failed). Returns true when a map was
+    /// generated and persisted; the live entry stream delivers the result, so this does
+    /// not need to return the map itself.
+    func generateCognitiveMap() async -> Bool {
+        await aiGenerator.ensureMap(for: entryId)
     }
 
     deinit {

@@ -26,7 +26,7 @@ describe('apiPost 401 retry', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ dek: 'ok' }), { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
 
-    const result = await apiPost<{ dek: string }>('/api/keys/bootstrap', {})
+    const result = await apiPost<{ dek: string }>('/api/keys/wrapped', {})
 
     expect(result).toEqual({ dek: 'ok' })
     expect(getIdToken).toHaveBeenNthCalledWith(1, false)
@@ -41,7 +41,7 @@ describe('apiPost 401 retry', () => {
       .mockResolvedValue(new Response(JSON.stringify({ error: 'unauthenticated' }), { status: 401 }))
     vi.stubGlobal('fetch', fetchMock)
 
-    await expect(apiPost('/api/keys/bootstrap', {})).rejects.toThrow(/401/)
+    await expect(apiPost('/api/keys/wrapped', {})).rejects.toThrow(/401/)
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })

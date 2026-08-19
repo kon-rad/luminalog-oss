@@ -23,7 +23,7 @@ import Link from 'next/link'
 import { doc, getDoc } from 'firebase/firestore'
 import { ArrowLeft, ChevronDown, Loader2, Send } from 'lucide-react'
 import { auth, db } from '@/lib/firebase'
-import { bootstrapDEK, getCachedDEK } from '@/lib/crypto/dek'
+import { getCachedDEK } from '@/lib/crypto/dek'
 import { decodeChat } from '@/lib/firestore/codec'
 import { streamMessages, updateChatTitle } from '@/lib/firestore/chats'
 import { streamChat } from '@/lib/api/chat'
@@ -93,7 +93,10 @@ export default function ChatConversationPage({ params }: { params: { chatId: str
     let cancelled = false
     ;(async () => {
       try {
-        const dek = getCachedDEK() ?? (await bootstrapDEK())
+        // Guaranteed by KeyUnlockGate, which resolves the key before any
+        // authenticated route renders. Fail closed if that ever changes.
+        const dek = getCachedDEK()
+        if (!dek) throw new Error('no encryption key loaded')
         const snap = await getDoc(doc(db, 'chats', chatId))
         if (cancelled) return
         if (!snap.exists()) {

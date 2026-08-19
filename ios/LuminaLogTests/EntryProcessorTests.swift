@@ -161,6 +161,7 @@ final class EntryProcessorTests: XCTestCase {
             mediaHistory.append(entry.media)
         }
         func updateAIFields(id: String, summary: AIGeneration?, insights: AIGeneration?, prompts: AIPrompts?) async throws {}
+        func updateCognitiveMap(id: String, map: CognitiveMapGeneration) async throws {}
         func updateContent(id: String, content: String, wordCount: Int, contentEditedAt: Date, appendedMedia: [MediaItem]) async throws {}
         func applyEntryEdit(id: String, title: String, content: String, wordCount: Int, contentEditedAt: Date?, edit: EditRecord) async throws {}
         func delete(id: String) async throws { store.removeAll { $0.id == id } }

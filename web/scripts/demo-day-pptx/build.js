@@ -72,6 +72,33 @@ async function prepare() {
       .jpeg({ quality: 88 })
       .toFile(path.join(GEN, `${n}-16x9.jpg`))
   }
+
+  /* The three episode stills are already 16:9 off YouTube; re-encoding them at
+   * card width keeps the pptx from carrying three 1280px jpegs it never shows
+   * at that size. */
+  for (const n of ['testimonial-johnston', 'testimonial-chong', 'testimonial-im']) {
+    await sharp(path.join(PUB, `${n}.jpg`))
+      .resize(560, 315, { fit: 'cover', position: 'centre' })
+      .jpeg({ quality: 88 })
+      .toFile(path.join(GEN, `${n}-16x9.jpg`))
+  }
+
+  /* The AI city photographs are phone shots at assorted aspects, and an <img>
+   * with both dimensions set stretches rather than crops. Cropping here to the
+   * exact rectangles the slide places them in is what keeps faces from being
+   * squashed — hero and grid cells are close but not equal ratios, so two
+   * passes rather than one. */
+  await sharp(path.join(PUB, 'aicity-hero.jpg'))
+    .resize(960, 702, { fit: 'cover', position: 'centre' })
+    .jpeg({ quality: 88 })
+    .toFile(path.join(GEN, 'aicity-hero-crop.jpg'))
+
+  for (const n of ['aicity-sketch', 'aicity-puan', 'aicity-chairman', 'aicity-execs']) {
+    await sharp(path.join(PUB, `${n}.jpg`))
+      .resize(600, 452, { fit: 'cover', position: 'centre' })
+      .jpeg({ quality: 88 })
+      .toFile(path.join(GEN, `${n}-crop.jpg`))
+  }
 }
 
 function page(tone, inner, opts = {}) {
@@ -106,14 +133,80 @@ function write(name, html) {
   return f
 }
 
-/* ── the sixteen slides ─────────────────────────────────────────────────── */
+/* ── video ──────────────────────────────────────────────────────────────────
+ *
+ * Two slides play a clip. html2pptx cannot emit video, so each one marks out
+ * the rectangle with <div class="placeholder">, which html2pptx measures and
+ * hands back in inches without drawing anything, and main() drops a real
+ * addMedia() onto that exact rect afterwards. Position stays derived from the
+ * HTML, so moving the layout moves the video with it.
+ *
+ * A missing file is not an error, and there are two rungs below it:
+ *
+ *   1. the local mp4, embedded — plays with no network, which is the only
+ *      version you can rely on in a venue
+ *   2. the YouTube embed — plays in place in PowerPoint, but only with working
+ *      wifi and only if the room does not block YouTube
+ *   3. the poster still — always renders, never plays
+ *
+ * launch-film.mp4 is deliberately not in the repo (34 MB), so a fresh clone
+ * lands on rung 2 as a matter of course and the deck still builds. Masters for
+ * both live in the vault; see README.md for the encodes. */
+const media = (file, poster, youtube) => {
+  const p = path.join(PUB, file)
+  /* addMedia takes the cover as a data URI, not a path — it only checks for a
+   * "base64," header, so the jpeg goes in as itself rather than being blown up
+   * into a multi-megabyte PNG. Without a cover PowerPoint draws its own grey
+   * play button over the slide. */
+  const cover = () => `data:image/jpeg;base64,${fs.readFileSync(path.join(PUB, poster)).toString('base64')}`
+  return { path: p, cover, poster: A(poster), youtube, has: fs.existsSync(p) }
+}
+
+/* PowerPoint wants the /embed/ form; a watch?v= or youtu.be link renders as a
+ * dead frame. Sources: youtu.be/vq5cH0WguOU and youtube.com/watch?v=Ppl-TfO3Oqo. */
+const WINSTON = media(
+  'clip-winston-weapon.mp4',
+  'clip-winston-weapon-poster.jpg',
+  'https://www.youtube.com/embed/vq5cH0WguOU'
+)
+const FILM = media('launch-film.mp4', 'launch-film-poster.jpg', 'https://www.youtube.com/embed/Ppl-TfO3Oqo')
+
+/* The rect for a clip. Measured and left empty whenever something playable is
+ * going into it; the poster is only drawn as HTML when nothing is. */
+const videoBox = (m, id, style) =>
+  m.has || m.youtube
+    ? `<div class="placeholder" id="${id}" style="${style}"></div>`
+    : `<img src="${m.poster}" style="${style}">`
+
+/* A QR code and its address, side by side. Written by scripts/demo-day-qr,
+ * committed to public/demo-day, and rendered here exactly as the web deck
+ * renders it in src/components/demo-day/slides.tsx.
+ *
+ * This is the fourth rung under the two films, below the embedded mp4, the
+ * YouTube embed and the poster still: the one that still works when the
+ * machine will not play video at all and the wifi is gone. On slide 16 it is
+ * not a fallback, it is the ask.
+ *
+ * `plate` backs the pair in near-black for the one place it sits over the
+ * film. The PNGs carry their own cream quiet zone, so no padding around the
+ * image itself. */
+const qr = (file, caption, url, { size = 48, plate = false, style = '' } = {}) =>
+  `<div class="row" style="align-items: center; ${
+    plate ? `padding: 7pt 10pt 7pt 7pt; border-radius: 8pt; background: #0B0906; border: 1px solid #332D24;` : ''
+  } ${style}">
+  <img src="${A(file)}" style="width: ${size}pt; height: ${size}pt; border-radius: 4pt;">
+  <div style="text-align: left; margin-left: 8pt;">
+    <p style="font-family: ${SANS}; font-size: 7pt; font-weight: bold; letter-spacing: 1.1pt; color: ${ACCENT_LIGHT};">${caption}</p>
+    <p style="font-family: ${SANS}; font-size: 8.5pt; color: ${CREAM}; margin-top: 3pt;">${url}</p>
+  </div>
+</div>`
+
+/* ── the eighteen slides ─────────────────────────────────────────────────── */
 
 const SLIDES = [
   {
     id: '01-title',
     tone: 'ink',
-    notes:
-      'My name is Konrad, this is Argo, and the title of this talk is the same one I am taking to Devcon in Mumbai. Photoshop for writing.',
     html: (t) =>
       page(
         t,
@@ -130,13 +223,11 @@ const SLIDES = [
   {
     id: '02-stakes',
     tone: 'ink',
-    notes:
-      'For most of history you could get by on what you knew. That era is closing. When everyone has the same models and the same answers on tap, the only differences left are the quality of your ideas and your ability to express them. That is not a soft skill any more, that is the whole game, and almost nobody is training for it.',
     html: (t) =>
       page(
         t,
         `<div class="pad" style="justify-content: center;">
-  <h2 style="font-family: ${SERIF}; font-size: 38pt; line-height: 1.18; color: ${CREAM}; width: 540pt;">Your ability to think, speak, and write is about to decide everything.</h2>
+  <h2 style="font-family: ${SERIF}; font-size: 38pt; line-height: 1.18; color: ${CREAM}; width: 540pt;">Your ability to think, speak, and write is about to decide everything in your life.</h2>
   <img src="${G('argo-watermark-cream-dim.png')}" style="width: 88pt; height: 53pt; margin-top: 40pt; margin-left: 506pt;">
 </div>`
       ),
@@ -145,25 +236,27 @@ const SLIDES = [
   {
     id: '03-winston',
     tone: 'ink',
-    todo: 'Winston clip trimmed to 0:38-0:53 and level matched.',
-    notes:
-      'Play the fifteen second clip, then: Winston ran the MIT Artificial Intelligence Laboratory. He spent his life on machine intelligence and this is what he told his students mattered most. Speak, write, ideas, in that order. In the age of AI he is more right, because those three are the only things that do not come out of the box.',
+    /* The clip leads and the quote sits under it as a caption: the weapon
+     * metaphor is the part the slide text does not carry, and it is the part
+     * that lands. The quote stays on screen because the line gets said again
+     * over it once the clip ends. */
+    media: { m: WINSTON, id: 'winston-clip' },
     html: (t) =>
       page(
         t,
-        `<div class="pad" style="justify-content: center;">
-  <div class="row" style="align-items: center;">
-    <div style="width: 370pt; border-left: 2pt solid ${GOLD}; padding-left: 16pt;">
-      <p style="font-family: ${SERIF}; font-size: 19pt; line-height: 1.36; font-style: italic; color: ${CREAM};">Your success in life will be determined largely by your ability to speak, your ability to write, and the quality of your ideas. In that order.</p>
-      <p style="font-family: ${SANS}; font-size: 11pt; color: ${CREAM_MUTED}; margin-top: 14pt;">Patrick Winston, MIT</p>
-    </div>
-    <div class="slot" style="width: 210pt; height: 150pt; margin-left: 26pt; display: flex; flex-direction: column; justify-content: center;">
-      <p class="slotText" style="font-size: 16pt;">&#9654;</p>
-      <p class="slotText" style="margin-top: 8pt;">Winston clip, 15 seconds</p>
-      <p class="slotSmall">assets/winston-how-to-speak-first60.mp4<br>trimmed 0:38 to 0:53</p>
+        `<div class="pad" style="align-items: center; justify-content: center;">
+  ${videoBox(WINSTON, 'winston-clip', 'width: 384pt; height: 216pt; border-radius: 6pt;')}
+  <div class="row" style="margin-top: 18pt; width: 470pt;">
+    <div style="width: 2pt; background: ${GOLD}; flex-shrink: 0;"></div>
+    <div style="padding-left: 14pt;">
+      <p style="font-family: ${SERIF}; font-size: 13pt; line-height: 1.4; font-style: italic; color: ${CREAM};">Your success in life will be determined largely by your ability to speak, your ability to write, and the quality of your ideas. In that order.</p>
+      <p style="font-family: ${SANS}; font-size: 9.5pt; color: ${CREAM_MUTED}; margin-top: 7pt;">Patrick Winston, MIT</p>
     </div>
   </div>
-  <p style="font-family: ${SANS}; font-size: 7.5pt; color: ${CREAM_MUTED}; margin-top: 34pt;">Patrick H. Winston, &ldquo;How to Speak&rdquo;, MIT OpenCourseWare. CC BY-NC-SA.</p>
+  <div class="row" style="align-items: flex-end; margin-top: 10pt; width: 470pt;">
+    <p style="font-family: ${SANS}; font-size: 7.5pt; color: ${CREAM_MUTED}; flex: 1; text-align: left;">Patrick H. Winston, &ldquo;How to Speak&rdquo;, MIT OpenCourseWare. CC BY-NC-SA.</p>
+    ${qr('qr-winston.png', 'LINK TO YOUTUBE VIDEO', 'youtu.be/vq5cH0WguOU', { size: 44 })}
+  </div>
 </div>`
       ),
   },
@@ -171,8 +264,6 @@ const SLIDES = [
   {
     id: '04-dacc',
     tone: 'ink',
-    notes:
-      'This is the middle rung of d/acc. The variable being optimised is not model capability, it is loop tightness. Same model, different number of turns. One shot prompt and generate is the replacement pattern. Real time collaboration is the augmentation pattern. Look at the mechanisms he named. All hardware, all years out, all measured in milliseconds of latency.',
     html: (t) =>
       page(
         t,
@@ -201,8 +292,6 @@ const SLIDES = [
   {
     id: '05-gap',
     tone: 'paper',
-    notes:
-      'He made the Photoshop argument about images and never carried it to language. That is the gap I am building in. A daily writing loop is a feedback loop between a human and an AI that exists now, needs no implant, and runs on the interfaces everybody already has, text and voice. And language is the harder case, because with an image the artefact is the point, while with writing the artefact is a by product. The compression of thought is the cognition. Delegate the drawing and you lose a picture you did not make. Delegate the writing and you skip the step that was doing the thinking.',
     html: (t) =>
       page(
         t,
@@ -221,7 +310,15 @@ const SLIDES = [
       <p style="font-family: ${SANS}; font-size: 10pt; font-weight: bold; color: ${ACCENT_DEEP}; margin-top: 10pt;">Open. This is where Argo is built.</p>
     </div>
   </div>
-  <p style="font-family: ${SANS}; font-size: 11pt; line-height: 1.5; color: ${TEXT_MUTED}; margin-top: 22pt; width: 612pt;">Delegate the drawing and you lose a picture you did not make. Delegate the writing and you skip the step that was doing the thinking.</p>
+  <div class="row" style="margin-top: 16pt;">
+    <div style="width: 2pt; background: ${ACCENT}; flex-shrink: 0;"></div>
+    <div style="padding-left: 13pt;">
+      <p style="font-family: ${SANS}; font-size: 7.5pt; font-weight: bold; letter-spacing: 1.2pt; color: ${ACCENT_DEEP};">CONSTRUCTIONISM &middot; SEYMOUR PAPERT, MIT, 1980</p>
+      <p style="font-family: ${SERIF}; font-size: 12.5pt; line-height: 1.35; color: ${TEXT}; margin-top: 6pt;">You learn by building something public. The artefact and the understanding build each other.</p>
+      <p style="font-family: ${SERIF}; font-size: 12.5pt; line-height: 1.35; color: ${ACCENT_DEEP}; margin-top: 3pt;">Argo never builds it for you. The human stays in every loop by construction &mdash; that is rung two.</p>
+    </div>
+  </div>
+  <p style="font-family: ${SANS}; font-size: 10.5pt; line-height: 1.5; color: ${TEXT_MUTED}; margin-top: 14pt; width: 612pt;">Delegate the writing and you lose the ability to think for yourself. You lose the ability to write, to speak, and to have quality ideas.</p>
 </div>`
       ),
   },
@@ -229,8 +326,6 @@ const SLIDES = [
   {
     id: '06-what',
     tone: 'paper',
-    notes:
-      'You write or you just talk, and an AI companion that has read every entry you have ever made reads it back to you. A summary, the insights, the questions you should be asking yourself, and the connection to the thing you wrote eight months ago and forgot. They all kept a notebook. None of them had one that remembered.',
     html: (t) =>
       page(
         t,
@@ -252,33 +347,38 @@ const SLIDES = [
   {
     id: '07-film',
     tone: 'ink',
-    todo: 'The 30 second launch film. Scripted in launch-ad/, not yet shot or cut.',
-    notes: 'Say nothing during the film. After it, one line: that launched on August 7th.',
+    /* Full bleed, nothing on top. The film carries its own end card, so a
+     * title or a watermark here is only competing with it.
+     *
+     * The QR is the one exception, and it sits top right rather than bottom
+     * right because the player's controls run along the bottom edge — same
+     * reasoning as the web deck. It earns the intrusion by being the only
+     * thing on this slide that means anything if the film does not run. */
+    media: { m: FILM, id: 'launch-film' },
     html: (t) =>
       page(
         t,
-        `<div class="pad" style="justify-content: center; align-items: center;">
-  <div class="slot" style="width: 620pt; height: 320pt; display: flex; flex-direction: column; justify-content: center;">
-    <p class="slotText" style="font-size: 24pt; color: ${GOLD};">&#9654;</p>
-    <p style="font-family: ${SERIF}; font-size: 16pt; color: ${CREAM}; text-align: center; margin-top: 12pt;">Launch film, 30 seconds, full bleed, sound up</p>
-    <p class="slotSmall" style="margin-top: 12pt;">Placeholder. The ten thirty-second spots are scripted and storyboarded in final-demo-day/launch-ad/, but no cut film exists yet.</p>
-  </div>
-</div>`
+        `<div style="position: relative; width: 720pt; height: 405pt;">
+  ${videoBox(FILM, 'launch-film', 'width: 720pt; height: 405pt;')}
+  ${qr('qr-launch-ad.png', 'WATCH THE FILM', 'youtu.be/Ppl-TfO3Oqo', {
+    size: 44,
+    plate: true,
+    style: 'position: absolute; top: 14pt; right: 14pt;',
+  })}
+</div>`,
+        { padStyle: '' }
       ),
   },
 
   {
     id: '08-demo',
     tone: 'paper',
-    todo: 'Live device mirror. These stills are the fallback if the phone fails.',
-    notes:
-      'Three moves only, narrated while doing them. One, I talk, no blank page and no typing, and the word count climbs to seven hundred and fifty. Two, it comes back with what I actually said, tightened, plus the questions I should be asking myself, and it surfaces an entry from months ago on the same theme that I had genuinely forgotten writing. Three, every completed day adds a star, placed by the meaning of my words. That is my Soul.',
     html: (t) =>
       page(
         t,
         `<div class="pad">
   <p class="eyebrow">LIVE ON THE DEVICE</p>
-  <h2 style="font-family: ${SERIF}; font-size: 24pt; color: ${TEXT};">Three moves. No menus.</h2>
+  <h2 style="font-family: ${SERIF}; font-size: 24pt; color: ${TEXT};">Three moves.</h2>
   <div class="row" style="margin-top: 16pt; justify-content: center;">
     <div style="width: 170pt; text-align: center;">
       <img src="${A('shot-record.png')}" style="width: 97pt; height: 210pt; margin-left: 36pt;">
@@ -291,9 +391,9 @@ const SLIDES = [
       <p style="font-family: ${SANS}; font-size: 9.5pt; color: ${TEXT_MUTED}; margin-top: 4pt;">It reads you back, and surfaces what you forgot.</p>
     </div>
     <div style="width: 170pt; text-align: center;">
-      <img src="${A('shot-constellation.png')}" style="width: 97pt; height: 210pt; margin-left: 36pt;">
+      <img src="${A('shot-voice.jpeg')}" style="width: 97pt; height: 210pt; margin-left: 36pt;">
       <p style="font-family: ${SANS}; font-size: 8pt; font-weight: bold; letter-spacing: 1.3pt; color: ${ACCENT_DEEP}; margin-top: 8pt;">THREE</p>
-      <p style="font-family: ${SANS}; font-size: 9.5pt; color: ${TEXT_MUTED}; margin-top: 4pt;">The day becomes a star in your Soul.</p>
+      <p style="font-family: ${SANS}; font-size: 9.5pt; color: ${TEXT_MUTED}; margin-top: 4pt;">A thinking assistant you talk to, out loud.</p>
     </div>
   </div>
 </div>`
@@ -303,8 +403,6 @@ const SLIDES = [
   {
     id: '09-privacy',
     tone: 'ink',
-    notes:
-      'You are about to put the most honest thing you have ever written into an app, so the privacy cannot be a policy, it has to be architecture. Encrypted on your device with a key that only exists on your device. Our servers hold ciphertext. The whole thing is open source so you can read it rather than trust me. The journal AI runs confidential inference on Morpheus. Voice latency currently routes through a separate provider and moving it back is on the roadmap, and I would rather say that here than be asked it later.',
     html: (t) =>
       page(
         t,
@@ -326,7 +424,7 @@ const SLIDES = [
     </div>
   </div>
   <div style="border-left: 2pt solid ${ACCENT}; padding-left: 12pt; margin-top: 24pt; width: 600pt;">
-    <p style="font-family: ${SANS}; font-size: 9.5pt; line-height: 1.5; color: ${CREAM_MUTED};">Stated plainly on stage: voice latency currently routes through a separate provider. Moving it back is on the roadmap. Do not extend the confidential inference claim to voice.</p>
+    <p style="font-family: ${SANS}; font-size: 9.5pt; line-height: 1.5; color: ${CREAM_MUTED};">Voice latency currently routes through a separate provider. Moving it back is on the roadmap.</p>
   </div>
 </div>`
       ),
@@ -335,8 +433,6 @@ const SLIDES = [
   {
     id: '10-soul',
     tone: 'ink',
-    notes:
-      'Every day you complete the human side of the loop, one star records it. It is soulbound on Base mainnet, so it cannot be bought, sold, or transferred. That makes it the thing the internet is short of right now, proof of a human who actually showed up over time. It is not a bolt on identity feature. It is the receipt for having run the d/acc loop for a year. Bots can fake a profile. They cannot fake a year of your thinking.',
     html: (t) =>
       page(
         t,
@@ -355,10 +451,44 @@ const SLIDES = [
   },
 
   {
+    /* Numbered 10b rather than 11 so the ids after it keep matching their
+     * existing filenames. Order comes from this array, not from the number.
+     * Worth a renumbering pass once the ai-city slide lands here too. */
+    id: '10b-papert',
+    tone: 'paper',
+    /* See the matching slide in src/components/demo-day/slides.tsx for why it
+     * sits after the Soul rather than after the gap, and why the departure
+     * from Papert is stated rather than smoothed over. */
+    html: (t) =>
+      page(
+        t,
+        `<div class="pad" style="justify-content: center;">
+  <p class="eyebrow">CONSTRUCTIONISM &middot; SEYMOUR PAPERT, MIT, 1980</p>
+  <h2 class="head" style="color: ${TEXT}; width: 600pt;">The training ground is private. The artefact is not.</h2>
+  <p class="sub" style="width: 590pt;">Papert&rsquo;s learner built in public &mdash; the program on the screen, the robot on the table. Argo splits that in two. The construction happens somewhere nobody can read, and what leaves is the proof you ran it and the thinking you carry out with you.</p>
+  <div class="row" style="margin-top: 20pt;">
+${[
+  ['Objects to think with', 'The Soul: a year of your own thinking, in a form you can actually look at.'],
+  ['Microworlds', 'A container where the only thing that governs is your own thinking.'],
+  ['Mathland', 'You learn French by living in France. This is somewhere you live to learn to think.'],
+  ['Debugging, not failing', 'The AI asks. It never corrects, and it never writes the line for you.'],
+  ['Hard fun', 'It refuses to do the work. That is not a limitation, it is the product.'],
+]
+  .map(
+    ([h, body], n) => `    <div class="card" style="width: 120pt; ${n ? 'margin-left: 9pt;' : ''} padding: 12pt;">
+      <p style="font-family: ${SERIF}; font-size: 13pt; line-height: 1.25; color: ${ACCENT_DEEP};">${h}</p>
+      <p style="font-family: ${SANS}; font-size: 9pt; line-height: 1.5; color: ${TEXT_MUTED}; margin-top: 7pt;">${body}</p>
+    </div>`
+  )
+  .join('\n')}
+  </div>
+</div>`
+      ),
+  },
+
+  {
     id: '11-flywheel',
     tone: 'ink',
-    notes:
-      'Here is the part I actually want to be judged on. Jim Collins wrote about the flywheel in Good to Great. You do not get momentum from one big push, you get it from pushing the same wheel in the same direction until it turns itself. I am not buying users. I built a flywheel and every part of my life is a spoke on it.',
     html: (t) =>
       page(
         t,
@@ -366,7 +496,7 @@ const SLIDES = [
   <div class="row" style="align-items: center;">
     <div style="width: 330pt;">
       <p class="eyebrow">GO TO MARKET</p>
-      <h2 class="head" style="color: ${CREAM};">I am not buying users. I built a machine that feeds the app.</h2>
+      <h2 class="head" style="color: ${CREAM};">I built a machine that feeds the app.</h2>
       <p class="sub">You do not get momentum from one big push. You get it from pushing the same wheel in the same direction until it turns itself. Every part of my life is a spoke on it.</p>
       <p style="font-family: ${SANS}; font-size: 9.5pt; color: ${CREAM_MUTED}; margin-top: 16pt;">Jim Collins, Good to Great</p>
     </div>
@@ -379,8 +509,6 @@ const SLIDES = [
   {
     id: '12-spokes',
     tone: 'paper',
-    notes:
-      'One, the podcast, on creativity, technology, and spirituality, and in every single episode I describe the app and ask the guest what they think of it. Two, a holistic creativity and STEM class for kids where we draw, journal, and teach each other a concept, and every family in the class gets a subscription. Three, an AI power users course for adults, free online to fill the funnel and paid in person, run in Singapore and now Cambodia, where people who just spent two hours learning to work with AI are exactly the people who understand why a private one matters. Four, the community, because a subscription is not an app, it is a membership. And all four turn into content, which feeds all four again.',
     html: (t) => {
       const col = (img, h, body, first) => `
     <div style="width: 148pt; ${first ? '' : 'margin-left: 12pt;'}">
@@ -396,7 +524,7 @@ const SLIDES = [
   <div class="row" style="margin-top: 20pt;">
 ${col('spoke-podcast-16x9.jpg', 'The podcast', 'Creativity, technology, spirituality. Every episode describes the app and asks the guest what they think.', true)}
 ${col('spoke-kids-16x9.jpg', 'The kids class', 'Holistic creativity and STEM. Draw, journal, teach each other a concept. Every family gets a subscription.')}
-${col('spoke-course-16x9.jpg', 'The AI course', 'Free online fills the funnel, paid in person. Singapore, and now Cambodia.')}
+${col('spoke-course-16x9.jpg', 'The AI course', 'Free online fills the funnel, paid in person. Singapore, Cambodia, and on YouTube.')}
 ${col('spoke-community-16x9.jpg', 'The community', 'A subscription is not an app, it is a membership. And all of it becomes content.')}
   </div>
 </div>`
@@ -405,31 +533,69 @@ ${col('spoke-community-16x9.jpg', 'The community', 'A subscription is not an app
   },
 
   {
+    /* Numbered 12b for the same reason 10b is: order comes from this array, not
+     * from the id, and renaming the later files would churn slides/ for nothing. */
+    id: '12b-ai-city',
+    tone: 'paper',
+    /* Every claim here is Konrad's own and none is checked against a primary
+     * source — "future Deputy Prime Minister of Malaysia" is a prediction, not
+     * a title anyone holds. See the matching slide in slides.tsx. */
+    html: (t) =>
+      page(
+        t,
+        `<div class="pad">
+  <p class="eyebrow">FOREST CITY, MALAYSIA</p>
+  <h2 style="font-family: ${SERIF}; font-size: 24pt; color: ${TEXT};">Argo sits on the council building an AI city.</h2>
+  <p style="font-family: ${SANS}; font-size: 10pt; line-height: 1.5; color: ${TEXT_MUTED}; margin-top: 10pt; width: 620pt;">Crypto natives from the global crypto community, forming an open source collective to build a network state &mdash; a United States of America 2.0. AI at the centre, healthy by default, a culture of multicultural self actualization. On the ground with a future Deputy Prime Minister of Malaysia, CC Puan, founder of Malaysia&rsquo;s first unicorn, and the chairman of Forest City.</p>
+  <div class="row" style="margin-top: 14pt;">
+    <img src="${G('aicity-hero-crop.jpg')}" style="width: 320pt; height: 234pt; border-radius: 6pt;">
+    <div style="margin-left: 8pt;">
+      <div class="row">
+        <img src="${G('aicity-sketch-crop.jpg')}" style="width: 150pt; height: 113pt; border-radius: 5pt;">
+        <img src="${G('aicity-puan-crop.jpg')}" style="width: 150pt; height: 113pt; border-radius: 5pt; margin-left: 8pt;">
+      </div>
+      <div class="row" style="margin-top: 8pt;">
+        <img src="${G('aicity-chairman-crop.jpg')}" style="width: 150pt; height: 113pt; border-radius: 5pt;">
+        <img src="${G('aicity-execs-crop.jpg')}" style="width: 150pt; height: 113pt; border-radius: 5pt; margin-left: 8pt;">
+      </div>
+    </div>
+  </div>
+</div>`
+      ),
+  },
+
+  {
     id: '13-results',
     tone: 'ink',
-    todo: 'Every figure on this slide. Pull from the platform dashboards and App Store Connect.',
-    notes:
-      'So is it turning. Read the five numbers off the slide, one sentence each, and say only what you can defend in question time. Every one of these came from the wheel and not from ad spend.',
     html: (t) => {
-      const tile = (k, src, first) => `
-    <div class="slot" style="width: 115pt; height: 130pt; ${first ? '' : 'margin-left: 10pt;'} display: flex; flex-direction: column; justify-content: center;">
-      <p style="font-family: ${SERIF}; font-size: 30pt; color: ${ACCENT}; text-align: center;">&mdash;</p>
-      <p style="font-family: ${SANS}; font-size: 9.5pt; font-weight: bold; color: ${CREAM}; text-align: center; margin-top: 8pt; line-height: 1.35;">${k}</p>
-      <p class="slotSmall" style="margin-top: 6pt;">${src}</p>
+      /* Figures from the vault's demo-day-metrics.md, 2026-08-15, each read off
+       * the platform's own dashboard. Views and hours are both the all-owned-
+       * channels framing and say so; the Argo-only split is printed rather than
+       * left for someone to ask about. Downloads, subscribers and followers are
+       * deliberately not here — small absolutes in a grid read as a failed
+       * claim, and they belong in the narration instead. */
+      const tile = (n, k, src, first) => `
+    <div class="card" style="width: 115pt; height: 132pt; ${first ? '' : 'margin-left: 9pt;'} border-top: 2.5pt solid ${ACCENT}; padding: 11pt; display: flex; flex-direction: column; justify-content: center;">
+      <p style="font-family: ${SERIF}; font-size: 26pt; color: ${ACCENT}; text-align: center;">${n}</p>
+      <p style="font-family: ${SANS}; font-size: 9pt; font-weight: bold; color: ${CREAM}; text-align: center; margin-top: 7pt; line-height: 1.35;">${k}</p>
+      <p style="font-family: ${SANS}; font-size: 7pt; color: ${CREAM_MUTED}; text-align: center; margin-top: 6pt; line-height: 1.45;">${src}</p>
     </div>`
       return page(
         t,
         `<div class="pad" style="justify-content: center;">
   <p class="eyebrow">IS IT TURNING</p>
-  <h2 class="head" style="color: ${CREAM};">The numbers, and none of them bought.</h2>
-  <div class="row" style="margin-top: 26pt;">
-${tile('Views across channels', 'platform dashboards', true)}
-${tile('App downloads since 7 Aug', 'App Store Connect')}
-${tile('Views on the launch ad', 'per platform')}
-${tile('Community events hosted', '3 at MyBW, confirm full count')}
-${tile('Paying subscribers', 'confirm current figure')}
+  <h2 class="head" style="color: ${CREAM};">What nine months of the flywheel produced.</h2>
+  <div class="row" style="margin-top: 24pt;">
+${tile('21,898', 'Views across the channels', '5,793 of them on Argo&rsquo;s own, from zero in 9 months', true)}
+${tile('517', 'Hours actually watched', 'Not impressions. Time people chose to spend.')}
+${tile('91%', 'Of the launch film watched', '0:31 of 0:34, at an 80% click-through rate')}
+${tile('75', 'Events hosted', '186 people in the Argo community')}
+${/* Not Argo's money and not a raise: the capital already in the ground at
+    Forest City, where the AI city collective works. See the vault's
+    demo-day-metrics.md — the figure is unverified against a primary source. */ ''}
+${tile('$100B', 'Invested in Forest City', 'USD, in the project we are coordinating with to bring the AI city there.')}
   </div>
-  <p style="font-family: ${SANS}; font-size: 10pt; color: ${CREAM_MUTED}; margin-top: 22pt;">Placeholders on purpose. Say only what you can defend in Q and A.</p>
+  <p style="font-family: ${SANS}; font-size: 9.5pt; color: ${CREAM_MUTED}; margin-top: 20pt;">Nine months of output, five owned channels, 75 events. The app is eight days old.</p>
 </div>`
       )
     },
@@ -438,26 +604,36 @@ ${tile('Paying subscribers', 'confirm current figure')}
   {
     id: '14-testimonials',
     tone: 'paper',
-    todo: 'Verbatim quotes, guest names and exact titles, and permission to show them.',
-    notes:
-      'These are on the record. One guest called it training for keeping your mind sharp. Another said private AI you can actually trust is the thing they had been waiting for. The parents keep telling me the same thing, which is that their kids love it. Every episode is a distribution channel and a testimonial at the same time.',
     html: (t) => {
-      const card = (q, who, note, empty, first) => `
-    <div class="${empty ? 'slot' : 'card'}" style="width: 148pt; height: 178pt; ${first ? '' : 'margin-left: 12pt;'} padding: 14pt;">
-      <p style="font-family: ${SERIF}; font-size: 13pt; font-style: italic; line-height: 1.36; color: ${TEXT};">${q}</p>
-      <p style="font-family: ${SANS}; font-size: 9.5pt; font-weight: bold; color: ${TEXT}; margin-top: 14pt;">${who}</p>
-      <p style="font-family: ${SANS}; font-size: 7.5pt; line-height: 1.4; color: ${ACCENT_DEEP}; margin-top: 5pt;">${note}</p>
+      /* From the recordings, transcribed in the vault's
+       * interview-testimonials.md, trimmed for spoken disfluency and for length.
+       * Timestamps stay on the card so each one can be checked against tape.
+       *
+       * The credential line under each name is the guest's own claim, supplied
+       * by Konrad and not checked against a primary source. The episode still
+       * above the quote is the YouTube thumbnail, cropped 16:9 in prepare(). */
+      const card = (img, q, who, cred, note, first) => `
+    <div class="card" style="width: 200pt; height: 275pt; ${first ? '' : 'margin-left: 18pt;'} border-top: 2.5pt solid ${ACCENT}; padding: 0; overflow: hidden;">
+      <img src="${G(img)}" style="width: 200pt; height: 112pt;">
+      <div style="padding: 12pt 14pt 14pt;">
+        <p style="font-family: ${SERIF}; font-size: 9.5pt; font-style: italic; line-height: 1.38; color: ${TEXT};">&ldquo;${q}&rdquo;</p>
+        <p style="font-family: ${SANS}; font-size: 9.5pt; font-weight: bold; color: ${TEXT}; margin-top: 9pt;">${who}</p>
+        <p style="font-family: ${SANS}; font-size: 7pt; line-height: 1.35; color: ${TEXT_MUTED}; margin-top: 3pt;">${cred}</p>
+        <p style="font-family: ${SANS}; font-size: 7pt; color: ${ACCENT_DEEP}; margin-top: 4pt;">${note}</p>
+      </div>
     </div>`
       return page(
         t,
         `<div class="pad">
   <p class="eyebrow">ON THE RECORD</p>
-  <h2 style="font-family: ${SERIF}; font-size: 24pt; color: ${TEXT};">Every episode is a channel and a testimonial at once.</h2>
-  <div class="row" style="margin-top: 20pt;">
-${card('&ldquo;Training for keeping your mind sharp.&rdquo;', 'Podcast guest', 'Paraphrase. Pull the verbatim line from the recording.', false, true)}
-${card('&ldquo;Private AI you can actually trust is the thing I have been waiting for.&rdquo;', 'Podcast guest', 'Paraphrase. Confirm name, title, and permission.', false)}
-${card('&ldquo;My kid loves it.&rdquo;', 'Parent, kids class', 'Reported repeatedly. Get one on the record in writing.', false)}
-${card('Quote to collect', 'AI course student', 'Not yet collected. Ask at the end of the next in person class.', true)}
+  ${/* 21pt, not the 24pt the other paper slides use: Georgia is wider than the
+      web deck's Newsreader, and at 24pt this headline takes a second line and
+      pushes the timestamp off the bottom of the first two cards. */ ''}
+  <h2 style="font-family: ${SERIF}; font-size: 21pt; color: ${TEXT};">Every episode is a channel and a testimonial at once.</h2>
+  <div class="row" style="margin-top: 18pt;">
+${card('testimonial-johnston-16x9.jpg', 'A good use case for privacy preserving AI. People want to talk through their most personal thoughts. It&rsquo;s not something you want to publish with Claude or OpenAI.', 'David Johnston', 'Coined &ldquo;decentralized applications&rdquo; and &ldquo;smart agents&rdquo;. Bitcoin pioneer and investor.', 'Argo Podcast &middot; 34:23', true)}
+${card('testimonial-chong-16x9.jpg', 'It is not just about what you experienced throughout the day. It is also about how you felt. Many people just observe. They don&rsquo;t realize how they feel, and then they don&rsquo;t know what they want.', 'Chong Ing Kai', 'Founder of Stickem. Asia 30 Under 30. Won the US$1M Hult Prize global final, London, 2025.', 'Argo Podcast &middot; 38:29')}
+${card('testimonial-im-16x9.jpg', 'Journal apps help you keep track of your thoughts, get the raw data that you can then refashion into some shareable information.', 'Daniel Im', 'Student of Geoffrey Hinton, the godfather of AI. Building Belief Market.', 'Argo Podcast &middot; 52:07')}
   </div>
 </div>`
       )
@@ -467,8 +643,6 @@ ${card('Quote to collect', 'AI course student', 'Not yet collected. Ask at the e
   {
     id: '15-back-to-thesis',
     tone: 'ink',
-    notes:
-      'Vitalik argues the augmentation path is not just the nicer option, it is the safer one, and the mechanism is economic rather than technical. Keeping a human in every loop removes the incentive to hand over the planning. An AI that never writes for you keeps you in every loop by construction, so that incentive never forms. That is the whole argument, and it is why the app is built the way it is.',
     html: (t) =>
       page(
         t,
@@ -486,20 +660,25 @@ ${card('Quote to collect', 'AI course student', 'Not yet collected. Ask at the e
   {
     id: '16-close',
     tone: 'ink',
-    todo: 'THE ASK. One specific sentence. The single most important missing line in the deck.',
-    notes:
-      'Argo is live on iOS, there is a web portal, it is open source, the encryption is real, the journal AI is confidential, and the Soul is on Base mainnet today. Not a prototype. You can use it tonight. The reason I am confident is not the app, it is that I built a machine that feeds it and it is already turning. Then the ask, as one specific sentence, then stop talking.',
     html: (t) =>
       page(
         t,
         `<div class="pad" style="align-items: center; justify-content: center; text-align: center;">
-  <img src="${A('argo-emblem.png')}" style="width: 54pt; height: 67pt;">
-  <p style="font-family: ${SERIF}; font-size: 24pt; line-height: 1.3; color: ${CREAM}; width: 520pt; margin-top: 10pt;">Not a prototype, not a roadmap. You can use it tonight.</p>
-  <p style="font-family: ${SANS}; font-size: 9pt; letter-spacing: 1.2pt; color: ${ACCENT_LIGHT}; margin-top: 16pt;">LIVE ON IOS AND WEB &middot; OPEN SOURCE &middot; BUILT ON BASE &middot; DEVCON MUMBAI</p>
-  <div class="slot" style="width: 420pt; margin-top: 26pt;">
-    <p class="slotText">THE ASK</p>
-    <p class="slotSmall">One specific sentence. The raise and what it buys, the introductions you want, or the pilot you want run.</p>
+  <img src="${A('argo-emblem.png')}" style="width: 42pt; height: 52pt;">
+  <p style="font-family: ${SERIF}; font-size: 22pt; line-height: 1.3; color: ${CREAM}; width: 520pt; margin-top: 8pt;">Not a prototype, not a roadmap. You can use it tonight.</p>
+  <p style="font-family: ${SANS}; font-size: 8.5pt; letter-spacing: 1.2pt; color: ${ACCENT_LIGHT}; margin-top: 12pt;">LIVE ON IOS AND WEB &middot; OPEN SOURCE &middot; BUILT ON BASE &middot; DEVCON MUMBAI</p>
+  <p style="font-family: ${SANS}; font-size: 8.5pt; font-weight: bold; letter-spacing: 1.6pt; color: ${ACCENT_LIGHT}; margin-top: 22pt;">THE ASK</p>
+  <div class="row" style="margin-top: 10pt;">
+${['Download the app', 'Join the community', 'Subscribe to the podcast', 'Subscribe to the AI courses']
+  .map(
+    (ask, n) => `    <div class="card" style="width: 140pt; height: 66pt; ${n ? 'margin-left: 9pt;' : ''} border-top: 2.5pt solid ${ACCENT}; padding: 10pt;">
+      <p style="font-family: ${SANS}; font-size: 8.5pt; font-weight: bold; color: ${ACCENT};">${n + 1}</p>
+      <p style="font-family: ${SERIF}; font-size: 12pt; line-height: 1.3; color: ${CREAM}; margin-top: 5pt;">${ask}</p>
+    </div>`
+  )
+  .join('\n')}
   </div>
+  ${qr('qr-argo.png', 'START HERE', 'myargoquest.com', { size: 46, style: 'margin-top: 12pt;' })}
 </div>`
       ),
   },
@@ -514,15 +693,33 @@ async function main() {
   pptx.title = 'Argo, Final Demo Day'
   pptx.subject = 'Photoshop for Writing: d/acc for how we write, speak and think'
 
+  /* No addNotes anywhere. The deck ships without a speaker script on purpose;
+   * Konrad's lives in the vault, outside this repo. */
   for (const s of SLIDES) {
     const file = write(s.id, s.html(s.tone))
-    const { slide } = await html2pptx(file, pptx, { tmpDir: __dirname })
-    const notes = s.todo ? `${s.notes}\n\nSTILL MISSING: ${s.todo}` : s.notes
-    slide.addNotes(notes)
+    const { slide, placeholders } = await html2pptx(file, pptx, { tmpDir: __dirname })
+
+    if (s.media) {
+      const m = s.media.m
+      const at = placeholders.find((p) => p.id === s.media.id)
+      if (m.has || m.youtube) {
+        if (!at) throw new Error(`${s.id}: no placeholder "${s.media.id}" came back from html2pptx`)
+        const rect = { x: at.x, y: at.y, w: at.w, h: at.h }
+        if (m.has) {
+          slide.addMedia({ type: 'video', path: m.path, cover: m.cover(), ...rect })
+        } else {
+          console.warn(` ! ${s.id}: ${path.basename(m.path)} not found, linking YouTube instead (needs network on the day)`)
+          slide.addMedia({ type: 'online', link: m.youtube, cover: m.cover(), ...rect })
+        }
+      } else {
+        console.warn(` ! ${s.id}: no video and no YouTube link, poster still only`)
+      }
+    }
   }
 
   await pptx.writeFile({ fileName: OUT })
-  console.log(`wrote ${OUT} (${SLIDES.length} slides)`)
+  const mb = (fs.statSync(OUT).size / 1e6).toFixed(1)
+  console.log(`wrote ${OUT} (${SLIDES.length} slides, ${mb} MB)`)
 }
 
 main().catch((e) => {

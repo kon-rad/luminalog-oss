@@ -1,8 +1,10 @@
 import SwiftUI
 
-/// The four Journal Detail tabs (design §4).
+/// The five Journal Detail tabs (design §4). Map sits second, right after Main,
+/// because it is the second thing you do with an entry.
 enum JournalDetailTab: String, CaseIterable, Identifiable {
     case main = "Main"
+    case map = "Map"
     case insights = "Insights"
     case prompts = "Prompts"
     case related = "Related"
@@ -40,9 +42,13 @@ struct DetailTabBar: View {
             }
         } label: {
             VStack(spacing: Spacing.s) {
+                // Caption rather than body: five labels do not fit a 393pt screen at
+                // body size, and the tab bar is chrome.
                 Text(tab.rawValue)
-                    .font(.uiBody.weight(isSelected ? .semibold : .regular))
+                    .font(.captionText.weight(isSelected ? .semibold : .regular))
                     .foregroundStyle(isSelected ? Color.textPrimary : Color.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
 
                 ZStack {
                     Color.clear

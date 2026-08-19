@@ -37,6 +37,8 @@ export const AAD = {
   journalsInsightsText: 'journals.insights.text',
   // `<index>` is the array position — ordering is load-bearing.
   journalsPromptItem: (index: number) => `journals.prompts.items.${index}`,
+  // The whole cognitive map, as one encrypted JSON blob.
+  journalsCognitiveMapData: 'journals.cognitiveMap.data',
 
   // users/{uid}
   usersBiography: 'users.biography',

@@ -148,6 +148,8 @@ struct JournalEntry: Codable, Equatable, Identifiable, Sendable {
     var summary: AIGeneration?
     var insights: AIGeneration?
     var prompts: AIPrompts?
+    /// The per-entry cognitive map. Nil until generation lands (or when it failed).
+    var cognitiveMap: CognitiveMapGeneration?
     var vector: VectorState
     var wordCount: Int
     var emotion: EmotionScore?
@@ -171,6 +173,7 @@ struct JournalEntry: Codable, Equatable, Identifiable, Sendable {
         summary: AIGeneration? = nil,
         insights: AIGeneration? = nil,
         prompts: AIPrompts? = nil,
+        cognitiveMap: CognitiveMapGeneration? = nil,
         vector: VectorState = VectorState(),
         wordCount: Int = 0,
         emotion: EmotionScore? = nil,
@@ -192,6 +195,7 @@ struct JournalEntry: Codable, Equatable, Identifiable, Sendable {
         self.summary = summary
         self.insights = insights
         self.prompts = prompts
+        self.cognitiveMap = cognitiveMap
         self.vector = vector
         self.wordCount = wordCount
         self.emotion = emotion
@@ -242,6 +246,20 @@ extension JournalEntry {
             case .ready, .none: return .idle
             }
         }
+    }
+
+    /// True when this entry should have a cognitive map generated.
+    ///
+    /// Three ways to need one: there is none, the entry's text was edited after the
+    /// map was built (so the map describes words that are no longer there), or the
+    /// map came from an older schema version. Empty entries never need one, since
+    /// there is nothing to extract.
+    var needsCognitiveMap: Bool {
+        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        guard let map = cognitiveMap else { return true }
+        if map.version < CognitiveMapGeneration.currentVersion { return true }
+        if let editedAt = contentEditedAt, editedAt > map.generatedAt { return true }
+        return false
     }
 
     /// Short badge label for the current activity, or nil when settled.

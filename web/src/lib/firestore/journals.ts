@@ -25,11 +25,11 @@ import {
 import { auth, db } from '@/lib/firebase'
 import { AAD } from '@/lib/crypto/aad'
 import { encryptField } from '@/lib/crypto/envelope'
-import { bootstrapDEK, getCachedDEK } from '@/lib/crypto/dek'
+import { getCachedDEK } from '@/lib/crypto/dek'
 import { apiPost } from '@/lib/api/client'
-import { decodeEntry, encodeTextEntryCreate } from '@/lib/firestore/codec'
+import { decodeEntry, encodeCognitiveMap, encodeTextEntryCreate } from '@/lib/firestore/codec'
 import { wordCount } from '@/lib/wordCount'
-import type { JournalEntry } from '@/lib/firestore/models'
+import type { CognitiveMapGeneration, JournalEntry } from '@/lib/firestore/models'
 
 const COLLECTION = 'journals'
 
@@ -39,7 +39,17 @@ const requireUser = () => {
   return user
 }
 
-const requireDEK = async (): Promise<CryptoKey> => getCachedDEK() ?? (await bootstrapDEK())
+// The DEK is installed by the key-unlock gate before any authenticated route
+// renders, so a missing key here is a programming error, not a state to
+// recover from. Reject rather than return empty: silence is precisely the
+// failure mode this subsystem exists to eliminate. Kept async so the
+// streaming call sites can keep their existing `.then(...).catch(...)` shape,
+// where a missing key arrives as a rejection their catch already handles.
+const requireDEK = async (): Promise<CryptoKey> => {
+  const dek = getCachedDEK()
+  if (!dek) throw new Error('requireDEK: no encryption key loaded')
+  return dek
+}
 
 export interface CreateTextEntryInput {
   title: string
@@ -190,6 +200,23 @@ export const updateContent = async (
     wordCount: wordCount(content),
     contentEditedAt: Timestamp.fromDate(contentEditedAt ?? new Date()),
     updatedAt: serverTimestamp(),
+  })
+}
+
+/**
+ * Writes ONLY the cognitive map field.
+ *
+ * `updateDoc` (unlike `setDoc`) never resurrects a deleted document, which matters
+ * because generation is asynchronous and the entry can be deleted while a map is in
+ * flight. Mirrors the iOS `updateCognitiveMap`.
+ */
+export const updateCognitiveMap = async (
+  id: string,
+  generation: CognitiveMapGeneration,
+): Promise<void> => {
+  const dek = await requireDEK()
+  await updateDoc(doc(db, COLLECTION, id), {
+    cognitiveMap: await encodeCognitiveMap(generation, dek),
   })
 }
 

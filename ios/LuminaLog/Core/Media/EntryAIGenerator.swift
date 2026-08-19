@@ -117,6 +117,73 @@ final class EntryAIGenerator {
         }
     }
 
+    // MARK: - Cognitive map
+
+    /// How many un-mapped entries the launch sweep will backfill per launch.
+    ///
+    /// A blanket sweep over a large corpus would fire three model calls per entry on
+    /// first launch, which is unkind to both the battery and the bill. Older entries
+    /// map on demand instead, the first time their Map tab is opened.
+    static let mapBackfillLimit = 10
+
+    /// Ensure `entryID` has a cognitive map, generating one if it is missing or stale.
+    /// Idempotent, de-duped, and best-effort. Returns true only when this call
+    /// generated AND persisted a map.
+    @discardableResult
+    func ensureMap(for entryID: String) async -> Bool {
+        guard DevFlags.aiModel1 else { return false }
+        // Namespaced so a map generation and an entry-AI generation for the same entry
+        // never block each other. Claimed BEFORE any await so a concurrent ensure
+        // (serialized on the main actor) observes it and bails instead of double-firing.
+        let key = Self.mapKey(entryID)
+        guard !inFlight.contains(key) else { return false }
+        guard (attempts[key] ?? 0) < Self.maxSessionAttempts else { return false }
+        inFlight.insert(key)
+        defer { inFlight.remove(key) }
+
+        guard
+            let entry = await firstEmission(journals.entry(id: entryID)).flatMap({ $0 }),
+            entry.needsCognitiveMap
+        else { return false }
+
+        do {
+            // Keep the app alive across a brief backgrounding so the in-flight request
+            // isn't suspended into a 499. Anything the assertion can't cover is caught
+            // by the next launch sweep.
+            try await backgroundActivity.run("entry-map-generation") {
+                let map = try await self.ai.generateEntryMap(journalId: entryID)
+                try await self.journals.updateCognitiveMap(id: entryID, map: map)
+            }
+            return true
+        } catch {
+            if Self.isCancellation(error) {
+                // Torn down, not failed. Don't spend an attempt.
+                Self.logger.notice("ensureMap cancelled for \(entryID, privacy: .public); will retry")
+                return false
+            }
+            attempts[key, default: 0] += 1
+            Self.logger.error("ensureMap failed for \(entryID, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
+    /// Launch-time backfill: map the most recent entries that still lack one, capped at
+    /// `mapBackfillLimit`. Best-effort and idempotent.
+    func sweepMaps() async {
+        guard DevFlags.aiModel1 else { return }
+        // fetchAllEntries returns newest first, so `prefix` takes the most recent.
+        let entries = (try? await journals.fetchAllEntries()) ?? []
+        let needing = Array(entries.filter(\.needsCognitiveMap).prefix(Self.mapBackfillLimit))
+        guard !needing.isEmpty else { return }
+        Self.logger.notice("Map sweep: \(needing.count, privacy: .public) entr(ies) need a map")
+        for entry in needing {
+            await ensureMap(for: entry.id)
+        }
+    }
+
+    /// In-flight / attempt key for a map generation, namespaced away from entry AI.
+    private static func mapKey(_ entryID: String) -> String { "\(entryID)#map" }
+
     /// True when the entry lacks a summary OR has empty insights/prompts. Mirrors
     /// `JournalDetailViewModel.generateSummaryIfMissing` so the headless and lazy
     /// paths agree on what "needs AI" means (all three come from one call, so a

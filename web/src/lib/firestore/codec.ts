@@ -8,12 +8,15 @@
 import { Timestamp } from 'firebase/firestore'
 import { AAD } from '@/lib/crypto/aad'
 import { encryptField, openField, openFieldSafe } from '@/lib/crypto/envelope'
+import { isCognitiveMap, type CognitiveMap } from '@/lib/cognitive-map'
+import { COGNITIVE_MAP_VERSION } from '@/lib/firestore/models'
 import type {
   AIGeneration,
   AIPrompts,
   Chat,
   ChatKind,
   ChatMessage,
+  CognitiveMapGeneration,
   EditRecord,
   EmotionScore,
   JournalEntry,
@@ -161,6 +164,60 @@ const decodeAIGeneration = async (
   }
 }
 
+/**
+ * Opens the encrypted cognitive map blob.
+ *
+ * Returns undefined on ANY failure: a missing field, a wrong key, malformed JSON, or
+ * a payload that is not a structurally valid map. Degrading to "no map yet" makes the
+ * entry regenerate; throwing would make the whole entry fail to load because of an
+ * optional field. Mirrors the iOS `CognitiveMapGeneration(data:cipher:)`.
+ */
+export const decodeCognitiveMap = async (
+  v: unknown,
+  key: CryptoKey,
+): Promise<CognitiveMapGeneration | undefined> => {
+  const r = asRecord(v)
+  if (!r || r.data == null) return undefined
+  try {
+    const json = await openField(key, r.data, AAD.journalsCognitiveMapData)
+    const map = JSON.parse(json) as CognitiveMap
+    if (!isCognitiveMap(map)) return undefined
+    return {
+      map,
+      generatedAt: tsToDate(r.generatedAt) ?? new Date(),
+      model: asString(r.model) ?? '',
+      version: asNumber(r.version) ?? 0,
+    }
+  } catch {
+    return undefined
+  }
+}
+
+/** Seals a cognitive map for Firestore. Metadata stays plaintext, like `summary`. */
+export const encodeCognitiveMap = async (
+  generation: CognitiveMapGeneration,
+  key: CryptoKey,
+): Promise<Record<string, unknown>> => ({
+  data: await encryptField(key, JSON.stringify(generation.map), AAD.journalsCognitiveMapData),
+  generatedAt: dateToTs(generation.generatedAt),
+  model: generation.model,
+  version: generation.version,
+})
+
+/**
+ * Whether this entry should have a map generated: there is none, the text was edited
+ * after the map was built, or the map came from an older schema version. Empty entries
+ * never need one. Mirrors iOS `JournalEntry.needsCognitiveMap` exactly.
+ */
+export const needsCognitiveMap = (entry: JournalEntry): boolean => {
+  if (!entry.content?.trim()) return false
+  const generation = entry.cognitiveMap
+  if (!generation) return true
+  if (generation.version < COGNITIVE_MAP_VERSION) return true
+  if (entry.contentEditedAt && entry.contentEditedAt > generation.generatedAt) return true
+  return false
+}
+
 const decodeAIPrompts = async (v: unknown, key: CryptoKey): Promise<AIPrompts | undefined> => {
   const r = asRecord(v)
   const rawItems = r ? asArray(r.items) : []
@@ -248,6 +305,8 @@ export const decodeEntry = async (
   if (insights) entry.insights = insights
   const prompts = await decodeAIPrompts(data.prompts, key)
   if (prompts) entry.prompts = prompts
+  const cognitiveMap = await decodeCognitiveMap(data.cognitiveMap, key)
+  if (cognitiveMap) entry.cognitiveMap = cognitiveMap
 
   const promptText = asString(data.promptText)
   if (promptText !== undefined) entry.promptText = promptText

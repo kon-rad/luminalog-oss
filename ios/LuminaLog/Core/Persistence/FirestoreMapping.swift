@@ -66,6 +66,9 @@ extension JournalEntry {
                 summary: try AIGeneration(data: data["summary"] as? [String: Any], cipher: cipher, context: "journals.summary"),
                 insights: try AIGeneration(data: data["insights"] as? [String: Any], cipher: cipher, context: "journals.insights"),
                 prompts: try AIPrompts(data: data["prompts"] as? [String: Any], cipher: cipher),
+                cognitiveMap: CognitiveMapGeneration(
+                    data: data["cognitiveMap"] as? [String: Any], cipher: cipher
+                ),
                 vector: VectorState(data: data["vector"] as? [String: Any]) ?? VectorState(),
                 wordCount: data["wordCount"] as? Int ?? 0,
                 emotion: EmotionScore(firestore: data["emotion"] as? [String: Any]),
@@ -99,6 +102,7 @@ extension JournalEntry {
         if let summary { data["summary"] = try summary.firestoreData(cipher: cipher, context: "journals.summary") }
         if let insights { data["insights"] = try insights.firestoreData(cipher: cipher, context: "journals.insights") }
         if let prompts { data["prompts"] = try prompts.firestoreData(cipher: cipher) }
+        if let cognitiveMap { data["cognitiveMap"] = try cognitiveMap.firestoreData(cipher: cipher) }
         data["excludeFromShare"] = excludeFromShare
         if let emotion { data["emotion"] = emotion.firestoreData() }
         if let promptText { data["promptText"] = promptText }
@@ -648,5 +652,42 @@ extension DailyInsightsReport {
         if let photographerUrl { data["photographerUrl"] = photographerUrl.absoluteString }
         if let generatedAt { data["generatedAt"] = Timestamp(date: generatedAt) }
         return data
+    }
+}
+
+// MARK: - CognitiveMapGeneration
+
+extension CognitiveMapGeneration {
+
+    /// AAD context for the encrypted map blob. MUST match web/src/lib/crypto/aad.ts
+    /// (`journalsCognitiveMapData`) byte for byte, or a map written on one platform
+    /// cannot be opened on the other.
+    static let context = "journals.cognitiveMap.data"
+
+    /// Opens the encrypted blob. Returns nil (rather than throwing) on any failure,
+    /// so a map written by a newer schema, or one that cannot be decrypted, degrades
+    /// to "no map yet" and regenerates. The entry itself must never fail to load
+    /// because of an optional field.
+    init?(data: [String: Any]?, cipher: FieldCipher) {
+        guard let data,
+              let json = try? cipher.opened(data["data"], Self.context),
+              let map = try? JSONDecoder().decode(CognitiveMap.self, from: Data(json.utf8))
+        else { return nil }
+        self.init(
+            map: map,
+            generatedAt: timestamp(data["generatedAt"]) ?? Date(),
+            model: data["model"] as? String ?? "",
+            version: data["version"] as? Int ?? 0
+        )
+    }
+
+    func firestoreData(cipher: FieldCipher) throws -> [String: Any] {
+        let json = String(decoding: try JSONEncoder().encode(map), as: UTF8.self)
+        return [
+            "data": try cipher.sealed(json, Self.context),
+            "generatedAt": Timestamp(date: generatedAt),
+            "model": model,
+            "version": version,
+        ]
     }
 }

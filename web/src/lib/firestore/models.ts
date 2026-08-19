@@ -4,6 +4,8 @@
 // already-decrypted plaintext strings (the on-wire envelopes live only in the
 // Firestore document maps handled by `codec.ts`). See web-app design §3/§6.
 
+import type { CognitiveMap } from '@/lib/cognitive-map'
+
 /** The four journal entry types. */
 export type JournalType = 'text' | 'voice' | 'video' | 'image'
 
@@ -71,6 +73,19 @@ export interface EmotionScore {
   scoredAt?: Date
 }
 
+/** The stored cognitive map plus its plaintext metadata. Mirrors the iOS
+ *  `CognitiveMapGeneration`. The map itself is one encrypted JSON blob. */
+export interface CognitiveMapGeneration {
+  map: CognitiveMap
+  generatedAt: Date
+  model: string
+  /** Schema plus extraction version. Bump to force re-extraction. */
+  version: number
+}
+
+/** Current cognitive map schema version. A stored map below this is stale. */
+export const COGNITIVE_MAP_VERSION = 1
+
 /** A journal entry — `journals/{journalId}`, decoded. */
 export interface JournalEntry {
   id: string
@@ -90,6 +105,8 @@ export interface JournalEntry {
   summary?: AIGeneration
   insights?: AIGeneration
   prompts?: AIPrompts
+  /** The per-entry cognitive map. Absent until generation lands (or if it failed). */
+  cognitiveMap?: CognitiveMapGeneration
   vector: VectorState
   wordCount: number
   excludeFromShare: boolean

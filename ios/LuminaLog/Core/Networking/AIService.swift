@@ -50,6 +50,12 @@ protocol AIService: AnyObject {
     /// this is unused — the default implementation throws `.unavailable`.
     func generateEntryAI(journalId: String) async throws -> EntryAIBundle
 
+    /// Zero-knowledge only: build the entry's cognitive map from PLAINTEXT content.
+    /// The server is stateless, so the caller persists the result itself
+    /// (client-encrypted) via `updateCognitiveMap`. Off the ZK path this is unused and
+    /// the default implementation throws `.unavailable`.
+    func generateEntryMap(journalId: String) async throws -> CognitiveMapGeneration
+
     /// Zero-knowledge (Model-1) only: build the plaintext voice-call context on-device
     /// (name, bio, profile, on-device RAG, focal entry) so it can be injected into the
     /// Vapi system prompt. Returns nil off the ZK path (the server builds context then).
@@ -123,6 +129,12 @@ extension AIService {
     /// Default: only the zero-knowledge `ProxyAIService` path generates entry AI
     /// client-side. Every other conformer (mocks, test stubs) inherits this throw.
     func generateEntryAI(journalId: String) async throws -> EntryAIBundle {
+        throw AIServiceError.unavailable
+    }
+
+    /// Default: only the zero-knowledge `ProxyAIService` builds cognitive maps. Every
+    /// other conformer (mocks, test stubs) inherits this throw.
+    func generateEntryMap(journalId: String) async throws -> CognitiveMapGeneration {
         throw AIServiceError.unavailable
     }
 

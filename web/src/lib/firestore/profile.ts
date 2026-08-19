@@ -19,7 +19,7 @@ import type { User } from 'firebase/auth'
 import { auth, db } from '@/lib/firebase'
 import { AAD } from '@/lib/crypto/aad'
 import { encryptField } from '@/lib/crypto/envelope'
-import { bootstrapDEK, getCachedDEK } from '@/lib/crypto/dek'
+import { getCachedDEK } from '@/lib/crypto/dek'
 import { decodeProfile, decodeStats, encodeStats } from '@/lib/firestore/codec'
 import { nextStats } from '@/lib/stats/dailyGoalStreak'
 import type { Stats, UserProfile } from '@/lib/firestore/models'
@@ -75,11 +75,13 @@ export const buildUserSeed = async (
 
 /**
  * Seed `users/{uid}` on first sign-in. Returns `isNewUser` (true iff the doc
- * did not exist). Existing docs are never overwritten — returning users keep
- * their biography, stats, and any proxy-written fields. Writes with
- * `merge:true` so a concurrent first sign-in (or a proxy write racing the
- * exists-check) can't be clobbered. Requires the DEK (to encrypt the empty
- * biography); bootstraps it if not yet cached.
+ * had not been seeded yet, tested by the absence of `createdAt`, not by the
+ * absence of the document; see the guard below). Seeded docs are never
+ * overwritten, so returning users keep their biography, stats, and any
+ * proxy-written fields. Writes with `merge:true` so a concurrent first sign-in,
+ * a proxy write racing the check, or the key-enrollment PUT that created the
+ * document cannot be clobbered. Requires the DEK to encrypt the empty
+ * biography, which is why this runs after key resolution.
  */
 export const ensureUserDocument = async (): Promise<boolean> => {
   const user = auth.currentUser
@@ -87,9 +89,18 @@ export const ensureUserDocument = async (): Promise<boolean> => {
 
   const ref = doc(db, 'users', user.uid)
   const snap = await getDoc(ref)
-  if (snap.exists()) return false
+  // Test for the SEED, not for the document. The zero-knowledge key enrollment
+  // PUT (`PUT /v1/keys/wrapped`) writes users/{uid} with {merge:true} and
+  // therefore CREATES the document before the seed is ever written. Enrollment
+  // necessarily runs first, because the seed encrypts `biography` and so needs
+  // the DEK. Treating existence as "already seeded" would leave a brand-new web
+  // signup with no stats, no createdAt and no encrypted biography, and would
+  // report isNewUser as false. `createdAt` is written only here, so its presence
+  // is the reliable marker.
+  if (snap.exists() && snap.get('createdAt') !== undefined) return false
 
-  const dek = getCachedDEK() ?? (await bootstrapDEK())
+  const dek = getCachedDEK()
+  if (!dek) throw new Error('ensureUserDocument: no encryption key loaded')
   const seed = await buildUserSeed(user, dek)
   await setDoc(ref, seed, { merge: true })
   return true

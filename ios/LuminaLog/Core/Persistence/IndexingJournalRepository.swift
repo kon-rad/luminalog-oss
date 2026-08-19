@@ -107,6 +107,12 @@ final class IndexingJournalRepository: JournalRepository {
         try await base.updateAIFields(id: id, summary: summary, insights: insights, prompts: prompts)
     }
 
+    /// Pass-through: a cognitive map is derived from content already indexed, so
+    /// writing one never changes the RAG index.
+    func updateCognitiveMap(id: String, map: CognitiveMapGeneration) async throws {
+        try await base.updateCognitiveMap(id: id, map: map)
+    }
+
     func setExcludeFromShare(entryId: String, value: Bool) async throws {
         try await base.setExcludeFromShare(entryId: entryId, value: value)
     }

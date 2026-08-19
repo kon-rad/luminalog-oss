@@ -82,6 +82,7 @@ describe('requireAiConsent is wired onto the AI routes (router-stack inspection)
     '/transcribe-clip',
     '/summary',
     '/entry-ai',
+    '/entry-map',
     '/daily-prompt',
     '/daily-report',
   ])('%s carries firebaseAuth → requireAiConsent → handler on aiRouter', (path) => {

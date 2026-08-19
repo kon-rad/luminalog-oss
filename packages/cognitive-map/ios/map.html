@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Cognitive Map</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: transparent; }
+  /* ui-serif resolves to New York in WKWebView, which is what SwiftUI's
+     Font.system(design: .serif) already uses, so the map's type matches the app. */
+  body { font-family: ui-serif, Georgia, serif; -webkit-user-select: none; user-select: none; }
+  #root { width: 100%; height: 100%; }
+</style>
+<div id="root"></div>
+<script src="./vendor/cognitive-map.iife.js"></script>
+<script>
+  var handle = null;
+
+  // Called by the native host with the decrypted map plus the theme values resolved
+  // for the current trait collection.
+  window.renderCognitiveMap = function (map, theme) {
+    var root = document.getElementById('root');
+    if (handle) { handle.destroy(); handle = null; }
+    handle = CognitiveMap.mountCognitiveMap(root, map, {
+      theme: theme || {},
+      onSelectBeat: function (beatId) {
+        window.webkit.messageHandlers.selectBeat.postMessage(beatId);
+      }
+    });
+  };
+
+  window.onerror = function (message, source, line, column) {
+    window.webkit.messageHandlers.log.postMessage(
+      'JS error: ' + message + ' @' + (source || '') + ':' + line + ':' + column
+    );
+  };
+</script>
