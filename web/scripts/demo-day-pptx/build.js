@@ -3,7 +3,7 @@
  *   node build.js [outfile]
  *
  * Slide content is the same narrative as the web deck at /final-demo-day
- * (src/components/demo-day/slides.tsx) — keep the two in step when either
+ * (src/components/demo-day/slides.tsx). Keep the two in step when either
  * changes. Layout is 720x405pt (16:9). Web-safe fonts only, because a font
  * that is not on the presenting machine is a deck that reflows on stage:
  * Georgia for the serif voice, Arial for the sans. Colours are the Argo
@@ -86,7 +86,7 @@ async function prepare() {
   /* The AI city photographs are phone shots at assorted aspects, and an <img>
    * with both dimensions set stretches rather than crops. Cropping here to the
    * exact rectangles the slide places them in is what keeps faces from being
-   * squashed — hero and grid cells are close but not equal ratios, so two
+   * squashed: hero and grid cells are close but not equal ratios, so two
    * passes rather than one. */
   await sharp(path.join(PUB, 'aicity-hero.jpg'))
     .resize(960, 702, { fit: 'cover', position: 'centre' })
@@ -143,18 +143,18 @@ function write(name, html) {
  *
  * A missing file is not an error, and there are two rungs below it:
  *
- *   1. the local mp4, embedded — plays with no network, which is the only
+ *   1. the local mp4, embedded: plays with no network, which is the only
  *      version you can rely on in a venue
- *   2. the YouTube embed — plays in place in PowerPoint, but only with working
+ *   2. the YouTube embed: plays in place in PowerPoint, but only with working
  *      wifi and only if the room does not block YouTube
- *   3. the poster still — always renders, never plays
+ *   3. the poster still: always renders, never plays
  *
  * launch-film.mp4 is deliberately not in the repo (34 MB), so a fresh clone
  * lands on rung 2 as a matter of course and the deck still builds. Masters for
  * both live in the vault; see README.md for the encodes. */
 const media = (file, poster, youtube) => {
   const p = path.join(PUB, file)
-  /* addMedia takes the cover as a data URI, not a path — it only checks for a
+  /* addMedia takes the cover as a data URI, not a path. It only checks for a
    * "base64," header, so the jpeg goes in as itself rather than being blown up
    * into a multi-megabyte PNG. Without a cover PowerPoint draws its own grey
    * play button over the slide. */
@@ -315,7 +315,7 @@ const SLIDES = [
     <div style="padding-left: 13pt;">
       <p style="font-family: ${SANS}; font-size: 7.5pt; font-weight: bold; letter-spacing: 1.2pt; color: ${ACCENT_DEEP};">CONSTRUCTIONISM &middot; SEYMOUR PAPERT, MIT, 1980</p>
       <p style="font-family: ${SERIF}; font-size: 12.5pt; line-height: 1.35; color: ${TEXT}; margin-top: 6pt;">You learn by building something public. The artefact and the understanding build each other.</p>
-      <p style="font-family: ${SERIF}; font-size: 12.5pt; line-height: 1.35; color: ${ACCENT_DEEP}; margin-top: 3pt;">Argo never builds it for you. The human stays in every loop by construction &mdash; that is rung two.</p>
+      <p style="font-family: ${SERIF}; font-size: 12.5pt; line-height: 1.35; color: ${ACCENT_DEEP}; margin-top: 3pt;">Argo never builds it for you. The human stays in every loop by construction. That is rung two.</p>
     </div>
   </div>
   <p style="font-family: ${SANS}; font-size: 10.5pt; line-height: 1.5; color: ${TEXT_MUTED}; margin-top: 14pt; width: 612pt;">Delegate the writing and you lose the ability to think for yourself. You lose the ability to write, to speak, and to have quality ideas.</p>
@@ -351,7 +351,7 @@ const SLIDES = [
      * title or a watermark here is only competing with it.
      *
      * The QR is the one exception, and it sits top right rather than bottom
-     * right because the player's controls run along the bottom edge — same
+     * right because the player's controls run along the bottom edge, same
      * reasoning as the web deck. It earns the intrusion by being the only
      * thing on this slide that means anything if the film does not run. */
     media: { m: FILM, id: 'launch-film' },
@@ -465,7 +465,7 @@ const SLIDES = [
         `<div class="pad" style="justify-content: center;">
   <p class="eyebrow">CONSTRUCTIONISM &middot; SEYMOUR PAPERT, MIT, 1980</p>
   <h2 class="head" style="color: ${TEXT}; width: 600pt;">The training ground is private. The artefact is not.</h2>
-  <p class="sub" style="width: 590pt;">Papert&rsquo;s learner built in public &mdash; the program on the screen, the robot on the table. Argo splits that in two. The construction happens somewhere nobody can read, and what leaves is the proof you ran it and the thinking you carry out with you.</p>
+  <p class="sub" style="width: 590pt;">Papert&rsquo;s learner built in public: the program on the screen, the robot on the table. Argo splits that in two. The construction happens somewhere nobody can read, and what leaves is the proof you ran it and the thinking you carry out with you.</p>
   <div class="row" style="margin-top: 20pt;">
 ${[
   ['Objects to think with', 'The Soul: a year of your own thinking, in a form you can actually look at.'],
@@ -538,7 +538,7 @@ ${col('spoke-community-16x9.jpg', 'The community', 'A subscription is not an app
     id: '12b-ai-city',
     tone: 'paper',
     /* Every claim here is Konrad's own and none is checked against a primary
-     * source — "future Deputy Prime Minister of Malaysia" is a prediction, not
+     * source: "future Deputy Prime Minister of Malaysia" is a prediction, not
      * a title anyone holds. See the matching slide in slides.tsx. */
     html: (t) =>
       page(
@@ -546,7 +546,7 @@ ${col('spoke-community-16x9.jpg', 'The community', 'A subscription is not an app
         `<div class="pad">
   <p class="eyebrow">FOREST CITY, MALAYSIA</p>
   <h2 style="font-family: ${SERIF}; font-size: 24pt; color: ${TEXT};">Argo sits on the council building an AI city.</h2>
-  <p style="font-family: ${SANS}; font-size: 10pt; line-height: 1.5; color: ${TEXT_MUTED}; margin-top: 10pt; width: 620pt;">Crypto natives from the global crypto community, forming an open source collective to build a network state &mdash; a United States of America 2.0. AI at the centre, healthy by default, a culture of multicultural self actualization. On the ground with a future Deputy Prime Minister of Malaysia, CC Puan, founder of Malaysia&rsquo;s first unicorn, and the chairman of Forest City.</p>
+  <p style="font-family: ${SANS}; font-size: 10pt; line-height: 1.5; color: ${TEXT_MUTED}; margin-top: 10pt; width: 620pt;">Crypto natives from the global crypto community, forming an open source collective to build a network state, a United States of America 2.0. AI at the centre, healthy by default, a culture of multicultural self actualization. On the ground with a future Deputy Prime Minister of Malaysia, CC Puan, founder of Malaysia&rsquo;s first unicorn, and the chairman of Forest City.</p>
   <div class="row" style="margin-top: 14pt;">
     <img src="${G('aicity-hero-crop.jpg')}" style="width: 320pt; height: 234pt; border-radius: 6pt;">
     <div style="margin-left: 8pt;">
@@ -572,7 +572,7 @@ ${col('spoke-community-16x9.jpg', 'The community', 'A subscription is not an app
        * the platform's own dashboard. Views and hours are both the all-owned-
        * channels framing and say so; the Argo-only split is printed rather than
        * left for someone to ask about. Downloads, subscribers and followers are
-       * deliberately not here — small absolutes in a grid read as a failed
+       * deliberately not here: small absolutes in a grid read as a failed
        * claim, and they belong in the narration instead. */
       const tile = (n, k, src, first) => `
     <div class="card" style="width: 115pt; height: 132pt; ${first ? '' : 'margin-left: 9pt;'} border-top: 2.5pt solid ${ACCENT}; padding: 11pt; display: flex; flex-direction: column; justify-content: center;">
@@ -592,7 +592,7 @@ ${tile('91%', 'Of the launch film watched', '0:31 of 0:34, at an 80% click-throu
 ${tile('75', 'Events hosted', '186 people in the Argo community')}
 ${/* Not Argo's money and not a raise: the capital already in the ground at
     Forest City, where the AI city collective works. See the vault's
-    demo-day-metrics.md — the figure is unverified against a primary source. */ ''}
+    demo-day-metrics.md, the figure is unverified against a primary source. */ ''}
 ${tile('$100B', 'Invested in Forest City', 'USD, in the project we are coordinating with to bring the AI city there.')}
   </div>
   <p style="font-family: ${SANS}; font-size: 9.5pt; color: ${CREAM_MUTED}; margin-top: 20pt;">Nine months of output, five owned channels, 75 events. The app is eight days old.</p>

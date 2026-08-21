@@ -5,7 +5,7 @@
  * exported PowerPoint (scripts/build-demo-day-pptx.js) stay in sync. Colours
  * are the Argo palette from globals.css, hard-coded here rather than read from
  * CSS variables because the deck must look identical whatever theme the rest
- * of the site is in — a projector is not a place for a light/dark surprise.
+ * of the site is in. A projector is not a place for a light/dark surprise.
  * ────────────────────────────────────────────────────────────────────────── */
 
 export const STAGE_W = 1280

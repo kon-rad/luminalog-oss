@@ -13,7 +13,7 @@ import { C, SANS, SERIF, STAGE_H, STAGE_W } from './theme'
  * Every slide now carries real content: no amber placeholder slots, and no
  * production notes to himself rendered as slide copy. Figures come from
  * demo-day-metrics.md and quotes from interview-testimonials.md, both in the
- * vault beside the script. Nothing here is invented to fill a space — if a
+ * vault beside the script. Nothing here is invented to fill a space. If a
  * number is not defensible in question time it is said out loud instead of put
  * on a tile. `todo` still marks the two slides with work outstanding, but that
  * shows only in the overview grid, never on the slide.
@@ -129,12 +129,12 @@ function Rule({ tone }: { tone: 'ink' | 'paper' }) {
   return <div style={{ height: 1, background: tone === 'ink' ? C.hairInk : C.hairPaper, margin: '30px 0' }} />
 }
 
-/* A clip on a slide. Click to play, deliberately — nothing on this deck starts
+/* A clip on a slide. Click to play, deliberately: nothing on this deck starts
  * on its own, so arriving on a slide early never puts sound in the room.
  *
  * Stopping on exit is free: Deck renders only the active slide's body, so
  * navigating away unmounts the element and the audio goes with it. The key is
- * what guarantees that — without it React may keep a <video> alive across two
+ * what guarantees that. Without it React may keep a <video> alive across two
  * slides that happen to have the same shape, and the sound follows you.
  *
  * preload="metadata" is load-bearing rather than tidy: the overview grid mounts
@@ -146,7 +146,7 @@ function Rule({ tone }: { tone: 'ink' | 'paper' }) {
  * in the DOM, so without this a click on play just moved the deck on. Frame is
  * position:relative with z-index auto and so creates no stacking context, which
  * means lifting the video here is enough to put it above them. Clicking a video
- * therefore no longer advances the deck — use the arrows or Next, which is the
+ * therefore no longer advances the deck, so use the arrows or Next, which is the
  * right trade when the alternative is a film you cannot start. */
 function Video({ src, poster, style }: { src: string; poster: string; style?: CSSProperties }) {
   return (
@@ -175,7 +175,7 @@ function Video({ src, poster, style }: { src: string; poster: string; style?: CS
  * `myargoquest.com` is short enough to remember on the walk out.
  *
  * The PNGs carry their own cream quiet zone, so the image needs no padding of
- * its own — see scripts/demo-day-qr/build.js, which writes them. `plate` backs
+ * its own. See scripts/demo-day-qr/build.js, which writes them. `plate` backs
  * the pair in ink for the one place it sits over moving video. */
 function Qr({
   src,
@@ -423,13 +423,13 @@ export const SLIDES: Slide[] = [
          * cards would separate the headline from its own evidence.
          *
          * The gold left rule is the same treatment slide 3 gives Winston, on
-         * purpose — this deck cites two dead academics and they should look
+         * purpose: this deck cites two dead academics and they should look
          * like the same move.
          *
          * Note the live tension with the LANGUAGE card directly above: Papert's
          * whole point is that the public artefact is load-bearing, and that card
          * calls the artefact a by product. The band resolves it rather than
-         * ducking it — the artefact Papert means is the entry, the Soul and the
+         * ducking it: the artefact Papert means is the entry, the Soul and the
          * map, not the polished prose. Anyone in the room who knows Papert will
          * go looking for that contradiction, so it is answered on the slide. */}
         <div style={{ display: 'flex', marginTop: 26 }}>
@@ -450,7 +450,7 @@ export const SLIDES: Slide[] = [
               You learn by building something public. The artefact and the understanding build each other.
             </p>
             <p style={{ fontFamily: SERIF, fontSize: 22, lineHeight: 1.35, marginTop: 5, color: C.accentDeep }}>
-              Argo never builds it for you. The human stays in every loop by construction — that is rung two.
+              Argo never builds it for you. The human stays in every loop by construction. That is rung two.
             </p>
           </div>
         </div>
@@ -499,8 +499,8 @@ export const SLIDES: Slide[] = [
      *
      * The one exception is the QR, and it earns the exception by being the only
      * thing on the slide that matters when the film does not run. It sits in the
-     * bottom corner over 33 seconds of moving image, which is a real cost —
-     * accept it, or reach for the version below that hides it during playback,
+     * bottom corner over 33 seconds of moving image, which is a real cost.
+     * Accept it, or reach for the version below that hides it during playback,
      * because a slide whose whole content is a still frame and no way through is
      * worse than a small card in the corner. */
     body: (
@@ -622,8 +622,8 @@ export const SLIDES: Slide[] = [
     todo: 'Copy on this slide is a draft, not Konrad\'s words. Rewrite before it is presented.',
     /* Placed after the Soul, not after the gap.
      *
-     * Two reasons. The talk is already why-heavy at the front — the product
-     * does not appear until 2:35 of seven minutes — and a second dead academic
+     * Two reasons. The talk is already why-heavy at the front (the product
+     * does not appear until 2:35 of seven minutes), and a second dead academic
      * in that block makes the one real structural problem worse. And the
      * argument on this slide is a privacy argument, not a premise: it only
      * pays off once the room has seen the encrypted container (9) and the
@@ -638,7 +638,7 @@ export const SLIDES: Slide[] = [
      * The departure is the point of the slide. Constructionism says the
      * artefact is public and shareable; Argo's container is unreadable by
      * anyone, including us. Rather than soften Papert to fit, the slide splits
-     * his artefact in two — the construction stays private, the proof and the
+     * his artefact in two: the construction stays private, the proof and the
      * thinking go out. Claiming Papert without naming where you leave him is
      * the version a judge who knows him takes apart. */
     body: (
@@ -646,7 +646,7 @@ export const SLIDES: Slide[] = [
         <Eyebrow tone="paper">Constructionism · Seymour Papert, MIT, 1980</Eyebrow>
         <Headline size={54}>The training ground is private. The artefact is not.</Headline>
         <p style={{ fontFamily: SANS, fontSize: 22, lineHeight: 1.5, color: C.textMuted, marginTop: 26, maxWidth: 1010 }}>
-          Papert&rsquo;s learner built in public — the program on the screen, the robot on the table. Argo splits that in
+          Papert&rsquo;s learner built in public: the program on the screen, the robot on the table. Argo splits that in
           two. The construction happens somewhere nobody can read, and what leaves is the proof you ran it and the
           thinking you carry out with you.
         </p>
@@ -745,14 +745,14 @@ export const SLIDES: Slide[] = [
     /* The fifth spoke, and the only one that is not a channel: a seat on the
      * council of a collective building an AI city at Forest City. Every claim
      * on this slide is Konrad's own and none is checked against a primary
-     * source — the Deputy Prime Minister line is a prediction, not a title. */
+     * source: the Deputy Prime Minister line is a prediction, not a title. */
     todo: 'Partner claims unverified. Confirm what may be said publicly before this is presented.',
     body: (
       <Frame tone="paper">
         <Eyebrow tone="paper">Forest City, Malaysia</Eyebrow>
         <Headline size={44}>Argo sits on the council building an AI city.</Headline>
         <p style={{ fontFamily: SANS, fontSize: 19, lineHeight: 1.5, color: C.textMuted, marginTop: 16, maxWidth: 1050 }}>
-          Crypto natives from the global crypto community, forming an open source collective to build a network state — a United States
+          Crypto natives from the global crypto community, forming an open source collective to build a network state, a United States
           of America 2.0. AI at the centre, healthy by default, a culture of multicultural self&nbsp;actualization.
           On the ground with a future Deputy Prime Minister of Malaysia, CC&nbsp;Puan, founder of Malaysia&rsquo;s first
           unicorn, and the chairman of Forest&nbsp;City.
@@ -786,7 +786,7 @@ export const SLIDES: Slide[] = [
     tone: 'ink',
     /* Figures from [[demo-day-metrics]], 2026-08-15. Every one is read off the
      * platform's own dashboard. Views and watch hours are both the all-owned-
-     * channels framing, stated on the tile — the one thing the research doc is
+     * channels framing, stated on the tile. The one thing the research doc is
      * emphatic about is never mixing that framing with the Argo-only one
      * silently, so the Argo-only split is printed underneath rather than left
      * to be asked about.
@@ -804,7 +804,7 @@ export const SLIDES: Slide[] = [
             { n: '517', k: 'Hours actually watched', src: 'Not impressions. Time people chose to spend.' },
             { n: '91%', k: 'Of the launch film watched', src: '0:31 of 0:34, at an 80% click-through rate' },
             { n: '75', k: 'Events hosted', src: '186 people in the Argo community' },
-            /* Not Argo's money and not Argo's raise — the capital already in the
+            /* Not Argo's money and not Argo's raise, but the capital already in the
               * ground at Forest City, where the AI city collective is working.
               * The tile says "invested in" for that reason; the narration has to
               * carry the rest or this reads as a raise. */
@@ -842,7 +842,7 @@ export const SLIDES: Slide[] = [
     label: 'Testimonials',
     tone: 'paper',
     /* Verbatim from the recordings, in [[interview-testimonials]]. Trimmed for
-     * spoken disfluency ("uh", restarts) and nothing else — no words added, no
+     * spoken disfluency ("uh", restarts) and nothing else: no words added, no
      * sentences stitched together from different parts of an answer. Timestamps
      * are on the card so any of them can be checked against the tape. */
     body: (
@@ -887,7 +887,7 @@ export const SLIDES: Slide[] = [
                 overflow: 'hidden',
               }}
             >
-              {/* Full 16:9, never cropped — every still carries its own title
+              {/* Full 16:9, never cropped: every still carries its own title
                 * lockup and a cover crop cuts the words in half. */}
               <Photo src={t.img} alt="" style={{ height: 'auto', aspectRatio: '16 / 9', flexShrink: 0 }} />
               <p
@@ -901,8 +901,8 @@ export const SLIDES: Slide[] = [
               >{`“${t.q}”`}</p>
               <div style={{ padding: '0 24px 22px' }}>
                 <p style={{ fontFamily: SANS, fontSize: 17, fontWeight: 600, marginTop: 14 }}>{t.who}</p>
-                {/* Claims are the guests' own, unverified against a primary source —
-                  * see the caveat in [[final-demo-prep]]. */}
+                {/* Claims are the guests' own, unverified against a primary source.
+                  * See the caveat in [[final-demo-prep]]. */}
                 <p style={{ fontFamily: SANS, fontSize: 12.5, lineHeight: 1.35, color: C.textMuted, marginTop: 5 }}>
                   {t.cred}
                 </p>
@@ -952,7 +952,7 @@ export const SLIDES: Slide[] = [
     id: 'close',
     label: 'Close and ask',
     tone: 'ink',
-    todo: 'The spoken ask. One sentence, said out loud — the QR only works if he tells them to raise a phone.',
+    todo: 'The spoken ask. One sentence, said out loud: the QR only works if he tells them to raise a phone.',
     body: (
       <Frame tone="ink" style={{ alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
         {/* eslint-disable-next-line @next/next/no-img-element -- deck art */}
@@ -1013,7 +1013,7 @@ export const SLIDES: Slide[] = [
          * cannot say yet: on 2026-08-17 src/app/page.tsx links to /founding,
          * GitHub and X, and to nothing for the podcast, the community or the
          * courses. Put the four links on the landing page and the stronger
-         * caption becomes true — until then it would be a claim a judge can
+         * caption becomes true. Until then it would be a claim a judge can
          * disprove in the ten seconds after they scan it. */}
         <Qr
           src="/demo-day/qr-argo.png"

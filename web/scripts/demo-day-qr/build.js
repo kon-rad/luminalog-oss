@@ -21,7 +21,7 @@
  * modern phones and fail on enough older ones that it is not worth the risk in
  * a room you only get one pass at; the cream card keeps it on-palette instead.
  * Error correction is M, and the margin is the full four-module quiet zone the
- * spec asks for — a QR pushed flush to the edge of its card is the other common
+ * spec asks for. A QR pushed flush to the edge of its card is the other common
  * way these fail from the back of a room.
  *
  *   node scripts/demo-day-qr/build.js
@@ -44,7 +44,7 @@ const CREAM = '#F3EEE4'
 const SIZE = 1080
 
 /* Short forms on purpose. youtu.be/<id> is 11 characters less than the watch
- * URL, which is a whole version smaller in modules and visibly chunkier —
+ * URL, which is a whole version smaller in modules and visibly chunkier,
  * easier to scan at distance and at an angle. Both resolve to the same video. */
 const CODES = [
   { name: 'qr-winston', url: 'https://youtu.be/vq5cH0WguOU', what: 'Winston, How to Speak' },

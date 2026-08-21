@@ -1,6 +1,6 @@
 # Final demo day deck, PowerPoint export
 
-Builds `public/demo-day/argo-final-demo-day.pptx` — the eighteen-slide deck for the
+Builds `public/demo-day/argo-final-demo-day.pptx`, the eighteen-slide deck for the
 Protocol Camp final demo day, with the Winston clip and the launch film embedded
 as playable video.
 
@@ -11,7 +11,7 @@ handed to anyone without a rehearsal script riding along in the notes pane.
 
 The same narrative renders on the web at [`/final-demo-day`](../../src/app/final-demo-day/page.tsx),
 driven by `src/components/demo-day/slides.tsx`. **The two are separate
-implementations of one deck** — the web version uses Newsreader and the real
+implementations of one deck**: the web version uses Newsreader and the real
 component tree, the PowerPoint version re-lays it out in web-safe fonts so it
 survives being opened on a machine that is not yours. If you change the story,
 change both.
@@ -31,9 +31,9 @@ the Claude `pptx` skill rather than npm; the script looks for it under
 
 ## What it generates
 
-- `slides/*.html` — one file per slide at 720×405pt, the intermediate that
+- `slides/*.html`: one file per slide at 720×405pt, the intermediate that
   html2pptx measures and converts. Gitignored, safe to delete.
-- `.build/` — derived art: the flywheel raster from `flywheel.svg`, the dimmed
+- `.build/`: derived art: the flywheel raster from `flywheel.svg`, the dimmed
   watermark (PowerPoint drops CSS opacity, so it is baked into the pixels), and
   16:9 crops of the four spoke photographs. Gitignored.
 
@@ -42,14 +42,14 @@ Original art lives in `public/demo-day/` and is committed.
 ## The two videos
 
 Slides 3 and 7 embed real video, so the deck plays on a machine with no network.
-That is what takes the file from ~1.7 MB to ~41 MB — worth it, because the one
+That is what takes the file from ~1.7 MB to ~41 MB, worth it, because the one
 thing you cannot recover from on stage is the venue wifi.
 
 Both are encoded from masters in the vault under
 `Areas/argo/protocol-camp/final-demo-day/`. Re-derive them with:
 
 ```sh
-# Slide 3, Winston. Cut ends on "in that order" — the master runs on into the
+# Slide 3, Winston. Cut ends on "in that order". The master runs on into the
 # next sentence and is cut off mid-word at 0:41. loudnorm is not optional: the
 # lecture-hall audio is quiet enough to disappear on a venue PA.
 ffmpeg -ss 0.5 -i clip-weapon.mp4 -t 30.1 -vf scale=1280:720 \
@@ -75,7 +75,7 @@ clip is 5 MB and is committed.
 
 **`argo-final-demo-day.pptx` is gitignored too**, for the same reason and one
 more: at 42 MB with both films inside it, and rebuilt often, it would have added
-its whole size to the repo on every build. It is a build artefact — this script
+its whole size to the repo on every build. It is a build artefact: this script
 regenerates it.
 
 ### How the two untracked files reach production
@@ -91,7 +91,7 @@ clone and a production tree with two files missing. Before the rsync it:
    the pptx without it silently produces the 7 MB rung-2 deck instead of the
    42 MB one.
 
-Both steps are fail-soft — no ffmpeg, or no pptx toolchain, must not block a
+Both steps are fail-soft: no ffmpeg, or no pptx toolchain, must not block a
 code deploy. The safety net is that the rsync carries `--filter='protect ...'`
 rules for both paths, so `--delete` cannot remove the server's copies when this
 machine cannot produce them. Without those rules a deploy from a clone would
@@ -103,17 +103,17 @@ The build never fails over an absent clip; it drops a rung and says so.
 
 | | Plays | Needs |
 |---|---|---|
-| Local mp4 embedded | in place | nothing — this is the one to present from |
+| Local mp4 embedded | in place | nothing, this is the one to present from |
 | YouTube embed | in place | working wifi, and a venue that does not block YouTube |
-| Poster still | not at all | — |
+| Poster still | not at all | n/a |
 
 A fresh clone has no `launch-film.mp4`, so it builds at rung 2 automatically and
 prints `! 07-film: … linking YouTube instead`. That deck is ~7 MB rather than 41.
 
 The links, also the manual backup if the embed misbehaves on the day:
 
-- Winston, "How to Speak" — <https://youtu.be/vq5cH0WguOU>
-- Argo launch film — <https://www.youtube.com/watch?v=Ppl-TfO3Oqo>
+- Winston, "How to Speak": <https://youtu.be/vq5cH0WguOU>
+- Argo launch film: <https://www.youtube.com/watch?v=Ppl-TfO3Oqo>
 
 PowerPoint needs the `/embed/` form of these, which is what `build.js` stores;
 the watch and youtu.be forms render as a dead frame.
@@ -138,7 +138,7 @@ the overview grid but never prints anything on the slide itself:
 | Slide | Outstanding |
 |---|---|
 | 8. Live demo | Live device mirror; the stills are the fallback |
-| 16. Close | Where the four asks point — links, or one QR covering all four |
+| 16. Close | Where the four asks point: links, or one QR covering all four |
 
 Cleared on 2026-08-15: slides 3 and 7 got their real video, 13 got its figures
 from the vault's `demo-day-metrics.md`, 14 got three named quotes from
@@ -149,7 +149,7 @@ Two caveats that live outside this repo and are worth knowing before presenting:
 - **Slide 13 uses the all-owned-channels framing** for both views and watch
   hours, which includes the founder channel going back to 2017. The tile says so
   and prints the Argo-only split underneath. The research doc is emphatic that
-  the two framings must never be blended silently — if you would rather claim
+  the two framings must never be blended silently. If you would rather claim
   only the Argo-branded numbers, they are 5,793 views and 51.9 hours.
 - **Slide 14 quotes are trimmed for spoken disfluency**, nothing more. The
   timestamps on each card are there so any of them can be checked against tape.
