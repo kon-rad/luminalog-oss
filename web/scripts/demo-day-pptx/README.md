@@ -33,28 +33,52 @@ the Claude `pptx` skill rather than npm; the script looks for it under
 
 - `slides/*.html`: one file per slide at 720×405pt, the intermediate that
   html2pptx measures and converts. Gitignored, safe to delete.
-- `.build/`: derived art: the flywheel raster from `flywheel.svg`, the dimmed
+- `.build/`: derived art, the flywheel raster from `flywheel.svg`, the dimmed
   watermark (PowerPoint drops CSS opacity, so it is baked into the pixels), and
-  16:9 crops of the four spoke photographs. Gitignored.
+  16:9 crops of the four spoke photographs and the three
+  episode stills, and the first subscriber photo at the size it is drawn.
+  Gitignored.
 
 Original art lives in `public/demo-day/` and is committed.
 
 ## The two videos
 
 Slides 3 and 7 embed real video, so the deck plays on a machine with no network.
-That is what takes the file from ~1.7 MB to ~41 MB, worth it, because the one
+That is what takes the file from ~1.7 MB to ~41 MB. Worth it, because the one
 thing you cannot recover from on stage is the venue wifi.
 
 Both are encoded from masters in the vault under
 `Areas/argo/protocol-camp/final-demo-day/`. Re-derive them with:
 
 ```sh
-# Slide 3, Winston. Cut ends on "in that order". The master runs on into the
-# next sentence and is cut off mid-word at 0:41. loudnorm is not optional: the
-# lecture-hall audio is quiet enough to disappear on a venue PA.
-ffmpeg -ss 0.5 -i clip-weapon.mp4 -t 30.1 -vf scale=1280:720 \
+# Slide 3, Winston. Three passes, because the shipped clip carries burned-in
+# captions and the Argo emblem. The lecture-hall audio is quiet enough to
+# disappear on a venue PA, and the room is too big to read lips at the back.
+#
+# 1. Cut + normalise, at full resolution, into the vault. Cut ends on "in that
+#    order"; the master runs on into the next sentence and is cut off mid-word
+#    at 0:41. loudnorm is not optional.
+ffmpeg -ss 0.5 -i clip-weapon.mp4 -t 30.1 \
+  -c:v libx264 -preset slow -crf 17 -profile:v high -pix_fmt yuv420p \
+  -af loudnorm=I=-16:TP=-1.5:LRA=11 -c:a aac -b:a 192k -movflags +faststart \
+  clip-winston-weapon-30s.mp4
+
+# 2. Burn captions + the emblem watermark with the caption-video skill, in the
+#    Argo brand style (Newsreader, ink base, gold #F5C842 spoken-word highlight)
+#    (the same styling the Argo podcast uses). Deepgram gives the word-level
+#    timings the karaoke highlight needs. Writes clip-winston-weapon-30s.srt,
+#    .md and _captioned.mp4 next to the input. Audio is copied, so the loudnorm
+#    from pass 1 survives.
+python3 ~/.claude/skills/caption-video/scripts/caption_video.py \
+  clip-winston-weapon-30s.mp4 --engine deepgram \
+  --logo "$ARGO_VAULT_DIR/Areas/argo/design/argo-emblem-only.png" \
+  --logo-corner top-right --logo-size 120 --logo-margin 56 \
+  --font-scale 1.4 --look cinematic
+
+# 3. Downscale the captioned cut to the 720p the deck and the web player use.
+ffmpeg -i clip-winston-weapon-30s_captioned.mp4 -vf scale=1280:720 \
   -c:v libx264 -crf 23 -preset slow -profile:v high -pix_fmt yuv420p \
-  -af loudnorm=I=-16:TP=-1.5:LRA=11 -c:a aac -b:a 128k -movflags +faststart \
+  -c:a copy -movflags +faststart \
   public/demo-day/clip-winston-weapon.mp4
 
 # Slide 7, the launch film. The master is 4K HEVC in a .mov, which PowerPoint on
@@ -67,6 +91,14 @@ ffmpeg -i launch-ad/launch-ad-1.mov -vf scale=1920:1080 \
 
 Each also has a `*-poster.jpg` next to it, used as the PowerPoint cover image
 (otherwise PowerPoint draws a grey play button) and as the web `<video poster>`.
+Pull the Winston one from the captioned clip so the still shows the captions and
+the emblem rather than a bare frame, and pick a moment he is not mid-gesture:
+0:20 is the wide shot and is sharp; most of the tight shot is motion-blurred:
+
+```sh
+ffmpeg -ss 20 -i public/demo-day/clip-winston-weapon.mp4 -frames:v 1 -q:v 2 \
+  public/demo-day/clip-winston-weapon-poster.jpg
+```
 
 **`launch-film.mp4` is gitignored.** 34 MB of video that git cannot delta-compress
 does not belong in a ~4 MB public repo. It still reaches production, because
@@ -91,7 +123,7 @@ clone and a production tree with two files missing. Before the rsync it:
    the pptx without it silently produces the 7 MB rung-2 deck instead of the
    42 MB one.
 
-Both steps are fail-soft: no ffmpeg, or no pptx toolchain, must not block a
+Both steps are fail-soft. No ffmpeg, or no pptx toolchain, must not block a
 code deploy. The safety net is that the rsync carries `--filter='protect ...'`
 rules for both paths, so `--delete` cannot remove the server's copies when this
 machine cannot produce them. Without those rules a deploy from a clone would
@@ -112,7 +144,7 @@ prints `! 07-film: … linking YouTube instead`. That deck is ~7 MB rather than 
 
 The links, also the manual backup if the embed misbehaves on the day:
 
-- Winston, "How to Speak": <https://youtu.be/vq5cH0WguOU>
+- Winston, "How to Speak": <https://youtu.be/gLfzuYRi1zo>
 - Argo launch film: <https://www.youtube.com/watch?v=Ppl-TfO3Oqo>
 
 PowerPoint needs the `/embed/` form of these, which is what `build.js` stores;

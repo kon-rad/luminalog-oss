@@ -66,6 +66,14 @@ async function prepare() {
   for (let i = 3; i < wm.data.length; i += 4) wm.data[i] = Math.round(wm.data[i] * 0.32)
   await sharp(wm.data, { raw: wm.info }).png().toFile(path.join(GEN, 'argo-watermark-cream-dim.png'))
 
+  /* The first subscriber photo shows at a fifth of the frame, so it is
+   * re-encoded at the size it is actually drawn rather than carried into the
+   * pptx as a 1280px jpeg. */
+  await sharp(path.join(PUB, 'first-customer.jpg'))
+    .resize(400, 300, { fit: 'cover', position: 'centre' })
+    .jpeg({ quality: 88 })
+    .toFile(path.join(GEN, 'first-customer-4x3.jpg'))
+
   for (const n of ['spoke-podcast', 'spoke-kids', 'spoke-course', 'spoke-community']) {
     await sharp(path.join(PUB, `${n}.jpg`))
       .resize(800, 450, { fit: 'cover', position: 'centre' })
@@ -81,23 +89,6 @@ async function prepare() {
       .resize(560, 315, { fit: 'cover', position: 'centre' })
       .jpeg({ quality: 88 })
       .toFile(path.join(GEN, `${n}-16x9.jpg`))
-  }
-
-  /* The AI city photographs are phone shots at assorted aspects, and an <img>
-   * with both dimensions set stretches rather than crops. Cropping here to the
-   * exact rectangles the slide places them in is what keeps faces from being
-   * squashed: hero and grid cells are close but not equal ratios, so two
-   * passes rather than one. */
-  await sharp(path.join(PUB, 'aicity-hero.jpg'))
-    .resize(960, 702, { fit: 'cover', position: 'centre' })
-    .jpeg({ quality: 88 })
-    .toFile(path.join(GEN, 'aicity-hero-crop.jpg'))
-
-  for (const n of ['aicity-sketch', 'aicity-puan', 'aicity-chairman', 'aicity-execs']) {
-    await sharp(path.join(PUB, `${n}.jpg`))
-      .resize(600, 452, { fit: 'cover', position: 'centre' })
-      .jpeg({ quality: 88 })
-      .toFile(path.join(GEN, `${n}-crop.jpg`))
   }
 }
 
@@ -163,11 +154,11 @@ const media = (file, poster, youtube) => {
 }
 
 /* PowerPoint wants the /embed/ form; a watch?v= or youtu.be link renders as a
- * dead frame. Sources: youtu.be/vq5cH0WguOU and youtube.com/watch?v=Ppl-TfO3Oqo. */
+ * dead frame. Sources: youtu.be/gLfzuYRi1zo and youtube.com/watch?v=Ppl-TfO3Oqo. */
 const WINSTON = media(
   'clip-winston-weapon.mp4',
   'clip-winston-weapon-poster.jpg',
-  'https://www.youtube.com/embed/vq5cH0WguOU'
+  'https://www.youtube.com/embed/gLfzuYRi1zo'
 )
 const FILM = media('launch-film.mp4', 'launch-film-poster.jpg', 'https://www.youtube.com/embed/Ppl-TfO3Oqo')
 
@@ -255,7 +246,7 @@ const SLIDES = [
   </div>
   <div class="row" style="align-items: flex-end; margin-top: 10pt; width: 470pt;">
     <p style="font-family: ${SANS}; font-size: 7.5pt; color: ${CREAM_MUTED}; flex: 1; text-align: left;">Patrick H. Winston, &ldquo;How to Speak&rdquo;, MIT OpenCourseWare. CC BY-NC-SA.</p>
-    ${qr('qr-winston.png', 'LINK TO YOUTUBE VIDEO', 'youtu.be/vq5cH0WguOU', { size: 44 })}
+    ${qr('qr-winston.png', 'LINK TO YOUTUBE VIDEO', 'youtu.be/gLfzuYRi1zo', { size: 44 })}
   </div>
 </div>`
       ),
@@ -315,7 +306,7 @@ const SLIDES = [
     <div style="padding-left: 13pt;">
       <p style="font-family: ${SANS}; font-size: 7.5pt; font-weight: bold; letter-spacing: 1.2pt; color: ${ACCENT_DEEP};">CONSTRUCTIONISM &middot; SEYMOUR PAPERT, MIT, 1980</p>
       <p style="font-family: ${SERIF}; font-size: 12.5pt; line-height: 1.35; color: ${TEXT}; margin-top: 6pt;">You learn by building something public. The artefact and the understanding build each other.</p>
-      <p style="font-family: ${SERIF}; font-size: 12.5pt; line-height: 1.35; color: ${ACCENT_DEEP}; margin-top: 3pt;">Argo never builds it for you. The human stays in every loop by construction. That is rung two.</p>
+      <p style="font-family: ${SERIF}; font-size: 12.5pt; line-height: 1.35; color: ${ACCENT_DEEP}; margin-top: 3pt;">Argo never builds it for you. The human stays in every loop by construction &mdash; that is rung two.</p>
     </div>
   </div>
   <p style="font-family: ${SANS}; font-size: 10.5pt; line-height: 1.5; color: ${TEXT_MUTED}; margin-top: 14pt; width: 612pt;">Delegate the writing and you lose the ability to think for yourself. You lose the ability to write, to speak, and to have quality ideas.</p>
@@ -334,7 +325,7 @@ const SLIDES = [
     <div style="width: 330pt;">
       <p class="eyebrow">THE PRODUCT</p>
       <h2 class="head" style="color: ${TEXT};">A private journaling AI that never writes for you.</h2>
-      <p class="sub">Write it or say it. A companion that has read every entry you have ever made reads it back: a summary, the insights, the questions to ask yourself, and the entry from eight months ago you forgot you wrote.</p>
+      <p class="sub">Write it or say it. An AI that has read every entry you have ever made reads it back: a summary, the insights, the questions to ask yourself, and the entry from eight months ago you forgot you wrote.</p>
       <p style="font-family: ${SERIF}; font-size: 17pt; font-style: italic; line-height: 1.35; color: ${TEXT}; margin-top: 22pt;">They all kept a notebook. None of them had one that remembered.</p>
     </div>
     <img src="${A('shot-home.png')}" style="width: 130pt; height: 281pt; margin-left: 24pt;">
@@ -351,7 +342,7 @@ const SLIDES = [
      * title or a watermark here is only competing with it.
      *
      * The QR is the one exception, and it sits top right rather than bottom
-     * right because the player's controls run along the bottom edge, same
+     * right because the player's controls run along the bottom edge, the same
      * reasoning as the web deck. It earns the intrusion by being the only
      * thing on this slide that means anything if the film does not run. */
     media: { m: FILM, id: 'launch-film' },
@@ -452,8 +443,7 @@ const SLIDES = [
 
   {
     /* Numbered 10b rather than 11 so the ids after it keep matching their
-     * existing filenames. Order comes from this array, not from the number.
-     * Worth a renumbering pass once the ai-city slide lands here too. */
+     * existing filenames. Order comes from this array, not from the number. */
     id: '10b-papert',
     tone: 'paper',
     /* See the matching slide in src/components/demo-day/slides.tsx for why it
@@ -463,24 +453,14 @@ const SLIDES = [
       page(
         t,
         `<div class="pad" style="justify-content: center;">
-  <p class="eyebrow">CONSTRUCTIONISM &middot; SEYMOUR PAPERT, MIT, 1980</p>
-  <h2 class="head" style="color: ${TEXT}; width: 600pt;">The training ground is private. The artefact is not.</h2>
-  <p class="sub" style="width: 590pt;">Papert&rsquo;s learner built in public: the program on the screen, the robot on the table. Argo splits that in two. The construction happens somewhere nobody can read, and what leaves is the proof you ran it and the thinking you carry out with you.</p>
-  <div class="row" style="margin-top: 20pt;">
-${[
-  ['Objects to think with', 'The Soul: a year of your own thinking, in a form you can actually look at.'],
-  ['Microworlds', 'A container where the only thing that governs is your own thinking.'],
-  ['Mathland', 'You learn French by living in France. This is somewhere you live to learn to think.'],
-  ['Debugging, not failing', 'The AI asks. It never corrects, and it never writes the line for you.'],
-  ['Hard fun', 'It refuses to do the work. That is not a limitation, it is the product.'],
-]
-  .map(
-    ([h, body], n) => `    <div class="card" style="width: 120pt; ${n ? 'margin-left: 9pt;' : ''} padding: 12pt;">
-      <p style="font-family: ${SERIF}; font-size: 13pt; line-height: 1.25; color: ${ACCENT_DEEP};">${h}</p>
-      <p style="font-family: ${SANS}; font-size: 9pt; line-height: 1.5; color: ${TEXT_MUTED}; margin-top: 7pt;">${body}</p>
-    </div>`
-  )
-  .join('\n')}
+  <div class="row" style="align-items: center;">
+    <div style="width: 420pt;">
+      <p class="eyebrow">CONSTRUCTIONISM &middot; SEYMOUR PAPERT, MIT, 1980</p>
+      <h2 class="head" style="color: ${TEXT};">The training ground is private. The artefact is not.</h2>
+      <p class="sub">Papert said you learn by building something public and shareable. Argo splits that in two. The construction happens where nobody can read it, and what leaves is the proof that you ran the loop.</p>
+      <p class="sub" style="margin-top: 10pt;">Write your three pages and the day hands you a card: a haiku the AI draws from one insight in that entry, with your streak and your word count beside it. Not a line of the journal goes with it, so what you post to your network gives away nothing you wrote.</p>
+    </div>
+    <img src="${A('social-card.jpg')}" style="width: 129pt; height: 280pt; margin-left: 32pt;">
   </div>
 </div>`
       ),
@@ -533,38 +513,6 @@ ${col('spoke-community-16x9.jpg', 'The community', 'A subscription is not an app
   },
 
   {
-    /* Numbered 12b for the same reason 10b is: order comes from this array, not
-     * from the id, and renaming the later files would churn slides/ for nothing. */
-    id: '12b-ai-city',
-    tone: 'paper',
-    /* Every claim here is Konrad's own and none is checked against a primary
-     * source: "future Deputy Prime Minister of Malaysia" is a prediction, not
-     * a title anyone holds. See the matching slide in slides.tsx. */
-    html: (t) =>
-      page(
-        t,
-        `<div class="pad">
-  <p class="eyebrow">FOREST CITY, MALAYSIA</p>
-  <h2 style="font-family: ${SERIF}; font-size: 24pt; color: ${TEXT};">Argo sits on the council building an AI city.</h2>
-  <p style="font-family: ${SANS}; font-size: 10pt; line-height: 1.5; color: ${TEXT_MUTED}; margin-top: 10pt; width: 620pt;">Crypto natives from the global crypto community, forming an open source collective to build a network state, a United States of America 2.0. AI at the centre, healthy by default, a culture of multicultural self actualization. On the ground with a future Deputy Prime Minister of Malaysia, CC Puan, founder of Malaysia&rsquo;s first unicorn, and the chairman of Forest City.</p>
-  <div class="row" style="margin-top: 14pt;">
-    <img src="${G('aicity-hero-crop.jpg')}" style="width: 320pt; height: 234pt; border-radius: 6pt;">
-    <div style="margin-left: 8pt;">
-      <div class="row">
-        <img src="${G('aicity-sketch-crop.jpg')}" style="width: 150pt; height: 113pt; border-radius: 5pt;">
-        <img src="${G('aicity-puan-crop.jpg')}" style="width: 150pt; height: 113pt; border-radius: 5pt; margin-left: 8pt;">
-      </div>
-      <div class="row" style="margin-top: 8pt;">
-        <img src="${G('aicity-chairman-crop.jpg')}" style="width: 150pt; height: 113pt; border-radius: 5pt;">
-        <img src="${G('aicity-execs-crop.jpg')}" style="width: 150pt; height: 113pt; border-radius: 5pt; margin-left: 8pt;">
-      </div>
-    </div>
-  </div>
-</div>`
-      ),
-  },
-
-  {
     id: '13-results',
     tone: 'ink',
     html: (t) => {
@@ -574,8 +522,11 @@ ${col('spoke-community-16x9.jpg', 'The community', 'A subscription is not an app
        * left for someone to ask about. Downloads, subscribers and followers are
        * deliberately not here: small absolutes in a grid read as a failed
        * claim, and they belong in the narration instead. */
+      /* Four tiles across the 636pt content width with 9pt gutters. The web
+       * version uses flex: 1; here the width is worked out rather than grown,
+       * so re-do the arithmetic if a tile is ever added or dropped. */
       const tile = (n, k, src, first) => `
-    <div class="card" style="width: 115pt; height: 132pt; ${first ? '' : 'margin-left: 9pt;'} border-top: 2.5pt solid ${ACCENT}; padding: 11pt; display: flex; flex-direction: column; justify-content: center;">
+    <div class="card" style="width: 152pt; height: 132pt; ${first ? '' : 'margin-left: 9pt;'} border-top: 2.5pt solid ${ACCENT}; padding: 11pt; display: flex; flex-direction: column; justify-content: center;">
       <p style="font-family: ${SERIF}; font-size: 26pt; color: ${ACCENT}; text-align: center;">${n}</p>
       <p style="font-family: ${SANS}; font-size: 9pt; font-weight: bold; color: ${CREAM}; text-align: center; margin-top: 7pt; line-height: 1.35;">${k}</p>
       <p style="font-family: ${SANS}; font-size: 7pt; color: ${CREAM_MUTED}; text-align: center; margin-top: 6pt; line-height: 1.45;">${src}</p>
@@ -588,17 +539,36 @@ ${col('spoke-community-16x9.jpg', 'The community', 'A subscription is not an app
   <div class="row" style="margin-top: 24pt;">
 ${tile('21,898', 'Views across the channels', '5,793 of them on Argo&rsquo;s own, from zero in 9 months', true)}
 ${tile('517', 'Hours actually watched', 'Not impressions. Time people chose to spend.')}
-${tile('91%', 'Of the launch film watched', '0:31 of 0:34, at an 80% click-through rate')}
+${tile('17', 'Podcast interviews completed', 'Founders, builders and artists, on the record')}
 ${tile('75', 'Events hosted', '186 people in the Argo community')}
-${/* Not Argo's money and not a raise: the capital already in the ground at
-    Forest City, where the AI city collective works. See the vault's
-    demo-day-metrics.md, the figure is unverified against a primary source. */ ''}
-${tile('$100B', 'Invested in Forest City', 'USD, in the project we are coordinating with to bring the AI city there.')}
   </div>
-  <p style="font-family: ${SANS}; font-size: 9.5pt; color: ${CREAM_MUTED}; margin-top: 20pt;">Nine months of output, five owned channels, 75 events. The app is eight days old.</p>
+  <p style="font-family: ${SANS}; font-size: 9.5pt; color: ${CREAM_MUTED}; margin-top: 20pt;">Nine months of output, five owned channels, 75 events. The app itself shipped days ago.</p>
 </div>`
       )
     },
+  },
+
+  {
+    /* Straight after the results. See the matching slide in
+     * src/components/demo-day/slides.tsx for why the photograph is small.
+     * Numbered 13b for the same reason 10b-papert is: order comes from this
+     * array, and the ids after it keep matching their existing filenames. */
+    id: '13b-first-subscriber',
+    tone: 'ink',
+    html: (t) =>
+      page(
+        t,
+        `<div class="pad" style="justify-content: center;">
+  <div class="row" style="align-items: center;">
+    <img src="${G('first-customer-4x3.jpg')}" style="display: block; width: 144pt; height: 108pt; border-radius: 6pt;">
+    <div style="width: 450pt; margin-left: 30pt;">
+      <p class="eyebrow">THE FIRST SALE</p>
+      <h2 class="head" style="color: ${CREAM};">First subscriber.</h2>
+      <p class="sub">Scaling out with ads, UGC, long form content on YouTube, the podcast, and clipping.</p>
+    </div>
+  </div>
+</div>`
+      ),
   },
 
   {
@@ -682,6 +652,7 @@ ${['Download the app', 'Join the community', 'Subscribe to the podcast', 'Subscr
 </div>`
       ),
   },
+
 ]
 
 async function main() {

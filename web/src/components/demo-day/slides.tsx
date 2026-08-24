@@ -146,7 +146,7 @@ function Rule({ tone }: { tone: 'ink' | 'paper' }) {
  * in the DOM, so without this a click on play just moved the deck on. Frame is
  * position:relative with z-index auto and so creates no stacking context, which
  * means lifting the video here is enough to put it above them. Clicking a video
- * therefore no longer advances the deck, so use the arrows or Next, which is the
+ * therefore no longer advances the deck. Use the arrows or Next, which is the
  * right trade when the alternative is a film you cannot start. */
 function Video({ src, poster, style }: { src: string; poster: string; style?: CSSProperties }) {
   return (
@@ -175,7 +175,7 @@ function Video({ src, poster, style }: { src: string; poster: string; style?: CS
  * `myargoquest.com` is short enough to remember on the walk out.
  *
  * The PNGs carry their own cream quiet zone, so the image needs no padding of
- * its own. See scripts/demo-day-qr/build.js, which writes them. `plate` backs
+ * its own (see scripts/demo-day-qr/build.js, which writes them). `plate` backs
  * the pair in ink for the one place it sits over moving video. */
 function Qr({
   src,
@@ -309,7 +309,7 @@ export const SLIDES: Slide[] = [
         <Qr
           src="/demo-day/qr-winston.png"
           caption="Link to YouTube video"
-          url="youtu.be/vq5cH0WguOU"
+          url="youtu.be/gLfzuYRi1zo"
           size={88}
           style={{ position: 'absolute', right: 80, bottom: 26 }}
         />
@@ -429,7 +429,7 @@ export const SLIDES: Slide[] = [
          * Note the live tension with the LANGUAGE card directly above: Papert's
          * whole point is that the public artefact is load-bearing, and that card
          * calls the artefact a by product. The band resolves it rather than
-         * ducking it: the artefact Papert means is the entry, the Soul and the
+         * ducking it. The artefact Papert means is the entry, the Soul and the
          * map, not the polished prose. Anyone in the room who knows Papert will
          * go looking for that contradiction, so it is answered on the slide. */}
         <div style={{ display: 'flex', marginTop: 26 }}>
@@ -473,7 +473,7 @@ export const SLIDES: Slide[] = [
           <Eyebrow tone="paper">The product</Eyebrow>
           <Headline size={54}>A private journaling AI that never writes for you.</Headline>
           <Sub tone="paper">
-            Write it or say it. A companion that has read every entry you have ever made reads it back: a summary, the
+            Write it or say it. An AI that has read every entry you have ever made reads it back: a summary, the
             insights, the questions to ask yourself, and the entry from eight months ago you forgot you wrote.
           </Sub>
           <p style={{ fontFamily: SERIF, fontSize: 32, fontStyle: 'italic', marginTop: 40, lineHeight: 1.35 }}>
@@ -499,8 +499,8 @@ export const SLIDES: Slide[] = [
      *
      * The one exception is the QR, and it earns the exception by being the only
      * thing on the slide that matters when the film does not run. It sits in the
-     * bottom corner over 33 seconds of moving image, which is a real cost.
-     * Accept it, or reach for the version below that hides it during playback,
+     * bottom corner over 33 seconds of moving image, which is a real cost:
+     * accept it, or reach for the version below that hides it during playback,
      * because a slide whose whole content is a still frame and no way through is
      * worse than a small card in the corner. */
     body: (
@@ -623,7 +623,7 @@ export const SLIDES: Slide[] = [
     /* Placed after the Soul, not after the gap.
      *
      * Two reasons. The talk is already why-heavy at the front (the product
-     * does not appear until 2:35 of seven minutes), and a second dead academic
+     * does not appear until 2:35 of seven minutes) and a second dead academic
      * in that block makes the one real structural problem worse. And the
      * argument on this slide is a privacy argument, not a premise: it only
      * pays off once the room has seen the encrypted container (9) and the
@@ -640,39 +640,29 @@ export const SLIDES: Slide[] = [
      * anyone, including us. Rather than soften Papert to fit, the slide splits
      * his artefact in two: the construction stays private, the proof and the
      * thinking go out. Claiming Papert without naming where you leave him is
-     * the version a judge who knows him takes apart. */
+     * the version a judge who knows him takes apart.
+     *
+     * The card on the right is that argument as an object rather than a claim.
+     * Five term tiles used to sit along the bottom (objects to think with,
+     * microworlds, mathland, debugging, hard fun); a room that knows Papert did
+     * not need them and a room that does not know him could not read five at a
+     * glance. One screenshot of a real shareable card does the work: earned by
+     * hitting the daily minimum, and legible in the two seconds a slide gets. */
     body: (
-      <Frame tone="paper" style={{ justifyContent: 'center' }}>
-        <Eyebrow tone="paper">Constructionism · Seymour Papert, MIT, 1980</Eyebrow>
-        <Headline size={54}>The training ground is private. The artefact is not.</Headline>
-        <p style={{ fontFamily: SANS, fontSize: 22, lineHeight: 1.5, color: C.textMuted, marginTop: 26, maxWidth: 1010 }}>
-          Papert&rsquo;s learner built in public: the program on the screen, the robot on the table. Argo splits that in
-          two. The construction happens somewhere nobody can read, and what leaves is the proof you ran it and the
-          thinking you carry out with you.
-        </p>
-        <div style={{ display: 'flex', gap: 14, marginTop: 38 }}>
-          {[
-            { h: 'Objects to think with', t: 'The Soul: a year of your own thinking, in a form you can actually look at.' },
-            { h: 'Microworlds', t: 'A container where the only thing that governs is your own thinking.' },
-            { h: 'Mathland', t: 'You learn French by living in France. This is somewhere you live to learn to think.' },
-            { h: 'Debugging, not failing', t: 'The AI asks. It never corrects, and it never writes the line for you.' },
-            { h: 'Hard fun', t: 'It refuses to do the work. That is not a limitation, it is the product.' },
-          ].map((c) => (
-            <div
-              key={c.h}
-              style={{
-                flex: 1,
-                background: C.paperElev,
-                border: `1px solid ${C.hairPaper}`,
-                borderRadius: 16,
-                padding: '26px 22px',
-              }}
-            >
-              <p style={{ fontFamily: SERIF, fontSize: 24, lineHeight: 1.25, color: C.accentDeep }}>{c.h}</p>
-              <p style={{ fontFamily: SANS, fontSize: 17, lineHeight: 1.5, color: C.textMuted, marginTop: 14 }}>{c.t}</p>
-            </div>
-          ))}
+      <Frame tone="paper" style={{ flexDirection: 'row', gap: 64, alignItems: 'center' }}>
+        <div style={{ flex: 1 }}>
+          <Eyebrow tone="paper">Constructionism · Seymour Papert, MIT, 1980</Eyebrow>
+          <Headline size={50}>The training ground is private. The artefact is not.</Headline>
+          <p style={{ fontFamily: SANS, fontSize: 24, lineHeight: 1.5, color: C.textMuted, marginTop: 24 }}>
+            Papert said build something public. Argo inverts it: write in total privacy, share only the card
+            that proves you ran the loop.
+          </p>
         </div>
+        <Shot
+          src="/demo-day/social-card.jpg"
+          alt="An Argo shareable card: a haiku drawn from a journal entry, with day streak and word count"
+          h={556}
+        />
       </Frame>
     ),
   },
@@ -739,54 +729,12 @@ export const SLIDES: Slide[] = [
   },
 
   {
-    id: 'ai-city',
-    label: 'The AI city',
-    tone: 'paper',
-    /* The fifth spoke, and the only one that is not a channel: a seat on the
-     * council of a collective building an AI city at Forest City. Every claim
-     * on this slide is Konrad's own and none is checked against a primary
-     * source: the Deputy Prime Minister line is a prediction, not a title. */
-    todo: 'Partner claims unverified. Confirm what may be said publicly before this is presented.',
-    body: (
-      <Frame tone="paper">
-        <Eyebrow tone="paper">Forest City, Malaysia</Eyebrow>
-        <Headline size={44}>Argo sits on the council building an AI city.</Headline>
-        <p style={{ fontFamily: SANS, fontSize: 19, lineHeight: 1.5, color: C.textMuted, marginTop: 16, maxWidth: 1050 }}>
-          Crypto natives from the global crypto community, forming an open source collective to build a network state, a United States
-          of America 2.0. AI at the centre, healthy by default, a culture of multicultural self&nbsp;actualization.
-          On the ground with a future Deputy Prime Minister of Malaysia, CC&nbsp;Puan, founder of Malaysia&rsquo;s first
-          unicorn, and the chairman of Forest&nbsp;City.
-        </p>
-        <div style={{ display: 'flex', gap: 14, marginTop: 24, height: 372 }}>
-          <div style={{ flex: '0 0 556px', borderRadius: 16, overflow: 'hidden' }}>
-            <Photo src="/demo-day/aicity-hero.jpg" alt="The collective at Forest City" />
-          </div>
-          {/* Four supporting frames: the founding sketch, and the three rooms
-            * where the partnerships were actually made. */}
-          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            {[
-              { src: '/demo-day/aicity-sketch.jpg', alt: 'The founding sketch: principles and core values' },
-              { src: '/demo-day/aicity-puan.jpg', alt: 'CC Puan' },
-              { src: '/demo-day/aicity-chairman.jpg', alt: 'With the chairman of Forest City' },
-              { src: '/demo-day/aicity-execs.jpg', alt: 'The collective and local executives' },
-            ].map((p) => (
-              <div key={p.src} style={{ borderRadius: 14, overflow: 'hidden' }}>
-                <Photo src={p.src} alt={p.alt} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </Frame>
-    ),
-  },
-
-  {
     id: 'results',
     label: 'The results',
     tone: 'ink',
     /* Figures from [[demo-day-metrics]], 2026-08-15. Every one is read off the
      * platform's own dashboard. Views and watch hours are both the all-owned-
-     * channels framing, stated on the tile. The one thing the research doc is
+     * channels framing, stated on the tile. It is the one thing the research doc is
      * emphatic about is never mixing that framing with the Argo-only one
      * silently, so the Argo-only split is printed underneath rather than left
      * to be asked about.
@@ -802,13 +750,8 @@ export const SLIDES: Slide[] = [
           {[
             { n: '21,898', k: 'Views across the channels', src: '5,793 of them on Argo’s own, from zero in 9 months' },
             { n: '517', k: 'Hours actually watched', src: 'Not impressions. Time people chose to spend.' },
-            { n: '91%', k: 'Of the launch film watched', src: '0:31 of 0:34, at an 80% click-through rate' },
+            { n: '17', k: 'Podcast interviews completed', src: 'Founders, builders and artists, on the record' },
             { n: '75', k: 'Events hosted', src: '186 people in the Argo community' },
-            /* Not Argo's money and not Argo's raise, but the capital already in the
-              * ground at Forest City, where the AI city collective is working.
-              * The tile says "invested in" for that reason; the narration has to
-              * carry the rest or this reads as a raise. */
-            { n: '$100B', k: 'Invested in Forest City', src: 'USD, in the project we are coordinating with to bring the AI city there.' },
           ].map((t) => (
             <div
               key={t.k}
@@ -831,8 +774,36 @@ export const SLIDES: Slide[] = [
           ))}
         </div>
         <p style={{ fontFamily: SANS, fontSize: 17, color: C.creamMuted, marginTop: 34 }}>
-          Nine months of output, five owned channels, 75 events. The app is eight days old.
+          Nine months of output, five owned channels, 75 events. The app itself shipped days ago.
         </p>
+      </Frame>
+    ),
+  },
+
+  {
+    id: 'first-subscriber',
+    label: 'First subscriber',
+    tone: 'ink',
+    /* Straight after the results, because it is the one number on that slide
+     * that is not a view or an hour: somebody paid. The photograph is small on
+     * purpose. Blown up it reads as a victory lap over a single sale; at a
+     * fifth of the frame it reads as evidence, and the line beside it is what
+     * the slide is actually for, which is what happens next.
+     *
+     * Ink, continuing the run from the results rather than breaking it. The
+     * paper testimonials that follow are the break. */
+    body: (
+      <Frame tone="ink" style={{ flexDirection: 'row', gap: 54, alignItems: 'center' }}>
+        <Shot
+          src="/demo-day/first-customer.jpg"
+          alt="Konrad beside Argo's first paying subscriber, who is holding up her phone with the subscription on screen"
+          h={216}
+        />
+        <div style={{ flex: 1 }}>
+          <Eyebrow>The first sale</Eyebrow>
+          <Headline size={54}>First subscriber.</Headline>
+          <Sub>Scaling out with ads, UGC, long form content on YouTube, the podcast, and clipping.</Sub>
+        </div>
       </Frame>
     ),
   },
@@ -901,8 +872,8 @@ export const SLIDES: Slide[] = [
               >{`“${t.q}”`}</p>
               <div style={{ padding: '0 24px 22px' }}>
                 <p style={{ fontFamily: SANS, fontSize: 17, fontWeight: 600, marginTop: 14 }}>{t.who}</p>
-                {/* Claims are the guests' own, unverified against a primary source.
-                  * See the caveat in [[final-demo-prep]]. */}
+                {/* Claims are the guests' own, unverified against a primary source:
+                  * see the caveat in [[final-demo-prep]]. */}
                 <p style={{ fontFamily: SANS, fontSize: 12.5, lineHeight: 1.35, color: C.textMuted, marginTop: 5 }}>
                   {t.cred}
                 </p>
@@ -952,7 +923,7 @@ export const SLIDES: Slide[] = [
     id: 'close',
     label: 'Close and ask',
     tone: 'ink',
-    todo: 'The spoken ask. One sentence, said out loud: the QR only works if he tells them to raise a phone.',
+    todo: 'The spoken ask. One sentence, said out loud. The QR only works if he tells them to raise a phone.',
     body: (
       <Frame tone="ink" style={{ alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
         {/* eslint-disable-next-line @next/next/no-img-element -- deck art */}

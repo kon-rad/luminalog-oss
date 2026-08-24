@@ -44,10 +44,10 @@ const CREAM = '#F3EEE4'
 const SIZE = 1080
 
 /* Short forms on purpose. youtu.be/<id> is 11 characters less than the watch
- * URL, which is a whole version smaller in modules and visibly chunkier,
+ * URL, which is a whole version smaller in modules and visibly chunkier:
  * easier to scan at distance and at an angle. Both resolve to the same video. */
 const CODES = [
-  { name: 'qr-winston', url: 'https://youtu.be/vq5cH0WguOU', what: 'Winston, How to Speak' },
+  { name: 'qr-winston', url: 'https://youtu.be/gLfzuYRi1zo', what: 'Winston, How to Speak' },
   { name: 'qr-launch-ad', url: 'https://youtu.be/Ppl-TfO3Oqo', what: 'Argo launch film' },
   { name: 'qr-argo', url: 'https://myargoquest.com', what: 'Argo landing page' },
 ]

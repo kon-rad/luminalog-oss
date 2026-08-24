@@ -236,7 +236,7 @@ const PPTX_HREF = '/demo-day/argo-final-demo-day.pptx'
  * no network and a deck that shows two still frames. Reading it off the actual
  * response means the label cannot drift away from what is really on disk.
  *
- * A HEAD is enough, no need to pull 41 MB just to label the button. */
+ * A HEAD is enough: no need to pull 41 MB just to label the button. */
 function PptxLink() {
   const [size, setSize] = useState<number | null>(null)
   const [missing, setMissing] = useState(false)
