@@ -3,7 +3,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 const mocks = vi.hoisted(() => ({
   apiPost: vi.fn(async () => ({})),
   fetch: vi.fn(),
-  updateDoc: vi.fn(async () => undefined),
+  updateDoc: vi.fn(async (_ref: unknown, _data: unknown) => undefined),
   doc: vi.fn((_db: unknown, ...path: string[]) => ({ path: path.join('/') })),
   serverTimestamp: vi.fn(() => 'TS'),
 }))
