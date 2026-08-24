@@ -10,7 +10,7 @@ import Navbar from '@/components/Navbar'
  * share, a no-training pledge, App Store subscriptions, and Voice Credits.
  * ────────────────────────────────────────────────────────────────────────── */
 
-export const LEGAL_UPDATED = 'July 15, 2026'
+export const LEGAL_UPDATED = 'August 24, 2026'
 
 export function LegalLayout({
   title,
@@ -220,6 +220,29 @@ export function PrivacyContent() {
         without our servers reading your journal.
       </P>
 
+      <H2>Advertising and analytics: the website and the app are different</H2>
+      <P>
+        <strong>This website</strong> measures its own advertising. If you accept when
+        asked, we load measurement cookies from Meta and Google so we can tell which ad
+        brought you here and whether the page worked. Decline and neither one loads.
+      </P>
+      <P>
+        <strong>The Argo app</strong> is a different matter. It contains no advertising
+        SDKs and no third-party trackers, it never shows you an App Tracking Transparency
+        prompt because it has nothing to ask you for, and it does not track you across
+        other apps or websites. The app measures how its own features are used, and it
+        sends those measurements to our own servers, which pass them on to our analytics
+        provider. The provider never sees your device address, and your journal content is
+        never part of it: no titles, no entry text, no transcripts, not even how long
+        anything you wrote was.
+      </P>
+      <P>
+        We cannot connect a visit to this website to an install of the app, and we have not
+        tried to. What we can see is that a given ad campaign led to some number of App
+        Store visits, and separately that some number of installs happened. Those stay two
+        different numbers.
+      </P>
+
       <H2>6. Third-party service providers</H2>
       <P>
         We share only what is necessary with a limited set of processors who help us run the
@@ -238,6 +261,8 @@ export function PrivacyContent() {
         'Subscription-management providers (for example, RevenueCat) to process purchases and manage your subscription and entitlement status.',
         'An image provider (for example, Unsplash) used to match a themed photograph to your daily insight card; photographer attribution is shown on the card.',
         'Apple, for sign-in, subscriptions, and in-app purchases.',
+        'Product analytics (PostHog), which receives feature-usage events (for example, that an entry was created and whether it was text or voice) routed through our own servers rather than directly from your device. It never receives journal content, and it never receives your device address.',
+        'Website-only advertising measurement (Meta and Google), used on our marketing website to measure ad campaigns, and only after you accept when asked. These are not present in the Argo app.',
       ]} />
       <P>
         We do not sell your personal information, and we do not share your journal content with
