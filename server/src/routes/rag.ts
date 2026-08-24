@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { firebaseAuth } from '../middleware/firebaseAuth'
 import { requireAiConsent } from '../middleware/requireAiConsent'
+import { requirePro } from '../middleware/requirePro'
 import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryDayIndex } from '../services/ragStore'
 import { updateConstellationForDay } from '../services/constellation/constellationService'
 import { computeJournalGraph } from '../services/ragGraph'
@@ -112,6 +113,6 @@ export async function graphHandler(req: Request, res: Response): Promise<void> {
 }
 
 ragRouter.put('/index', requireAiConsent, indexHandler)
-ragRouter.post('/search', requireAiConsent, searchHandler)
-ragRouter.post('/graph', requireAiConsent, graphHandler)
+ragRouter.post('/search', requirePro, requireAiConsent, searchHandler)
+ragRouter.post('/graph', requirePro, requireAiConsent, graphHandler)
 ragRouter.delete('/:entryId', deleteHandler)

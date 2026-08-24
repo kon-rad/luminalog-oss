@@ -4,6 +4,7 @@ import { transcribeClipHandler } from './transcribeClip'
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
 import { requireAiConsent } from '../middleware/requireAiConsent'
+import { requirePro } from '../middleware/requirePro'
 import { chatCompletion, transcribeAudio, streamToBuffer } from '../services/aiClient'
 import { extractAudio } from '../services/audioExtractor'
 import { PROMPTS } from '../services/prompts'
@@ -83,7 +84,7 @@ export async function summaryHandler(req: Request, res: Response): Promise<void>
   }
 }
 
-aiRouter.post('/summary', firebaseAuth, requireAiConsent, summaryHandler)
+aiRouter.post('/summary', firebaseAuth, requirePro, requireAiConsent, summaryHandler)
 
 // Zero-knowledge (Model-1) full-entry AI: the client sends the entry's PLAINTEXT
 // content and gets { summary, insights, prompts } back in ONE LLM call — the same
@@ -114,7 +115,7 @@ export async function entryAiHandler(req: Request, res: Response): Promise<void>
   }
 }
 
-aiRouter.post('/entry-ai', firebaseAuth, requireAiConsent, entryAiHandler)
+aiRouter.post('/entry-ai', firebaseAuth, requirePro, requireAiConsent, entryAiHandler)
 
 // Zero-knowledge cognitive map: the client sends the entry's PLAINTEXT content and
 // gets back { beats, edges } from two LLM calls plus one embedding call.
@@ -147,7 +148,7 @@ export async function entryMapHandler(req: Request, res: Response): Promise<void
   }
 }
 
-aiRouter.post('/entry-map', firebaseAuth, requireAiConsent, entryMapHandler)
+aiRouter.post('/entry-map', firebaseAuth, requirePro, requireAiConsent, entryMapHandler)
 
 // Per-entry insights and follow-up prompts are no longer generated on demand:
 // they are produced together with the summary in ONE LLM call at index time
@@ -211,7 +212,7 @@ export async function dailyPromptHandler(req: Request, res: Response): Promise<v
   }
 }
 
-aiRouter.post('/daily-prompt', firebaseAuth, requireAiConsent, dailyPromptHandler)
+aiRouter.post('/daily-prompt', firebaseAuth, requirePro, requireAiConsent, dailyPromptHandler)
 
 
-aiRouter.post('/daily-report', firebaseAuth, requireAiConsent, dailyReportHandler)
+aiRouter.post('/daily-report', firebaseAuth, requirePro, requireAiConsent, dailyReportHandler)

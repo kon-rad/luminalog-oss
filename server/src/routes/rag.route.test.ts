@@ -16,6 +16,7 @@ vi.mock('../services/ragGraph', () => ({
 // handlers can be exercised directly without Firebase.
 vi.mock('../middleware/firebaseAuth', () => ({ firebaseAuth: vi.fn(), db: {} }))
 vi.mock('../middleware/requireAiConsent', () => ({ requireAiConsent: vi.fn() }))
+vi.mock('../middleware/requirePro', () => ({ requirePro: vi.fn() }))
 
 import { indexHandler, deleteHandler, searchHandler, graphHandler } from './rag'
 import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryDayIndex } from '../services/ragStore'

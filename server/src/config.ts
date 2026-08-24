@@ -120,6 +120,17 @@ const schema = z.object({
   // broken — it only flips ON after the consent UI (1e) ships. Never make this
   // required (a newly-required env var crash-loops the server at boot).
   ENFORCE_AI_CONSENT: z.string().optional(),
+  // When truthy, `requirePro` returns 402 on the AI/RAG consumption routes for
+  // callers without an active `pro` entitlement. OPTIONAL + default OFF for the
+  // same reason as ENFORCE_AI_CONSENT: the shipped iOS v1.0 client hits these
+  // same routes, so the guard ships dark, gets watched, and is flipped on only
+  // once the would-have-blocked rate is confirmed near zero.
+  ENFORCE_PRO: z.string().optional(),
+  // RevenueCat REST v1 secret key, used by `requirePro` to self-heal a missed
+  // webhook: when Firestore says not-Pro we ask RevenueCat directly before
+  // rejecting. OPTIONAL: with no key the guard degrades to Firestore-only
+  // rather than to an outage.
+  REVENUECAT_REST_API_KEY: z.string().optional(),
   // Deepgram powers voice/video JOURNAL-ENTRY transcription (higher accuracy than
   // Whisper on real recordings with pauses). OPTIONAL: when the key is absent the
   // clip endpoint falls back to Together Whisper, so adding this never breaks a
@@ -169,6 +180,16 @@ export function enforceAiConsentEnabled(): boolean {
  * True when a Deepgram API key is configured. When false, journal-entry clip
  * transcription falls back to Together Whisper (previous behavior).
  */
+/**
+ * True when Pro enforcement is enabled (ENFORCE_PRO set to a truthy string:
+ * `1`/`true`/`yes`/`on`). When false, the production default, `requirePro` is a
+ * no-op pass-through and the AI routes behave exactly as they do today.
+ */
+export function enforceProEnabled(): boolean {
+  const v = (config.ENFORCE_PRO ?? '').trim().toLowerCase()
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on'
+}
+
 /**
  * True only when both PostHog vars are present. Everything analytics-related
  * checks this and degrades to a clean no-op when false, so the server boots and
