@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import admin from 'firebase-admin'
 import { db, firebaseAuth } from '../middleware/firebaseAuth'
 import { config } from '../config'
+import { capturePostHog, SERVER_EVENTS, type ServerEventName } from '../services/posthog'
 
 export const revenueCatRouter = Router()
 
@@ -38,6 +39,52 @@ function sourceFromStore(store: unknown): string {
     case 'RC_BILLING': return 'rc_billing'
     case 'PROMOTIONAL': return 'promotional'
     default: return typeof store === 'string' ? store.toLowerCase() : 'unknown'
+  }
+}
+
+/**
+ * RevenueCat event type to analytics event name. An explicit map rather than a
+ * passthrough: the webhook receives many event types (transfers, billing
+ * issues, test pings) and forwarding all of them fills the analytics project
+ * with rows nobody reads, which is how an analytics project stops being used.
+ *
+ * Note this deliberately does NOT reuse SUBSCRIPTION_EVENT_TYPES: trials are
+ * analytics-relevant but carry no entitlement expiry, so the two lists differ.
+ */
+const POSTHOG_EVENT_FOR_RC_TYPE: Record<string, ServerEventName> = {
+  INITIAL_PURCHASE: SERVER_EVENTS.SUBSCRIPTION_STARTED,
+  TRIAL_STARTED: SERVER_EVENTS.TRIAL_STARTED,
+  TRIAL_CONVERTED: SERVER_EVENTS.TRIAL_CONVERTED,
+  RENEWAL: SERVER_EVENTS.SUBSCRIPTION_RENEWED,
+  CANCELLATION: SERVER_EVENTS.SUBSCRIPTION_CANCELLED,
+  EXPIRATION: SERVER_EVENTS.SUBSCRIPTION_EXPIRED,
+}
+
+/**
+ * Mirror a subscription lifecycle event into PostHog, keyed on `app_user_id`,
+ * which is the Firebase uid on both the App Store and the web rail. That shared
+ * key is what joins subscription events to the iOS product event stream for the
+ * same person.
+ *
+ * Swallows every failure. A PostHog problem must NEVER fail this webhook: a
+ * non-2xx makes RevenueCat retry, and a retried entitlement event is a
+ * production incident born from an analytics call.
+ */
+export async function forwardToPostHog(event: Record<string, any>): Promise<void> {
+  try {
+    const name = POSTHOG_EVENT_FOR_RC_TYPE[event?.type]
+    const uid = event?.app_user_id
+    if (!name || typeof uid !== 'string' || !uid) return
+    const props: Record<string, string | number | boolean | null> = {
+      store: sourceFromStore(event?.store),
+      product_id: typeof event?.product_id === 'string' ? event.product_id : null,
+      period_type: typeof event?.period_type === 'string' ? event.period_type : null,
+      price: typeof event?.price === 'number' ? event.price : null,
+      currency: typeof event?.currency === 'string' ? event.currency : null,
+    }
+    await capturePostHog(name, uid, props)
+  } catch (e) {
+    console.warn('[revenuecat/webhook] posthog forward failed', String(e))
   }
 }
 
@@ -82,6 +129,13 @@ export async function revenueCatWebhookHandler(
   const event = (req.body?.event ?? {}) as Record<string, any>
   const uidAny = event.app_user_id as string | undefined
   const eventIdAny = event.id as string | undefined
+
+  // Analytics mirror, before the branching so trials (which carry no entitlement
+  // expiry and therefore never reach the pro branch) are still measured.
+  // Awaited rather than floated: `capturePostHog` has its own 2s timeout and
+  // never rejects, and a floated promise here would log after the response and
+  // make the tests non-deterministic.
+  await forwardToPostHog(event)
 
   // --- Subscription entitlement branch (iOS IAP + web, unified by RevenueCat) ---
   const proUpdate = proExpiryFromEvent(event)

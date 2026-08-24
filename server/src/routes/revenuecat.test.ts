@@ -1,4 +1,4 @@
-import { vi, describe, it, expect } from 'vitest'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 vi.mock('../config', () => ({
   config: { NODE_ENV: 'test', REVENUECAT_WEBHOOK_SECRET: 'rc_secret_test' },
@@ -8,7 +8,20 @@ vi.mock('../middleware/firebaseAuth', () => ({
   firebaseAuth: vi.fn((_req: any, _res: any, next: any) => next()),
 }))
 
-import { creditsForProduct, proExpiryFromEvent, revenueCatWebhookHandler, computeEntitlement, entitlementHandler } from './revenuecat'
+const { captured } = vi.hoisted(() => ({ captured: [] as any[] }))
+
+vi.mock('../services/posthog', async () => {
+  const actual = await vi.importActual<any>('../services/posthog')
+  return {
+    ...actual,
+    capturePostHog: vi.fn(async (name: string, distinctId: string, props: any) => {
+      captured.push({ name, distinctId, props })
+      return true
+    }),
+  }
+})
+
+import { creditsForProduct, proExpiryFromEvent, revenueCatWebhookHandler, computeEntitlement, entitlementHandler, forwardToPostHog } from './revenuecat'
 
 describe('computeEntitlement', () => {
   const now = 1_000_000
@@ -323,5 +336,79 @@ describe('entitlementHandler', () => {
     await entitlementHandler(req, res, mockUserDb({ exists: false }))
     expect(res.statusCode).toBe(401)
     expect(res.body).toEqual({ error: 'unauthenticated' })
+  })
+})
+
+describe('forwardToPostHog', () => {
+  beforeEach(() => { captured.length = 0 })
+
+  it('maps each subscription lifecycle type to its analytics event', async () => {
+    const cases: [string, string][] = [
+      ['INITIAL_PURCHASE', 'subscription_started'],
+      ['TRIAL_STARTED', 'trial_started'],
+      ['TRIAL_CONVERTED', 'trial_converted'],
+      ['RENEWAL', 'subscription_renewed'],
+      ['CANCELLATION', 'subscription_cancelled'],
+      ['EXPIRATION', 'subscription_expired'],
+    ]
+    for (const [type, expected] of cases) {
+      captured.length = 0
+      await forwardToPostHog({ type, app_user_id: 'uid1', store: 'APP_STORE' })
+      expect(captured.map((c) => c.name)).toEqual([expected])
+    }
+  })
+
+  it('keys the event on app_user_id, which is the Firebase uid on both rails', async () => {
+    await forwardToPostHog({ type: 'RENEWAL', app_user_id: 'uid42', store: 'RC_BILLING' })
+    expect(captured[0].distinctId).toBe('uid42')
+    expect(captured[0].props.store).toBe('rc_billing')
+  })
+
+  it('carries revenue and product, and never anything resembling content', async () => {
+    await forwardToPostHog({
+      type: 'INITIAL_PURCHASE',
+      app_user_id: 'uid1',
+      store: 'APP_STORE',
+      product_id: 'com.luminalog.pro.monthly',
+      price: 19.99,
+      currency: 'USD',
+      period_type: 'NORMAL',
+    })
+    expect(captured[0].props).toEqual({
+      store: 'app_store',
+      product_id: 'com.luminalog.pro.monthly',
+      period_type: 'NORMAL',
+      price: 19.99,
+      currency: 'USD',
+    })
+  })
+
+  it('ignores event types outside the list, so the project does not fill with noise', async () => {
+    await forwardToPostHog({ type: 'NON_RENEWING_PURCHASE', app_user_id: 'uid1' })
+    await forwardToPostHog({ type: 'TEST', app_user_id: 'uid1' })
+    expect(captured).toHaveLength(0)
+  })
+
+  it('ignores an event with no app_user_id rather than inventing a distinct id', async () => {
+    await forwardToPostHog({ type: 'RENEWAL' })
+    expect(captured).toHaveLength(0)
+  })
+})
+
+describe('revenueCatWebhookHandler analytics safety', () => {
+  it('still returns 200 when the PostHog capture throws', async () => {
+    const posthog = await import('../services/posthog')
+    ;(posthog.capturePostHog as any).mockImplementationOnce(async () => { throw new Error('ph down') })
+    const res = mockRes()
+    const { db } = mockDb()
+    await revenueCatWebhookHandler(
+      { query: { secret: 'rc_secret_test' }, headers: {}, body: { event: { type: 'RENEWAL', app_user_id: 'uid1', id: 'evt1', entitlement_ids: ['pro'], expiration_at_ms: Date.now() + 1000, store: 'APP_STORE' } } } as any,
+      res,
+      db as any,
+    )
+    // A non-2xx makes RevenueCat retry, and a retried entitlement event is a
+    // production incident caused by an analytics vendor. Never let that happen.
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual({ ok: true })
   })
 })
