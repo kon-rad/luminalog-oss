@@ -185,6 +185,94 @@ final class ProfileViewModelTests: XCTestCase {
         )
     }
 
+    // MARK: - Manage subscription routing (design 2026-08-23, section 3)
+
+    @MainActor
+    func testFreePlanRoutesToPaywall() async {
+        let harness = await makeStarted()
+        await waitUntil("Free entitlement arrives") { harness.viewModel.entitlement != nil }
+
+        let destination = await harness.viewModel.manageSubscription()
+
+        XCTAssertEqual(destination, .paywall)
+        XCTAssertEqual(harness.subscriptions.showManageSubscriptionsCount, 0)
+    }
+
+    @MainActor
+    func testAppStoreSubscriptionOpensStoreKitSheet() async {
+        let harness = await makeStarted(entitlement: Entitlement(
+            isPro: true,
+            store: .appStore,
+            // Apple's own management URL: it must still not be opened in a
+            // browser, because Apple requires the in-app sheet.
+            managementURL: URL(string: "https://apps.apple.com/account/subscriptions")
+        ))
+        await waitUntil("Pro entitlement arrives") { harness.viewModel.isPro }
+
+        let destination = await harness.viewModel.manageSubscription()
+
+        XCTAssertEqual(destination, .appStoreSheet)
+        XCTAssertEqual(harness.subscriptions.showManageSubscriptionsCount, 1)
+    }
+
+    @MainActor
+    func testWebSubscriptionOpensCustomerPortal() async {
+        let portal = URL(string: "https://pay.rev.cat/portal/abc123")!
+        let harness = await makeStarted(entitlement: Entitlement(
+            isPro: true,
+            store: .rcBilling,
+            managementURL: portal
+        ))
+        await waitUntil("Pro entitlement arrives") { harness.viewModel.isPro }
+
+        let destination = await harness.viewModel.manageSubscription()
+
+        XCTAssertEqual(destination, .portal(portal))
+        XCTAssertEqual(harness.subscriptions.showManageSubscriptionsCount, 0)
+    }
+
+    @MainActor
+    func testPromotionalGrantIsNotManageable() async {
+        let harness = await makeStarted(entitlement: Entitlement(isPro: true, store: .promotional))
+        await waitUntil("Pro entitlement arrives") { harness.viewModel.isPro }
+
+        let destination = await harness.viewModel.manageSubscription()
+
+        XCTAssertEqual(destination, .notManageable)
+        XCTAssertEqual(harness.subscriptions.showManageSubscriptionsCount, 0)
+    }
+
+    /// The case that makes this routing worth writing: a non-Apple subscription
+    /// with no management URL must not fall through to Apple's subscriptions
+    /// page, which is what the bare SDK call would do.
+    @MainActor
+    func testWebSubscriptionWithoutManagementURLIsNotManageable() async {
+        let harness = await makeStarted(entitlement: Entitlement(isPro: true, store: .rcBilling))
+        await waitUntil("Pro entitlement arrives") { harness.viewModel.isPro }
+
+        let destination = await harness.viewModel.manageSubscription()
+
+        XCTAssertEqual(destination, .notManageable)
+        XCTAssertEqual(harness.subscriptions.showManageSubscriptionsCount, 0)
+    }
+
+    /// A store RevenueCat adds later maps to `.unknown` (the default case in
+    /// the service's mapping). With a portal URL it still routes to the portal.
+    @MainActor
+    func testUnknownStoreWithURLRoutesToPortal() async {
+        let portal = URL(string: "https://pay.rev.cat/portal/legacy")!
+        let harness = await makeStarted(entitlement: Entitlement(
+            isPro: true,
+            store: .unknown,
+            managementURL: portal
+        ))
+        await waitUntil("Pro entitlement arrives") { harness.viewModel.isPro }
+
+        let destination = await harness.viewModel.manageSubscription()
+
+        XCTAssertEqual(destination, .portal(portal))
+    }
+
     // MARK: - Sign out / delete
 
     @MainActor

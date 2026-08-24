@@ -15,7 +15,7 @@ import { APP_STORE_URL } from '@/lib/appStore'
 export const metadata: Metadata = {
   title: 'Pricing, Argo',
   description:
-    'Argo Pro is $19.99/month or $199.99/year, the same price on the web and on iOS. Journaling is free. Pro adds the AI that reads your journal back to you.',
+    'Argo Pro is $29.99/month or $299.99/year, the same price on the web and on iOS. Journaling is free. Pro adds the AI that reads your journal back to you.',
 }
 
 const FREE: string[] = [
@@ -108,11 +108,11 @@ export default function PricingPage() {
               A private AI built from your own life, and it remembers all of it.
             </p>
             <p className="serif" style={{ marginTop: 22, fontSize: 40, fontWeight: 600 }}>
-              $19.99
+              $29.99
               <span style={{ fontSize: 17, fontWeight: 400, color: 'var(--text2)' }}> / month</span>
             </p>
             <p style={{ marginTop: 6, fontSize: 14, color: 'var(--text2)' }}>
-              or $199.99 a year, which works out to two months free
+              or $299.99 a year, which works out to two months free
             </p>
 
             <ul style={{ marginTop: 26, display: 'grid', gap: 12, fontSize: 15, lineHeight: 1.5 }}>

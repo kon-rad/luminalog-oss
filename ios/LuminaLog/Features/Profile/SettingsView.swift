@@ -22,6 +22,7 @@ struct SettingsView: View {
     @State private var showProfileDetail = false
     @State private var showLeaderboard = false
     @State private var showPaywall = false
+    @State private var showNotManageableAlert = false
     @State private var showCredits = false
     @State private var showConfig = false
     @State private var showSignOutDialog = false
@@ -159,6 +160,11 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Your journal stays safely in your account.")
+        }
+        .alert("Nothing to manage", isPresented: $showNotManageableAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(viewModel.notManageableMessage)
         }
         .alert("Delete your account?", isPresented: $showDeleteExplainerAlert) {
             Button("Continue", role: .destructive) { showDeleteFinalAlert = true }
@@ -355,7 +361,7 @@ struct SettingsView: View {
 
     /// Custodial wallet for the user's ArgoSoul: the full address (selectable,
     /// scales down rather than truncating) plus BaseScan links to the wallet and,
-    /// once minted, the token. Rendered as soon as the wallet is provisioned —
+    /// once minted, the token. Rendered as soon as the wallet is provisioned,
     /// before and independent of minting.
     @ViewBuilder
     private var walletCard: some View {
@@ -631,7 +637,7 @@ struct SettingsView: View {
     /// Force-generates a fresh report for today via the same `ai.generateDailyReport`
     /// the milestone flow uses, which saves a new document to Firestore. Posts
     /// `.dailyReportGenerated` so Home reloads its feed and the new card appears
-    /// in the Daily Reflections section — stored and rendered identically to any
+    /// in the Daily Reflections section, stored and rendered identically to any
     /// other daily report.
     private func generateDailyReport() {
         guard !isGeneratingReport else { return }
@@ -650,7 +656,7 @@ struct SettingsView: View {
 
     /// One-tap migration: re-index the ENTIRE journal corpus into the server RAG
     /// index (Morpheus BGE-M3 → Chroma). Because entries are zero-knowledge encrypted,
-    /// the server can't re-index them itself — this fetches + decrypts every entry
+    /// the server can't re-index them itself, so this fetches + decrypts every entry
     /// on-device, chunks it (`JournalChunker`), and sends the chunks to
     /// `PUT /v1/rag/index` via `ServerSemanticIndex`. Sequential to respect provider
     /// rate limits; surfaces live N/total progress inline.
@@ -759,7 +765,19 @@ struct SettingsView: View {
 
     private var subscriptionRow: some View {
         Button {
-            showPaywall = true
+            // Routed by where the subscription is billed (design 2026-08-23,
+            // section 3). Free opens the paywall, an App Store subscription
+            // opens StoreKit's sheet (raised inside the view model, since only
+            // the SDK can present it), and a web-billed one opens RevenueCat's
+            // customer portal. The row itself never says which rail it was.
+            Task {
+                switch await viewModel.manageSubscription() {
+                case .paywall: showPaywall = true
+                case .portal(let url): openURL(url)
+                case .notManageable: showNotManageableAlert = true
+                case .appStoreSheet: break
+                }
+            }
         } label: {
             HStack(spacing: Spacing.m) {
                 settingsIcon("sparkles", tint: .accentWarm)

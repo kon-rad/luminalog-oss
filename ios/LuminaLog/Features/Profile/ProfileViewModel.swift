@@ -78,7 +78,7 @@ final class ProfileViewModel: ObservableObject {
 
     // MARK: - Lifecycle
 
-    /// Starts the profile + entitlement streams. Idempotent — Profile stays
+    /// Starts the profile + entitlement streams. Idempotent, since Profile stays
     /// mounted across tab switches.
     func start() {
         guard !hasStarted else { return }
@@ -145,7 +145,7 @@ final class ProfileViewModel: ObservableObject {
         Task { [weak self] in
             guard let self else { return }
             // `resolvedPhotoKey` is only set on success, so a failed
-            // resolution never latches — the next emission retries. The avatar
+            // resolution never latches: the next emission retries. The avatar
             // is stored AES-encrypted, so it must be downloaded and decrypted to
             // a local plaintext file before AsyncImage can render it.
             guard let resolved = try? await self.media.localFileURL(for: key) else { return }
@@ -158,7 +158,7 @@ final class ProfileViewModel: ObservableObject {
     }
 
     /// Uppercased initials for the avatar placeholder ("Demo User" → "DU").
-    /// Empty when there's no name yet — the view falls back to a symbol.
+    /// Empty when there's no name yet: the view falls back to a symbol.
     var initials: String {
         (profile?.displayName ?? "")
             .split(separator: " ")
@@ -170,7 +170,7 @@ final class ProfileViewModel: ObservableObject {
 
     // MARK: - Subscription
 
-    /// The Subscription row's value text — "Free plan" or the pro renewal.
+    /// The Subscription row's value text: "Free plan" or the pro renewal.
     var subscriptionLabel: String {
         guard let entitlement, entitlement.isPro else { return "Free plan" }
         if let expiresAt = entitlement.expiresAt {
@@ -181,6 +181,61 @@ final class ProfileViewModel: ObservableObject {
 
     var isPro: Bool {
         entitlement?.isPro == true
+    }
+
+    /// Where the Subscription row should send the user.
+    ///
+    /// Cross-platform manage (design 2026-08-23, section 3): where a
+    /// subscription is billed decides who can cancel it. Apple requires an App
+    /// Store subscription to be managed in the system sheet; a Web Billing
+    /// subscription is ours and manages in RevenueCat's hosted portal; a
+    /// promotional grant has no billing to manage at all.
+    enum ManageDestination: Equatable {
+        /// Not subscribed: show the paywall, which is the pre-existing behavior.
+        case paywall
+        /// StoreKit's manage-subscriptions sheet.
+        case appStoreSheet
+        /// RevenueCat's customer portal, opened in the browser.
+        case portal(URL)
+        /// Pro, but nothing the user can cancel from here.
+        case notManageable
+    }
+
+    /// Pure routing, so the decision is testable without a view.
+    ///
+    /// The `notManageable` fallback is the whole reason this is not just a
+    /// blind `showManageSubscriptions()` call: the SDK routes Apple against
+    /// non-Apple by inspecting the management URL, but when that URL is nil it
+    /// opens Apple's subscriptions page, which for a web subscriber is a screen
+    /// that will never list their subscription.
+    var manageDestination: ManageDestination {
+        guard let entitlement, entitlement.isPro else { return .paywall }
+        if entitlement.store.isApple { return .appStoreSheet }
+        if entitlement.store == .promotional { return .notManageable }
+        if let url = entitlement.managementURL { return .portal(url) }
+        return .notManageable
+    }
+
+    /// Copy for the alert shown on `.notManageable`. Names no store: a granted
+    /// plan and an unrecognized one both come down to the same instruction.
+    var notManageableMessage: String {
+        "Your Pro access was granted directly, so there is no subscription to manage here. Contact support if you need it changed."
+    }
+
+    /// Routes a Subscription row tap. Returns the destination the caller still
+    /// has to present (paywall, portal URL, or the not-manageable alert); the
+    /// App Store sheet is presented here because only the SDK can raise it.
+    func manageSubscription() async -> ManageDestination {
+        let destination = manageDestination
+        if destination == .appStoreSheet {
+            do {
+                try await subscriptions.showManageSubscriptions()
+            } catch {
+                Self.logger.error("Manage subscriptions failed: \(error.localizedDescription, privacy: .public)")
+                errorMessage = "Couldn't open your subscription settings. Try Settings > Apple Account > Subscriptions."
+            }
+        }
+        return destination
     }
 
     // MARK: - Sign out / delete

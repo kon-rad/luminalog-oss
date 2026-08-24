@@ -60,7 +60,7 @@ final class RevenueCatSubscriptionService: SubscriptionService {
             }
         } catch {
             // logOut throws for already-anonymous users; identity errors are
-            // non-fatal — the entitlement stream keeps reflecting reality.
+            // non-fatal, and the entitlement stream keeps reflecting reality.
         }
     }
 
@@ -82,6 +82,11 @@ final class RevenueCatSubscriptionService: SubscriptionService {
         Purchases.shared.presentCodeRedemptionSheet()
     }
 
+    func showManageSubscriptions() async throws {
+        guard Purchases.isConfigured else { return }
+        try await Purchases.shared.showManageSubscriptions()
+    }
+
     // MARK: - Mapping
 
     private static func entitlement(from info: CustomerInfo) -> Entitlement {
@@ -90,7 +95,27 @@ final class RevenueCatSubscriptionService: SubscriptionService {
             isPro: pro?.isActive == true,
             productId: pro?.productIdentifier,
             expiresAt: pro?.expirationDate,
-            updatedAt: Date()
+            updatedAt: Date(),
+            store: store(from: pro?.store),
+            managementURL: info.managementURL
         )
+    }
+
+    /// RevenueCat's `Store` to our shared label. The default case is deliberate:
+    /// RevenueCat adds stores (external, paddle, galaxy) faster than this app
+    /// ships, and an unrecognized one must degrade to "not manageable in the
+    /// app" rather than misroute someone to Apple's subscriptions page.
+    private static func store(from store: RevenueCat.Store?) -> EntitlementStore {
+        switch store {
+        case .appStore: return .appStore
+        case .macAppStore: return .macAppStore
+        case .playStore: return .playStore
+        case .stripe: return .stripe
+        case .rcBilling: return .rcBilling
+        case .promotional: return .promotional
+        case .external: return .external
+        case .paddle: return .paddle
+        default: return .unknown
+        }
     }
 }

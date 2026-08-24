@@ -21,19 +21,21 @@ final class PaywallGateViewModelTests: XCTestCase {
         func purchase(productId: String) async throws {}
         func restore() async throws {}
         func presentCodeRedemptionSheet() {}
+        func showManageSubscriptions() async {}
         func push(_ entitlement: Entitlement) {
             self.entitlement = entitlement
             conts.values.forEach { $0.yield(entitlement) }
         }
     }
 
-    /// A service that never emits — exercises the fail-open timeout.
+    /// A service that never emits, which exercises the fail-open timeout.
     private final class Silent: SubscriptionService {
         func entitlementStream() -> AsyncStream<Entitlement> { AsyncStream { _ in } }
         func setUser(_ uid: String?) async {}
         func purchase(productId: String) async throws {}
         func restore() async throws {}
         func presentCodeRedemptionSheet() {}
+        func showManageSubscriptions() async {}
     }
 
     private func waitUntil(timeout: TimeInterval = 2, _ condition: () -> Bool) async {
@@ -71,7 +73,7 @@ final class PaywallGateViewModelTests: XCTestCase {
 
     /// Regression for the paywall-gate remount bug: RevenueCat briefly reports
     /// non-pro during a renewal (old period expires moments before the renewal
-    /// receipt validates), then pro again. The gate must NOT lock on that blip —
+    /// receipt validates), then pro again. The gate must NOT lock on that blip:
     /// locking structurally remounts `RootView` and cancels in-flight view work
     /// (e.g. Journal Detail's entry-AI generation, which then fails `cancelled`).
     func testTransientLapseDoesNotLock() async {

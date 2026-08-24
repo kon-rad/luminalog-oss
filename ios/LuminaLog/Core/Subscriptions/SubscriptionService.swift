@@ -1,6 +1,6 @@
 import Foundation
 
-/// Subscription state and purchases — RevenueCat in production,
+/// Subscription state and purchases: RevenueCat in production,
 /// an in-memory mock in demo mode.
 @MainActor
 protocol SubscriptionService: AnyObject {
@@ -20,4 +20,11 @@ protocol SubscriptionService: AnyObject {
     /// Present the App Store code-redemption sheet (Apple Offer Codes). A
     /// successful redemption flips the entitlement via the customer-info stream.
     func presentCodeRedemptionSheet()
+
+    /// Present StoreKit's manage-subscriptions sheet for an App Store
+    /// subscription. Only called on the Apple branch of
+    /// `ProfileViewModel.manageDestination`: a web-billed subscription opens
+    /// RevenueCat's customer portal in the browser instead, which the view does
+    /// with `openURL`.
+    func showManageSubscriptions() async throws
 }
