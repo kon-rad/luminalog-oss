@@ -76,7 +76,7 @@ export default function CardGameLanding() {
           style={{
             display: 'grid',
             gap: 20,
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 400px))',
             marginTop: 28,
           }}
         >
@@ -121,7 +121,7 @@ export default function CardGameLanding() {
                     boxShadow: '0 10px 26px rgba(0,0,0,0.45)',
                   }}
                 >
-                  <Image src="/argo-emblem-alpha.png" width={34} height={42} alt="" />
+                  <Image src="/logo.png" width={30} height={30} alt="" style={{ borderRadius: 9 }} />
                 </span>
                 <span
                   className="serif"

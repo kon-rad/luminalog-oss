@@ -104,8 +104,8 @@ export default function DeckHome({ deck }: { deck: Deck }) {
                 style={{
                   position: 'absolute',
                   top: 18 + Math.abs(deg) * 0.5,
-                  width: 132,
-                  height: 186,
+                  width: 152,
+                  height: 213,
                   borderRadius: 16,
                   transform: `rotate(${deg}deg) translateX(${deg * 2.4}px)`,
                   background: 'linear-gradient(160deg, #221C14, #14110C)',
@@ -117,7 +117,7 @@ export default function DeckHome({ deck }: { deck: Deck }) {
                   zIndex: i === 1 ? 2 : 1,
                 }}
               >
-                {i === 1 && <Image src="/argo-emblem-alpha.png" width={62} height={78} alt="" />}
+                {i === 1 && <Image src="/argo-emblem-alpha.png" width={76} height={95} alt="" />}
               </span>
             ))}
           </div>
