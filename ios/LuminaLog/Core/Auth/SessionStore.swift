@@ -91,6 +91,7 @@ final class SessionStore: ObservableObject {
 
         if let uid {
             bootstrappedUid = nil
+            Analytics.identify(uid: uid)
             state = .signedIn(userId: uid)
             // Resolve the encryption key BEFORE any read/write: ensureUserDocument
             // seeds an encrypted profile and the profile stream decrypts. This
@@ -125,6 +126,9 @@ final class SessionStore: ObservableObject {
             bootstrappedUid = nil
             // Decrypted plaintext must not outlive the session.
             Task.detached { await MediaContentCache().purge() }
+            // A shared device must not attribute the next account's events to
+            // the previous person.
+            Analytics.reset()
             state = .signedOut
             isNewUser = false
             profile = nil

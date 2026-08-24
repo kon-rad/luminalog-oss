@@ -24,6 +24,7 @@ struct InsightsView: View {
                 }
         }
         .task { await viewModel.load() }
+        .onAppear { Analytics.capture(.insightViewed) }
     }
 
     @ViewBuilder

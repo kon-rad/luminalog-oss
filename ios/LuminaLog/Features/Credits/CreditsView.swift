@@ -25,6 +25,7 @@ struct CreditsView: View {
                 HostedPaywall(
                     offeringIdentifier: "credits",
                     displayCloseButton: true,
+                    analyticsSource: .credits,
                     onPurchaseCompleted: { _ in viewModel.beginBalanceRefresh() }
                 )
             }

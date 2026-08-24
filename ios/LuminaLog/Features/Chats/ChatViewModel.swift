@@ -147,6 +147,11 @@ final class ChatViewModel: ObservableObject {
     func send() async {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isResponding, failedSend == nil, !isReadOnly else { return }
+        // Fires on send, not on response: this measures the user's action, and a
+        // failed request is still an attempt to use the feature. Carries no
+        // properties at all, because the only thing to say about a chat message
+        // is its content.
+        Analytics.capture(.chatMessageSent)
         stopDictation()
         draft = ""
         await deliver(ChatMessage(role: .user, text: text), alreadyPersisted: false)

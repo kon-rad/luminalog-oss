@@ -466,6 +466,22 @@ final class CreateEntryViewModel: ObservableObject {
             draft.handedOff = true
             deps.drafts.upsert(draft)
         }
+        Analytics.capture(.entryCreated(kind: analyticsKind))
         didSave = true
+    }
+
+    /// Maps the draft's `JournalType` onto the closed analytics `EntryKind`.
+    ///
+    /// Note `.image` becomes `photo`: the analytics taxonomy was agreed as
+    /// text/voice/video/photo, and the two vocabularies are kept separate on
+    /// purpose so renaming a domain case never silently renames an event
+    /// property that a dashboard groups by.
+    private var analyticsKind: AnalyticsEvent.EntryKind {
+        switch entryType {
+        case .voice: return .voice
+        case .video: return .video
+        case .image: return .photo
+        case .text: return .text
+        }
     }
 }

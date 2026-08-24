@@ -11,6 +11,9 @@ struct HostedPaywall: View {
     /// Offering identifier to load, or nil for the current offering.
     let offeringIdentifier: String?
     let displayCloseButton: Bool
+    /// Which surface raised this paywall, for the funnel. Defaults to
+    /// `.settings` so existing call sites compile unchanged.
+    var analyticsSource: AnalyticsEvent.PaywallSource = .settings
     var onPurchaseCompleted: ((CustomerInfo) -> Void)? = nil
     var onRestoreCompleted: ((CustomerInfo) -> Void)? = nil
 
@@ -24,6 +27,13 @@ struct HostedPaywall: View {
                 unavailable
             } else if let offering {
                 RevenueCatUI.PaywallView(offering: offering, displayCloseButton: displayCloseButton)
+                    // RevenueCat owns the purchase button, so this modifier is
+                    // the only place the intent to buy is observable. The
+                    // product id is the sole property; nothing else here is
+                    // ours to report.
+                    .onPurchaseStarted { package in
+                        Analytics.capture(.purchaseStarted(productId: package.storeProduct.productIdentifier))
+                    }
                     .onPurchaseCompleted { info in onPurchaseCompleted?(info) }
                     .onRestoreCompleted { info in onRestoreCompleted?(info) }
             } else {
@@ -34,6 +44,8 @@ struct HostedPaywall: View {
             }
         }
         .task { await load() }
+        .onAppear { Analytics.capture(.paywallShown(source: analyticsSource)) }
+        .onDisappear { Analytics.capture(.paywallDismissed(source: analyticsSource)) }
     }
 
     private var unavailable: some View {

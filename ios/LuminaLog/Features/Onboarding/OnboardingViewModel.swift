@@ -46,6 +46,7 @@ final class OnboardingViewModel: ObservableObject {
     func finish() {
         store.saveDraft(values)
         store.markCompleted()
+        Analytics.capture(.onboardingCompleted)
     }
 
     /// Buffer the user's public-Soul NFT consent (recorded to the profile after

@@ -49,6 +49,10 @@ struct LuminaLogApp: App {
         FirebaseApp.configure()
         logger.info("Firebase configured.")
 
+        // Product analytics. Inert unless POSTHOG_API_KEY is configured, and it
+        // sends only the closed AnalyticsEvent list, always through our own API.
+        Analytics.start()
+
         // Built after Firebase is configured; SessionStore shares the same
         // service instances so auth state, profile, and subscription identity
         // stay consistent across the app.
@@ -217,6 +221,10 @@ struct LuminaLogApp: App {
                 switch newPhase {
                 case .active:
                     foregroundStart = Date()
+                    // Every foreground, not only cold launch: the question this
+                    // answers is "did the installer come back", and a
+                    // cold-launch-only count answers it badly.
+                    Analytics.capture(.appOpened)
                 case .background:
                     guard let start = foregroundStart else { return }
                     foregroundStart = nil
