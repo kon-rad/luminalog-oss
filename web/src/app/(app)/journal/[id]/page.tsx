@@ -27,6 +27,7 @@ import TypePill from '@/components/app/TypePill'
 import { Skeleton, SkeletonRow } from '@/components/app/Skeleton'
 import EmptyState from '@/components/app/EmptyState'
 import { CognitiveMapPanel } from '@/components/app/CognitiveMapPanel'
+import ProGate from '@/components/app/ProGate'
 import { formatEntryDateTime, truncatePreview } from '@/components/app/entryFormat'
 import type { JournalEntry } from '@/lib/firestore/models'
 
@@ -530,7 +531,17 @@ function DetailLoaded({
           onRegenerate={() => runSummaryFetch(entryId)}
         />
       )}
-      {tab === 'map' && <CognitiveMapPanel entry={entry} />}
+      {/* Pro surface (design §2). Gated at the call site, not inside the panel,
+          because the panel fires generation from an effect on mount: a free user
+          must never reach that request and collect a 402. */}
+      {tab === 'map' && (
+        <ProGate
+          feature="The cognitive map"
+          blurb="Argo reads an entry and draws the shape of your thinking in it: the beats, and how they connect."
+        >
+          <CognitiveMapPanel entry={entry} />
+        </ProGate>
+      )}
       {tab === 'insights' && <InsightsTab entry={entry} analyzing={analyzing} />}
       {tab === 'prompts' && <PromptsTab entry={entry} analyzing={analyzing} />}
       {tab === 'related' && (

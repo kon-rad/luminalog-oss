@@ -11,6 +11,7 @@ vi.mock('@/lib/firebase', () => ({
 }))
 
 import { streamChat } from '@/lib/api/chat'
+import { isProRequired } from '@/lib/api/client'
 
 function sseStream(text: string): ReadableStream<Uint8Array> {
   const bytes = new TextEncoder().encode(text)
@@ -137,5 +138,24 @@ describe('streamChat SSE parsing', () => {
     await streamChat('chat-1', 'hi', undefined, { onDelta })
 
     expect(onDelta).toHaveBeenCalledWith('partial')
+  })
+})
+
+describe('streamChat 402', () => {
+  beforeEach(() => {
+    getIdToken.mockReset()
+    vi.unstubAllGlobals()
+  })
+
+  it('throws ProRequiredError without retrying', async () => {
+    getIdToken.mockResolvedValue('token')
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ error: 'pro_required' }), { status: 402 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const err = await streamChat('c1', 'hi', undefined, { onDelta: () => {} }).catch((e) => e)
+    expect(isProRequired(err)).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })

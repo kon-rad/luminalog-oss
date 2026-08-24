@@ -15,6 +15,30 @@ async function getIdToken(forceRefresh: boolean): Promise<string> {
   return user.getIdToken(forceRefresh)
 }
 
+/**
+ * The server's `requirePro` guard returned 402 on an AI/RAG consumption route:
+ * the caller is signed in but has no active `pro` entitlement.
+ *
+ * Distinct from a plain Error so UI can open the upgrade modal instead of
+ * showing a generic failure, and distinct from `requireAiConsent`'s 403, which
+ * means "signed in and paid, but has not accepted AI data sharing".
+ */
+export class ProRequiredError extends Error {
+  constructor(public readonly path: string) {
+    super(`Argo Pro required for ${path}`)
+    this.name = 'ProRequiredError'
+  }
+}
+
+/**
+ * Type guard for `ProRequiredError`. Prefer this over `instanceof` at call
+ * sites: an error crossing a module or bundle boundary can fail `instanceof`
+ * while still being the same logical error.
+ */
+export function isProRequired(e: unknown): e is ProRequiredError {
+  return e instanceof ProRequiredError || (e as { name?: string })?.name === 'ProRequiredError'
+}
+
 type Method = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
 function doFetch(method: Method, path: string, token: string, body?: unknown): Promise<Response> {
@@ -43,6 +67,8 @@ async function requestRaw(method: Method, path: string, body?: unknown): Promise
 
 async function requestJson<T>(method: Method, path: string, body?: unknown): Promise<T> {
   const res = await requestRaw(method, path, body)
+  // 402 is never retried: a fresh token cannot fix "you have not paid".
+  if (res.status === 402) throw new ProRequiredError(path)
   if (!res.ok) {
     const text = await res.text()
     throw new Error(`api ${method} ${path} failed: ${res.status} ${text}`)

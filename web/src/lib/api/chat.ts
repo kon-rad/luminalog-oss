@@ -1,4 +1,5 @@
 import { auth } from '@/lib/firebase'
+import { ProRequiredError } from '@/lib/api/client'
 
 // SSE client for the M5 streaming chat route (design §1/§2 M5-T1). Unlike
 // `apiPost`/`apiPostRaw` (JSON-only), this reads a `text/event-stream` body
@@ -103,6 +104,11 @@ export async function streamChat(
     token = await getIdToken(true)
     res = await doPost(token, chatId, message, journalId, messageId, signal)
   }
+
+  // Mirrors apiPost: 402 from the server's requirePro guard is surfaced as a
+  // typed error so the chat UI opens the upgrade modal rather than showing a
+  // generic "chat 402". Never retried, since a fresh token cannot fix it.
+  if (res.status === 402) throw new ProRequiredError('/api/ai/chat')
 
   if (!res.ok) throw new Error(`chat ${res.status}`)
   if (!res.body) return
