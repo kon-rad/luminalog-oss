@@ -125,8 +125,8 @@ No growth-hacker superlatives ("revolutionary", "10x"), no therapy claims
 
 | Plan | Price | |
 |---|---|---|
-| **Monthly** | **$9.99 / month** | Cancel anytime |
-| **Annual** | **$99.99 / year** | ~$8.33/month · *Save 17%* (two months free) |
+| **Monthly** | **$29.99 / month** | Cancel anytime |
+| **Annual** | **$299.99 / year** | $25.00/month · *Save 17%* (two months free) |
 
 **Everything is included in your subscription:**
 unlimited text, voice, video & photo entries · AI video intelligence (face + voice) ·
@@ -148,14 +148,14 @@ always included; credits are only for live calls.*
 - **What happens to my voice and video recordings?** They're transcribed on your iPhone and stored encrypted. Only you can play them back.
 - **Can it really read my handwriting?** Photograph your notebook page and LuminaLog converts it to text you can edit, search, and reflect on.
 - **What does the AI actually know about me?** Only what you've written in your journal and your bio — and it only uses that to help *you* reflect.
-- **Do I need a subscription?** Yes. LuminaLog is a paid app — one subscription ($9.99/month or $99.99/year) unlocks everything: unlimited journaling in every format, AI insights, chat, and your Journal Constellation. Cancel anytime.
+- **Do I need a subscription?** Yes. LuminaLog is a paid app — one subscription ($29.99/month or $299.99/year) unlocks everything: unlimited journaling in every format, AI insights, chat, and your Journal Constellation. Cancel anytime.
 - **What are Voice Credits?** Live, real-time voice *calls* with your companion run on Voice Credits, bought separately from your subscription. 1 credit = $1 = 6 minutes of talk time, in packs from $4.99 (30 min) to $49.99 (300 min) — so you only pay for the minutes you use. Recording voice *entries* (voice journaling) is always included in your subscription; credits are only for live calls.
 - **Which devices?** iPhone (iOS 17+). Sign in with Apple or Google.
 
 ### 4.7 Final CTA block
 
 *Headline:* Your story is already happening. Start keeping it.
-*Sub:* $9.99/month or $99.99/year. Two minutes to your first entry.
+*Sub:* $29.99/month or $299.99/year. Two minutes to your first entry.
 **CTA:** `Download LuminaLog`
 
 ### 4.8 Footer microcopy
