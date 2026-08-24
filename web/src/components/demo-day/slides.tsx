@@ -981,9 +981,9 @@ export const SLIDES: Slide[] = [
          * decide which one to point at, so the landing page is the code.
          *
          * The caption says "start here" and not "all four start here", which it
-         * cannot say yet: on 2026-08-17 src/app/page.tsx links to /founding,
-         * GitHub and X, and to nothing for the podcast, the community or the
-         * courses. Put the four links on the landing page and the stronger
+         * cannot say yet: as of 2026-08-24 src/app/page.tsx links to the App
+         * Store, GitHub and X, and to nothing for the podcast, the community
+         * or the courses. Put the four links on the landing page and the stronger
          * caption becomes true. Until then it would be a claim a judge can
          * disprove in the ten seconds after they scan it. */}
         <Qr

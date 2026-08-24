@@ -668,34 +668,7 @@ export default function Home() {
           <h2 className="serif" style={{ marginTop: 16, fontSize: 'clamp(30px,3.8vw,44px)', fontWeight: 600, letterSpacing: '-0.025em' }}>Simple, honest pricing.</h2>
           <p style={{ marginTop: 14, fontSize: 18, color: 'var(--text2)' }}>One price, everywhere: the whole app, no tiers, the same on web and in the app. Live voice calls run on add-on Voice Credits.</p>
 
-          {/* Founding Member preorder */}
-          <div style={{ maxWidth: 640, margin: '44px auto 0' }}>
-            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 24, background: 'linear-gradient(150deg, var(--accent), var(--accentDeep))', color: '#fff', padding: '34px 34px 30px', textAlign: 'left', boxShadow: '0 20px 52px rgba(185,107,51,0.28)' }}>
-              <div style={{ position: 'absolute', top: -70, right: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', filter: 'blur(10px)', pointerEvents: 'none' }} />
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 100, padding: '5px 13px', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>✦ Founding offer</div>
-                <h3 className="serif" style={{ marginTop: 16, fontSize: 'clamp(26px,3.4vw,36px)', fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.02em' }}>Become a Founding Member.</h3>
-                <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '0 12px', marginTop: 14 }}>
-                  <span className="serif" style={{ fontSize: 40, fontWeight: 600, letterSpacing: '-0.025em' }}>$29.99</span>
-                  <span style={{ fontSize: 17, color: 'rgba(255,255,255,0.9)' }}>for your first 3 months</span>
-                  <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}><s>$59.97</s> · 50% off · then $19.99/mo</span>
-                </div>
-                <p style={{ marginTop: 16, fontSize: 15.5, lineHeight: 1.62, color: 'rgba(255,255,255,0.9)', maxWidth: 520 }}>
-                  Reserve Argo before launch and lock in half price. Founding Members start today on the web, carry a permanent Founding Member mark, and grow their On-Chain Soul from day one.
-                </p>
-                <div style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
-                  <a href="/founding" style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: '#fff', color: 'var(--accentDeep)', fontSize: 16, fontWeight: 700, padding: '13px 26px', borderRadius: 14, whiteSpace: 'nowrap' }}>
-                    Become a Founding Member
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                  </a>
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>Half price, locked in before launch.</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ maxWidth: 640, margin: '30px auto 0', fontSize: 13, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text3)' }}>Standard pricing</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, maxWidth: 640, margin: '14px auto 0' }} className="plans">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, maxWidth: 640, margin: '44px auto 0' }} className="plans">
             {/* Monthly */}
             <div style={{ background: 'var(--surface)', border: '1px solid var(--hairline2)', borderRadius: 24, padding: '32px 30px', boxShadow: 'var(--shadow)' }}>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text3)' }}>Monthly</div>

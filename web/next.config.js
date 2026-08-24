@@ -20,6 +20,11 @@ const nextConfig = {
       { source: '/courses/kids-stem/what-is-blockchain', destination: '/courses/kids-stem/module-2', permanent: true },
       { source: '/ai-power-users', destination: '/courses/ai-power-users', permanent: true },
       { source: '/ai-power-users/:path*', destination: '/courses/ai-power-users/:path*', permanent: true },
+      // The founding preorder is retired (design 2026-08-23, section 5): it
+      // sold zero subscriptions and /pricing is now the real checkout. Both
+      // URLs were shared publicly, so they redirect rather than 404.
+      { source: '/founding', destination: '/pricing', permanent: true },
+      { source: '/founding/thanks', destination: '/pricing', permanent: true },
     ]
   },
 }
