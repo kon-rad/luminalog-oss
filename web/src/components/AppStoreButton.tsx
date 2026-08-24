@@ -1,4 +1,44 @@
-import { APP_STORE_URL } from '@/lib/appStore'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { APP_STORE_URL, appStoreUrlFor } from '@/lib/appStore'
+import { readAttribution } from '@/lib/analytics/attribution'
+import { track } from '@/lib/analytics/track'
+import { EVENTS } from '@/lib/analytics/events'
+
+/**
+ * Fire the primary conversion of the entire funnel.
+ *
+ * THE BEACON HAZARD, and the most likely bug in this build. Firing an analytics
+ * event and immediately navigating to Apple drops the request in most browsers.
+ * `beacon: true` routes PostHog and the Pixel through `sendBeacon` and the CAPI
+ * call through `fetch(..., { keepalive: true })`, the only transports a browser
+ * is obliged to finish after the page goes away. Get this wrong and
+ * `app_store_click` undercounts badly and inconsistently across browsers, which
+ * is worse than not measuring it, because the numbers still look plausible.
+ *
+ * Extracted from the component so the beacon flag is directly testable.
+ */
+export function fireAppStoreClick(trackFn: typeof track = track): void {
+  try {
+    trackFn(EVENTS.APP_STORE_CLICK, {}, { beacon: true })
+  } catch {
+    // Analytics never blocks a user flow. The navigation matters, the event does not.
+  }
+}
+
+/**
+ * The tokenized App Store URL for this session's campaign, which is what lets
+ * App Store Connect report downloads and subscriptions per campaign. Untagged
+ * traffic gets the plain listing rather than an empty `ct=`.
+ */
+export function appStoreHrefForSession(storage: Storage): string {
+  try {
+    return appStoreUrlFor(readAttribution(storage).campaign)
+  } catch {
+    return APP_STORE_URL
+  }
+}
 
 /**
  * Single download CTA used everywhere the pre-launch waitlist CTA used to sit.
@@ -47,9 +87,17 @@ export default function AppStoreButton({
   className?: string
   style?: React.CSSProperties
 }) {
+  // Server-render the plain listing so the button works before hydration and
+  // with JS disabled, then swap in the tokenized URL. The campaign lives in
+  // sessionStorage, so it is unreadable during SSR by definition; computing it
+  // in an effect is what keeps this free of a hydration mismatch.
+  const [href, setHref] = useState(APP_STORE_URL)
+  useEffect(() => { setHref(appStoreHrefForSession(window.sessionStorage)) }, [])
+
   return (
     <a
-      href={APP_STORE_URL}
+      href={href}
+      onClick={() => fireAppStoreClick()}
       target="_blank"
       rel="noopener"
       className={`${CLASS[variant]} ${className}`.trim()}

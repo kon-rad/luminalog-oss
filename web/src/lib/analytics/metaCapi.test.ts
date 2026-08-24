@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildUserData, sha256Lower } from './route'
+import { buildUserData, sha256Lower } from './metaCapi'
 
 describe('sha256Lower', () => {
   it('lowercases and trims before hashing, per Meta normalisation rules', async () => {

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth-context'
+import AnalyticsProvider from '@/components/AnalyticsProvider'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://myargoquest.com'),
@@ -21,6 +22,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        {/* Outside AuthProvider on purpose: measurement must not wait on auth,
+            and a signed-out marketing visitor is exactly the traffic measured. */}
+        <AnalyticsProvider />
         <AuthProvider>
           {children}
         </AuthProvider>
