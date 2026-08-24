@@ -17,6 +17,7 @@ import { eventsRouter } from './routes/events'
 import { vectorsRouter } from './routes/vectors'
 import { ragRouter } from './routes/rag'
 import { consentRouter } from './routes/consent'
+import { analyticsRouter } from './routes/analytics'
 
 const app = express()
 
@@ -38,6 +39,7 @@ app.use('/v1/nft', nftRouter) // public (no auth) — ERC-721 metadata for token
 app.use('/v1/course', courseRouter) // authed — quiz submit + mint
 app.use('/v1/course-badge', courseBadgeRouter) // public (no auth) — ERC-721 metadata for tokenURI
 app.use('/v1/events', eventsRouter) // public (no auth) — past-events archive for the website
+app.use('/v1/ph', analyticsRouter) // public (no auth): PostHog ingestion reverse proxy, keeps tracking domains out of the iOS privacy manifest
 app.use('/v1/consent', consentRouter) // ZK AI-data-sharing consent record (1b)
 
 // Backstop error middleware — catches anything routes forward via next(err).
