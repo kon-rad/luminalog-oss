@@ -130,6 +130,37 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Card game rooms. Deliberately public: the whole point of the feature is a
+    // public, attributed archive of spoken answers (see ADR-0129 and
+    // docs/superpowers/specs/2026-08-18-card-game-design.md). This is the one
+    // place in the product where user content is world-readable by design.
+    //
+    // Creation and every answer write are server-only through the Admin SDK,
+    // which bypasses these rules. Updates are open to any caller, signed in or
+    // not, but ONLY for the flip-state keys listed below. That is what lets a
+    // person who just scanned the QR at the table flip a card, join the player
+    // list, restart, or end the game without first making an account.
+    //
+    // Blast radius of that open update: a stranger holding a room code can
+    // disturb the flip state of that one room. They cannot inject content,
+    // forge or edit an answer, change attribution, read anything private, or
+    // reach any other collection. Every field that carries meaning (prompt
+    // text, transcript, name, audio key) is written only by the server from a
+    // verified token.
+    match /cardGameRooms/{code} {
+      allow read: if true;
+      allow create, delete: if false;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['drawn', 'revealed', 'updatedAt', 'players', 'status', 'endedAt', 'order']);
+
+      // Recorded answers: world-readable, server-written. v2 rules do not
+      // cascade the parent allow, so this subcollection needs its own rule.
+      match /answers/{answerId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
     // Past-events archive for the website (public marketing content, no user
     // data). Written by the local sync script and read by the API server's
     // public GET /v1/events/past, both via the Admin SDK, so clients never need

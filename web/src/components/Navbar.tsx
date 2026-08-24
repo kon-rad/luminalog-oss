@@ -18,6 +18,7 @@ const NAV_LINKS: [label: string, href: string][] = [
   ['Privacy', '/#privacy'],
   ['Pricing', '/#pricing'],
   ['Courses', '/courses'],
+  ['Card Game', '/card-game'],
   ['Events', '/events'],
   ['Blog', '/blog'],
 ]

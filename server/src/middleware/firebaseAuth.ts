@@ -26,6 +26,9 @@ export async function firebaseAuth(
   try {
     const decoded = await admin.auth().verifyIdToken(token)
     ;(req as any).uid = decoded.uid
+    // The full decoded token, so a route that needs verified profile claims
+    // (name, picture) can attribute content without trusting the request body.
+    ;(req as any).token = decoded
     next()
   } catch {
     res.status(401).json({ error: 'Invalid or expired token' })
