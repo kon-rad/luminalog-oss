@@ -66,7 +66,7 @@ function mockRes() {
 // Minimal Firestore double: a transaction whose get() reports whether the event
 // was already processed, and records set()/update() calls. get() is keyed by
 // ref path so the subscription branch's tx.get(eventRef) / tx.get(userRef) can
-// be distinguished — `storedEntitlement` seeds what the user doc already has
+// be distinguished: `storedEntitlement` seeds what the user doc already has
 // (used to test F1's monotonic write).
 function mockDb(alreadyProcessed = false, storedEntitlement: { proExpiresAtMs: number } | null = null) {
   const writes: any[] = []
@@ -205,7 +205,7 @@ describe('proExpiryFromEvent', () => {
   })
 })
 
-describe('revenueCatWebhookHandler — subscription entitlement', () => {
+describe('revenueCatWebhookHandler: subscription entitlement', () => {
   const secret = 'rc_secret_test'
   function subReq() {
     return {
@@ -228,7 +228,7 @@ describe('revenueCatWebhookHandler — subscription entitlement', () => {
     expect(entWrite.data.entitlement.source).toBe('rc_billing')
   })
 
-  it('is idempotent — a re-delivered event writes nothing', async () => {
+  it('is idempotent: a re-delivered event writes nothing', async () => {
     const { db, writes } = mockDb(true) // event already processed
     const res = mockRes()
     await revenueCatWebhookHandler(subReq(), res, db)
@@ -246,7 +246,7 @@ describe('revenueCatWebhookHandler — subscription entitlement', () => {
   })
 })
 
-describe('revenueCatWebhookHandler — monotonic entitlement write (F1)', () => {
+describe('revenueCatWebhookHandler: monotonic entitlement write (F1)', () => {
   const secret = 'rc_secret_test'
   function subReq(expirationAtMs: number, id = 'evt_sub_2') {
     return {
@@ -371,7 +371,7 @@ describe('forwardToPostHog', () => {
       app_user_id: 'uid1',
       store: 'APP_STORE',
       product_id: 'com.luminalog.pro.monthly',
-      price: 19.99,
+      price: 29.99,
       currency: 'USD',
       period_type: 'NORMAL',
     })
@@ -379,7 +379,7 @@ describe('forwardToPostHog', () => {
       store: 'app_store',
       product_id: 'com.luminalog.pro.monthly',
       period_type: 'NORMAL',
-      price: 19.99,
+      price: 29.99,
       currency: 'USD',
     })
   })
