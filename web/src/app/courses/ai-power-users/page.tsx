@@ -20,55 +20,6 @@ export default function CourseOverviewPage() {
     <CourseLayout>
       <CourseHero />
 
-      {/* Live cohort banner */}
-      <section>
-        <div className="wrap" style={{ padding: '32px 0 0' }}>
-          <Link
-            href={`${COURSE_BASE}/module-1`}
-            className="card flex flex-wrap items-center justify-between gap-4"
-            style={{ padding: '24px 28px', textDecoration: 'none' }}
-          >
-            <div>
-              <div className="flex items-center gap-2.5" style={{ marginBottom: 6 }}>
-                <span className="inline-flex items-center gap-1.5" style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--danger)' }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--danger)', display: 'block' }} />
-                  Live cohort
-                </span>
-                <span style={{ fontSize: 13, color: 'var(--text3)' }}>Module 1</span>
-              </div>
-              <h3 className="serif" style={{ fontSize: 21, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
-                Build Your Private AI Second Brain
-              </h3>
-              <p style={{ fontSize: 15.5, lineHeight: 1.55, color: 'var(--text2)' }}>
-                The free live opener, set up a private AI agent inside your own notes in 45 minutes.
-              </p>
-            </div>
-            <span className="eyebrow" style={{ flexShrink: 0 }}>
-              Go to Module 1 <ArrowRight style={{ width: 14, height: 14 }} />
-            </span>
-          </Link>
-        </div>
-      </section>
-
-      {/* Values */}
-      <section style={{ background: 'var(--surfaceAlt)', borderTop: '1px solid var(--hairline)', borderBottom: '1px solid var(--hairline)' }}>
-        <div className="wrap" style={{ padding: '64px 0' }}>
-          <div style={{ textAlign: 'center', marginBottom: 38 }}>
-            <SectionHeading>How we work together</SectionHeading>
-            <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 560, margin: '12px auto 0' }}>
-              Three values set the culture of the room. They shape every lab, critique, and
-              feedback circle.
-            </p>
-          </div>
-          <ValuesGrid />
-          <div style={{ textAlign: 'center', marginTop: 30 }}>
-            <Link href={`${COURSE_BASE}/values`} className="eyebrow" style={{ textDecoration: 'none' }}>
-              Read the values in full <ArrowRight style={{ width: 14, height: 14 }} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* Modules */}
       <section>
         <div className="wrap" style={{ padding: '64px 0' }}>
@@ -135,6 +86,25 @@ export default function CourseOverviewPage() {
                 </Link>
               )
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* Values */}
+      <section style={{ background: 'var(--surfaceAlt)', borderTop: '1px solid var(--hairline)', borderBottom: '1px solid var(--hairline)' }}>
+        <div className="wrap" style={{ padding: '64px 0' }}>
+          <div style={{ textAlign: 'center', marginBottom: 38 }}>
+            <SectionHeading>How we work together</SectionHeading>
+            <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 560, margin: '12px auto 0' }}>
+              Three values set the culture of the room. They shape every lab, critique, and
+              feedback circle.
+            </p>
+          </div>
+          <ValuesGrid />
+          <div style={{ textAlign: 'center', marginTop: 30 }}>
+            <Link href={`${COURSE_BASE}/values`} className="eyebrow" style={{ textDecoration: 'none' }}>
+              Read the values in full <ArrowRight style={{ width: 14, height: 14 }} />
+            </Link>
           </div>
         </div>
       </section>
