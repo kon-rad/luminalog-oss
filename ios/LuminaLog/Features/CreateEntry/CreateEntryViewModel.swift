@@ -51,7 +51,7 @@ final class CreateEntryViewModel: ObservableObject {
 
     @Published var text = ""
     @Published var attachments = AttachmentSet()
-    /// Placeholder tiles for media still being fetched/decoded — one id per
+    /// Placeholder tiles for media still being fetched/decoded: one id per
     /// in-flight photo. Shown as gray spinners until the real thumbnail lands.
     @Published private(set) var loadingPhotoIDs: [UUID] = []
     /// Whether a picked video is still being fetched/poster-generated.
@@ -109,7 +109,7 @@ final class CreateEntryViewModel: ObservableObject {
     }
 
     /// True while an in-progress recording manifest is on disk for this draft
-    /// (recording started but not yet merged/attached — includes the active
+    /// (recording started but not yet merged/attached, including the active
     /// first segment, before any segment has been finalized).
     private var hasInProgressRecording: Bool {
         deps.drafts.load(draftId)?.recording != nil
@@ -198,7 +198,7 @@ final class CreateEntryViewModel: ObservableObject {
         }
     }
 
-    /// Editor text the session appends after — existing text plus a
+    /// Editor text the session appends after: existing text plus a
     /// separating space when it doesn't already end in whitespace.
     private func dictationBase(from current: String) -> String {
         guard !current.isEmpty else { return "" }
@@ -263,8 +263,8 @@ final class CreateEntryViewModel: ObservableObject {
         persistDraftNow()
     }
 
-    /// Show the audio chip instantly on Stop — before the background segment
-    /// merge finishes — using the duration the recorder already measured.
+    /// Show the audio chip instantly on Stop, before the background segment
+    /// merge finishes, using the duration the recorder already measured.
     func beginPendingRecording(durationSec: TimeInterval) {
         pendingRecordingDuration = durationSec
     }
@@ -302,23 +302,33 @@ final class CreateEntryViewModel: ObservableObject {
 
     func removePhoto(id: UUID) {
         attachments.removePhoto(id: id)
+        forgetPersistedMedia(id)
         persistDraftNow()
     }
 
     func removeVideo() {
-        if let url = attachments.video?.url {
-            deleteTempFile(at: url)
+        if let video = attachments.video {
+            deleteTempFile(at: video.url)
+            forgetPersistedMedia(video.id)
         }
         attachments.removeVideo()
         persistDraftNow()
     }
 
     func removeAudio() {
-        if let url = attachments.audio?.url {
-            deleteTempFile(at: url)
+        if let audio = attachments.audio {
+            deleteTempFile(at: audio.url)
+            forgetPersistedMedia(audio.id)
         }
         attachments.removeAudio()
         persistDraftNow()
+    }
+
+    /// Drops the durable draft-media copy of a confirmed-deleted attachment and
+    /// forgets its id, so re-adding the same attachment persists it again.
+    private func forgetPersistedMedia(_ id: UUID) {
+        deps.drafts.removeMedia(draftId: draftId, attachmentId: id)
+        persistedAttachmentIDs.remove(id)
     }
 
     /// Deletes the backing file of a picked video that was never attached
@@ -330,7 +340,7 @@ final class CreateEntryViewModel: ObservableObject {
     // MARK: - Temp file lifecycle
 
     /// Deletes the backing files of still-attached video/audio. Called on
-    /// cancel/discard only — on save, the `EntryProcessor` takes ownership of
+    /// cancel/discard only. On save the `EntryProcessor` takes ownership of
     /// the attachments and cleans their temp files up once uploaded.
     func cleanupTempFiles() {
         var urls: Set<URL> = []
@@ -375,7 +385,7 @@ final class CreateEntryViewModel: ObservableObject {
         // Once saved, the entry is durable via the processor; never resurrect a draft.
         guard !didSave else { return }
         guard hasUnsavedContent else {
-            deps.drafts.delete(draftId)
+            deps.drafts.pruneIfDisposable(draftId)
             return
         }
         var descriptors: [DraftAttachment] = []
@@ -437,6 +447,14 @@ final class CreateEntryViewModel: ObservableObject {
         cleanupTempFiles()
     }
 
+    /// Close-without-content path: prunes the draft only when there is nothing
+    /// irreplaceable to keep. Unlike `discardDraft()` this is not a user
+    /// decision, so it must never remove a recording.
+    func pruneEmptyDraft() {
+        autosaveCancellable = nil
+        deps.drafts.pruneIfDisposable(draftId)
+    }
+
     // MARK: - Save (hand off to the background processor)
 
     /// Packages the draft and hands it to the `EntryProcessor`, then dismisses
@@ -459,7 +477,7 @@ final class CreateEntryViewModel: ObservableObject {
         deps.entryProcessor.enqueue(job)
         // Retain the draft as the durable cross-launch retry source (so "Try again"
         // works after a relaunch) instead of deleting it here. Persist current state
-        // first, then mark it handed-off — that hides it from Home and the processor
+        // first, then mark it handed-off, which hides it from Home and the processor
         // deletes it once the entry settles `.ready`.
         persistDraftNow()
         if var draft = deps.drafts.load(draftId) {

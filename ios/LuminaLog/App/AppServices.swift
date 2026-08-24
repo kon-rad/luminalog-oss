@@ -22,12 +22,12 @@ final class AppServices: ObservableObject {
     let leaderboard: LeaderboardService
     let soul: SoulService
     /// Local record of AI-data-sharing consent (App Store 5.1.1/5.1.2) + the
-    /// service that mirrors it to `PUT /v1/consent`. Always non-nil — `mocks()`
+    /// service that mirrors it to `PUT /v1/consent`. Always non-nil (`mocks()`
     /// wires a no-op transport since there's no live `ProxyAPIClient` there.
     let consentStore: ConsentStore
     let consentService: ConsentService
     /// Proxy client, exposed so views (e.g. the voice-call detail screen) can
-    /// reach authed endpoints directly. Optional — mock wiring omits it.
+    /// reach authed endpoints directly. Optional: mock wiring omits it.
     let api: ProxyAPIClient?
     /// Runs the post-save upload/transcribe pipeline in the background so the
     /// Create screen can dismiss immediately.
@@ -38,20 +38,23 @@ final class AppServices: ObservableObject {
     /// the Create flow, Home, the `EntryProcessor`, and the `EntryFinalizer` all
     /// share ONE instance (retry-rebuild reads what Save retained).
     let drafts: DraftStore
+    /// Durable record of in-flight uploads. Held so the recovery screen can tell
+    /// a recording that is mid-upload from one that is stuck.
+    let uploads: UploadJournal
     /// Live background-upload transport, exposed so the app can forward the
     /// system's background-URLSession completion handler to it (Task 6). Nil for
     /// `mocks()` (the mock transport isn't a `BackgroundUploadTransport`).
     let uploadTransport: BackgroundUploadTransport?
     /// One-time zero-knowledge key-migration helper (phase 1d, gated by
-    /// `DevFlags.zkMigration` — OFF by default, deleted after the cutover).
+    /// `DevFlags.zkMigration`, OFF by default, deleted after the cutover).
     /// Built from `api` + the iCloud-Keychain-backed `SyncedKeychainStore`;
-    /// nil when `api` is nil (`mocks()` — the migration path never runs there).
+    /// nil when `api` is nil (`mocks()` never runs the migration path).
     let keyMigrator: ClientKeyEnroller?
     /// Narrow transport used to detect whether the signed-in user already has
     /// server-side wraps (i.e. migration already ran), independent of running
     /// the migration itself. Nil alongside `keyMigrator`.
     let keyMigrationTransport: KeyMigrationTransport?
-    /// Resolves the per-user DEK at sign-in — enrolling a brand-new account that
+    /// Resolves the per-user DEK at sign-in, enrolling a brand-new account that
     /// has no key at all, or asking for the recovery code when this device can't
     /// unlock. `KeyGate` renders its state; `SessionStore` waits on it before any
     /// encrypted read/write. See ADR-0114.
@@ -64,7 +67,7 @@ final class AppServices: ObservableObject {
     /// degenerate, from the durable S3 audio, and refreshes their derived AI.
     /// Run once per signed-in user at launch from `LuminaLogApp`.
     let transcriptBackfiller: TranscriptBackfiller
-    /// Headless entry-AI generation (summary/insights/prompts) — the launch sweep
+    /// Headless entry-AI generation (summary/insights/prompts). The launch sweep
     /// (`sweep()`) and the same instance the finalize pipeline uses to generate at
     /// save. Shared so both paths dedup against one another.
     let entryAIGenerator: EntryAIGenerator
@@ -93,6 +96,7 @@ final class AppServices: ObservableObject {
         consentService: ConsentService,
         entryProcessor: EntryProcessor,
         drafts: DraftStore,
+        uploads: UploadJournal,
         api: ProxyAPIClient? = nil,
         uploadTransport: BackgroundUploadTransport? = nil,
         keyMigrator: ClientKeyEnroller? = nil,
@@ -120,6 +124,7 @@ final class AppServices: ObservableObject {
         self.consentService = consentService
         self.entryProcessor = entryProcessor
         self.drafts = drafts
+        self.uploads = uploads
         self.api = api
         self.uploadTransport = uploadTransport
         self.keyMigrator = keyMigrator
@@ -139,7 +144,7 @@ final class AppServices: ObservableObject {
         }
     }
 
-    /// Production service wiring — always uses Firebase and real backends.
+    /// Production service wiring: always uses Firebase and real backends.
     static func live() -> AppServices {
         let auth = FirebaseAuthService()
         let api = ProxyAPIClient(
@@ -148,7 +153,7 @@ final class AppServices: ObservableObject {
         )
         // Zero-knowledge key path: the DEK is loaded ON DEVICE from KEK_icloud (iCloud
         // Keychain) + the server's opaque client wraps (which the server cannot open).
-        // There is NO server fallback — the legacy /bootstrap path (which handed the
+        // There is NO server fallback. The legacy /bootstrap path (which handed the
         // server a DEK) was deleted at the cutover, so the server holds no key, ever.
         // AI-data-sharing consent (App Store 5.1.1/5.1.2): local record + the
         // service that mirrors it to the server so `requireAiConsent` passes.
@@ -236,7 +241,7 @@ final class AppServices: ObservableObject {
                 let ext = (upload.encryptedPath as NSString).pathExtension
                 // Passing the staged `s3Key` re-presigns the SAME object: the server
                 // ignores `ext`/`bytes` when an `s3Key` is supplied (it reuses the key
-                // verbatim), so the placeholder `"bin"`/`0` here are inert — key
+                // verbatim), so the placeholder `"bin"`/`0` here are inert: key
                 // stability across re-presigns depends on that server behavior.
                 let (_, url) = try await media.presignUpload(
                     s3Key: upload.s3Key, kind: upload.kind, ext: ext.isEmpty ? "bin" : ext,
@@ -298,6 +303,7 @@ final class AppServices: ObservableObject {
                 )
             ),
             drafts: drafts,
+            uploads: uploadJournal,
             api: api,
             uploadTransport: transport,
             keyMigrator: keyMigrator,
@@ -315,7 +321,7 @@ final class AppServices: ObservableObject {
         await ai.warmSemanticIndex()
     }
 
-    /// All-mock wiring — previews and unit tests only.
+    /// All-mock wiring: previews and unit tests only.
     static func mocks() -> AppServices {
         let auth = MockAuthService(signedIn: false)
         let chats = MockChatRepository()
@@ -328,7 +334,7 @@ final class AppServices: ObservableObject {
         let media = MockMediaUploader()
         let ocr = VisionOCRService()
 
-        // No live `ProxyAPIClient` in mock wiring — mirror consent through a
+        // No live `ProxyAPIClient` in mock wiring, so mirror consent through a
         // no-op transport so `ConsentGate`/`ConsentService` are always usable.
         let consentStore = ConsentStore()
         let consentService = ConsentService(api: NoOpConsentAPI(), store: consentStore)
@@ -380,6 +386,7 @@ final class AppServices: ObservableObject {
                 )
             ),
             drafts: drafts,
+            uploads: uploadJournal,
             keyEnrollment: KeyEnrollmentService(
                 keys: keys,
                 enroller: ClientKeyEnroller(
@@ -397,7 +404,7 @@ private final class AlwaysOKTransport: UploadTransport {
     func put(file: URL, to url: URL) async -> Int { 200 }
 }
 
-/// Demo/preview consent transport — `mocks()` has no live `ProxyAPIClient` to
+/// Demo/preview consent transport. `mocks()` has no live `ProxyAPIClient` to
 /// PUT through, and previews/tests never exercise this path.
 private final class NoOpConsentAPI: ConsentAPIPutting {
     func put(path: String, body: some Encodable) async throws {}

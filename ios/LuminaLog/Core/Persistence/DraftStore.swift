@@ -35,7 +35,7 @@ final class DraftStore: ObservableObject {
 
     // MARK: Paths (sanitized)
 
-    /// `nil` for empty/unsafe ids (path traversal guard) — callers become no-ops.
+    /// `nil` for empty/unsafe ids (path traversal guard): callers become no-ops.
     private func jsonURL(_ id: String) -> URL? {
         guard isSafe(id) else { return nil }
         return directory.appendingPathComponent("\(id).json")
@@ -46,6 +46,17 @@ final class DraftStore: ObservableObject {
         return directory.appendingPathComponent("media", isDirectory: true)
             .appendingPathComponent(id, isDirectory: true)
     }
+
+    /// Root of the per-draft media directories (`Drafts/media/`). Exposed for
+    /// the recovery scanner's orphan walk.
+    var mediaRoot: URL {
+        directory.appendingPathComponent("media", isDirectory: true)
+    }
+
+    /// File extensions that count as an irreplaceable recording. Photos are
+    /// deliberately excluded: they usually still exist in the camera roll, and a
+    /// leftover thumbnail must not pin an empty draft on disk forever.
+    static let recordingExtensions: Set<String> = ["m4a", "caf", "mov", "mp4"]
 
     private func isSafe(_ id: String) -> Bool {
         guard !id.isEmpty, !id.contains("/"), !id.contains("\\"), !id.contains("..") else {
@@ -83,6 +94,28 @@ final class DraftStore: ObservableObject {
         reload()
     }
 
+    /// Auto-prune entry point: deletes the draft ONLY when it is empty, holds no
+    /// recording, and has no recording file left in its media dir. Explicit,
+    /// user-confirmed deletes go through `delete(_:)` instead.
+    ///
+    /// The on-disk check is deliberately independent of the JSON: a torn write
+    /// that lost the attachment array must not make a recording disposable.
+    func pruneIfDisposable(_ id: String) {
+        if let draft = load(id) {
+            // Text the user typed, or any attachment, is content worth keeping.
+            guard draft.isEmpty, !draft.holdsRecording else { return }
+        }
+        if hasRecordingFilesOnDisk(id) { return }
+        delete(id)
+    }
+
+    /// True when the draft's media dir still contains an audio or video file.
+    func hasRecordingFilesOnDisk(_ id: String) -> Bool {
+        guard let dir = mediaDirectory(for: id) else { return false }
+        let files = (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
+        return files.contains { Self.recordingExtensions.contains($0.pathExtension.lowercased()) }
+    }
+
     // MARK: Media
 
     /// Writes raw bytes (e.g. a photo's in-memory data) into the draft's media
@@ -109,6 +142,24 @@ final class DraftStore: ObservableObject {
         guard let dir = mediaDirectory(for: draftId) else { return nil }
         let url = dir.appendingPathComponent(fileName)
         return fm.fileExists(atPath: url.path) ? url : nil
+    }
+
+    /// Deletes every file in the draft's media dir whose name begins with
+    /// `attachmentId`, which is the naming convention `persistDraftNow` uses
+    /// (`<uuid>.jpg` / `<uuid>.m4a` / `<uuid>.<videoExt>`). Matching on the id
+    /// rather than a reconstructed filename keeps this correct whatever
+    /// extension the source video happened to carry.
+    ///
+    /// Only an explicit, user-confirmed delete calls this. Every other removal
+    /// path leaves the durable copy on disk on purpose, where the recovery
+    /// scanner surfaces it as orphaned.
+    func removeMedia(draftId: String, attachmentId: UUID) {
+        guard let dir = mediaDirectory(for: draftId) else { return }
+        let prefix = attachmentId.uuidString
+        let files = (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
+        for url in files where url.lastPathComponent.hasPrefix(prefix) {
+            try? fm.removeItem(at: url)
+        }
     }
 
     func reload() {
@@ -150,8 +201,12 @@ final class DraftStore: ObservableObject {
     /// Launch recovery: for every draft holding a non-finalized recording
     /// manifest (a crash or a sheet-dismiss-mid-recording left segments on disk),
     /// merge its segments into a single `.m4a` in the media dir, register that as
-    /// a normal audio `DraftAttachment`, and clear the manifest — so Home renders
+    /// a normal audio `DraftAttachment`, and clear the manifest, so Home renders
     /// it as an ordinary voice draft.
+    ///
+    /// A FAILED merge changes nothing on disk: the segments and the manifest both
+    /// survive, because they are the only copy of that audio. The next sweep
+    /// retries them, and `RecordingInventory` lists them as needing repair.
     func recoverDanglingRecordings(using merger: RecordingMerging) async {
         for draft in all() {
             guard let manifest = draft.recording, manifest.isFinalized == false else { continue }
@@ -163,26 +218,40 @@ final class DraftStore: ObservableObject {
             let mergedURL = mediaDir.appendingPathComponent(mergedName)
 
             var repaired = draft
-            if !segURLs.isEmpty, (try? await merger.merge(segURLs, to: mergedURL)) != nil {
+            // `&&` takes an autoclosure, which cannot be async, so the merge is
+            // awaited on its own line rather than folded into the condition.
+            var merged = false
+            if !segURLs.isEmpty {
+                merged = (try? await merger.merge(segURLs, to: mergedURL)) != nil
+            }
+
+            if merged {
                 let duration = await merger.duration(of: mergedURL)
                 let nextOrder = (draft.attachments.map(\.order).max() ?? -1) + 1
                 repaired.attachments.append(DraftAttachment(
                     id: UUID(), kind: .audio, fileName: mergedName,
                     durationSec: duration, pixelWidth: nil, pixelHeight: nil, order: nextOrder
                 ))
-            }
-            // Delete now-merged segment files; drop the manifest either way.
-            for name in manifest.segmentFileNames {
-                if let u = mediaURL(draftId: draft.draftId, fileName: name) {
-                    try? fm.removeItem(at: u)
+                // Only now are the segments redundant: their audio lives in the
+                // merged clip.
+                for name in manifest.segmentFileNames {
+                    if let u = mediaURL(draftId: draft.draftId, fileName: name) {
+                        try? fm.removeItem(at: u)
+                    }
                 }
-            }
-            repaired.recording = nil
-            if repaired.isEmpty {
-                delete(draft.draftId)
+                repaired.recording = nil
             } else {
-                upsert(repaired)
+                // The merge failed, so the segments are still the ONLY copy of
+                // this audio. Keep both them and the manifest: the next sweep
+                // retries (a transient failure heals itself), and until then the
+                // recovery screen lists the draft as needing repair. Dropping
+                // either here would silently destroy the recording.
+                try? fm.removeItem(at: mergedURL)   // discard any partial export
             }
+            upsert(repaired)
+            // Auto-prune, never a hard delete: a draft whose merge failed still
+            // has its segments on disk and must survive this sweep.
+            pruneIfDisposable(draft.draftId)
         }
     }
 }
