@@ -79,7 +79,7 @@ describe('posthogProxyHandler', () => {
   })
 
   it('forwards to the upstream capture path', async () => {
-    const f = vi.fn(async () => ({ ok: true, status: 200 }) as any)
+    const f = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => ({ ok: true, status: 200 }) as any)
     const res = mockRes()
     await posthogProxyHandler({ path: '/capture/', body: { event: 'a' } } as any, res, f)
     expect(f.mock.calls[0][0]).toBe('https://ph.example.com/capture/')
@@ -87,7 +87,7 @@ describe('posthogProxyHandler', () => {
   })
 
   it('never forwards a client ip header', async () => {
-    const f = vi.fn(async () => ({ ok: true, status: 200 }) as any)
+    const f = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => ({ ok: true, status: 200 }) as any)
     const res = mockRes()
     await posthogProxyHandler(
       { path: '/capture/', body: { event: 'a' }, headers: { 'x-forwarded-for': '203.0.113.9' } } as any,
@@ -107,7 +107,7 @@ describe('posthogProxyHandler', () => {
   })
 
   it('still 202s when the upstream is unreachable, so a vendor outage is not our outage', async () => {
-    const f = vi.fn(async () => { throw new Error('unreachable') })
+    const f = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => { throw new Error('unreachable') })
     const res = mockRes()
     await posthogProxyHandler({ path: '/capture/', body: { event: 'a' } } as any, res, f as any)
     expect(res.statusCode).toBe(202)

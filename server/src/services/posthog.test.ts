@@ -17,8 +17,13 @@ vi.mock('../config', () => ({
 
 import { capturePostHog, SERVER_EVENTS } from './posthog'
 
+/**
+ * `mock.calls` is typed from the mock's own signature, so the parameters have
+ * to be declared even though the body ignores them. Without them tsc sees a
+ * zero-length tuple and `npm run build` fails on `calls[0][1]`.
+ */
 function okFetch() {
-  return vi.fn(async () => ({ ok: true, status: 200 }) as any)
+  return vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => ({ ok: true, status: 200 }) as any)
 }
 
 describe('capturePostHog', () => {
@@ -62,14 +67,14 @@ describe('capturePostHog', () => {
   })
 
   it('returns false instead of throwing when the request fails', async () => {
-    const f = vi.fn(async () => { throw new Error('network down') })
+    const f = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => { throw new Error('network down') })
     await expect(
       capturePostHog(SERVER_EVENTS.SUBSCRIPTION_STARTED, 'uid1', {}, f as any),
     ).resolves.toBe(false)
   })
 
   it('returns false on a non-2xx response', async () => {
-    const f = vi.fn(async () => ({ ok: false, status: 500 }) as any)
+    const f = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => ({ ok: false, status: 500 }) as any)
     expect(await capturePostHog(SERVER_EVENTS.SUBSCRIPTION_STARTED, 'uid1', {}, f)).toBe(false)
   })
 })

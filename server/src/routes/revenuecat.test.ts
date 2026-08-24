@@ -21,6 +21,7 @@ vi.mock('../services/posthog', async () => {
   }
 })
 
+import { capturePostHog } from '../services/posthog'
 import { creditsForProduct, proExpiryFromEvent, revenueCatWebhookHandler, computeEntitlement, entitlementHandler, forwardToPostHog } from './revenuecat'
 
 describe('computeEntitlement', () => {
@@ -397,8 +398,7 @@ describe('forwardToPostHog', () => {
 
 describe('revenueCatWebhookHandler analytics safety', () => {
   it('still returns 200 when the PostHog capture throws', async () => {
-    const posthog = await import('../services/posthog')
-    ;(posthog.capturePostHog as any).mockImplementationOnce(async () => { throw new Error('ph down') })
+    ;(capturePostHog as any).mockImplementationOnce(async () => { throw new Error('ph down') })
     const res = mockRes()
     const { db } = mockDb()
     await revenueCatWebhookHandler(
