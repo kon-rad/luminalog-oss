@@ -7,11 +7,12 @@ import { ChevronRight, Sparkles } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 import { useSession } from '@/lib/session/session-context'
 import { ThemeToggle } from '@/lib/theme'
+import SubscriptionCard from '@/components/app/SubscriptionCard'
 
-// Settings tab root — minimal M2 subset of design B.17: just Appearance +
-// Sign Out. The rest of B.17's cards (Profile, Leaderboard, User Information,
-// Daily Reminder, Subscription, AI Summary Config, Voice Credits, Delete
-// Account, Legal) are later milestones.
+// Settings tab root: Appearance, Subscription, Encryption, and Sign Out. The
+// rest of design B.17's cards (Profile, Leaderboard, User Information, Daily
+// Reminder, AI Summary Config, Voice Credits, Delete Account, Legal) are later
+// milestones.
 export default function SettingsPage() {
   const { signOut } = useAuth()
   const { forgetThisBrowser } = useSession()
@@ -75,9 +76,11 @@ export default function SettingsPage() {
         <ChevronRight size={18} strokeWidth={2} className="shrink-0" style={{ color: 'var(--text2)' }} />
       </Link>
 
+      <SubscriptionCard />
+
       {/* Later milestones: Profile, Leaderboard, User Information, Daily
-          Reminder, Subscription, AI Summary Config, Voice Credits, Delete
-          Account, Legal (design B.17). */}
+          Reminder, AI Summary Config, Voice Credits, Delete Account, Legal
+          (design B.17). */}
 
       <section className="card flex flex-col gap-2 p-4">
         <h2
