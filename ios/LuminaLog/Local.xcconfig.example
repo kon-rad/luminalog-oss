@@ -17,3 +17,10 @@ GOOGLE_REVERSED_CLIENT_ID =
 // public, client-side value (not a secret). Leave empty to keep the old story-camera
 // fallback (the shared story won't be pre-filled with the rendered card).
 FACEBOOK_APP_ID =
+
+// PostHog project API key (Project settings -> Project API Key, the `phc_...`
+// value). Public and write-only, not a secret. The ingestion host is NOT
+// configured here: the app always sends to api.luminalog.com/v1/ph, which is
+// what keeps the privacy manifest free of tracking domains. Leave empty to
+// disable analytics entirely.
+POSTHOG_API_KEY =

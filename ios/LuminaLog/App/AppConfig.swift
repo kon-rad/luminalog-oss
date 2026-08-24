@@ -32,4 +32,22 @@ enum AppConfig {
               !raw.isEmpty else { return nil }
         return raw
     }()
+
+    /// PostHog public project API key, from the `POSTHOG_API_KEY` Info.plist key
+    /// supplied by `Local.xcconfig`. Write-only and public by design, exactly
+    /// like the RevenueCat key. When absent, `Analytics` never starts and the
+    /// app sends nothing.
+    static let posthogAPIKey: String? = {
+        guard let raw = Bundle.main.object(forInfoDictionaryKey: "POSTHOG_API_KEY") as? String,
+              !raw.isEmpty else { return nil }
+        return raw
+    }()
+
+    /// PostHog ingestion host: always Argo's own API, never PostHog's.
+    ///
+    /// This one line is why the app ships with `NSPrivacyTracking = false`, an
+    /// empty `NSPrivacyTrackingDomains`, and no App Tracking Transparency
+    /// prompt. Pointing it at a PostHog host would add a tracking domain to the
+    /// privacy manifest and change the App Store privacy label. Do not change it.
+    static let posthogHost: URL = proxyBaseURL.appendingPathComponent("v1/ph")
 }
