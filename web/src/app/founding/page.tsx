@@ -3,8 +3,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import ColophonEndpiece from '@/components/ColophonEndpiece'
+import SocialLinks from '@/components/SocialLinks'
 
-// Founding checkout — a Stripe Payment Link for the one-time $29.99 / 3-month
+// Founding checkout: a Stripe Payment Link for the one-time $29.99 / 3-month
 // founding pass. Update this single constant to point at a new link.
 const FOUNDING_CHECKOUT_URL = 'https://buy.stripe.com/28E6oH5bP6Kr6xV7zf2Ry02'
 
@@ -40,7 +41,7 @@ export default function FoundingPage() {
             className="serif"
             style={{ marginTop: 16, fontSize: 'clamp(36px,4.8vw,58px)', lineHeight: 1.06, fontWeight: 600, letterSpacing: '-0.03em', color: 'var(--text)' }}
           >
-            Private AI Journaling<br />Companion.
+            Private AI Journaling<br />App.
           </h1>
           <p style={{ marginTop: 22, fontSize: 19, lineHeight: 1.62, color: 'var(--text2)', maxWidth: 600, margin: '22px auto 0' }}>
             Write 750 words a day and keep your daily streak alive. Each day generates a
@@ -126,12 +127,11 @@ export default function FoundingPage() {
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', fontSize: 14 }}>
               <Link href="/privacy" style={{ color: 'var(--text2)' }}>Privacy Policy</Link>
               <Link href="/terms" style={{ color: 'var(--text2)' }}>Terms</Link>
-              <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text2)' }}>Send me a tweet</a>
               <a href="mailto:konradmgnat@gmail.com" style={{ color: 'var(--text2)' }}>Support</a>
-              <a href="https://github.com/konradgnat/luminalog" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text2)' }}>GitHub</a>
             </div>
           </div>
-          <p style={{ marginTop: 28, fontSize: 13, color: 'var(--text3)' }}>
+          <SocialLinks marginTop={28} />
+          <p style={{ marginTop: 24, fontSize: 13, color: 'var(--text3)' }}>
             © 2026 Argo · Built by{' '}
             <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accentDeep)', fontWeight: 600 }}>Konrad Gnat</a>
           </p>

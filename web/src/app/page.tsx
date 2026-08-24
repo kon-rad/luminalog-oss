@@ -1,9 +1,38 @@
 'use client'
 
 import { useEffect } from 'react'
+import type { ReactNode } from 'react'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import AppStoreButton from '@/components/AppStoreButton'
+import SocialLinks from '@/components/SocialLinks'
+
+/* The tiles below used to hold emoji. Emoji are drawn by the reader's operating
+ * system, so they arrive in someone else's colour and someone else's weight and
+ * sit on the page as decoration rather than as part of it. These are drawn in
+ * the same stroke weight as the arrows and checkmarks used elsewhere here, and
+ * they inherit the accent colour of the tile they sit in. */
+const ICONS: Record<string, ReactNode> = {
+  lock: <><rect x="4" y="10.5" width="16" height="10.5" rx="2.5" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" /></>,
+  shield: <path d="M12 3 4.5 6v6c0 4.4 3.1 7.9 7.5 9 4.4-1.1 7.5-4.6 7.5-9V6L12 3Z" />,
+  device: <><rect x="7" y="2.5" width="10" height="19" rx="2.5" /><path d="M10.5 18.5h3" /></>,
+  sliders: <><path d="M4 8h9M19 8h1M4 16h3M13 16h7" /><circle cx="16" cy="8" r="2.4" /><circle cx="10" cy="16" r="2.4" /></>,
+  ban: <><circle cx="12" cy="12" r="8.5" /><path d="M6.4 6.4 17.6 17.6" /></>,
+  code: <path d="M9 7 4.5 12 9 17M15 7l4.5 5-4.5 5" />,
+  trash: <path d="M4.5 7h15M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7M6.6 7l.8 12.1a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4L17.4 7" />,
+  mic: <><rect x="9.5" y="3" width="5" height="10" rx="2.5" /><path d="M6 11.5a6 6 0 0 0 12 0M12 17.5V21" /></>,
+  chat: <><rect x="3.5" y="5" width="17" height="12" rx="3" /><path d="M8.5 17 8 20.8 12.6 17" /></>,
+  check: <polyline points="20 6 9 17 4 12" />,
+}
+
+function Icon({ name, size = 20 }: { name: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {ICONS[name]}
+    </svg>
+  )
+}
 
 export default function Home() {
   useEffect(() => {
@@ -34,12 +63,12 @@ export default function Home() {
         <div className="wrap" style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 48, alignItems: 'center', padding: '88px 0 80px' }} className="hero-grid">
             <div>
-              <span className="eyebrow">Your private AI journaling companion</span>
+              <span className="eyebrow">Your private AI journaling app</span>
               <h1 className="serif" style={{ marginTop: 16, fontSize: 'clamp(40px, 5vw, 64px)', lineHeight: 1.04, fontWeight: 600, letterSpacing: '-0.03em', color: 'var(--text)' }}>
                 Record, reflect,<br />and grow.
               </h1>
               <p style={{ marginTop: 22, fontSize: 19, lineHeight: 1.65, color: 'var(--text2)', maxWidth: 500 }}>
-                Argo is a private AI journaling companion. Capture your days in voice, text, video, or handwriting, and talk to an AI that has read every entry you&apos;ve written. Hit your daily 750-word goal, keep your streak alive, and grow more articulate and whole as it comes to know you.
+                Argo is an AI journaling app: a private container for your thoughts. Capture your days in voice, text, video, or handwriting, and talk to an AI that has read every entry you&apos;ve written. Hit your daily 750-word goal, keep your streak alive, and grow more articulate and whole as it comes to know you.
               </p>
               <div id="download" style={{ marginTop: 34 }}>
                 <AppStoreButton />
@@ -52,12 +81,12 @@ export default function Home() {
                 </div>
               </div>
               <div style={{ marginTop: 22, display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 12, color: 'var(--text3)', lineHeight: 1.5 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🔒 End-to-end encrypted</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🛡️ Private AI inference</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>📱 On-device dictation</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🎯 You choose what the AI sees</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>🚫 Never trained on your data</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>⭐ Open source</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ color: 'var(--accent)', display: 'inline-flex' }}><Icon name="check" size={12} /></span>End-to-end encrypted</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ color: 'var(--accent)', display: 'inline-flex' }}><Icon name="check" size={12} /></span>Private AI inference</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ color: 'var(--accent)', display: 'inline-flex' }}><Icon name="check" size={12} /></span>On-device dictation</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ color: 'var(--accent)', display: 'inline-flex' }}><Icon name="check" size={12} /></span>You choose what the AI sees</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ color: 'var(--accent)', display: 'inline-flex' }}><Icon name="check" size={12} /></span>Never trained on your data</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ color: 'var(--accent)', display: 'inline-flex' }}><Icon name="check" size={12} /></span>Open source</span>
               </div>
             </div>
 
@@ -91,9 +120,8 @@ export default function Home() {
                     </div>
                     {/* Stats */}
                     <div style={{ display: 'flex', gap: 10, margin: '10px 16px 0' }}>
-                      {[['🔥', '14 days', 'Current streak'], ['✍️', '9,241', 'Words written']].map(([icon, val, lbl]) => (
+                      {[['14 days', 'Current streak'], ['9,241', 'Words written']].map(([val, lbl]) => (
                         <div key={lbl} style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 16, padding: '12px 14px', boxShadow: '0 1px 2px rgba(70,50,30,0.04), 0 4px 12px rgba(70,50,30,0.05)' }}>
-                          <div style={{ fontSize: 16, marginBottom: 4 }}>{icon}</div>
                           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', lineHeight: 1 }}>{val}</div>
                           <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>{lbl}</div>
                         </div>
@@ -102,8 +130,8 @@ export default function Home() {
                     {/* Entries */}
                     <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--text3)', margin: '14px 16px 8px' }}>Recent entries</div>
                     {[
-                      { init: 'T', text: '"I keep second-guessing the decision, even though I know it was right at the time..."', meta: '📝 Text · 2h ago', bg: 'var(--accentSoft)' },
-                      { init: '🎤', text: '"Talked about the meeting with Sarah. Something felt off and I didn\'t say it..."', meta: '🎤 Voice · Yesterday', bg: '#F5E7D5' },
+                      { init: 'T', text: '"I keep second-guessing the decision, even though I know it was right at the time..."', meta: 'Text · 2h ago', bg: 'var(--accentSoft)' },
+                      { init: 'V', text: '"Talked about the meeting with Sarah. Something felt off and I didn\'t say it..."', meta: 'Voice · Yesterday', bg: '#F5E7D5' },
                     ].map(({ init, text, meta, bg }) => (
                       <div key={meta} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 16px', borderBottom: '1px solid var(--hairline)' }}>
                         <div style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontSize: 14, fontWeight: 600 }}>{init}</div>
@@ -143,7 +171,7 @@ export default function Home() {
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent), var(--accentDeep))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 14 }}>✦</div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Argo AI</div>
-                  <div style={{ fontSize: 11, color: 'var(--text3)' }}>Your personal companion</div>
+                  <div style={{ fontSize: 11, color: 'var(--text3)' }}>Your personal AI</div>
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -352,7 +380,7 @@ export default function Home() {
             <div>
               <span className="eyebrow">The daily practice · 750 words</span>
               <h2 className="serif" style={{ marginTop: 14, fontSize: 'clamp(30px,3.6vw,42px)', fontWeight: 600, letterSpacing: '-0.025em' }}>A streak that gives you<br />something back.</h2>
-              <p style={{ marginTop: 18, fontSize: 17, color: 'var(--text2)', lineHeight: 1.7 }}>Three pages a day, about 750 words. Write them, speak them on a walk, or film them before bed; Argo transcribes it all and counts every word toward your day. Cross 750 and the day is yours: your streak grows and stays grown. Miss a day and the journal simply waits, no guilt, no pressure. The more days you give it, the better your companion understands you.</p>
+              <p style={{ marginTop: 18, fontSize: 17, color: 'var(--text2)', lineHeight: 1.7 }}>Three pages a day, about 750 words. Write them, speak them on a walk, or film them before bed; Argo transcribes it all and counts every word toward your day. Cross 750 and the day is yours: your streak grows and stays grown. Miss a day and the journal simply waits, no guilt, no pressure. The more days you give it, the better Argo understands you.</p>
               <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {[
                   ['Three pages, any format', 'Text, voice, or video, it all transcribes and adds up toward your daily 750.'],
@@ -394,7 +422,7 @@ export default function Home() {
                       ))}
                     </div>
                     <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                      {[['2,847', 'Total words'], ['🔥 12', 'Day streak']].map(([v, l]) => (
+                      {[['2,847', 'Total words'], ['12', 'Day streak']].map(([v, l]) => (
                         <div key={l} style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px 12px' }}>
                           <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{v}</div>
                           <div style={{ fontSize: 9, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>{l}</div>
@@ -432,7 +460,7 @@ export default function Home() {
         <div className="wrap" style={{ textAlign: 'center' }}>
           <span className="eyebrow">Two ways to talk</span>
           <h2 className="serif" style={{ marginTop: 16, color: 'var(--dark-text)', fontSize: 'clamp(28px,3.6vw,44px)', letterSpacing: '-0.025em' }}>Talk to your journal.</h2>
-          <p style={{ marginTop: 16, fontSize: 18, color: 'var(--dark-text2)', maxWidth: 520, margin: '16px auto 0', lineHeight: 1.65 }}>Text or live voice. Your companion has read, watched, and listened to everything.</p>
+          <p style={{ marginTop: 16, fontSize: 18, color: 'var(--dark-text2)', maxWidth: 520, margin: '16px auto 0', lineHeight: 1.65 }}>Text or live voice. Your AI has read, watched, and listened to everything.</p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 28, alignItems: 'flex-end', margin: '48px 0 40px' }} className="converse-phones">
             {/* Chat phone */}
             <div style={{ transform: 'rotate(-3deg)' }}>
@@ -484,7 +512,7 @@ export default function Home() {
           <div style={{ display: 'flex', justifyContent: 'center', gap: 48 }} className="converse-copy-row">
             {[
               ['Text chat', 'Think out loud. Untangle a decision. Ask about a pattern you\'ve noticed. The AI replies in full, drawing on your biography and your entire journal. Never generic, always yours.'],
-              ['Voice call', 'A real-time voice conversation with a companion that already knows your story. It listens with context, asks the questions you need, and notices what you leave out. The more you talk it through aloud, the more articulate you become; your thinking and words grow sharper every conversation. Live calls run on Voice Credits, bought separately, so you only pay for the minutes you use.'],
+              ['Voice call', 'A real-time voice conversation with an AI that already knows your story. It listens with context, asks the questions you need, and notices what you leave out. The more you talk it through aloud, the more articulate you become; your thinking and words grow sharper every conversation. Live calls run on Voice Credits, bought separately, so you only pay for the minutes you use.'],
             ].map(([title, desc]) => (
               <div key={title as string} style={{ maxWidth: 280, textAlign: 'center' }}>
                 <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark-text)', marginBottom: 10 }}>{title}</h4>
@@ -585,16 +613,16 @@ export default function Home() {
             <div style={{ background: 'var(--surface)', borderRadius: 25, padding: '40px 44px' }} className="privacy-inner">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 48px' }} className="privacy-grid">
                 {[
-                  ['🔒', 'Zero-knowledge encryption', "End-to-end encrypted. We can't read your entries, and neither can anyone else. The keys are derived on your device and never leave it, so everything reaches our servers already sealed."],
-                  ['🛡️', 'Private, confidential inference*', "The AI that reads your journal runs on Morpheus, a decentralized network where inference happens inside hardware enclaves (TEEs) with end-to-end-encrypted prompts. Even while the AI reasons over your words, no one can see them: not the compute node, not Morpheus, not us. *Live voice calls are the one exception today, and bringing them into the enclave is on our roadmap."],
-                  ['📱', 'On-device dictation & search', "Voice dictation, handwriting recognition (OCR), and the semantic search that finds relevant entries all run on your own device."],
-                  ['🎯', 'You choose what the AI sees', "What you share with the AI is up to you: your journal entries plus the biography and profile details you provide, which can include personal, identifying information. Share as much or as little as you like; anything you keep private stays out entirely."],
-                  ['🚫', 'Never used to train AI', "Your journal is never used to train AI models. Not ours. Not anyone else's. Full stop."],
-                  ['⭐', 'Open source', 'The iOS app and backend API are public on GitHub. Our privacy claims aren\'t trust; they\'re code anyone can read and verify.'],
-                  ['🗑️', 'Full deletion, always', 'Delete your account and everything goes with it: every entry, every AI vector, every media file. Permanently. One tap. No retention.'],
+                  ['lock', 'Zero-knowledge encryption', "End-to-end encrypted. We can't read your entries, and neither can anyone else. The keys are derived on your device and never leave it, so everything reaches our servers already sealed."],
+                  ['shield', 'Private, confidential inference*', "The AI that reads your journal runs on Morpheus, a decentralized network where inference happens inside hardware enclaves (TEEs) with end-to-end-encrypted prompts. Even while the AI reasons over your words, no one can see them: not the compute node, not Morpheus, not us. *Live voice calls are the one exception today, and bringing them into the enclave is on our roadmap."],
+                  ['device', 'On-device dictation & search', "Voice dictation, handwriting recognition (OCR), and the semantic search that finds relevant entries all run on your own device."],
+                  ['sliders', 'You choose what the AI sees', "What you share with the AI is up to you: your journal entries plus the biography and profile details you provide, which can include personal, identifying information. Share as much or as little as you like; anything you keep private stays out entirely."],
+                  ['ban', 'Never used to train AI', "Your journal is never used to train AI models. Not ours. Not anyone else's. Full stop."],
+                  ['code', 'Open source', 'The iOS app and backend API are public on GitHub. Our privacy claims aren\'t trust; they\'re code anyone can read and verify.'],
+                  ['trash', 'Full deletion, always', 'Delete your account and everything goes with it: every entry, every AI vector, every media file. Permanently. One tap. No retention.'],
                 ].map(([icon, title, desc]) => (
                   <div key={title} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--accentTint)', color: 'var(--accentDeep)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16 }}>{icon}</div>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--accentTint)', color: 'var(--accentDeep)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name={icon} /></div>
                     <div>
                       <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 5 }}>{title}</h4>
                       <p style={{ fontSize: 14.5, color: 'var(--text2)', lineHeight: 1.55 }}>{desc}</p>
@@ -603,7 +631,7 @@ export default function Home() {
                 ))}
               </div>
               <div style={{ marginTop: 22, textAlign: 'center' }}>
-                <a href="https://github.com/konradgnat/luminalog" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontSize: 14, fontWeight: 600, transition: 'color .15s' }}>View on GitHub →</a>
+                <a href="https://github.com/kon-rad/luminalog-oss" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontSize: 14, fontWeight: 600, transition: 'color .15s' }}>View on GitHub →</a>
               </div>
             </div>
           </div>
@@ -618,9 +646,9 @@ export default function Home() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24, marginTop: 56, position: 'relative' }} className="steps-row">
             <div style={{ position: 'absolute', top: 54, left: 'calc(33.33% + 20px)', right: 'calc(33.33% + 20px)', height: 2, borderTop: '2px dashed rgba(206,127,68,0.35)', pointerEvents: 'none' }} className="hidden md:block" />
             {[
-              { num: '1', icon: '+', title: 'Capture', desc: 'Write, speak, film, or photograph your handwritten page. One tap, any format, all in one place.' },
-              { num: '2', icon: '✦', title: 'Reflect', desc: 'Get AI insights, pattern analysis, and five new questions from each entry. Every morning, one personalized prompt drawn from your recent life.' },
-              { num: '3', icon: '💬', title: 'Converse', desc: 'Open a text or voice conversation with your AI companion. It already knows your whole story, and it uses all of it.' },
+              { num: '1', title: 'Capture', desc: 'Write, speak, film, or photograph your handwritten page. One tap, any format, all in one place.' },
+              { num: '2', title: 'Reflect', desc: 'Get AI insights, pattern analysis, and five new questions from each entry. Every morning, one personalized prompt drawn from your recent life.' },
+              { num: '3', title: 'Converse', desc: 'Open a text or voice conversation with your AI. It already knows your whole story, and it uses all of it.' },
             ].map(({ num, title, desc }) => (
               <div key={num} style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 22, padding: '30px 26px 28px', boxShadow: 'var(--shadow)', position: 'relative', overflow: 'hidden' }}>
                 <div className="serif" style={{ fontSize: 80, fontWeight: 600, color: 'var(--accentSoft)', position: 'absolute', top: -14, right: 20, lineHeight: 1, userSelect: 'none', pointerEvents: 'none' }}>{num}</div>
@@ -671,10 +699,10 @@ export default function Home() {
             {/* Monthly */}
             <div style={{ background: 'var(--surface)', border: '1px solid var(--hairline2)', borderRadius: 24, padding: '32px 30px', boxShadow: 'var(--shadow)' }}>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text3)' }}>Monthly</div>
-              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$19.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ month</span></div>
+              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$29.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ month</span></div>
               <div style={{ fontSize: 14, color: 'var(--text3)' }}>Cancel anytime</div>
               <ul style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {['Unlimited text, voice, video & photo entries', 'End-to-end encrypted, zero-knowledge by design', 'Private AI inference on Morpheus (TEE)', 'Unlimited AI insights & patterns', 'Unlimited chat with your companion', 'Daily 750-word streak + shareable insights card', 'Daily personalized prompt', 'Your On-Chain Soul, a soulbound token'].map(f => (
+                {['Unlimited text, voice, video & photo entries', 'End-to-end encrypted, zero-knowledge by design', 'Private AI inference on Morpheus (TEE)', 'Unlimited AI insights & patterns', 'Unlimited chat with your AI', 'Daily 750-word streak + shareable insights card', 'Daily personalized prompt', 'Your On-Chain Soul, a soulbound token'].map(f => (
                   <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15, textAlign: 'left' }}>
                     <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -692,8 +720,8 @@ export default function Home() {
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'linear-gradient(90deg, var(--accent), var(--accentDeep))' }} />
               <div style={{ position: 'absolute', top: 18, right: 18, background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '4px 10px', borderRadius: 100 }}>Save 17%</div>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accentDeep)' }}>Annual</div>
-              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$199.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ year</span></div>
-              <div style={{ fontSize: 14, color: 'var(--text3)' }}>~$16.67 / month · billed once a year</div>
+              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$299.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ year</span></div>
+              <div style={{ fontSize: 14, color: 'var(--text3)' }}>~$25.00 / month · billed once a year</div>
               <ul style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {['Everything in Monthly', 'Two months free', 'Full year of compounding self-knowledge'].map(f => (
                   <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15, textAlign: 'left' }}>
@@ -715,7 +743,7 @@ export default function Home() {
           <div style={{ maxWidth: 640, margin: '24px auto 0' }}>
             <div style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 22, padding: '28px 30px', textAlign: 'left', boxShadow: 'var(--shadow)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <span style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--accentTint)', color: 'var(--accentDeep)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 17 }}>🎙️</span>
+                <span style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--accentTint)', color: 'var(--accentDeep)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="mic" size={19} /></span>
                 <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Live voice calls run on Voice Credits</h3>
               </div>
               <p style={{ fontSize: 15, color: 'var(--text2)', lineHeight: 1.6 }}>
@@ -749,7 +777,7 @@ export default function Home() {
               <div style={{ position: 'absolute', bottom: -100, left: -40, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.09)', filter: 'blur(10px)' }} />
               <h2 className="serif" style={{ position: 'relative', zIndex: 1, fontSize: 'clamp(30px,4.2vw,52px)', fontWeight: 600, lineHeight: 1.06, letterSpacing: '-0.025em' }}>Merge with AI.<br />One conversation at a time.</h2>
               <p className="serif" style={{ position: 'relative', zIndex: 1, fontStyle: 'italic', fontSize: 26, color: 'rgba(255,255,255,0.88)', marginTop: 14 }}>It starts with one entry.</p>
-              <p style={{ position: 'relative', zIndex: 1, fontSize: 17, color: 'rgba(255,255,255,0.75)', marginTop: 10 }}>Free to download. Pro is $19.99 / month or $199.99 / year.</p>
+              <p style={{ position: 'relative', zIndex: 1, fontSize: 17, color: 'rgba(255,255,255,0.75)', marginTop: 10 }}>Free to download. Pro is $29.99 / month or $299.99 / year.</p>
               <div style={{ position: 'relative', zIndex: 1, marginTop: 36, display: 'flex', justifyContent: 'center' }}>
                 <AppStoreButton variant="white" />
               </div>
@@ -769,10 +797,10 @@ export default function Home() {
                 </span>
                 Argo
               </a>
-              <p className="serif" style={{ fontStyle: 'italic', fontSize: 16, color: 'var(--text2)', marginTop: 14, maxWidth: 280 }}>Record, reflect, and grow with your private AI journaling companion.</p>
+              <p className="serif" style={{ fontStyle: 'italic', fontSize: 16, color: 'var(--text2)', marginTop: 14, maxWidth: 280 }}>Record, reflect, and grow with your private AI journaling app.</p>
             </div>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', paddingTop: 6 }}>
-              {[['Events', '/events'], ['Blog', '/blog'], ['Privacy Policy', '/privacy'], ['Terms', '/terms'], ['Send me a tweet', 'https://x.com/konrad_gnat'], ['Support', 'mailto:konradmgnat@gmail.com'], ['GitHub', 'https://github.com/konradgnat/luminalog']].map(([label, href]) => (
+              {[['Events', '/events'], ['Blog', '/blog'], ['Privacy Policy', '/privacy'], ['Terms', '/terms'], ['Support', 'mailto:konradmgnat@gmail.com']].map(([label, href]) => (
                 <a key={label} href={href} style={{ fontSize: 14, color: 'var(--text2)', transition: 'color .15s' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--accentDeep)')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--text2)')}>
@@ -781,7 +809,8 @@ export default function Home() {
               ))}
             </div>
           </div>
-          <p style={{ marginTop: 36, fontSize: 13, color: 'var(--text3)' }}>
+          <SocialLinks marginTop={34} />
+          <p style={{ marginTop: 28, fontSize: 13, color: 'var(--text3)' }}>
             © 2026 Argo · Built by{' '}
             <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accentDeep)', fontWeight: 600 }}>Konrad Gnat</a>
           </p>

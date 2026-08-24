@@ -323,7 +323,7 @@ a machine-readable skill file with the rules, the research and the submission AP
 
       <Section title="About the sponsor: Argo">
         <p style={proseStyle}>
-          Argo is a private AI journaling companion and soulbound NFT credential on Base mainnet. It
+          Argo is a private AI journaling app and soulbound NFT credential on Base mainnet. It
           lets you record, reflect, and grow using voice, text, video, or handwriting. Once you hit your
           daily 750-word goal, it rewards you with a streak count and a beautiful, shareable photo card
           featuring a custom haiku. Behind the scenes, an all-knowing personal mentor is available 24/7 to

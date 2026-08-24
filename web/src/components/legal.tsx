@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
+import SocialLinks from '@/components/SocialLinks'
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Shared presentational helpers for the legal pages (/privacy and /terms).
@@ -55,12 +56,11 @@ export function LegalLayout({
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', fontSize: 14 }}>
               <Link href="/privacy" style={{ color: 'var(--text2)' }}>Privacy Policy</Link>
               <Link href="/terms" style={{ color: 'var(--text2)' }}>Terms</Link>
-              <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text2)' }}>Send me a tweet</a>
               <a href="mailto:konradmgnat@gmail.com" style={{ color: 'var(--text2)' }}>Support</a>
-              <a href="https://github.com/konradgnat/luminalog" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text2)' }}>GitHub</a>
             </div>
           </div>
-          <p style={{ marginTop: 28, fontSize: 13, color: 'var(--text3)' }}>
+          <SocialLinks marginTop={28} />
+          <p style={{ marginTop: 24, fontSize: 13, color: 'var(--text3)' }}>
             © 2026 Argo · Built by{' '}
             <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accentDeep)', fontWeight: 600 }}>Konrad Gnat</a>
           </p>
@@ -133,7 +133,7 @@ export function PrivacyContent() {
         The Service lets you capture entries as text, voice recordings, video, and photographs
         (including photos of handwritten pages). This content, along with derived data such as
         transcripts, summaries, insights, tags, and emotional analysis, is stored so the Service
-        can function and so your AI companion can draw on your history.
+        can function and so the AI can draw on your history.
       </P>
       <H3>Usage and device information</H3>
       <P>
@@ -202,7 +202,7 @@ export function PrivacyContent() {
       <P>
         For storage and text features, our servers cannot read your journal: entries are kept
         encrypted and are only ever decrypted on your device. Live voice calls are the one
-        exception. So that your companion can recall relevant memories from your past entries in
+        exception. So that the AI can recall relevant memories from your past entries in
         real time as you speak, at the start of a call your device sends its encryption key to our
         server for the duration of that call. The server uses it to decrypt only the specific past
         entries needed to answer you, holding the key and the decrypted text <strong>in memory
@@ -256,7 +256,7 @@ export function PrivacyContent() {
         'Cloud hosting and database / authentication providers (for example, Google Firebase / Firestore) to store accounts and encrypted data.',
         'AI model providers (for example, Together AI) to generate insights, summaries, prompts, and conversation, and to run the conversational model during live voice calls.',
         'Speech-to-text providers (for example, Deepgram) to transcribe your voice and video journal entries into text.',
-        'Live voice-conversation transport (for example, Vapi), which carries the call audio and uses Deepgram for speech-to-text, to run real-time spoken conversations with your AI companion; your audio is processed to run the call.',
+        'Live voice-conversation transport (for example, Vapi), which carries the call audio and uses Deepgram for speech-to-text, to run real-time spoken conversations with the AI; your audio is processed to run the call.',
         'Confidential AI inference (Morpheus), a network that runs our models inside a hardware secure enclave (a trusted execution environment), covering chat, insights, summaries, and daily prompts. Live voice calls are the exception: they currently run on a conventional AI model provider (Together AI, above), so the past entries our server transiently decrypts during a call (see Section 5) go to that provider rather than to an enclave. Moving live voice into the enclave is on our roadmap.',
         'Subscription-management providers (for example, RevenueCat) to process purchases and manage your subscription and entitlement status.',
         'An image provider (for example, Unsplash) used to match a themed photograph to your daily insight card; photographer attribution is shown on the card.',
@@ -362,7 +362,7 @@ export function TermsContent({ heading }: { heading?: string }) {
       <P>
         Argo is a private, AI-assisted journaling app. It lets you capture entries in text,
         voice, video, and photos, and provides AI-generated transcripts, summaries, insights,
-        prompts, daily insight cards, and text or live-voice conversation with an AI companion
+        prompts, daily insight cards, and text or live-voice conversation with an AI
         grounded in your own entries. Features may change, improve, or be discontinued over time.
       </P>
 

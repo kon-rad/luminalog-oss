@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import AppStoreButton from '@/components/AppStoreButton'
+import SocialLinks from '@/components/SocialLinks'
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Shared presentational helpers for the blog (/blog and /blog/[slug]).
@@ -28,11 +29,11 @@ function BlogFooter() {
             <Link href="/blog" style={{ color: 'var(--text2)' }}>Blog</Link>
             <Link href="/privacy" style={{ color: 'var(--text2)' }}>Privacy Policy</Link>
             <Link href="/terms" style={{ color: 'var(--text2)' }}>Terms</Link>
-            <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text2)' }}>Send me a tweet</a>
             <a href="mailto:konradmgnat@gmail.com" style={{ color: 'var(--text2)' }}>Support</a>
           </div>
         </div>
-        <p style={{ marginTop: 28, fontSize: 13, color: 'var(--text3)' }}>
+        <SocialLinks marginTop={28} />
+        <p style={{ marginTop: 24, fontSize: 13, color: 'var(--text3)' }}>
           © 2026 Argo · Built by{' '}
           <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accentDeep)', fontWeight: 600 }}>Konrad Gnat</a>
         </p>

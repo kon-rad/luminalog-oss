@@ -1,6 +1,6 @@
 'use client'
 
-// Chats tab root (design B.10) — a live inbox of `chats/{id}` conversations.
+// Chats tab root (design B.10): a live inbox of `chats/{id}` conversations.
 // Compose menu creates a new text chat (voice is M6, disabled here); rows
 // link to the conversation; delete goes through an inline confirm dialog
 // (never `window.confirm`) before calling the cascading `deleteChat`.
@@ -17,7 +17,7 @@ import { SkeletonRow } from '@/components/app/Skeleton'
 import type { Chat } from '@/lib/firestore/models'
 
 /** `"just now"` / `"5m ago"` / `"3h ago"` / `"2d ago"`, falling back to a
- * short absolute date past a week — mirrors an inbox's relative timestamp
+ * short absolute date past a week, mirroring an inbox's relative timestamp
  * without pulling in a date library. */
 function formatRelativeTime(date: Date): string {
   const diffSec = Math.round((Date.now() - date.getTime()) / 1000)
@@ -75,7 +75,7 @@ export default function ChatsPage() {
     setDeletingId(id)
     try {
       await deleteChat(id)
-      // The live subscription drops the row once the delete lands — no local
+      // The live subscription drops the row once the delete lands, so no local
       // state mutation needed here.
     } catch (err) {
       console.error('[chats] deleteChat failed:', err)
@@ -166,7 +166,7 @@ export default function ChatsPage() {
       {empty && (
         <EmptyState
           title="Talk to your journal"
-          message="Start a conversation with your AI companion, it remembers what you've written."
+          message="Start a conversation with your AI, it remembers what you've written."
           actionLabel="Start Text Chat"
           onAction={handleStartTextChat}
         />
@@ -250,7 +250,7 @@ function ChatRow({
 
   return (
     <Card className="group flex items-center gap-3">
-      {/* The row link intentionally does NOT wrap the delete button below —
+      {/* The row link intentionally does NOT wrap the delete button below:
           a <button> nested inside an <a> is invalid HTML and would make the
           delete click also trigger navigation. The journal chip is rendered
           as plain (non-interactive) text for the same reason: this avoids

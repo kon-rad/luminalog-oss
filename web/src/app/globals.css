@@ -169,6 +169,16 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   }
   .nav-cta:hover { @apply -translate-y-px; }
 
+  /* Social chips (footer social row, see components/SocialLinks.tsx) */
+  .social-chip {
+    transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  }
+  .social-chip:hover {
+    color: var(--accentDeep);
+    border-color: var(--accent);
+    background: var(--accentSoft);
+  }
+
   /* Cards */
   .card {
     background: var(--surface);

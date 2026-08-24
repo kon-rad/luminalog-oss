@@ -413,7 +413,7 @@ versus lists of hassles, or neutral events. The gratitude group exercised more, 
   )
 }
 
-/* ── Post: The 750-word habit — who does it & why ── */
+/* ── Post: The 750-word habit: who does it & why ── */
 function SevenFiftyHabitContent() {
   return (
     <>
@@ -1497,7 +1497,7 @@ function ChongIngKaiContent() {
   )
 }
 
-/* ── Post: LLP#015 — Building a Quantum-Proof Bitcoin (Chris of Quantus) ── */
+/* ── Post: LLP#015: Building a Quantum-Proof Bitcoin (Chris of Quantus) ── */
 function QuantumProofBitcoinContent() {
   return (
     <>
@@ -1668,7 +1668,7 @@ every algorithm has known attacks. The danger is that an <em>efficient</em> atta
   )
 }
 
-/* ── Post: LLP#016 — David Johnston (Morpheus / decentralized AI) ── */
+/* ── Post: LLP#016: David Johnston (Morpheus / decentralized AI) ── */
 function DavidJohnstonMorpheusContent() {
   return (
     <>
@@ -1790,7 +1790,7 @@ function DavidJohnstonMorpheusContent() {
       />
       <P>
         That question landed for me personally. The product I&apos;m building,{' '}
-        <A href="https://Argo.com">Argo</A>, is a private AI journaling companion: a
+        <A href="https://Argo.com">Argo</A>, is a private AI journaling app: a
         space to think through your most personal thoughts, which is exactly the kind of thing you
         don&apos;t want flowing through someone else&apos;s servers. David&apos;s closing advice for
         builders was the same one he&apos;d have given in 2013, updated for the moment: get started,
@@ -1853,7 +1853,7 @@ function DavidJohnstonMorpheusContent() {
   )
 }
 
-/* ── Post: Peter Donaldson — music, crypto, and convenient community ── */
+/* ── Post: Peter Donaldson: music, crypto, and convenient community ── */
 function PeterDonaldsonContent() {
   return (
     <>
@@ -2543,7 +2543,7 @@ function AntonPecherkinContent() {
       <H2>An honest test of the journaling pitch</H2>
       <P>
         Because this is the Argo Podcast, Konrad pitched Anton on Argo itself, a private
-        AI journaling companion, and asked the harder question: would you actually use it?
+        AI journaling app, and asked the harder question: would you actually use it?
         Anton&apos;s answer is the useful kind, because it is not a yes. He can see the value of
         accumulating structured personal data you can later search and brainstorm against. What he
         is honest about is the habit. He doesn&apos;t keep a daily reflective journal today; his
@@ -2653,7 +2653,7 @@ function AntonPecherkinContent() {
   )
 }
 
-/* ── Post: Velveteen (Miriam Reza) — the artist who paints to bring people joy ── */
+/* ── Post: Velveteen (Miriam Reza): the artist who paints to bring people joy ── */
 function VelveteenArtistFounderStoriesContent() {
   return (
     <>
@@ -2834,7 +2834,7 @@ function VelveteenArtistFounderStoriesContent() {
   )
 }
 
-/* ── Post: Daria Chernozub — going global by going local ── */
+/* ── Post: Daria Chernozub: going global by going local ── */
 function Llp022DariaChernozubContent() {
   return (
     <>
@@ -3377,7 +3377,7 @@ function FrancisGoonLosingTheFearOfAiContent() {
   )
 }
 
-/* ── Post: How private AI works — Morpheus, TEEs, secure enclaves ── */
+/* ── Post: How private AI works: Morpheus, TEEs, secure enclaves ── */
 function PrivateAIEnclavesContent() {
   return (
     <>
@@ -3645,7 +3645,7 @@ function PrivateAIEnclavesContent() {
         you to trust a company.
       </Pull>
       <P>
-        Argo is <A href="https://github.com/konradgnat/luminalog">open source</A>. The encryption,
+        Argo is <A href="https://github.com/kon-rad/luminalog-oss">open source</A>. The encryption,
         the inference routing, and the voice pipeline described here are all readable. Privacy
         claims should be checkable, and that includes the asterisks.
       </P>

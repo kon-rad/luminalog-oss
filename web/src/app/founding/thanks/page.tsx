@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import ColophonEndpiece from '@/components/ColophonEndpiece'
+import SocialLinks from '@/components/SocialLinks'
 
 export const metadata: Metadata = {
   title: 'Thanks for your order, Argo',
@@ -69,12 +70,11 @@ export default function FoundingThanksPage() {
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', fontSize: 14 }}>
               <Link href="/privacy" style={{ color: 'var(--text2)' }}>Privacy Policy</Link>
               <Link href="/terms" style={{ color: 'var(--text2)' }}>Terms</Link>
-              <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text2)' }}>Send me a tweet</a>
               <a href="mailto:konradmgnat@gmail.com" style={{ color: 'var(--text2)' }}>Support</a>
-              <a href="https://github.com/konradgnat/luminalog" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text2)' }}>GitHub</a>
             </div>
           </div>
-          <p style={{ marginTop: 28, fontSize: 13, color: 'var(--text3)' }}>
+          <SocialLinks marginTop={28} />
+          <p style={{ marginTop: 24, fontSize: 13, color: 'var(--text3)' }}>
             © 2026 Argo · Built by{' '}
             <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accentDeep)', fontWeight: 600 }}>Konrad Gnat</a>
           </p>

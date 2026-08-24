@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import SocialLinks from '@/components/SocialLinks'
 
 /* The footer shared by the public marketing pages (/events, /courses).
  * Same visual language as the blog and legal footers. */
@@ -23,7 +24,8 @@ export default function SiteFooter() {
             <a href="mailto:konradmgnat@gmail.com" style={{ color: 'var(--text2)' }}>Support</a>
           </div>
         </div>
-        <p style={{ marginTop: 28, fontSize: 13, color: 'var(--text3)' }}>
+        <SocialLinks marginTop={28} />
+        <p style={{ marginTop: 24, fontSize: 13, color: 'var(--text3)' }}>
           © 2026 Argo · Built by{' '}
           <a href="https://x.com/konrad_gnat" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accentDeep)', fontWeight: 600 }}>Konrad Gnat</a>
         </p>
