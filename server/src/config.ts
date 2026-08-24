@@ -126,6 +126,18 @@ const schema = z.object({
   // deploy. Text-field dictation stays on-device (Apple Speech) — unaffected.
   DEEPGRAM_API_KEY: z.string().optional(),
   DEEPGRAM_MODEL: z.string().default('nova-3'),
+  // PostHog product analytics. BOTH optional, and that is load-bearing: a newly
+  // required env var missing from the droplet `.env` crash-loops the process
+  // into a 502 even when the build succeeds (see CLAUDE.md). With either unset,
+  // `posthogEnabled()` is false, the /v1/ph proxy 202s and drops, and the
+  // RevenueCat forwarder no-ops. A forgotten .env line costs data, not uptime.
+  //
+  // POSTHOG_API_HOST is PostHog's own ingestion host (e.g. https://us.i.posthog.com).
+  // It is the UPSTREAM. The iOS app never sees it: the app points at
+  // api.luminalog.com/v1/ph, which is what keeps the app's privacy manifest free
+  // of tracking domains.
+  POSTHOG_API_HOST: z.string().optional(),
+  POSTHOG_PROJECT_API_KEY: z.string().optional(),
 })
 
 const parsed = schema.safeParse(process.env)
@@ -157,6 +169,15 @@ export function enforceAiConsentEnabled(): boolean {
  * True when a Deepgram API key is configured. When false, journal-entry clip
  * transcription falls back to Together Whisper (previous behavior).
  */
+/**
+ * True only when both PostHog vars are present. Everything analytics-related
+ * checks this and degrades to a clean no-op when false, so the server boots and
+ * serves normally on a droplet where PostHog was never configured.
+ */
+export function posthogEnabled(): boolean {
+  return Boolean(config.POSTHOG_API_HOST && config.POSTHOG_PROJECT_API_KEY)
+}
+
 export function deepgramEnabled(): boolean {
   return Boolean(config.DEEPGRAM_API_KEY)
 }
