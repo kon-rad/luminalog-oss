@@ -1,6 +1,6 @@
 import Foundation
 
-/// In-memory `SubscriptionService` for demo mode — purchases succeed instantly.
+/// In-memory `SubscriptionService` for demo mode: purchases succeed instantly.
 @MainActor
 final class MockSubscriptionService: SubscriptionService {
 
@@ -28,7 +28,7 @@ final class MockSubscriptionService: SubscriptionService {
         }
     }
 
-    /// Every `setUser` argument in call order — lets tests assert that the
+    /// Every `setUser` argument in call order, so tests can assert that the
     /// session keeps the subscription identity in sync with auth changes.
     private(set) var setUserCalls: [String?] = []
 
@@ -55,6 +55,14 @@ final class MockSubscriptionService: SubscriptionService {
 
     func presentCodeRedemptionSheet() {
         // Demo mode has no App Store; redemption is a no-op.
+    }
+
+    /// Number of times the manage-subscriptions sheet was requested, so tests
+    /// can assert the Apple branch routed into StoreKit and not the browser.
+    private(set) var showManageSubscriptionsCount = 0
+
+    func showManageSubscriptions() async {
+        showManageSubscriptionsCount += 1
     }
 
     // MARK: - Broadcast
