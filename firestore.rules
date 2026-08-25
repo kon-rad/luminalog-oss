@@ -108,6 +108,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
+    // Daily encouragement messages, client-encrypted (AAD dailyEncouragements.*).
+    // Owner-only, same shape as dailyReports above.
+    match /dailyEncouragements/{uid}/messages/{messageId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // Course badge class definitions — world-readable (the /badge/{classId} claim
     // page renders them; the quiz carries no answer keys, completion-only). Writes
     // are server-only (Admin SDK bypasses rules).
