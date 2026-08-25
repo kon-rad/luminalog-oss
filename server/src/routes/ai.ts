@@ -9,7 +9,7 @@ import { chatCompletion, transcribeAudio, streamToBuffer } from '../services/aiC
 import { extractAudio } from '../services/audioExtractor'
 import { PROMPTS } from '../services/prompts'
 import { generateSummaryText, generateEntryAI } from '../services/summaryGenerator'
-import { generateEntryMap } from '../services/cognitiveMap'
+import { startMapJob, getMapJob } from '../services/cognitiveMap/jobs'
 import { config } from '../config'
 import type { ProfileFields } from '../services/profileContext'
 import { decryptMedia } from '../crypto/mediaCipher'
@@ -17,11 +17,15 @@ import { nextStats, dayIndex, type GoalStats } from '../services/dailyGoalStreak
 import { updateConstellationForDay } from '../services/constellation/constellationService'
 import { ensureSoulMinted, refreshSoulImage } from '../services/chain/soulService'
 import { DAILY_PROMPT_AREAS, parseDailyPrompts, fallbackDailyPrompts } from '../services/dailyPrompts'
+import {
+  parseEncouragements, fallbackEncouragements,
+  ENCOURAGEMENT_COUNT, ENCOURAGEMENT_TITLE_MAX, ENCOURAGEMENT_BODY_MAX,
+} from '../services/dailyEncouragements'
 import { dailyReportHandler } from './dailyReport'
 
 export const aiRouter = Router()
 
-/** Canonical word count — matches the iOS `WordCount.of` (whitespace split). */
+/** Canonical word count: matches the iOS `WordCount.of` (whitespace split). */
 function countWords(content: string): number {
   return content.split(/\s+/).filter(Boolean).length
 }
@@ -87,7 +91,7 @@ export async function summaryHandler(req: Request, res: Response): Promise<void>
 aiRouter.post('/summary', firebaseAuth, requirePro, requireAiConsent, summaryHandler)
 
 // Zero-knowledge (Model-1) full-entry AI: the client sends the entry's PLAINTEXT
-// content and gets { summary, insights, prompts } back in ONE LLM call — the same
+// content and gets { summary, insights, prompts } back in ONE LLM call: the same
 // three artifacts `ensureEntryAIIndexed` produces at index time on the legacy path.
 // STATELESS: no getOrCreateDEK, no Firestore write. The client persists the fields
 // itself (client-encrypted) via `updateAIFields`, so the Insights/Prompts tabs light
@@ -117,38 +121,53 @@ export async function entryAiHandler(req: Request, res: Response): Promise<void>
 
 aiRouter.post('/entry-ai', firebaseAuth, requirePro, requireAiConsent, entryAiHandler)
 
-// Zero-knowledge cognitive map: the client sends the entry's PLAINTEXT content and
-// gets back { beats, edges } from two LLM calls plus one embedding call.
+// Zero-knowledge cognitive map, generated as a JOB. The client sends the entry's
+// PLAINTEXT content and gets a ticket back immediately; it polls the job route below
+// until the map is ready.
 //
-// STATELESS, exactly like /entry-ai: no getOrCreateDEK, no Firestore read, no
-// Firestore write, no vector write. The client encrypts the map itself and persists
-// it to journals/{id}.cognitiveMap, so the server never holds a readable copy of
-// anything derived from the entry.
+// WHY A JOB: the pipeline is two LLM calls plus an embedding call and measures 85 to
+// 190 seconds. No client can hold a request open that long (iOS gives a JSON POST 60
+// seconds, and nginx has its own read timeout), so a synchronous response could never
+// arrive, however healthy the generation was.
+//
+// STATELESS AT REST, exactly like /entry-ai: no getOrCreateDEK, no Firestore read, no
+// Firestore write, no vector write. The plaintext and the derived map live only in the
+// job registry's memory. The client encrypts the map itself and persists it to
+// journals/{id}.cognitiveMap, so the server never holds a readable copy of anything
+// derived from the entry.
 export async function entryMapHandler(req: Request, res: Response): Promise<void> {
+  const uid = (req as any).uid as string
   const { content } = req.body as { content?: string }
 
-  try {
-    if (typeof content !== 'string' || content.trim().length === 0) {
-      res.status(400).json({ error: 'Missing content' }); return
-    }
-    const map = await generateEntryMap({ content })
-    res.json({
-      v: map.v,
-      beats: map.beats,
-      edges: map.edges,
-      model: map.model,
-      generatedAt: map.generatedAt,
-    })
-  } catch (err: any) {
-    console.error('[ai/entry-map]', err)
-    // 502, not 500: every model in the chain refused or returned nothing usable,
-    // which is an upstream failure. The client records an attempt and retries on a
-    // later launch; the entry itself is untouched either way.
-    res.status(502).json({ error: err?.message ?? 'Cognitive map generation failed' })
+  if (typeof content !== 'string' || content.trim().length === 0) {
+    res.status(400).json({ error: 'Missing content' }); return
   }
+
+  res.status(202).json({ jobId: startMapJob(uid, content), status: 'pending' })
+}
+
+// Poll a map job. A failed job is a 200 and not a 502 on purpose: the client has to be
+// able to tell "the generation failed, stop polling" from "this poll did not land", and
+// conflating them is how a retry loop becomes a hot loop. An unknown, expired, or other
+// user's job is a 404, so a leaked id is indistinguishable from a wrong one.
+export async function entryMapJobHandler(req: Request, res: Response): Promise<void> {
+  const uid = (req as any).uid as string
+  const job = getMapJob(uid, req.params.jobId)
+
+  if (!job) {
+    res.status(404).json({ error: 'Unknown job' }); return
+  }
+  if (job.status === 'pending') {
+    res.json({ status: 'pending' }); return
+  }
+  if (job.status === 'failed') {
+    res.json({ status: 'failed', error: job.error ?? 'Cognitive map generation failed' }); return
+  }
+  res.json({ status: 'done', ...job.result })
 }
 
 aiRouter.post('/entry-map', firebaseAuth, requirePro, requireAiConsent, entryMapHandler)
+aiRouter.get('/entry-map/:jobId', firebaseAuth, requirePro, requireAiConsent, entryMapJobHandler)
 
 // Per-entry insights and follow-up prompts are no longer generated on demand:
 // they are produced together with the summary in ONE LLM call at index time
@@ -180,7 +199,7 @@ export async function dailyPromptHandler(req: Request, res: Response): Promise<v
     // The client sends its recent entries as PLAINTEXT (already decrypted on
     // device) plus the decrypted profile/name. We build the exact same context
     // string as the legacy path but WITHOUT getOrCreateDEK/openField.
-    // Gated by AI_MODEL1 — off in production. Fallback removed at the 1d cutover.
+    // Gated by AI_MODEL1, off in production. Fallback removed at the 1d cutover.
     if (!Array.isArray(body.entries)) {
       res.status(400).json({ error: 'Missing client context (entries)' }); return
     }
@@ -216,3 +235,64 @@ aiRouter.post('/daily-prompt', firebaseAuth, requirePro, requireAiConsent, daily
 
 
 aiRouter.post('/daily-report', firebaseAuth, requirePro, requireAiConsent, dailyReportHandler)
+
+
+/**
+ * Generates the morning batch of encouragement messages in ONE LLM call.
+ *
+ * Zero-knowledge: the client sends its last seven days of entries as PLAINTEXT
+ * (already decrypted on device) plus the decrypted profile and name. The server
+ * never decrypts, never persists, and holds no key. The client owns storage and
+ * schedules the local notifications itself.
+ */
+export async function dailyEncouragementsHandler(req: Request, res: Response): Promise<void> {
+  try {
+    const body = (req.body ?? {}) as {
+      entries?: Array<{ id?: string; type?: string; title?: string; content?: string }>
+      profile?: ProfileFields
+      name?: string
+    }
+
+    if (!Array.isArray(body.entries)) {
+      res.status(400).json({ error: 'Missing client context (entries)' }); return
+    }
+
+    const entries = body.entries
+    const sourceEntryIds = entries.map(e => e.id).filter((id): id is string => Boolean(id))
+
+    // Nothing to ground the messages in: return empty rather than ask the model
+    // to invent a week the user did not write.
+    if (entries.length === 0) {
+      res.json({ messages: [], sourceEntryIds: [] }); return
+    }
+
+    const journalContext = entries
+      .map(e => {
+        const title = (e.title ?? '') || 'Untitled'
+        const content = e.content ?? ''
+        return `[${e.type ?? 'text'} · ${title}]\n${content.slice(0, 800)}`
+      })
+      .join('\n\n---\n\n')
+
+    const systemPrompt = PROMPTS.dailyEncouragements({
+      name: ((body.name as string) ?? '').split(' ')[0] ?? '',
+      profile: body.profile ?? {},
+      journalContext,
+      count: ENCOURAGEMENT_COUNT,
+      titleMax: ENCOURAGEMENT_TITLE_MAX,
+      bodyMax: ENCOURAGEMENT_BODY_MAX,
+    })
+
+    const trigger = 'Generate the messages now as strict JSON.'
+    let messages = parseEncouragements(await generate(systemPrompt, trigger))
+    if (!messages) messages = parseEncouragements(await generate(systemPrompt, trigger))
+    if (!messages) messages = fallbackEncouragements()
+
+    res.json({ messages, sourceEntryIds })
+  } catch (err: any) {
+    console.error('[ai/daily-encouragements]', err)
+    res.status(500).json({ error: err.message })
+  }
+}
+
+aiRouter.post('/daily-encouragements', firebaseAuth, requirePro, requireAiConsent, dailyEncouragementsHandler)

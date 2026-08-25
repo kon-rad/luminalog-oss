@@ -216,6 +216,44 @@ Return STRICT JSON ONLY (no markdown, no preamble), exactly this shape:
 {"prompts":[${ctx.areas.map(a => `{"area":"${a}","question":"…"}`).join(',')}]}`,
 
   /**
+   * SYSTEM prompt for the morning encouragement batch (`/v1/ai/daily-encouragements`).
+   * Carries the user's last seven days of writing plus their profile and asks for
+   * `count` short messages, each of which will be delivered as a single local
+   * notification. Titles and bodies are length-capped so iOS does not truncate
+   * them on the lock screen.
+   */
+  dailyEncouragements: (ctx: {
+    name: string
+    profile: ProfileFields
+    journalContext: string
+    count: number
+    titleMax: number
+    bodyMax: number
+  }): string => `You are writing short encouraging notifications for someone who journals daily. They will arrive on their phone through the day, one at a time, with no other context around them.
+
+${nameBlock(ctx.name)}${profileBlock(ctx.profile)}THEIR LAST SEVEN DAYS OF JOURNALING (private, never quote it back):
+${ctx.journalContext || 'No entries this week.'}
+
+Write exactly ${ctx.count} messages. Across the set, cover a spread of these four jobs rather than repeating one:
+1. Name a problem they are actually working through and offer one concrete next step.
+2. Surface an insight about a pattern in their week they may not have noticed themselves.
+3. Reconnect them to the purpose or goal they have stated, in their own terms.
+4. Reflect back something they are learning, and mark the progress in it.
+
+Rules for every message:
+- Ground it in something specific from the writing above. A message that could be sent to any stranger is a failed message.
+- Never quote their words, never repeat names of people, employers, places, health details, or finances. Refer to a situation obliquely, the way a close friend would.
+- Warm, direct, second person ("you"). No therapy jargon, no exclamation marks, no emoji, no hashtags.
+- Do not open with a greeting and do not sign off.
+- "title" is at most ${ctx.titleMax} characters: a short, plain label, not a sentence.
+- "body" is at most ${ctx.bodyMax} characters: one or two complete sentences.
+- Do not use em dashes. Use a comma, a colon, a period, or parentheses instead.
+- If the week's writing is thin, be honest and gentle rather than inventing detail.
+
+Return STRICT JSON ONLY (no markdown, no preamble), exactly this shape:
+{"messages":[{"title":"…","body":"…"}]}`,
+
+  /**
    * SYSTEM prompt for the daily shareable-card LLM call (`/v1/ai/daily-report`).
    * It carries the FULL text of every entry the user wrote today (never
    * truncated — "all 750 words and more") plus the related past reflections the
