@@ -31,6 +31,13 @@ struct VoiceCallContext: Sendable {
     let focalEntry: String?
 }
 
+/// One generated encouragement message as returned by the server. Plain text on
+/// the wire; the client seals it before it ever touches disk.
+struct GeneratedEncouragement: Decodable, Equatable, Sendable {
+    let title: String
+    let body: String
+}
+
 /// All AI features — backed by the proxy API in production
 /// (routes per spec §4.1), canned responses in demo mode.
 @MainActor
@@ -64,6 +71,12 @@ protocol AIService: AnyObject {
     /// Today's five personalized prompts — one per life area — generated in a
     /// single server-side LLM call. The client caches them for the day.
     func dailyPrompt() async throws -> [DailyPromptItem]
+
+    /// Generates the morning batch of encouragement messages from the user's last
+    /// seven days of entries. Returns an empty array when there is nothing to
+    /// ground them in. Zero-knowledge: the client decrypts and sends plaintext,
+    /// the server persists nothing.
+    func generateEncouragements() async throws -> [GeneratedEncouragement]
 
     /// Streaming assistant reply — yields token/word deltas as they arrive.
     func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error>
@@ -145,4 +158,9 @@ extension AIService {
     /// Default: no on-device index to warm (non-ZK paths and mocks). Only the
     /// zero-knowledge `ProxyAIService` overrides this.
     func warmSemanticIndex() async {}
+
+    /// Default: only the zero-knowledge `ProxyAIService` gathers the week's
+    /// entries and calls the server. Mocks and test stubs inherit the empty batch,
+    /// which the coordinator treats as "nothing to schedule".
+    func generateEncouragements() async throws -> [GeneratedEncouragement] { [] }
 }

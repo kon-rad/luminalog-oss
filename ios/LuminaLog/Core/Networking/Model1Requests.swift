@@ -119,6 +119,21 @@ enum Model1Requests {
         let sourceEntryIds: [String]
     }
 
+    /// Body for `POST /v1/ai/daily-encouragements`. Zero-knowledge: the entries,
+    /// name and profile are all PLAINTEXT, decrypted on device.
+    struct DailyEncouragementsBody: Encodable {
+        let name: String
+        let profile: [String: String]
+        let entries: [Entry]
+
+        struct Entry: Encodable {
+            let id: String
+            let type: String
+            let title: String
+            let content: String
+        }
+    }
+
     // MARK: - Assembly helpers
 
     /// Recent chat turns mapped to `{role, content}`, capped at `limit`.
@@ -153,6 +168,28 @@ enum Model1Requests {
                 content: String(entry.content.prefix(snippetChars))
             )
         }
+    }
+
+    /// The user's entries from the last seven days, newest first, for the morning
+    /// encouragement batch. A larger snippet than `promptEntries` because these
+    /// messages must be grounded in specifics; `limit` still caps the request size.
+    static func encouragementEntries(
+        from entries: [JournalEntry],
+        since: Date,
+        limit: Int = 20,
+        snippetChars: Int = 800
+    ) -> [DailyEncouragementsBody.Entry] {
+        entries
+            .filter { $0.createdAt >= since }
+            .prefix(limit)
+            .map { entry in
+                DailyEncouragementsBody.Entry(
+                    id: entry.id,
+                    type: entry.type.rawValue,
+                    title: entry.title.isEmpty ? "Untitled" : entry.title,
+                    content: String(entry.content.prefix(snippetChars))
+                )
+            }
     }
 
     /// Client-side RAG context string, mirroring the server retriever's format

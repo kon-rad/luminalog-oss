@@ -110,6 +110,10 @@ final class ProxyAIService: AIService {
         let text: String?
     }
 
+    private struct DailyEncouragementsResponse: Decodable {
+        let messages: [GeneratedEncouragement]
+    }
+
     private struct ChatBody: Encodable {
         let chatId: String
         let message: String
@@ -231,6 +235,31 @@ final class ProxyAIService: AIService {
             return [DailyPromptItem(area: "Reflection", text: text)]
         }
         return []
+    }
+
+    /// Gathers the last seven days of decrypted entries plus the decrypted profile
+    /// and asks the server for the morning encouragement batch. Zero-knowledge:
+    /// everything on the wire is plaintext the device decrypted, and the server
+    /// persists none of it. Returns [] when the week holds no entries, which the
+    /// coordinator treats as "nothing to schedule" rather than an error.
+    func generateEncouragements() async throws -> [GeneratedEncouragement] {
+        guard let journals else { return [] }
+        guard let since = Calendar(identifier: .gregorian)
+            .date(byAdding: .day, value: -7, to: now()) else { return [] }
+
+        let recent = await firstEmission(journals.recentEntries(limit: 60)) ?? []
+        let entries = Model1Requests.encouragementEntries(from: recent, since: since)
+        guard !entries.isEmpty else { return [] }
+
+        let profile = await loadProfile()
+        let body = Model1Requests.DailyEncouragementsBody(
+            name: profile?.displayName ?? "",
+            profile: profile.map { Model1Requests.profileFields(from: $0.details) } ?? [:],
+            entries: entries
+        )
+        let response: DailyEncouragementsResponse =
+            try await api.post(path: "/v1/ai/daily-encouragements", body: body)
+        return response.messages
     }
 
     func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error> {
