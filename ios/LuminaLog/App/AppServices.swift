@@ -10,6 +10,7 @@ final class AppServices: ObservableObject {
     let journals: JournalRepository
     let profiles: ProfileRepository
     let dailyReports: DailyReportRepository
+    let encouragements: EncouragementRepository
     let failedReports: FailedReportStore
     let chats: ChatRepository
     let ai: AIService
@@ -81,6 +82,7 @@ final class AppServices: ObservableObject {
         journals: JournalRepository,
         profiles: ProfileRepository,
         dailyReports: DailyReportRepository,
+        encouragements: EncouragementRepository,
         failedReports: FailedReportStore,
         chats: ChatRepository,
         ai: AIService,
@@ -109,6 +111,7 @@ final class AppServices: ObservableObject {
         self.journals = journals
         self.profiles = profiles
         self.dailyReports = dailyReports
+        self.encouragements = encouragements
         self.failedReports = failedReports
         self.chats = chats
         self.ai = ai
@@ -187,6 +190,7 @@ final class AppServices: ObservableObject {
         let baseJournals = FirestoreJournalRepository(auth: auth, keys: keys)
         let profiles = FirestoreProfileRepository(auth: auth, keys: keys)
         let dailyReports = FirestoreDailyReportRepository(auth: auth, keys: keys)
+        let encouragements = FirestoreEncouragementRepository(auth: auth, keys: keys)
         let failedReports = FailedReportStore(auth: auth)
         let chats = FirestoreChatRepository(auth: auth, keys: keys)
 
@@ -282,6 +286,7 @@ final class AppServices: ObservableObject {
             journals: journals,
             profiles: profiles,
             dailyReports: dailyReports,
+            encouragements: encouragements,
             failedReports: failedReports,
             chats: chats,
             ai: ai,
@@ -329,6 +334,7 @@ final class AppServices: ObservableObject {
         let journals = MockJournalRepository()
         let profiles = MockProfileRepository()
         let dailyReports = MockDailyReportRepository()
+        let encouragements = InMemoryEncouragementRepository()
         let failedReports = FailedReportStore(auth: auth, directory: FileManager.default.temporaryDirectory)
         let ai = MockAIService()
         let media = MockMediaUploader()
@@ -362,6 +368,7 @@ final class AppServices: ObservableObject {
             journals: journals,
             profiles: profiles,
             dailyReports: dailyReports,
+            encouragements: encouragements,
             failedReports: failedReports,
             chats: chats,
             ai: ai,

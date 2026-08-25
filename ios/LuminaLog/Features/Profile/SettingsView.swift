@@ -43,6 +43,7 @@ struct SettingsView: View {
     @State private var reindexStatus: String?
 
     @AppStorage(ThemeMode.storageKey) private var themeMode: String = ThemeMode.system.rawValue
+    @AppStorage(EncouragementPrefs.enabledKey) private var encouragementEnabled: Bool = EncouragementPrefs.defaultEnabled
 
     @Environment(\.openURL) private var openURL
 
@@ -504,6 +505,8 @@ struct SettingsView: View {
                         permissionDenied: $reminderPermissionDenied
                     )
                 }
+                rowDivider
+                encouragementRow
             }
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
@@ -516,6 +519,29 @@ struct SettingsView: View {
                 .font(.captionText)
                 .foregroundStyle(reminderPermissionDenied ? Color.danger : Color.textSecondary)
         }
+    }
+
+    /// Toggles the AI encouragement notifications. The coordinator reads this
+    /// same `UserDefaults` key on its next cycle, and the scene-active cycle
+    /// cancels the pending slots when it is off, so the toggle needs no other
+    /// plumbing. Off also skips the morning AI request entirely.
+    private var encouragementRow: some View {
+        HStack(spacing: Spacing.m) {
+            settingsIcon("sparkles", tint: .accentWarm)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Daily encouragement")
+                    .font(.uiBody)
+                    .foregroundStyle(Color.textPrimary)
+                Text("Three AI notes a day, drawn from your week")
+                    .font(.captionText)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            Spacer()
+            Toggle("Daily encouragement", isOn: $encouragementEnabled)
+                .tint(Color.accentWarm)
+                .labelsHidden()
+        }
+        .padding(Spacing.m)
     }
 
     // MARK: - Settings
