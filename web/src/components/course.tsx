@@ -2,10 +2,10 @@ import Link from 'next/link'
 import { Sparkles, ArrowRight } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import SiteFooter from '@/components/SiteFooter'
-import { COURSE_BASE, MODULES, VALUES } from '@/lib/ai-power-users/course'
+import { COURSE_BASE, MODULES, VALUES } from '@/lib/ai-agent-pro/course'
 
 /* ──────────────────────────────────────────────────────────────────────────
- * Presentational pieces for the AI Power Users course pages.
+ * Presentational pieces for the AI Agent Pro course pages.
  * Same visual language as the blog, legal and events pages: warm paper
  * background, Newsreader serif headings, hairline rules, amber accent.
  * The knowledge check is a separate client component (CourseQuiz.tsx).
@@ -68,7 +68,7 @@ export function CourseHero() {
           className="serif"
           style={{ fontSize: 52, fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1.05, color: 'var(--text)', marginBottom: 18 }}
         >
-          AI Power Users
+          AI Agent Pro
         </h1>
         <p style={{ fontSize: 19, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 640, margin: '0 auto' }}>
           Go from “I’ve heard of ChatGPT” to picking the right tool for any task,
@@ -76,7 +76,7 @@ export function CourseHero() {
           and even running a private model on your own laptop.
         </p>
         <p style={{ fontSize: 17, fontWeight: 600, color: 'var(--accentDeep)', marginTop: 22 }}>
-          Five hands-on modules. Hype-free.
+          Eight hands-on modules. Hype-free.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3" style={{ marginTop: 34 }}>
           <Link href={`${COURSE_BASE}/module-1`} className="btn-amber">

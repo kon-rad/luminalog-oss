@@ -13,7 +13,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 interface CourseQuizProps {
   /** Stable id for the quiz, e.g. 'module-1' or 'kids-stem'. */
   quizId: string
-  /** Human label shown in the saved-quiz history, e.g. 'AI Power Users · Module 1'. */
+  /** Human label shown in the saved-quiz history, e.g. 'AI Agent Pro · Module 1'. */
   quizTitle: string
   mcq: QuizMCQ[]
   openQuestions: string[]
@@ -26,7 +26,7 @@ interface CourseQuizProps {
  * answer and check, plus short-answer boxes. Anyone can take it and see their
  * score; results are only PERSISTED when the visitor signs in (each submit is a
  * new attempt, so the quiz can be retaken and the history is kept — shown on
- * /dashboard). Used by both the AI Power Users and Kids STEM courses.
+ * /dashboard). Used by both the AI Agent Pro and Kids STEM courses.
  */
 export default function CourseQuiz({
   quizId,

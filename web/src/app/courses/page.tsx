@@ -6,20 +6,20 @@ import { CourseLayout } from '@/components/course'
 export const metadata: Metadata = {
   title: 'Courses, Argo',
   description:
-    'Hands-on courses from Argo: AI Power Users for adults, and a Wholistic Creativity & STEM class for kids.',
+    'Hands-on courses from Argo: AI Agent Pro for adults, and a Wholistic Creativity & STEM class for kids.',
   openGraph: {
     title: 'Courses, Argo',
     description:
-      'Hands-on courses from Argo: AI Power Users for adults, and a Wholistic Creativity & STEM class for kids.',
+      'Hands-on courses from Argo: AI Agent Pro for adults, and a Wholistic Creativity & STEM class for kids.',
   },
 }
 
 const COURSES = [
   {
-    href: '/courses/ai-power-users',
+    href: '/courses/ai-agent-pro',
     icon: Cpu,
-    eyebrow: 'For adults · 5 hands-on modules',
-    title: 'AI Power Users',
+    eyebrow: 'For adults · 8 hands-on modules',
+    title: 'AI Agent Pro',
     blurb:
       'Go from “I’ve heard of ChatGPT” to picking the right tool for any task, prompting like a pro, chaining tools together, protecting your data, and running a private model on your own laptop.',
   },

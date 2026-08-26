@@ -1,45 +1,20 @@
-import type { Metadata } from 'next'
 import Link from 'next/link'
-import {
-  Sparkles,
-  ArrowRight,
-  ArrowUpRight,
-  ExternalLink,
-  Radio,
-  BookText,
-  Check,
-} from 'lucide-react'
+import { Sparkles, ArrowRight, ArrowUpRight, Radio, BookText, Check } from 'lucide-react'
 import { CourseLayout, Pill, SectionHeading } from '@/components/course'
 import CourseQuiz from '@/components/CourseQuiz'
-import { COURSE_BASE, MODULES } from '@/lib/ai-power-users/course'
-import {
-  TOOLSTACK,
-  MODULE_1_AGENDA,
-  MODULE_1_MCQ,
-  MODULE_1_OPEN_QUESTIONS,
-  LUMA_URL,
-  YOUTUBE_URL,
-  GUIDE_URL,
-  MODULE_1_MATERIALS_URL,
-} from '@/lib/ai-power-users/program'
+import { COURSE_BASE, MODULES } from '@/lib/ai-agent-pro/course'
+import { LUMA_URL, YOUTUBE_URL, type AgendaItem, type QuizMCQ } from '@/lib/ai-agent-pro/program'
 
-export const metadata: Metadata = {
-  title: 'Module 1 · Build Your Private AI Second Brain, Argo',
-  description:
-    'The live first session of AI Power Users. Install a complete private AI stack (offline speech-to-text, Obsidian, the Hermes agent, and a private Morpheus model) and build your first agent skill. Free, no coding required.',
-}
-
-const STEPS = [
-  'Install Obsidian, your notes window',
-  'Install VS Code, inspect your files, skills, and config',
-  'Install Handy, offline speech-to-text',
-  'Install cmux, your agent terminal (macOS)',
-  'Install Hermes, your AI agent',
-  'Create a Morpheus account & API key, the private brain',
-  'Build your second brain with the PARA method',
-  'Run Hermes in your folder and connect it to Morpheus',
-  'Create your first skill: a daily standup',
-]
+/* ──────────────────────────────────────────────────────────────────────────
+ * Shared scaffold for a module page.
+ *
+ * Modules 0, 1 and 2 predate this and stay hand-written; each carries a
+ * bespoke section (the Windows toolstack, the five-tool grid, the model
+ * profile table) that is not worth generalising. Everything from Module 3
+ * onwards is the same shape, so it lives here: hero, ideas, agenda, steps,
+ * cost, quiz, course grid, CTA. Per-module extras go in `children`, which is
+ * rendered directly under the hero.
+ * ────────────────────────────────────────────────────────────────────────── */
 
 const outlineButton: React.CSSProperties = {
   height: 52,
@@ -51,14 +26,76 @@ const outlineButton: React.CSSProperties = {
   background: 'var(--surface)',
 }
 
-export default function ModuleOnePage() {
+export interface Idea {
+  title: string
+  body: string
+}
+
+export interface CostLine {
+  item: string
+  amount: string
+}
+
+export interface ModulePageProps {
+  /** Module number, used for the pill and the "you are here" marker. */
+  n: number
+  /** Route slug, e.g. 'module-7'. Must match the entry in MODULES. */
+  slug: string
+  title: string
+  lede: string
+  /** Green pill beside the live badge, e.g. 'Free · No coding' or 'About 2 USD'. */
+  costBadge: string
+  /** One line naming what a student must already have. */
+  prereq?: React.ReactNode
+  guideUrl: string
+  materialsUrl: string
+  ideas: Idea[]
+  ideasHeading?: string
+  agenda: AgendaItem[]
+  agendaLede: string
+  steps: string[]
+  stepsHeading?: string
+  cost?: CostLine[]
+  costNote?: string
+  /** Said plainly, the way the module says it. Never softened. */
+  caveat: string
+  quizId: string
+  mcq: QuizMCQ[]
+  openQuestions: string[]
+  /** Extra sections, rendered between the hero and "the ideas". */
+  children?: React.ReactNode
+}
+
+export default function ModulePage({
+  n,
+  slug,
+  title,
+  lede,
+  costBadge,
+  prereq,
+  guideUrl,
+  materialsUrl,
+  ideas,
+  ideasHeading = 'The ideas that carry the session',
+  agenda,
+  agendaLede,
+  steps,
+  stepsHeading = 'The build, step by step',
+  cost,
+  costNote,
+  caveat,
+  quizId,
+  mcq,
+  openQuestions,
+  children,
+}: ModulePageProps) {
   return (
     <CourseLayout>
       {/* Hero */}
       <section style={{ borderBottom: '1px solid var(--hairline)', background: 'var(--surfaceAlt)' }}>
         <div className="wrap" style={{ padding: '64px 0 52px', textAlign: 'center' }}>
           <div className="flex flex-wrap items-center justify-center gap-2" style={{ marginBottom: 22 }}>
-            <Pill>Day 1 · Module 1</Pill>
+            <Pill>Module {n}</Pill>
             <span
               className="inline-flex items-center gap-1.5 rounded-full"
               style={{
@@ -87,24 +124,47 @@ export default function ModuleOnePage() {
                 border: '1px solid rgba(125,191,114,0.28)',
               }}
             >
-              Free · No coding
+              {costBadge}
             </span>
           </div>
 
           <span className="eyebrow" style={{ marginBottom: 14, justifyContent: 'center' }}>
-            <Sparkles style={{ width: 14, height: 14 }} /> AI Power Users
+            <Sparkles style={{ width: 14, height: 14 }} /> AI Agent Pro
           </span>
           <h1
             className="serif"
-            style={{ fontSize: 46, fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1.08, color: 'var(--text)', marginBottom: 18 }}
+            style={{
+              fontSize: 46,
+              fontWeight: 600,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.08,
+              color: 'var(--text)',
+              marginBottom: 18,
+            }}
           >
-            Build Your Private AI Second Brain
+            {title}
           </h1>
-          <p style={{ fontSize: 18.5, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 620, margin: '0 auto' }}>
-            In 45 minutes we install a complete private AI stack, live: a personal agent that
-            lives inside your own notes, thinks with a private model, and works offline. Then we
-            build your first agent skill: a daily standup with your AI.
+          <p style={{ fontSize: 18.5, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 640, margin: '0 auto' }}>
+            {lede}
           </p>
+
+          {prereq && (
+            <p
+              style={{
+                fontSize: 15.5,
+                lineHeight: 1.55,
+                color: 'var(--text2)',
+                maxWidth: 560,
+                margin: '20px auto 0',
+                padding: '12px 18px',
+                borderRadius: 'var(--r-card)',
+                background: 'var(--surface)',
+                border: '1px solid var(--hairline)',
+              }}
+            >
+              {prereq}
+            </p>
+          )}
 
           <div className="flex flex-wrap items-center justify-center gap-3" style={{ marginTop: 34 }}>
             <a href={LUMA_URL} target="_blank" rel="noopener noreferrer" className="btn-amber">
@@ -122,7 +182,7 @@ export default function ModuleOnePage() {
               Watch live
             </a>
             <a
-              href={GUIDE_URL}
+              href={guideUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-btn"
@@ -135,74 +195,36 @@ export default function ModuleOnePage() {
         </div>
       </section>
 
-      {/* What you'll build */}
-      <section>
+      {children}
+
+      {/* The ideas */}
+      <section style={{ background: 'var(--surfaceAlt)', borderTop: '1px solid var(--hairline)', borderBottom: '1px solid var(--hairline)' }}>
         <div className="wrap" style={{ padding: '64px 0' }}>
           <div style={{ textAlign: 'center', marginBottom: 38 }}>
-            <SectionHeading>What you’ll build</SectionHeading>
-            <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 560, margin: '12px auto 0' }}>
-              Five free tools, wired into one private-AI workstation. Nothing depends on a single
-              company’s cloud.
-            </p>
+            <SectionHeading>{ideasHeading}</SectionHeading>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: 22 }}>
-            {TOOLSTACK.map((tool) => (
-              <a
-                key={tool.name}
-                href={tool.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="card flex flex-col"
-                style={{ padding: '26px 28px', textDecoration: 'none' }}
-              >
-                <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-                  <span
-                    className="inline-flex items-center justify-center"
-                    style={{ width: 46, height: 46, borderRadius: 14, background: 'var(--accentSoft)', color: 'var(--accentDeep)' }}
-                  >
-                    <tool.icon style={{ width: 22, height: 22 }} />
-                  </span>
-                  <ExternalLink style={{ width: 16, height: 16, color: 'var(--text3)' }} />
-                </div>
-                <h3 className="serif" style={{ fontSize: 20, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
-                  {tool.name}
+          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 22 }}>
+            {ideas.map((idea) => (
+              <div key={idea.title} className="card flex flex-col" style={{ padding: '26px 28px' }}>
+                <h3 className="serif" style={{ fontSize: 20, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>
+                  {idea.title}
                 </h3>
-                <p style={{ fontSize: 15.5, lineHeight: 1.55, color: 'var(--text2)', marginBottom: 16 }}>
-                  {tool.role}
-                </p>
-                <div className="flex flex-wrap gap-2" style={{ marginTop: 'auto' }}>
-                  <span
-                    className="inline-flex items-center rounded-full"
-                    style={{ fontSize: 12, fontWeight: 600, padding: '4px 11px', color: 'var(--dim-art)', background: 'rgba(125,191,114,0.12)' }}
-                  >
-                    {tool.free}
-                  </span>
-                  {tool.openSource && (
-                    <span
-                      className="inline-flex items-center rounded-full"
-                      style={{ fontSize: 12, fontWeight: 600, padding: '4px 11px', color: 'var(--text2)', border: '1px solid var(--hairline2)' }}
-                    >
-                      Open source
-                    </span>
-                  )}
-                </div>
-              </a>
+                <p style={{ fontSize: 15.5, lineHeight: 1.6, color: 'var(--text2)' }}>{idea.body}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Agenda */}
-      <section style={{ background: 'var(--surfaceAlt)', borderTop: '1px solid var(--hairline)', borderBottom: '1px solid var(--hairline)' }}>
+      <section>
         <div className="wrap" style={{ padding: '64px 0', maxWidth: 800 }}>
           <div style={{ textAlign: 'center', marginBottom: 38 }}>
-            <SectionHeading>The 45-minute session</SectionHeading>
-            <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', marginTop: 12 }}>
-              Hands-on the whole way through. You finish with a working setup.
-            </p>
+            <SectionHeading>The 60-minute session</SectionHeading>
+            <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', marginTop: 12 }}>{agendaLede}</p>
           </div>
           <div className="flex flex-col" style={{ gap: 12 }}>
-            {MODULE_1_AGENDA.map((item) => (
+            {agenda.map((item) => (
               <div key={item.time} className="card flex gap-5" style={{ padding: '20px 22px' }}>
                 <div
                   style={{
@@ -229,16 +251,16 @@ export default function ModuleOnePage() {
       </section>
 
       {/* Steps */}
-      <section>
+      <section style={{ background: 'var(--surfaceAlt)', borderTop: '1px solid var(--hairline)', borderBottom: '1px solid var(--hairline)' }}>
         <div className="wrap" style={{ padding: '64px 0', maxWidth: 800 }}>
           <div style={{ textAlign: 'center', marginBottom: 38 }}>
-            <SectionHeading>The build, step by step</SectionHeading>
+            <SectionHeading>{stepsHeading}</SectionHeading>
             <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', marginTop: 12 }}>
-              The full walkthrough (every command, link, and description) is in the student guide.
+              Every command and every copy-pasteable brief is in the student guide.
             </p>
           </div>
           <div className="flex flex-col" style={{ gap: 12 }}>
-            {STEPS.map((step, i) => (
+            {steps.map((step, i) => (
               <div key={step} className="card flex items-center gap-4" style={{ padding: '16px 20px' }}>
                 <span
                   className="inline-flex items-center justify-center"
@@ -260,12 +282,12 @@ export default function ModuleOnePage() {
             ))}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3" style={{ marginTop: 32 }}>
-            <a href={GUIDE_URL} target="_blank" rel="noopener noreferrer" className="btn-amber">
+            <a href={guideUrl} target="_blank" rel="noopener noreferrer" className="btn-amber">
               Open the full student guide
               <ArrowUpRight style={{ width: 16, height: 16 }} />
             </a>
             <a
-              href={MODULE_1_MATERIALS_URL}
+              href={materialsUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-btn"
@@ -278,38 +300,84 @@ export default function ModuleOnePage() {
         </div>
       </section>
 
+      {/* Cost and the honest caveat */}
+      <section>
+        <div className="wrap" style={{ padding: '64px 0', maxWidth: 800 }}>
+          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 22 }}>
+            {cost && (
+              <div className="card flex flex-col" style={{ padding: '26px 28px' }}>
+                <h3 className="serif" style={{ fontSize: 20, fontWeight: 600, color: 'var(--text)', marginBottom: 16 }}>
+                  What it costs
+                </h3>
+                <dl style={{ margin: 0 }}>
+                  {cost.map((line) => (
+                    <div
+                      key={line.item}
+                      className="flex items-baseline justify-between gap-4"
+                      style={{ padding: '9px 0', borderBottom: '1px solid var(--hairline)' }}
+                    >
+                      <dt style={{ fontSize: 15.5, color: 'var(--text2)' }}>{line.item}</dt>
+                      <dd style={{ fontSize: 15.5, fontWeight: 600, color: 'var(--text)', textAlign: 'right', margin: 0 }}>
+                        {line.amount}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                {costNote && (
+                  <p style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--text2)', marginTop: 16 }}>{costNote}</p>
+                )}
+              </div>
+            )}
+            <div
+              className="flex flex-col"
+              style={{
+                padding: '26px 28px',
+                borderRadius: 'var(--r-card)',
+                background: 'var(--accentSoft)',
+                border: '1px solid var(--accentTint)',
+              }}
+            >
+              <h3 className="serif" style={{ fontSize: 20, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>
+                The honest part
+              </h3>
+              <p style={{ fontSize: 15.5, lineHeight: 1.6, color: 'var(--text2)' }}>{caveat}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Quiz */}
       <section style={{ background: 'var(--surfaceAlt)', borderTop: '1px solid var(--hairline)', borderBottom: '1px solid var(--hairline)' }}>
         <div className="wrap" style={{ padding: '64px 0', maxWidth: 800 }}>
           <div style={{ textAlign: 'center', marginBottom: 38 }}>
             <SectionHeading>Knowledge check</SectionHeading>
             <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', marginTop: 12 }}>
-              Five quick questions to check your understanding, then five to answer in your own
+              Five quick questions to check your understanding, then four to answer in your own
               words for peer review.
             </p>
           </div>
           <CourseQuiz
-            quizId="module-1"
-            quizTitle="AI Power Users · Module 1"
-            mcq={MODULE_1_MCQ}
-            openQuestions={MODULE_1_OPEN_QUESTIONS}
+            quizId={quizId}
+            quizTitle={`AI Agent Pro · Module ${n}`}
+            mcq={mcq}
+            openQuestions={openQuestions}
           />
         </div>
       </section>
 
-      {/* Program grid */}
+      {/* Course grid */}
       <section>
         <div className="wrap" style={{ padding: '64px 0' }}>
           <div style={{ textAlign: 'center', marginBottom: 38 }}>
-            <SectionHeading>Part of a 5-module course</SectionHeading>
+            <SectionHeading>Where this sits in the course</SectionHeading>
             <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 560, margin: '12px auto 0' }}>
-              Each module is a standalone hands-on session. This is Module 1. If you are on
-              Windows 11 and have never opened a terminal, start with Module 0.
+              Each module is a standalone hands-on session, though the later ones build on what the
+              earlier ones left running.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6" style={{ gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4" style={{ gap: 16 }}>
             {MODULES.map((mod) => {
-              const isCurrent = mod.slug === 'module-1'
+              const isCurrent = mod.slug === slug
               const card = (
                 <div
                   style={{
@@ -356,8 +424,8 @@ export default function ModuleOnePage() {
         <div className="wrap" style={{ padding: '72px 0', textAlign: 'center', maxWidth: 640 }}>
           <SectionHeading>Join us live</SectionHeading>
           <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', margin: '14px 0 30px' }}>
-            Register on Luma to get the student guide and the livestream link. Bring a laptop and a
-            real project you want your AI to help you track.
+            Register on Luma to get the student guide and the livestream link. Read the guide before
+            you arrive; the session moves at the speed of someone who already has the accounts open.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <a href={LUMA_URL} target="_blank" rel="noopener noreferrer" className="btn-amber">
@@ -382,5 +450,70 @@ function GithubGlyph() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden style={{ flexShrink: 0 }}>
       <path d="M12 .5C5.73.5.5 5.73.5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2.17c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.24 2.76.12 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.4-5.27 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5z" />
     </svg>
+  )
+}
+
+/* Shared extra section: a grid of the skills an agent writes for itself. */
+export function SkillsSection({
+  heading,
+  lede,
+  skills,
+}: {
+  heading: string
+  lede: string
+  skills: { command: string; cadence: string; what: string; why: string; icon: React.ComponentType<{ style?: React.CSSProperties }> }[]
+}) {
+  return (
+    <section>
+      <div className="wrap" style={{ padding: '64px 0' }}>
+        <div style={{ textAlign: 'center', marginBottom: 38 }}>
+          <SectionHeading>{heading}</SectionHeading>
+          <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 620, margin: '12px auto 0' }}>
+            {lede}
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 22 }}>
+          {skills.map((skill) => (
+            <div key={skill.command} className="card flex flex-col" style={{ padding: '26px 28px' }}>
+              <div className="flex items-center gap-3" style={{ marginBottom: 14 }}>
+                <span
+                  className="inline-flex items-center justify-center"
+                  style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--accentSoft)', color: 'var(--accentDeep)', flexShrink: 0 }}
+                >
+                  <skill.icon style={{ width: 21, height: 21 }} />
+                </span>
+                <div>
+                  <div
+                    style={{
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                      fontSize: 16,
+                      fontWeight: 700,
+                      color: 'var(--text)',
+                    }}
+                  >
+                    {skill.command}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text3)' }}>{skill.cadence}</div>
+                </div>
+              </div>
+              <p style={{ fontSize: 15.5, lineHeight: 1.55, color: 'var(--text2)', marginBottom: 14 }}>{skill.what}</p>
+              <p
+                style={{
+                  fontSize: 14.5,
+                  lineHeight: 1.55,
+                  color: 'var(--text2)',
+                  marginTop: 'auto',
+                  paddingTop: 14,
+                  borderTop: '1px solid var(--hairline)',
+                }}
+              >
+                <span style={{ fontWeight: 600, color: 'var(--text)' }}>Why it matters: </span>
+                {skill.why}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   )
 }

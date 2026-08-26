@@ -192,7 +192,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
     box-shadow: var(--shadowHover);
   }
 
-  /* Long-form lesson body (/ai-power-users). Paragraph rhythm and type sizes
+  /* Long-form lesson body (/courses/ai-agent-pro). Paragraph rhythm and type sizes
      are set inline by LessonSection; this covers the inline elements. */
   .lesson-prose strong {
     color: var(--text);
