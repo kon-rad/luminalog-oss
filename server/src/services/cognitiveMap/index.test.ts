@@ -57,6 +57,20 @@ describe('generateEntryMap', () => {
     expect(map.generatedAt).toBeTruthy()
   })
 
+  it('gives every map call one attempt on a 90s budget, not three on 30s', async () => {
+    // The default budget aborts at 30s, but a single extraction pass measures ~37s, so
+    // the default can never complete one. One attempt, because the model chain is
+    // already the retry: a wedged slug should advance the chain, not be asked twice more.
+    chatCompletion.mockResolvedValueOnce(ok(passA)).mockResolvedValueOnce(ok(passB))
+
+    await generateEntryMap({ content: ENTRY })
+
+    expect(chatCompletion).toHaveBeenCalled()
+    for (const call of chatCompletion.mock.calls) {
+      expect((call[1] as { retry?: unknown }).retry).toEqual({ attempts: 1, timeoutMs: 90_000 })
+    }
+  })
+
   it('never emits a quote that is not in the entry', async () => {
     chatCompletion.mockResolvedValueOnce(ok(passA)).mockResolvedValueOnce(ok(passB))
     const map = await generateEntryMap({ content: ENTRY })
