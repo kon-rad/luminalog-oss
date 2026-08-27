@@ -5,6 +5,12 @@ enum AIServiceError: Error {
     /// The requested AI operation isn't available on this path (e.g. `generateEntryAI`
     /// is only implemented on the zero-knowledge `ProxyAIService` path).
     case unavailable
+    /// A server-side generation job reported failure. Carries the upstream message,
+    /// which describes the provider failure and never the entry.
+    case jobFailed(String)
+    /// A generation job was still running when the client's poll ceiling was reached.
+    /// The job keeps running server-side, so a later attempt usually collects it.
+    case jobTimedOut
 }
 
 /// The three per-entry AI artifacts produced together in one call. On the legacy

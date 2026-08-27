@@ -41,6 +41,11 @@ final class ProxyAIService: AIService {
     /// Injected clock so Model-1 recency scoring / day bounds are testable.
     private let now: () -> Date
 
+    /// Seconds between map-job polls, and the wall-clock ceiling on one wait.
+    /// Injectable so tests walk the loop without sleeping for real.
+    private let mapPollInterval: TimeInterval
+    private let mapPollCeiling: TimeInterval
+
     /// On the LEGACY path the proxy's `/v1/ai/chat` route writes both the user
     /// message and the streamed reply to Firestore (spec §5.4), so the client must
     /// not also persist them. On the MODEL-1 path (`DevFlags.aiModel1` ON) the
@@ -58,10 +63,14 @@ final class ProxyAIService: AIService {
         dailyReports: DailyReportRepository? = nil,
         coordinator: SemanticIndexCoordinating? = nil,
         audioPreparer: AudioTranscriptionPreparing = AudioTranscriptionPreparer(),
+        mapPollInterval: TimeInterval = 2,
+        mapPollCeiling: TimeInterval = 180,
         now: @escaping () -> Date = Date.init
     ) {
         self.api = api
         self.audioPreparer = audioPreparer
+        self.mapPollInterval = mapPollInterval
+        self.mapPollCeiling = mapPollCeiling
         self.journals = journals
         self.profiles = profiles
         self.chats = chats
@@ -92,7 +101,7 @@ final class ProxyAIService: AIService {
         let generatedAt: Date?
     }
 
-    /// `POST /v1/ai/entry-map`. Internal (not private) so the pure response-to-model
+    /// The finished map. Internal (not private) so the pure response-to-model
     /// mapping below can be unit-tested without a network.
     struct EntryMapResponse: Decodable {
         let v: Int?
@@ -100,6 +109,35 @@ final class ProxyAIService: AIService {
         let edges: [MapEdge]
         let model: String?
         let generatedAt: Date?
+    }
+
+    /// `POST /v1/ai/entry-map` now answers 202 with a ticket, not a map.
+    struct EntryMapJobTicket: Decodable {
+        let jobId: String
+    }
+
+    enum EntryMapJobStatus: String, Decodable {
+        case pending, done, failed
+    }
+
+    /// `GET /v1/ai/entry-map/{jobId}`. One shape for all three states, so the map's
+    /// fields are optional and only populated when `status` is `done`.
+    struct EntryMapJobResponse: Decodable {
+        let status: EntryMapJobStatus
+        let error: String?
+        let v: Int?
+        let beats: [Beat]?
+        let edges: [MapEdge]?
+        let model: String?
+        let generatedAt: Date?
+
+        /// The map, when this response carries one.
+        var completed: EntryMapResponse? {
+            guard status == .done, let beats, let edges else { return nil }
+            return EntryMapResponse(
+                v: v, beats: beats, edges: edges, model: model, generatedAt: generatedAt
+            )
+        }
     }
 
     private struct DailyPromptResponse: Decodable {
@@ -192,11 +230,41 @@ final class ProxyAIService: AIService {
               let entry = await firstEmission(journals.entry(id: journalId)).flatMap({ $0 }) else {
             throw AIServiceError.unavailable
         }
-        let response: EntryMapResponse = try await api.post(
+        // The server generates asynchronously: the POST starts a job and answers with a
+        // ticket, and the map arrives on a later poll. The pipeline takes 85 to 190
+        // seconds, which is well past any request timeout, so waiting on the POST was
+        // never going to work.
+        let ticket: EntryMapJobTicket = try await api.post(
             path: "/v1/ai/entry-map",
             body: Model1Requests.EntryMapBody(content: entry.content, type: entry.type.rawValue)
         )
-        return Self.generation(from: response)
+        return try await pollEntryMap(jobId: ticket.jobId)
+    }
+
+    /// Polls a map job to completion.
+    ///
+    /// Deliberately uses `Date()` and not the injected `now`: the injected clock is
+    /// fixed in some tests, and a deadline measured against a frozen clock never
+    /// expires. Cancellation propagates out of `Task.sleep` as `CancellationError`,
+    /// which `EntryAIGenerator` already classifies as "torn down, not failed", so a
+    /// view teardown mid-poll correctly does not spend an attempt.
+    private func pollEntryMap(jobId: String) async throws -> CognitiveMapGeneration {
+        let deadline = Date().addingTimeInterval(mapPollCeiling)
+        while Date() < deadline {
+            let response: EntryMapJobResponse = try await api.get(path: "/v1/ai/entry-map/\(jobId)")
+            switch response.status {
+            case .done:
+                guard let completed = response.completed else { throw AIServiceError.unavailable }
+                return Self.generation(from: completed)
+            case .failed:
+                throw AIServiceError.jobFailed(response.error ?? "Cognitive map generation failed")
+            case .pending:
+                try await Task.sleep(nanoseconds: UInt64(mapPollInterval * 1_000_000_000))
+            }
+        }
+        // The job keeps running on the server, and jobs are deduped by content, so the
+        // next attempt re-POSTs the same content and collects it on its first poll.
+        throw AIServiceError.jobTimedOut
     }
 
     /// Pure mapping from the wire response to the stored model. Split out so it is
