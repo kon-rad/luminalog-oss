@@ -139,7 +139,10 @@ export default function RoomTable({ deck, code }: { deck: Deck; code: string }) 
               <button
                 onClick={() => (confirmEnd ? endRoom(code) : setConfirmEnd(true))}
                 onBlur={() => setConfirmEnd(false)}
-                style={{ ...ghostButton, gap: 7, color: confirmEnd ? '#F0655C' : undefined }}
+                // Spread the warning colour in only when armed: a plain
+                // `color: undefined` would erase ghostButton's own colour and drop the
+                // label back to the browser's dark default, invisible on the ink table.
+                style={{ ...ghostButton, gap: 7, ...(confirmEnd ? { color: '#F0655C' } : {}) }}
               >
                 <XCircle size={14} />
                 {confirmEnd ? 'Tap again to end' : 'End game'}
