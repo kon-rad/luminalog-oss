@@ -57,18 +57,20 @@ const schema = z.object({
   // `custom-llm-llm-failed` if a turn is too slow. It therefore gets its own
   // provider switch, independent of the global `AI_PROVIDER` (ADR-0109).
   //
-  // Why voice defaults to `together` while everything else stays on Morpheus:
-  // Morpheus reserves capacity for "priority models" and now 503s 159 of its 163
-  // models — including EVERY Gemini and Claude slug. The previous default
-  // (`Gemini 3.5 Flash`) failed 8/8 live probes, so every voice turn fell through
-  // to the "having a moment" fallback. Measured from the droplet (10 runs, real
-  // voice turn, streaming TTFB):
+  // Defaults to `venice` as of ADR-0138, a deliberate product decision made WITHOUT
+  // a live-turn latency probe (unlike the together/morpheus numbers below, which
+  // were measured before that switch). If Venice turns out too slow for real-time
+  // speech, revert instantly with `VOICE_AI_PROVIDER=together` (no code change, no
+  // redeploy beyond the env var).
+  //
+  // Prior history, why voice ONCE defaulted to `together` while everything else
+  // stayed on Morpheus: Morpheus reserves capacity for "priority models" and 503s
+  // most of its models, including every Gemini and Claude slug. Measured from the
+  // droplet (10 runs, real voice turn, streaming TTFB):
   //   together meta-llama/Llama-3.3-70B-Instruct-Turbo → ~0.95s median, 2.06s max, 10/10
   //   morpheus glm-5.2                                 → ~1.6s median, 5.27s max
   //   morpheus deepseek-v4-flash                       → ~2.5s median, 10.1s max
-  // Flip back with `VOICE_AI_PROVIDER=morpheus` the moment Morpheus can serve a
-  // fast slug again — no code change needed.
-  VOICE_AI_PROVIDER: z.enum(['together', 'morpheus']).default('together'),
+  VOICE_AI_PROVIDER: z.enum(['together', 'morpheus', 'venice']).default('venice'),
   // Overrides the voice model for whichever provider VOICE_AI_PROVIDER selects.
   // Unset → that provider's built-in voice default (see aiClient.ts). This is the
   // knob to turn when a better Morpheus slug appears: set VOICE_AI_PROVIDER=morpheus

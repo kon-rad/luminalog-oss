@@ -449,6 +449,19 @@ describe('resolveVoiceProvider', () => {
     expect(resolveVoiceProvider().chatModel).toBe('some-better-slug')
   })
 
+  it('switches to Venice by env, with the Venice voice default model', () => {
+    ;(config as any).VOICE_AI_PROVIDER = 'venice'
+    const p = resolveVoiceProvider()
+    expect(p.name).toBe('venice')
+    expect(p.chatModel).toBe('gemini-3-5-flash-lite')
+  })
+
+  it('lets VOICE_CHAT_MODEL override the Venice default too', () => {
+    ;(config as any).VOICE_AI_PROVIDER = 'venice'
+    ;(config as any).VOICE_CHAT_MODEL = 'some-other-venice-slug'
+    expect(resolveVoiceProvider().chatModel).toBe('some-other-venice-slug')
+  })
+
   it('does not disturb the global provider resolution', () => {
     ;(config as any).AI_PROVIDER = 'morpheus'
     ;(config as any).VOICE_AI_PROVIDER = 'together'

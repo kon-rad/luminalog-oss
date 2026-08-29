@@ -24,6 +24,7 @@ const DEFAULT_VENICE_STT_MODEL = 'openai/whisper-large-v3'
 // lands in `reasoning_content`, so it would stream an empty reply to Vapi).
 const DEFAULT_VOICE_TOGETHER_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
 const DEFAULT_VOICE_MORPHEUS_MODEL = 'deepseek-v4-flash'
+const DEFAULT_VOICE_VENICE_MODEL = 'gemini-3-5-flash-lite'
 
 export type AiProviderName = 'together' | 'morpheus' | 'venice'
 export interface AiProvider {
@@ -117,10 +118,15 @@ export function chatModelChain(): string[] {
  * overrides the chosen provider's voice default. ADR-0109.
  */
 export function resolveVoiceProvider(): AiProvider {
-  const name: AiProviderName = config.VOICE_AI_PROVIDER === 'morpheus' ? 'morpheus' : 'together'
-  const base = name === 'morpheus' ? morpheusProvider() : togetherProvider()
+  const name: AiProviderName =
+    config.VOICE_AI_PROVIDER === 'morpheus' ? 'morpheus' :
+    config.VOICE_AI_PROVIDER === 'venice' ? 'venice' : 'together'
+  const base =
+    name === 'morpheus' ? morpheusProvider() :
+    name === 'venice' ? veniceProvider() : togetherProvider()
   const fallbackModel =
-    name === 'morpheus' ? DEFAULT_VOICE_MORPHEUS_MODEL : DEFAULT_VOICE_TOGETHER_MODEL
+    name === 'morpheus' ? DEFAULT_VOICE_MORPHEUS_MODEL :
+    name === 'venice' ? DEFAULT_VOICE_VENICE_MODEL : DEFAULT_VOICE_TOGETHER_MODEL
   return { ...base, chatModel: config.VOICE_CHAT_MODEL || fallbackModel }
 }
 
