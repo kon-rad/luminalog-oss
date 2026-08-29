@@ -17,8 +17,10 @@ const DEFAULT_VENICE_CHAT_MODEL = 'gemini-3-5-flash-lite'
 const DEFAULT_VENICE_STT_MODEL = 'openai/whisper-large-v3'
 
 // Per-provider defaults for the LIVE VOICE turn, which is latency-critical and
-// picks its provider independently of AI_PROVIDER (ADR-0109). Both are measured
-// fast, currently-routable ids — see the VOICE_AI_PROVIDER note in config.ts.
+// picks its provider independently of AI_PROVIDER (ADR-0109). Together and Morpheus
+// defaults are measured fast, currently-routable ids. Venice's default is unmeasured:
+// it was chosen as a deliberate product decision (ADR-0138) to accept latency risk;
+// see the VOICE_AI_PROVIDER note in config.ts.
 // The Morpheus one is deliberately `deepseek-v4-flash` (a routable slug that
 // returns real `content`), NOT `deepseek-v4-pro` (a reasoning model whose output
 // lands in `reasoning_content`, so it would stream an empty reply to Vapi).
