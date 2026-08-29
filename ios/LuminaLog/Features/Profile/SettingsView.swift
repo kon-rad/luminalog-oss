@@ -693,7 +693,7 @@ struct SettingsView: View {
                     Text("Re-index All Entries")
                         .font(.uiBody)
                         .foregroundStyle(Color.textPrimary)
-                    Text(reindexStatus ?? "Rebuild the server RAG index from every entry (Morpheus embeddings)")
+                    Text(reindexStatus ?? "Rebuild the server RAG index from every entry")
                         .font(.captionText)
                         .foregroundStyle(Color.textSecondary)
                 }
