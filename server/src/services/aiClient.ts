@@ -14,6 +14,7 @@ const DEFAULT_MORPHEUS_CHAT_MODEL = 'llama-3.3-70b'
 const DEFAULT_MORPHEUS_EMBEDDING_MODEL = 'text-embedding-bge-m3'
 const DEFAULT_VENICE_BASE = 'https://api.venice.ai/api/v1'
 const DEFAULT_VENICE_CHAT_MODEL = 'gemini-3-5-flash-lite'
+const DEFAULT_VENICE_STT_MODEL = 'openai/whisper-large-v3'
 
 // Per-provider defaults for the LIVE VOICE turn, which is latency-critical and
 // picks its provider independently of AI_PROVIDER (ADR-0109). Both are measured
@@ -202,7 +203,7 @@ export async function streamToBuffer(stream: Readable): Promise<Buffer> {
 type WhisperSegment = { text?: string }
 type WhisperResponse = { text?: string; segments?: WhisperSegment[]; duration?: number }
 
-export async function transcribeAudio(
+async function transcribeAudioTogether(
   buffer: Buffer,
   filename: string,
   opts: RetryOpts = {},
@@ -258,6 +259,62 @@ export async function transcribeAudio(
   console.log(`[transcribeAudio] duration=${data.duration ?? '?'}s words=${words}`)
 
   return transcript
+}
+
+type VeniceTranscriptionResponse = { text?: string }
+
+// Venice's transcription API only supports `json`/`text` response formats (no
+// `verbose_json`), so there is no segment-stitching fallback here: it returns the
+// whole transcript in `text` directly. Only reached when AI_PROVIDER=venice.
+async function transcribeAudioVenice(
+  buffer: Buffer,
+  filename: string,
+  opts: RetryOpts = {},
+): Promise<string> {
+  if (!config.VENICE_AI_API_KEY) {
+    throw new Error('transcribeAudioVenice: no API key for provider=venice')
+  }
+  const makeInit = (): RequestInit => {
+    const form = new FormData()
+    form.append('model', config.VENICE_STT_MODEL ?? DEFAULT_VENICE_STT_MODEL)
+    form.append('response_format', 'json')
+    form.append('file', new Blob([buffer]), filename)
+    return {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${config.VENICE_AI_API_KEY}` },
+      body: form,
+    }
+  }
+
+  const res = await fetchWithRetry(
+    `${config.VENICE_BASE_URL ?? DEFAULT_VENICE_BASE}/audio/transcriptions`,
+    makeInit,
+    { timeoutMs: TRANSCRIBE_TIMEOUT_MS, ...opts },
+  )
+  if (!res.ok) {
+    throw new Error(`Venice transcribe error ${res.status}: ${await res.text()}`)
+  }
+  const data = (await res.json()) as VeniceTranscriptionResponse
+  const transcript = (data.text ?? '').trim()
+  const words = transcript ? transcript.split(/\s+/).length : 0
+  console.log(`[transcribeAudioVenice] words=${words}`)
+  return transcript
+}
+
+/**
+ * Transcribe a clip with the active provider's speech-to-text backend
+ * (ADR-0138). Venice when AI_PROVIDER=venice; Together otherwise, since Morpheus
+ * has no STT endpoint of its own (unchanged from before ADR-0138).
+ */
+export async function transcribeAudio(
+  buffer: Buffer,
+  filename: string,
+  opts: RetryOpts = {},
+): Promise<string> {
+  if (resolveProviders().primary.name === 'venice') {
+    return transcribeAudioVenice(buffer, filename, opts)
+  }
+  return transcribeAudioTogether(buffer, filename, opts)
 }
 
 type DeepgramResponse = {

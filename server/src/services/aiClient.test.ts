@@ -151,6 +151,55 @@ describe('transcribeAudio', () => {
   })
 })
 
+describe('transcribeAudio (provider routing, ADR-0138)', () => {
+  beforeEach(() => { vi.unstubAllGlobals() })
+  afterEach(() => {
+    delete (config as any).AI_PROVIDER
+    delete (config as any).VENICE_AI_API_KEY
+    delete (config as any).VENICE_BASE_URL
+    delete (config as any).VENICE_STT_MODEL
+  })
+
+  function jsonResp(payload: any) {
+    return { status: 200, ok: true, json: async () => payload, text: async () => '' } as any
+  }
+
+  it('routes to Venice with openai/whisper-large-v3 when AI_PROVIDER=venice', async () => {
+    ;(config as any).AI_PROVIDER = 'venice'
+    ;(config as any).VENICE_AI_API_KEY = 'vk'
+    ;(config as any).VENICE_STT_MODEL = 'openai/whisper-large-v3'
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResp({ text: 'venice transcript' }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const out = await transcribeAudio(Buffer.from('audio'), 'clip.m4a')
+
+    expect(out).toBe('venice transcript')
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(String(url)).toContain('venice.ai')
+    expect(String(url)).toContain('/audio/transcriptions')
+    const body = init.body as FormData
+    expect(body.get('model')).toBe('openai/whisper-large-v3')
+    expect(body.get('response_format')).toBe('json')
+    expect(init.headers.Authorization).toBe('Bearer vk')
+  })
+
+  it('still routes to Together when AI_PROVIDER=morpheus (Morpheus has no STT)', async () => {
+    ;(config as any).AI_PROVIDER = 'morpheus'
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResp({ text: 'together transcript', segments: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const out = await transcribeAudio(Buffer.from('audio'), 'clip.m4a')
+
+    expect(out).toBe('together transcript')
+    expect(String(fetchMock.mock.calls[0][0])).toContain('together.xyz')
+  })
+
+  it('throws when Venice is active with no API key configured', async () => {
+    ;(config as any).AI_PROVIDER = 'venice' // no VENICE_AI_API_KEY
+    await expect(transcribeAudio(Buffer.from('a'), 'c.m4a')).rejects.toThrow(/no API key/)
+  })
+})
+
 describe('transcribeWithDeepgram', () => {
   beforeEach(() => { vi.unstubAllGlobals() })
 
