@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const schema = z.object({
+export const schema = z.object({
   PORT: z.string().default('3200'),
   NODE_ENV: z.string().default('development'),
   FIREBASE_SERVICE_ACCOUNT_JSON: z.string(),
@@ -176,6 +176,15 @@ if (!parsed.success) {
 }
 
 export const config = parsed.data
+
+// Boot-time guardrail for the risk noted in ADR-0138: if either provider switch is
+// set to venice but no Venice key is configured, every Venice-routed request fails
+// at call time with no visible warning until then. Warn, don't crash: an
+// unconfigured key must never crash-loop the server (see the other OPTIONAL Venice
+// vars above).
+if ((config.AI_PROVIDER === 'venice' || config.VOICE_AI_PROVIDER === 'venice') && !config.VENICE_AI_API_KEY) {
+  console.warn('[config] AI_PROVIDER or VOICE_AI_PROVIDER is set to venice but VENICE_AI_API_KEY is empty: Venice-routed requests will fail at call time (ADR-0138).')
+}
 
 /**
  * True only when every env var the on-chain mint path needs is present. When

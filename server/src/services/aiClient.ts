@@ -1,8 +1,9 @@
 import { config } from '../config'
 import { Readable } from 'stream'
 
-// Together's REST base. Transcription (Whisper) stays pinned here regardless of
-// AI_PROVIDER — Morpheus has no speech-to-text endpoint (ADR-0085).
+// Together's REST base, used by `transcribeAudioTogether()` and the Together chat
+// path. STT falls back here whenever the active provider is not Venice, since
+// Morpheus has no speech-to-text endpoint of its own (ADR-0085, ADR-0138).
 const TOGETHER_BASE = 'https://api.together.xyz/v1'
 
 // Defaults mirror the Zod defaults in config.ts, but are duplicated here so the
