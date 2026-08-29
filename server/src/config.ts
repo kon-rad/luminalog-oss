@@ -11,12 +11,27 @@ const schema = z.object({
   TOGETHER_CHAT_MODEL: z.string().default('meta-llama/Llama-3.3-70B-Instruct-Turbo'),
   // Server LLM provider switch. `together` preserves the legacy provider; `morpheus`
   // routes chat/summary/entry-AI/daily-report to the Morpheus decentralized TEE
-  // marketplace (ADR-0085). No cross-provider fallback — a failed call is retried
-  // against the SAME provider. All Morpheus vars are OPTIONAL/defaulted so flipping
-  // the switch never crash-loops boot.
-  AI_PROVIDER: z.enum(['together', 'morpheus']).default('morpheus'),
+  // marketplace (ADR-0085); `venice` routes them to Venice AI (ADR-0138), an
+  // OpenAI-compatible gateway that also serves speech-to-text (Morpheus does not).
+  // No cross-provider fallback: a failed call is retried against the SAME provider.
+  // All Morpheus/Venice vars are OPTIONAL/defaulted so flipping the switch never
+  // crash-loops boot; an unconfigured key only fails the individual request.
+  AI_PROVIDER: z.enum(['together', 'morpheus', 'venice']).default('morpheus'),
   MORPHEUS_API_KEY: z.string().optional(),
   MORPHEUS_BASE_URL: z.string().default('https://api.mor.org/api/v1'),
+  // Venice AI (ADR-0138). `gemini-3-5-flash-lite` is the cheapest current Gemini
+  // Flash tier on Venice ($0.38/$3.13 per M input/output tokens), at Venice's
+  // "Anonymized" privacy tier (encrypted in transit, no prompt retention after the
+  // request completes, but not hardware-isolated the way Morpheus's TEE is).
+  // VENICE_STT_MODEL is Venice's OpenAI-compatible Whisper-large-v3 endpoint, used
+  // by transcribeAudio() only when AI_PROVIDER=venice.
+  VENICE_AI_API_KEY: z.string().optional(),
+  VENICE_BASE_URL: z.string().default('https://api.venice.ai/api/v1'),
+  VENICE_CHAT_MODEL: z.string().default('gemini-3-5-flash-lite'),
+  VENICE_STT_MODEL: z.string().default('openai/whisper-large-v3'),
+  // Dormant: no live caller reactivates embeddings on a new provider today (see
+  // aiClient.ts). Left unconfigured until a real embedding model is chosen.
+  VENICE_EMBEDDING_MODEL: z.string().optional(),
   // THE global chat model. Change this one var (env override or here) to swap the
   // model app-wide. Must be a lowercase-hyphen SLUG that Morpheus can currently
   // route to. `deepseek-v4-flash` = open-source, reliably available (HTTP 200),
