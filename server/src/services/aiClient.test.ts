@@ -227,6 +227,9 @@ function resetProviderConfig() {
   c.MORPHEUS_BASE_URL = undefined
   c.MORPHEUS_CHAT_MODEL = undefined
   c.MORPHEUS_CHAT_MODEL_FALLBACKS = undefined
+  c.VENICE_AI_API_KEY = undefined
+  c.VENICE_BASE_URL = undefined
+  c.VENICE_CHAT_MODEL = undefined
 }
 
 // ── Morpheus model fallback chain (resilience) ───────────────────────────────
@@ -291,6 +294,17 @@ describe('resolveProviders', () => {
     expect(primary.apiKey).toBe('mk')
     expect(primary.chatModel).toBe('claude-opus-4.8')
   })
+
+  it('resolves Venice as the active provider when AI_PROVIDER=venice', () => {
+    config.AI_PROVIDER = 'venice'
+    ;(config as any).VENICE_AI_API_KEY = 'vk'
+    ;(config as any).VENICE_CHAT_MODEL = 'gemini-3-5-flash-lite'
+    const { primary } = resolveProviders()
+    expect(primary.name).toBe('venice')
+    expect(primary.apiKey).toBe('vk')
+    expect(primary.chatModel).toBe('gemini-3-5-flash-lite')
+    expect(primary.baseUrl).toContain('venice.ai')
+  })
 })
 
 describe('chatCompletion (single provider, no fallback)', () => {
@@ -328,6 +342,24 @@ describe('chatCompletion (single provider, no fallback)', () => {
 
   it('throws when the active provider has no API key', async () => {
     config.AI_PROVIDER = 'morpheus' // no MORPHEUS_API_KEY
+    await expect(chatCompletion([{ role: 'user', content: 'hi' }])).rejects.toThrow(/no API key/)
+  })
+
+  it('hits the active provider (Venice) and returns its response', async () => {
+    config.AI_PROVIDER = 'venice'
+    ;(config as any).VENICE_AI_API_KEY = 'vk'
+    const fetchMock = vi.fn().mockResolvedValueOnce(resp(200))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const res = await chatCompletion([{ role: 'user', content: 'hi' }])
+
+    expect(res.ok).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][0]).toContain('venice.ai')
+  })
+
+  it('throws when Venice is active with no API key configured', async () => {
+    config.AI_PROVIDER = 'venice' // no VENICE_AI_API_KEY
     await expect(chatCompletion([{ role: 'user', content: 'hi' }])).rejects.toThrow(/no API key/)
   })
 })

@@ -12,6 +12,8 @@ const DEFAULT_TOGETHER_EMBEDDING_MODEL = 'intfloat/multilingual-e5-large-instruc
 const DEFAULT_MORPHEUS_BASE = 'https://api.mor.org/api/v1'
 const DEFAULT_MORPHEUS_CHAT_MODEL = 'llama-3.3-70b'
 const DEFAULT_MORPHEUS_EMBEDDING_MODEL = 'text-embedding-bge-m3'
+const DEFAULT_VENICE_BASE = 'https://api.venice.ai/api/v1'
+const DEFAULT_VENICE_CHAT_MODEL = 'gemini-3-5-flash-lite'
 
 // Per-provider defaults for the LIVE VOICE turn, which is latency-critical and
 // picks its provider independently of AI_PROVIDER (ADR-0109). Both are measured
@@ -22,7 +24,7 @@ const DEFAULT_MORPHEUS_EMBEDDING_MODEL = 'text-embedding-bge-m3'
 const DEFAULT_VOICE_TOGETHER_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
 const DEFAULT_VOICE_MORPHEUS_MODEL = 'deepseek-v4-flash'
 
-export type AiProviderName = 'together' | 'morpheus'
+export type AiProviderName = 'together' | 'morpheus' | 'venice'
 export interface AiProvider {
   name: AiProviderName
   baseUrl: string
@@ -51,14 +53,28 @@ function morpheusProvider(): AiProvider {
   }
 }
 
+function veniceProvider(): AiProvider {
+  return {
+    name: 'venice',
+    baseUrl: config.VENICE_BASE_URL ?? DEFAULT_VENICE_BASE,
+    apiKey: config.VENICE_AI_API_KEY ?? '',
+    chatModel: config.VENICE_CHAT_MODEL ?? DEFAULT_VENICE_CHAT_MODEL,
+    embeddingModel: config.VENICE_EMBEDDING_MODEL ?? '',
+  }
+}
+
 /**
  * The single active provider selected by AI_PROVIDER. There is NO cross-provider
  * fallback — a failed call is retried against the SAME provider (`fetchWithRetry`)
  * and then surfaced. Returns a `{ primary }` shape so existing callers keep working.
  */
 export function resolveProviders(): { primary: AiProvider } {
-  const name: AiProviderName = config.AI_PROVIDER === 'morpheus' ? 'morpheus' : 'together'
-  const primary = name === 'morpheus' ? morpheusProvider() : togetherProvider()
+  const name: AiProviderName =
+    config.AI_PROVIDER === 'morpheus' ? 'morpheus' :
+    config.AI_PROVIDER === 'venice' ? 'venice' : 'together'
+  const primary =
+    name === 'morpheus' ? morpheusProvider() :
+    name === 'venice' ? veniceProvider() : togetherProvider()
   return { primary }
 }
 
