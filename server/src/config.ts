@@ -13,10 +13,14 @@ export const schema = z.object({
   // routes chat/summary/entry-AI/daily-report to the Morpheus decentralized TEE
   // marketplace (ADR-0085); `venice` routes them to Venice AI (ADR-0138), an
   // OpenAI-compatible gateway that also serves speech-to-text (Morpheus does not).
+  // Defaults to `venice` as of ADR-0139: Venice proved live-compatible with the
+  // existing RAG index (its text-embedding-bge-m3 returns vectors bit-identical to
+  // Morpheus's, see VENICE_EMBEDDING_MODEL below), and it is the production choice.
+  // `AI_PROVIDER=morpheus` reverts everything except live voice instantly (env only).
   // No cross-provider fallback: a failed call is retried against the SAME provider.
   // All Morpheus/Venice vars are OPTIONAL/defaulted so flipping the switch never
   // crash-loops boot; an unconfigured key only fails the individual request.
-  AI_PROVIDER: z.enum(['together', 'morpheus', 'venice']).default('morpheus'),
+  AI_PROVIDER: z.enum(['together', 'morpheus', 'venice']).default('venice'),
   MORPHEUS_API_KEY: z.string().optional(),
   MORPHEUS_BASE_URL: z.string().default('https://api.mor.org/api/v1'),
   // Venice AI (ADR-0138). `gemini-3-5-flash-lite` is the cheapest current Gemini
@@ -29,9 +33,12 @@ export const schema = z.object({
   VENICE_BASE_URL: z.string().default('https://api.venice.ai/api/v1'),
   VENICE_CHAT_MODEL: z.string().default('gemini-3-5-flash-lite'),
   VENICE_STT_MODEL: z.string().default('openai/whisper-large-v3'),
-  // Dormant: no live caller reactivates embeddings on a new provider today (see
-  // aiClient.ts). Left unconfigured until a real embedding model is chosen.
-  VENICE_EMBEDDING_MODEL: z.string().optional(),
+  // Venice embedding model (ADR-0139). text-embedding-bge-m3 is the same open-weights
+  // BAAI BGE-M3 model Morpheus embeds with: on a live probe (2026-08-30) Venice and
+  // Morpheus returned vectors with cosine 1.000000 for every probe text, so switching
+  // providers does not break the 1024-dim production Chroma index. embed()/embedQuery()
+  // are LIVE callers (ragStore.ts RAG index/search, cognitiveMap beat dedupe).
+  VENICE_EMBEDDING_MODEL: z.string().default('text-embedding-bge-m3'),
   // THE global chat model. Change this one var (env override or here) to swap the
   // model app-wide. Must be a lowercase-hyphen SLUG that Morpheus can currently
   // route to. `deepseek-v4-flash` = open-source, reliably available (HTTP 200),

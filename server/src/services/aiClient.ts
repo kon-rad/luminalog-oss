@@ -16,6 +16,7 @@ const DEFAULT_MORPHEUS_EMBEDDING_MODEL = 'text-embedding-bge-m3'
 const DEFAULT_VENICE_BASE = 'https://api.venice.ai/api/v1'
 const DEFAULT_VENICE_CHAT_MODEL = 'gemini-3-5-flash-lite'
 const DEFAULT_VENICE_STT_MODEL = 'openai/whisper-large-v3'
+const DEFAULT_VENICE_EMBEDDING_MODEL = 'text-embedding-bge-m3'
 
 // Per-provider defaults for the LIVE VOICE turn, which is latency-critical and
 // picks its provider independently of AI_PROVIDER (ADR-0109). Together and Morpheus
@@ -64,7 +65,7 @@ function veniceProvider(): AiProvider {
     baseUrl: config.VENICE_BASE_URL ?? DEFAULT_VENICE_BASE,
     apiKey: config.VENICE_AI_API_KEY ?? '',
     chatModel: config.VENICE_CHAT_MODEL ?? DEFAULT_VENICE_CHAT_MODEL,
-    embeddingModel: config.VENICE_EMBEDDING_MODEL ?? '',
+    embeddingModel: config.VENICE_EMBEDDING_MODEL ?? DEFAULT_VENICE_EMBEDDING_MODEL,
   }
 }
 
@@ -368,11 +369,23 @@ export async function transcribeWithDeepgram(
  * is correct (only queries take an instruction; passages stay raw).
  */
 export async function embed(texts: string[]): Promise<number[][]> {
-  // Dormant path (no live caller today). Routes through the active provider so a
-  // future reactivation follows AI_PROVIDER. NOTE: Morpheus BGE-M3 is 1024-dim vs
-  // the on-device 512-dim index — reactivating on Morpheus is an index-breaking
-  // project, not a drop-in (ADR-0085).
+  // LIVE callers: ragStore.ts (RAG index + search) and cognitiveMap (beat dedupe).
+  // Routes through the active provider so embeddings follow AI_PROVIDER.
+  //
+  // Dimension parity (as of ADR-0139): Morpheus BGE-M3 and Venice
+  // text-embedding-bge-m3 both produce 1024-dim vectors, and a live probe on
+  // 2026-08-30 found them bit-identical (cosine 1.0), matching the production
+  // Chroma 1024-dim index. Switching between them is index-safe. Together's
+  // legacy multilingual-e5-large-instruct (if someone sets AI_PROVIDER=together
+  // with the matching .env model) is a DIFFERENT 1024-dim space and NOT
+  // cross-compatible — re-indexing is required to leave or join it. See ADR-0139.
   const p = resolveProviders().primary
+  if (!p.embeddingModel) {
+    throw new Error(
+      `${p.name} embed: no embedding model configured for provider=${p.name}. ` +
+      `Set the matching *_EMBEDDING_MODEL env var (ADR-0139).`,
+    )
+  }
   const res = await fetchWithRetry(`${p.baseUrl}/embeddings`, {
     method: 'POST',
     headers: {

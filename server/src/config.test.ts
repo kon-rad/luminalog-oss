@@ -24,15 +24,21 @@ describe('config schema defaults (ADR-0138)', () => {
     Object.assign(process.env, minimalEnv)
   })
 
-  it('defaults AI_PROVIDER to morpheus, unaffected by the Venice rollout', async () => {
+  it('defaults AI_PROVIDER to venice as of ADR-0139', async () => {
     const { schema } = await import('./config.js')
     const parsed = schema.parse(minimalEnv)
-    expect(parsed.AI_PROVIDER).toBe('morpheus')
+    expect(parsed.AI_PROVIDER).toBe('venice')
   })
 
   it('defaults VOICE_AI_PROVIDER to venice as of ADR-0138', async () => {
     const { schema } = await import('./config.js')
     const parsed = schema.parse(minimalEnv)
     expect(parsed.VOICE_AI_PROVIDER).toBe('venice')
+  })
+
+  it('defaults VENICE_EMBEDDING_MODEL to the index-compatible BGE-M3 (ADR-0139)', async () => {
+    const { schema } = await import('./config.js')
+    const parsed = schema.parse(minimalEnv)
+    expect(parsed.VENICE_EMBEDDING_MODEL).toBe('text-embedding-bge-m3')
   })
 })

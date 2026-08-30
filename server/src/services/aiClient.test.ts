@@ -21,6 +21,7 @@ import {
   resolveProviders,
   transcribeAudio,
   transcribeWithDeepgram,
+  embed,
 } from './aiClient'
 
 const noSleep = async () => {}
@@ -279,6 +280,7 @@ function resetProviderConfig() {
   c.VENICE_AI_API_KEY = undefined
   c.VENICE_BASE_URL = undefined
   c.VENICE_CHAT_MODEL = undefined
+  c.VENICE_EMBEDDING_MODEL = undefined
 }
 
 // ── Morpheus model fallback chain (resilience) ───────────────────────────────
@@ -353,6 +355,9 @@ describe('resolveProviders', () => {
     expect(primary.apiKey).toBe('vk')
     expect(primary.chatModel).toBe('gemini-3-5-flash-lite')
     expect(primary.baseUrl).toContain('venice.ai')
+    // ADR-0139: Venice embeds with BGE-M3 by default, the same model Morpheus
+    // uses, so the provider switch keeps the production Chroma index compatible.
+    expect(primary.embeddingModel).toBe('text-embedding-bge-m3')
   })
 })
 
@@ -410,6 +415,58 @@ describe('chatCompletion (single provider, no fallback)', () => {
   it('throws when Venice is active with no API key configured', async () => {
     config.AI_PROVIDER = 'venice' // no VENICE_AI_API_KEY
     await expect(chatCompletion([{ role: 'user', content: 'hi' }])).rejects.toThrow(/no API key/)
+  })
+})
+
+// ── embeddings via the active provider (ADR-0139) ─────────────────────────────
+// embed() is LIVE (ragStore RAG index/search, cognitiveMap dedupe). Venice embeds
+// with BGE-M3 by default so the provider switch keeps the Chroma index compatible.
+describe('embed (active provider)', () => {
+  beforeEach(() => { vi.unstubAllGlobals(); resetProviderConfig() })
+  afterEach(() => { vi.unstubAllGlobals(); resetProviderConfig() })
+
+  function embedResp(payload: { data: Array<{ embedding: number[]; index: number }> }) {
+    return { status: 200, ok: true, json: async () => payload, text: async () => '' } as any
+  }
+
+  it('POSTs model text-embedding-bge-m3 to the Venice embeddings endpoint', async () => {
+    config.AI_PROVIDER = 'venice'
+    ;(config as any).VENICE_AI_API_KEY = 'vk'
+    const fetchMock = vi.fn().mockResolvedValueOnce(embedResp({
+      data: [{ embedding: [0.1, 0.2], index: 0 }],
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const out = await embed(['a passage'])
+
+    expect(out).toEqual([[0.1, 0.2]])
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(String(url)).toContain('venice.ai')
+    expect(String(url)).toContain('/embeddings')
+    expect(init.headers.Authorization).toBe('Bearer vk')
+    const body = JSON.parse(init.body as string)
+    expect(body.model).toBe('text-embedding-bge-m3')
+    expect(body.input).toEqual(['a passage'])
+  })
+
+  it('restores sorted order from a shuffled response', async () => {
+    config.AI_PROVIDER = 'venice'
+    ;(config as any).VENICE_AI_API_KEY = 'vk'
+    const fetchMock = vi.fn().mockResolvedValueOnce(embedResp({
+      data: [{ embedding: [2], index: 1 }, { embedding: [1], index: 0 }],
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const out = await embed(['first', 'second'])
+    expect(out).toEqual([[1], [2]])
+  })
+
+  it('throws a clear config error if no embedding model is set, not an opaque 400', async () => {
+    config.AI_PROVIDER = 'venice'
+    ;(config as any).VENICE_AI_API_KEY = 'vk'
+    ;(config as any).VENICE_EMBEDDING_MODEL = '' // overrides the default to nothing
+
+    await expect(embed(['x'])).rejects.toThrow(/no embedding model configured/)
   })
 })
 
