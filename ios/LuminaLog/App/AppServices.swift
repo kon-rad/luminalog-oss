@@ -196,8 +196,9 @@ final class AppServices: ObservableObject {
 
         // Semantic RAG runs entirely SERVER-side (zero-knowledge): the client chunks
         // on-device (`JournalChunker`) and ships plaintext chunks to `/v1/rag/*`, where
-        // Morpheus BGE-M3 embeds them; only vectors + metadata persist server-side. No
-        // embedding model is ever downloaded to the device.
+        // the server's active provider embeds them (BGE-M3, via Venice or Morpheus);
+        // only vectors + metadata persist server-side. No embedding model is ever
+        // downloaded to the device.
         let coordinator: SemanticIndexCoordinating = ServerSemanticIndex(rag: RagService(api: api))
         // Lifecycle hooks: create/edit → index, delete → remove (gated on
         // `DevFlags.aiModel1`, fire-and-forget).

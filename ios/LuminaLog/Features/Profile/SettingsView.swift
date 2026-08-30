@@ -704,7 +704,7 @@ struct SettingsView: View {
     }
 
     /// One-tap migration: re-index the ENTIRE journal corpus into the server RAG
-    /// index (Morpheus BGE-M3 → Chroma). Because entries are zero-knowledge encrypted,
+    /// index (BGE-M3 embeddings → Chroma). Because entries are zero-knowledge encrypted,
     /// the server can't re-index them itself, so this fetches + decrypts every entry
     /// on-device, chunks it (`JournalChunker`), and sends the chunks to
     /// `PUT /v1/rag/index` via `ServerSemanticIndex`. Sequential to respect provider

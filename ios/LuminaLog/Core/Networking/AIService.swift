@@ -99,7 +99,8 @@ protocol AIService: AnyObject {
     /// Failures are swallowed; a server-side reconcile retries later.
     func requestIndex(journalId: String) async
 
-    /// Server-side transcription via Together AI Whisper for voice/video entries.
+    /// Server-side transcription via Whisper (Together AI or Venice AI, whichever the
+    /// server's active provider resolves to) for voice/video entries.
     /// Downloads audio from S3, transcribes, updates Firestore
     /// content+transcriptStatus to ready, then re-indexes to Chroma.
     /// Throws on network or server error; the entry stays with
