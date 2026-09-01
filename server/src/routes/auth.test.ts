@@ -64,7 +64,7 @@ vi.mock('viem/siwe', () => ({
   parseSiweMessage: (_message: string) => parseResult,
 }))
 
-import { authRouter, nonceHandler, issueNonce, consumeNonce } from './auth'
+import { authRouter, nonceHandler, verifyHandler, issueNonce, consumeNonce } from './auth'
 
 function mockRes() {
   const res: any = { statusCode: 200 }
@@ -107,5 +107,57 @@ describe('nonce consumption', () => {
 
   it('rejects a nonce that was never issued', () => {
     expect(consumeNonce('never-issued')).toBe(false)
+  })
+})
+
+describe('POST /v1/auth/siwe/verify', () => {
+  it('creates a new uid and returns a custom token when the wallet is unseen', async () => {
+    const nonce = issueNonce()
+    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1 }
+    const req: any = { body: { message: 'siwe-message', signature: '0xsig' } }
+    const res = mockRes()
+    await verifyHandler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(res.body.firebaseCustomToken).toBe('token-for-new-uid')
+    expect(store.get('new-uid')?.walletAddress).toBe(FIXED_ADDRESS_LOWER)
+    expect(authMock.setCustomUserClaims).toHaveBeenCalledWith('new-uid', { walletAddress: FIXED_ADDRESS_LOWER })
+  })
+
+  it('resolves the existing uid for a wallet already linked (does not create a second account)', async () => {
+    store.set('existing-uid', { walletAddress: FIXED_ADDRESS_LOWER })
+    const nonce = issueNonce()
+    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1 }
+    const req: any = { body: { message: 'siwe-message', signature: '0xsig' } }
+    const res = mockRes()
+    await verifyHandler(req, res)
+    expect(res.body.firebaseCustomToken).toBe('token-for-existing-uid')
+    expect(authMock.createUser).not.toHaveBeenCalled()
+  })
+
+  it('401s on an invalid signature', async () => {
+    verifyMessageMock.mockResolvedValue(false)
+    const nonce = issueNonce()
+    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1 }
+    const req: any = { body: { message: 'siwe-message', signature: '0xsig' } }
+    const res = mockRes()
+    await verifyHandler(req, res)
+    expect(res.statusCode).toBe(401)
+  })
+
+  it('401s on a replayed (already-consumed) nonce', async () => {
+    const nonce = issueNonce()
+    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1 }
+    consumeNonce(nonce)
+    const req: any = { body: { message: 'siwe-message', signature: '0xsig' } }
+    const res = mockRes()
+    await verifyHandler(req, res)
+    expect(res.statusCode).toBe(401)
+  })
+
+  it('400s on a missing message', async () => {
+    const req: any = { body: { signature: '0xsig' } }
+    const res = mockRes()
+    await verifyHandler(req, res)
+    expect(res.statusCode).toBe(400)
   })
 })

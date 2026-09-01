@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express'
 import { createPublicClient, http, type Chain } from 'viem'
 import * as chains from 'viem/chains'
 import { generateSiweNonce, parseSiweMessage } from 'viem/siwe'
-import { firebaseAuth } from '../middleware/firebaseAuth'
+import admin from 'firebase-admin'
+import { firebaseAuth, db } from '../middleware/firebaseAuth'
 
 // ---------------------------------------------------------------------------
 // Sign-In with Ethereum (EIP-4361). Two signatures, not one: SIWE sign-in
@@ -56,5 +57,85 @@ export async function nonceHandler(_req: Request, res: Response): Promise<void> 
   res.json({ nonce: issueNonce() })
 }
 
+interface SiweVerifyResult {
+  ok: true
+  address: string
+}
+interface SiweVerifyFailure {
+  ok: false
+  status: number
+  error: string
+}
+
+/** Parse, signature-verify, and nonce-consume a SIWE request. Shared by
+ *  /verify and /link so both enforce the identical replay-protected check.
+ *  Returns the lower-cased address on success (storage/lookup use the
+ *  lower-cased form so a query never misses on checksum-casing differences). */
+async function verifySiweRequest(message: unknown, signature: unknown): Promise<SiweVerifyResult | SiweVerifyFailure> {
+  if (typeof message !== 'string' || message.length === 0) {
+    return { ok: false, status: 400, error: 'Missing or invalid message' }
+  }
+  if (typeof signature !== 'string' || !signature.startsWith('0x')) {
+    return { ok: false, status: 400, error: 'Missing or invalid signature' }
+  }
+
+  const parsed = parseSiweMessage(message)
+  if (!parsed.address || !parsed.nonce || typeof parsed.chainId !== 'number') {
+    return { ok: false, status: 400, error: 'Malformed SIWE message' }
+  }
+
+  let signatureValid: boolean
+  try {
+    const client = clientForChain(parsed.chainId)
+    signatureValid = await client.verifyMessage({
+      address: parsed.address,
+      message,
+      signature: signature as `0x${string}`,
+    })
+  } catch (e) {
+    console.error('[auth/siwe] signature verification threw', e)
+    signatureValid = false
+  }
+  if (!signatureValid) {
+    return { ok: false, status: 401, error: 'Invalid signature' }
+  }
+
+  if (!consumeNonce(parsed.nonce)) {
+    return { ok: false, status: 401, error: 'Invalid or expired nonce' }
+  }
+
+  return { ok: true, address: parsed.address.toLowerCase() }
+}
+
+// POST /v1/auth/siwe/verify — unauthenticated. Sign-in (or wallet-first
+// signup): resolve users/{uid} by walletAddress, or mint a new Firebase uid
+// if none exists. The wallet address is NEVER the uid on either path.
+export async function verifyHandler(req: Request, res: Response): Promise<void> {
+  const { message, signature } = req.body as { message?: unknown; signature?: unknown }
+  const result = await verifySiweRequest(message, signature)
+  if (!result.ok) {
+    res.status(result.status).json({ error: result.error })
+    return
+  }
+  try {
+    const existing = await db.collection('users').where('walletAddress', '==', result.address).limit(1).get()
+    let uid: string
+    if (!existing.empty) {
+      uid = existing.docs[0].id
+    } else {
+      const created = await admin.auth().createUser({})
+      uid = created.uid
+      await db.collection('users').doc(uid).set({ walletAddress: result.address }, { merge: true })
+      await admin.auth().setCustomUserClaims(uid, { walletAddress: result.address })
+    }
+    const firebaseCustomToken = await admin.auth().createCustomToken(uid)
+    res.json({ firebaseCustomToken })
+  } catch (e) {
+    console.error('[auth/siwe/verify]', e)
+    res.status(500).json({ error: 'Verify failed' })
+  }
+}
+
 export const authRouter = Router()
 authRouter.get('/siwe/nonce', nonceHandler)
+authRouter.post('/siwe/verify', verifyHandler)
