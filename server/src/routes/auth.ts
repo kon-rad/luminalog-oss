@@ -158,6 +158,35 @@ export async function verifyHandler(req: Request, res: Response): Promise<void> 
   }
 }
 
+// POST /v1/auth/siwe/link — authenticated. Attach a wallet to the CALLER's
+// existing account. Rejects (409) if the address already resolves to a
+// different uid, which is what keeps /verify's "resolve by walletAddress"
+// lookup unambiguous. Idempotent when the caller re-links their own wallet.
+export async function linkHandler(req: Request, res: Response): Promise<void> {
+  const uid = (req as any).uid as string
+  const { message, signature } = req.body as { message?: unknown; signature?: unknown }
+  const result = await verifySiweRequest(message, signature)
+  if (!result.ok) {
+    res.status(result.status).json({ error: result.error })
+    return
+  }
+  try {
+    const existing = await db.collection('users').where('walletAddress', '==', result.address).limit(1).get()
+    if (!existing.empty && existing.docs[0].id !== uid) {
+      res.status(409).json({ error: 'Wallet already linked to a different account' })
+      return
+    }
+    await db.collection('users').doc(uid).set({ walletAddress: result.address }, { merge: true })
+    const user = await admin.auth().getUser(uid)
+    await admin.auth().setCustomUserClaims(uid, { ...(user.customClaims ?? {}), walletAddress: result.address })
+    res.json({ walletAddress: result.address })
+  } catch (e) {
+    console.error('[auth/siwe/link]', e)
+    res.status(500).json({ error: 'Link failed' })
+  }
+}
+
 export const authRouter = Router()
 authRouter.get('/siwe/nonce', nonceHandler)
 authRouter.post('/siwe/verify', verifyHandler)
+authRouter.post('/siwe/link', firebaseAuth, linkHandler)

@@ -64,7 +64,7 @@ vi.mock('viem/siwe', () => ({
   parseSiweMessage: (_message: string) => parseResult,
 }))
 
-import { authRouter, nonceHandler, verifyHandler, issueNonce, consumeNonce } from './auth'
+import { authRouter, nonceHandler, verifyHandler, linkHandler, issueNonce, consumeNonce } from './auth'
 
 function mockRes() {
   const res: any = { statusCode: 200 }
@@ -169,5 +169,49 @@ describe('POST /v1/auth/siwe/verify', () => {
     await verifyHandler(req, res)
     expect(res.statusCode).toBe(400)
     expect(verifyMessageMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /v1/auth/siwe/link (authenticated)', () => {
+  it('links a fresh wallet to the caller uid', async () => {
+    const nonce = issueNonce()
+    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1, domain: 'myargoquest.com' }
+    const req: any = { uid: 'caller-uid', body: { message: 'siwe-message', signature: '0xsig' } }
+    const res = mockRes()
+    await linkHandler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(res.body.walletAddress).toBe(FIXED_ADDRESS_LOWER)
+    expect(store.get('caller-uid')?.walletAddress).toBe(FIXED_ADDRESS_LOWER)
+  })
+
+  it('409s when the wallet is already linked to a different uid', async () => {
+    store.set('someone-else', { walletAddress: FIXED_ADDRESS_LOWER })
+    const nonce = issueNonce()
+    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1, domain: 'myargoquest.com' }
+    const req: any = { uid: 'caller-uid', body: { message: 'siwe-message', signature: '0xsig' } }
+    const res = mockRes()
+    await linkHandler(req, res)
+    expect(res.statusCode).toBe(409)
+    expect(store.get('caller-uid')?.walletAddress).toBeUndefined()
+  })
+
+  it('is idempotent when the caller re-links their own already-linked wallet', async () => {
+    store.set('caller-uid', { walletAddress: FIXED_ADDRESS_LOWER })
+    const nonce = issueNonce()
+    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1, domain: 'myargoquest.com' }
+    const req: any = { uid: 'caller-uid', body: { message: 'siwe-message', signature: '0xsig' } }
+    const res = mockRes()
+    await linkHandler(req, res)
+    expect(res.statusCode).toBe(200)
+  })
+})
+
+describe('router wiring', () => {
+  it('requires firebaseAuth only on /siwe/link', () => {
+    const layerFor = (path: string) => (authRouter as any).stack.find((l: any) => l.route?.path === path)
+    const namesFor = (path: string) => layerFor(path).route.stack.map((h: any) => h.name)
+    expect(namesFor('/siwe/nonce')).toEqual(['nonceHandler'])
+    expect(namesFor('/siwe/verify')).toEqual(['verifyHandler'])
+    expect(namesFor('/siwe/link')).toEqual(['firebaseAuth', 'linkHandler'])
   })
 })
