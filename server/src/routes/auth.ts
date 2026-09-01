@@ -158,7 +158,7 @@ export async function verifyHandler(req: Request, res: Response): Promise<void> 
   }
 }
 
-// POST /v1/auth/siwe/link — authenticated. Attach a wallet to the CALLER's
+// POST /v1/auth/siwe/link: authenticated. Attach a wallet to the CALLER's
 // existing account. Rejects (409) if the address already resolves to a
 // different uid, which is what keeps /verify's "resolve by walletAddress"
 // lookup unambiguous. Idempotent when the caller re-links their own wallet.
