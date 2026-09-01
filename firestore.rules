@@ -16,10 +16,18 @@ service cloud.firestore {
       // *deducts* voiceCredits directly during live voice-call metering
       // (ios/LuminaLog/Core/Credits/RevenueCatCreditService.swift deductCredits(),
       // called from VoiceCallViewModel). Locking it would break that write path.
+      //
+      // `walletAddress` is likewise server-owned: it is written ONLY by the SIWE
+      // routes (POST /v1/auth/siwe/verify and /link) after a signature over a
+      // single-use server nonce proves ownership of the address. If a client could
+      // write it directly, anyone could squat a victim's address in their own doc;
+      // /verify resolves identity with where('walletAddress','==',address), so the
+      // squatter would be handed a custom token when the real owner signs in. That
+      // would defeat the entire proof-of-ownership guarantee.
       allow create: if request.auth != null && request.auth.uid == userId
-        && !request.resource.data.keys().hasAny(['entitlement']);
+        && !request.resource.data.keys().hasAny(['entitlement', 'walletAddress']);
       allow update: if request.auth != null && request.auth.uid == userId
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['entitlement']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['entitlement', 'walletAddress']);
 
       // Soul Constellation day-centroids hold RAW journal-text embedding vectors.
       // Server-only (Admin SDK bypasses rules). Explicitly denied to clients as

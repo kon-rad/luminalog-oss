@@ -113,6 +113,12 @@ async function verifySiweRequest(message: unknown, signature: unknown): Promise<
       address: parsed.address,
       message,
       signature: signature as `0x${string}`,
+      // 'eoa' tries local ECDSA recovery FIRST, with zero network calls, and only
+      // falls through to the on-chain ERC-6492/8010 path when local recovery fails.
+      // The default ('auto') always makes an outbound eth_call before falling back,
+      // so every plain-EOA sign-in would depend on an unconfigured public RPC.
+      // Contract-wallet (ERC-1271/6492) support is preserved either way.
+      mode: 'eoa',
     })
   } catch (e) {
     console.error('[auth/siwe] signature verification threw', e)
@@ -142,14 +148,22 @@ export async function verifyHandler(req: Request, res: Response): Promise<void> 
   try {
     const existing = await db.collection('users').where('walletAddress', '==', result.address).limit(1).get()
     let uid: string
+    let existingClaims: Record<string, unknown> | undefined
     if (!existing.empty) {
       uid = existing.docs[0].id
+      const user = await admin.auth().getUser(uid)
+      existingClaims = user.customClaims
     } else {
       const created = await admin.auth().createUser({})
       uid = created.uid
       await db.collection('users').doc(uid).set({ walletAddress: result.address }, { merge: true })
-      await admin.auth().setCustomUserClaims(uid, { walletAddress: result.address })
+      existingClaims = created.customClaims
     }
+    // Idempotent on both branches: a partial failure on a prior create-uid attempt
+    // (setCustomUserClaims throwing after createUser and the Firestore write already
+    // succeeded) must not leave the account permanently claim-less, since every later
+    // sign-in for this wallet takes the existing-uid branch above.
+    await admin.auth().setCustomUserClaims(uid, { ...(existingClaims ?? {}), walletAddress: result.address })
     const firebaseCustomToken = await admin.auth().createCustomToken(uid)
     res.json({ firebaseCustomToken })
   } catch (e) {
