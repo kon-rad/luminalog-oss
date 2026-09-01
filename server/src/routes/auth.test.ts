@@ -79,7 +79,7 @@ const FIXED_ADDRESS_LOWER = '0xabc1230000000000000000000000000000000f'
 beforeEach(() => {
   store.clear()
   nonceCounter = 0
-  parseResult = { address: FIXED_ADDRESS, nonce: '', chainId: 1 }
+  parseResult = { address: FIXED_ADDRESS, nonce: '', chainId: 1, domain: 'myargoquest.com' }
   verifyMessageMock.mockReset()
   verifyMessageMock.mockResolvedValue(true)
   authMock.createUser.mockReset().mockResolvedValue({ uid: 'new-uid' })
@@ -113,7 +113,7 @@ describe('nonce consumption', () => {
 describe('POST /v1/auth/siwe/verify', () => {
   it('creates a new uid and returns a custom token when the wallet is unseen', async () => {
     const nonce = issueNonce()
-    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1 }
+    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1, domain: 'myargoquest.com' }
     const req: any = { body: { message: 'siwe-message', signature: '0xsig' } }
     const res = mockRes()
     await verifyHandler(req, res)
@@ -126,7 +126,7 @@ describe('POST /v1/auth/siwe/verify', () => {
   it('resolves the existing uid for a wallet already linked (does not create a second account)', async () => {
     store.set('existing-uid', { walletAddress: FIXED_ADDRESS_LOWER })
     const nonce = issueNonce()
-    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1 }
+    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1, domain: 'myargoquest.com' }
     const req: any = { body: { message: 'siwe-message', signature: '0xsig' } }
     const res = mockRes()
     await verifyHandler(req, res)
@@ -137,7 +137,7 @@ describe('POST /v1/auth/siwe/verify', () => {
   it('401s on an invalid signature', async () => {
     verifyMessageMock.mockResolvedValue(false)
     const nonce = issueNonce()
-    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1 }
+    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1, domain: 'myargoquest.com' }
     const req: any = { body: { message: 'siwe-message', signature: '0xsig' } }
     const res = mockRes()
     await verifyHandler(req, res)
@@ -146,7 +146,7 @@ describe('POST /v1/auth/siwe/verify', () => {
 
   it('401s on a replayed (already-consumed) nonce', async () => {
     const nonce = issueNonce()
-    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1 }
+    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1, domain: 'myargoquest.com' }
     consumeNonce(nonce)
     const req: any = { body: { message: 'siwe-message', signature: '0xsig' } }
     const res = mockRes()
@@ -159,5 +159,15 @@ describe('POST /v1/auth/siwe/verify', () => {
     const res = mockRes()
     await verifyHandler(req, res)
     expect(res.statusCode).toBe(400)
+  })
+
+  it('400s when the SIWE message domain is not on the allowlist (relay-attack guard)', async () => {
+    const nonce = issueNonce()
+    parseResult = { address: FIXED_ADDRESS, nonce, chainId: 1, domain: 'evil.example' }
+    const req: any = { body: { message: 'siwe-message', signature: '0xsig' } }
+    const res = mockRes()
+    await verifyHandler(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(verifyMessageMock).not.toHaveBeenCalled()
   })
 })
