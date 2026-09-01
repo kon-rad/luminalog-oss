@@ -33,6 +33,14 @@ packages:
   Reown:
     url: https://github.com/reown-com/reown-swift
     from: 1.0.0
+  # reown-swift's AppKit.configure(...) requires a caller-supplied
+  # CryptoProvider (keccak256 + secp256k1 pubkey recovery); the library ships
+  # no default implementation, so LiveWalletConnectService provides one
+  # backed by CryptoSwift's keccak256, matching reown-swift's own Example app
+  # (pinned to the version its Example app resolves against reown-swift 1.8.0).
+  CryptoSwift:
+    url: https://github.com/krzyzanowskim/CryptoSwift
+    exactVersion: 1.8.3
 
 targets:
   LuminaLog:
@@ -63,6 +71,8 @@ targets:
         product: PostHog
       - package: Reown
         product: ReownAppKit
+      - package: CryptoSwift
+        product: CryptoSwift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.konradgnat.luminalog
