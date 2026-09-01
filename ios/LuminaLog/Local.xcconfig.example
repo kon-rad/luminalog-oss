@@ -24,3 +24,9 @@ FACEBOOK_APP_ID =
 // what keeps the privacy manifest free of tracking domains. Leave empty to
 // disable analytics entirely.
 POSTHOG_API_KEY =
+
+// Reown (WalletConnect) Cloud project ID (dashboard.reown.com -> your project
+// -> Project ID). Public, client-side value, not a secret; shared with the web
+// app so both platforms relay through the same WalletConnect project. Leave
+// empty to keep wallet-connect sign-in inert.
+REOWN_PROJECT_ID =

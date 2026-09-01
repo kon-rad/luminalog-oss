@@ -28,6 +28,14 @@
 				<string>$(GOOGLE_REVERSED_CLIENT_ID)</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>WalletConnect</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.konradgnat.luminalog</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
@@ -59,6 +67,8 @@
 	<string>Argo transcribes your voice recordings — on-device when your device supports it — so your spoken reflections become searchable journal text.</string>
 	<key>POSTHOG_API_KEY</key>
 	<string>$(POSTHOG_API_KEY)</string>
+	<key>REOWN_PROJECT_ID</key>
+	<string>$(REOWN_PROJECT_ID)</string>
 	<key>REVENUECAT_API_KEY</key>
 	<string>$(REVENUECAT_API_KEY)</string>
 	<key>UIBackgroundModes</key>
