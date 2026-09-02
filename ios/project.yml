@@ -30,6 +30,24 @@ packages:
   PostHog:
     url: https://github.com/PostHog/posthog-ios
     from: 3.0.0
+  # Pinned exactly, matching CryptoSwift below. AppServices.live() constructs
+  # AppMetadata.Redirect with `try!`, which is provably non-throwing only
+  # against 1.8.0's initializer (its two throw conditions both require
+  # linkMode/universal arguments this app does not pass). A floating `from:`
+  # constraint would let a `swift package update` swap in a version whose
+  # initializer can throw, turning that into a launch-time crash. Bump this
+  # deliberately, re-checking Redirect.init, rather than drifting.
+  Reown:
+    url: https://github.com/reown-com/reown-swift
+    exactVersion: 1.8.0
+  # reown-swift's AppKit.configure(...) requires a caller-supplied
+  # CryptoProvider (keccak256 + secp256k1 pubkey recovery); the library ships
+  # no default implementation, so LiveWalletConnectService provides one
+  # backed by CryptoSwift's keccak256, matching reown-swift's own Example app
+  # (pinned to the version its Example app resolves against reown-swift 1.8.0).
+  CryptoSwift:
+    url: https://github.com/krzyzanowskim/CryptoSwift
+    exactVersion: 1.8.3
 
 targets:
   LuminaLog:
@@ -58,6 +76,10 @@ targets:
         product: Vapi
       - package: PostHog
         product: PostHog
+      - package: Reown
+        product: ReownAppKit
+      - package: CryptoSwift
+        product: CryptoSwift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.konradgnat.luminalog
@@ -92,7 +114,7 @@ targets:
         BGTaskSchedulerPermittedIdentifiers:
           - com.konradgnat.luminalog.encouragement.refresh
         NSMicrophoneUsageDescription: "Argo uses the microphone so you can record voice journal entries and dictate your thoughts."
-        NSSpeechRecognitionUsageDescription: "Argo transcribes your voice recordings — on-device when your device supports it — so your spoken reflections become searchable journal text."
+        NSSpeechRecognitionUsageDescription: "Argo transcribes your voice recordings, on-device when your device supports it, so your spoken reflections become searchable journal text."
         NSCameraUsageDescription: "Argo uses the camera so you can capture photos and videos as part of your journal entries."
         NSPhotoLibraryUsageDescription: "Argo accesses your photo library so you can attach photos and videos to your journal entries."
         NSPhotoLibraryAddUsageDescription: "Argo can save photos and videos from your journal entries back to your photo library."
@@ -118,12 +140,20 @@ targets:
         # the RevenueCat key; supplied by Local.xcconfig. Empty leaves Analytics
         # inert, and the app behaves exactly as it does today.
         POSTHOG_API_KEY: $(POSTHOG_API_KEY)
+        # Reown (WalletConnect) Cloud project ID. Public client-side value, not
+        # a secret, shared with the web app so both platforms relay through the
+        # same WalletConnect project (spec §5.3). Supplied by Local.xcconfig;
+        # empty leaves wallet-connect inert.
+        REOWN_PROJECT_ID: $(REOWN_PROJECT_ID)
         # Google Sign-In redirect scheme. Resolves to the GOOGLE_REVERSED_CLIENT_ID
-        # build setting above — empty (inert) until configured per the README.
+        # build setting above, empty (inert) until configured per the README.
         CFBundleURLTypes:
           - CFBundleURLName: GoogleSignIn
             CFBundleURLSchemes:
               - $(GOOGLE_REVERSED_CLIENT_ID)
+          - CFBundleURLName: WalletConnect
+            CFBundleURLSchemes:
+              - com.konradgnat.luminalog
 
     preBuildScripts:
       - name: "Embed Git Commit Hash"

@@ -11,6 +11,14 @@ import GoogleSignIn
 @MainActor
 final class FirebaseAuthService: AuthService {
 
+    /// SIWE connect->sign->verify/link orchestration, extracted so it is
+    /// testable without a live `Auth.auth()` (see `WalletSignInFlowTests`).
+    private let walletFlow: WalletSignInFlow
+
+    init(walletFlow: WalletSignInFlow) {
+        self.walletFlow = walletFlow
+    }
+
     var currentUserId: String? {
         Auth.auth().currentUser?.uid
     }
@@ -106,6 +114,17 @@ final class FirebaseAuthService: AuthService {
             accessToken: result.user.accessToken.tokenString
         )
         try await Auth.auth().signIn(with: credential)
+    }
+
+    // MARK: - Sign in with wallet (SIWE)
+
+    func signInWithWallet() async throws {
+        let token = try await walletFlow.signIn()
+        try await Auth.auth().signIn(withCustomToken: token)
+    }
+
+    func linkWallet() async throws -> String {
+        try await walletFlow.link()
     }
 
     // MARK: - Sign out / delete

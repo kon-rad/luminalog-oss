@@ -42,6 +42,11 @@ struct SettingsView: View {
     @State private var isReindexing = false
     /// DEBUG-only: live re-index progress / final outcome, shown inline.
     @State private var reindexStatus: String?
+    /// Address linked for SIWE sign-in, seeded from `viewModel.profile` and
+    /// updated optimistically once `linkWallet()` succeeds.
+    @State private var linkedWalletAddress: String?
+    /// True while `linkWallet()` is in flight.
+    @State private var isLinkingWallet = false
 
     @AppStorage(ThemeMode.storageKey) private var themeMode: String = ThemeMode.system.rawValue
     @AppStorage(EncouragementPrefs.enabledKey) private var encouragementEnabled: Bool = EncouragementPrefs.defaultEnabled
@@ -120,6 +125,9 @@ struct SettingsView: View {
                     }
                     userInfoCard
                     walletCard
+                    if AppConfig.reownProjectId != nil {
+                        walletLinkCard
+                    }
                     appearanceCard
                     reminderCard
                     settingsCard
@@ -164,6 +172,12 @@ struct SettingsView: View {
         }
         .task { viewModel.start() }
         .task { await soulViewModel.load() }
+        // Seeds (and re-syncs) the locally-shown linked address from the live
+        // `users/{uid}` document, e.g. when a wallet was linked in a prior
+        // session or from another device.
+        .onChange(of: viewModel.profile?.walletAddress) { _, newValue in
+            linkedWalletAddress = newValue
+        }
         .sheet(isPresented: $showPaywall) {
             SubscriptionPaywall()
         }
@@ -435,6 +449,37 @@ struct SettingsView: View {
                     RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
                         .fill(Color.cardBackground)
                 )
+            }
+        }
+    }
+
+    // MARK: - Sign-In Wallet
+
+    /// Settings entry to link an Ethereum wallet as an additional sign-in
+    /// method (spec §5). Distinct from `walletCard` above, which shows the
+    /// server-minted LuminaSoul custodial wallet, an unrelated concept.
+    private var walletLinkCard: some View {
+        WalletLinkCard(linkedAddress: linkedWalletAddress, isWorking: isLinkingWallet) {
+            linkWallet()
+        }
+    }
+
+    /// Links a wallet to the already signed-in account via SIWE. Reports
+    /// failures the same way other actions in this file do: into
+    /// `viewModel.errorMessage`, surfaced by `errorBanner` above.
+    private func linkWallet() {
+        guard !isLinkingWallet else { return }
+        isLinkingWallet = true
+        Task {
+            defer { isLinkingWallet = false }
+            do {
+                let address = try await services.auth.linkWallet()
+                linkedWalletAddress = address
+            } catch AuthServiceError.cancelled {
+                // The user dismissed the wallet sheet, not an error.
+            } catch {
+                viewModel.errorMessage = (error as? AuthServiceError)?.localizedDescription
+                    ?? error.localizedDescription
             }
         }
     }

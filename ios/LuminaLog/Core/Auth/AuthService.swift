@@ -10,6 +10,8 @@ enum AuthServiceError: LocalizedError {
     case invalidCredential
     /// No window/view controller was available to present the sign-in UI.
     case missingPresenter
+    /// The server rejected the SIWE signature or nonce.
+    case walletVerificationFailed
 
     var errorDescription: String? {
         switch self {
@@ -23,6 +25,8 @@ enum AuthServiceError: LocalizedError {
             return "We couldn't verify that sign-in. Please try again."
         case .missingPresenter:
             return "Couldn't open the sign-in screen. Please try again."
+        case .walletVerificationFailed:
+            return "We couldn't verify that wallet. Please try again."
         }
     }
 }
@@ -59,6 +63,15 @@ protocol AuthService: AnyObject {
 
     /// Sign in with Google — runs the interactive GoogleSignIn handshake.
     func signInWithGoogle() async throws
+
+    /// Sign in (or wallet-first sign up) with a connected Ethereum wallet via
+    /// SIWE. Mints a new uid only if this address has never linked before
+    /// (server-side, spec §5.1): this call never changes an existing uid.
+    func signInWithWallet() async throws
+
+    /// Link a wallet to the ALREADY signed-in account. Returns the linked
+    /// address. Throws if the address is already linked to a different account.
+    func linkWallet() async throws -> String
 
     func signOut() throws
 

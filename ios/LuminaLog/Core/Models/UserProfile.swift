@@ -1,6 +1,6 @@
 import Foundation
 
-/// The user document — `users/{uid}` in Firestore.
+/// The user document: `users/{uid}` in Firestore.
 struct UserProfile: Codable, Equatable, Identifiable, Sendable {
 
     /// Journaling stats maintained transactionally on every save (spec §3).
@@ -37,7 +37,7 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         }
     }
 
-    /// Per-type media storage counters (plaintext — not sensitive).
+    /// Per-type media storage counters (plaintext, not sensitive).
     struct StorageStats: Codable, Equatable, Sendable {
         var audioBytes: Int
         var audioCount: Int
@@ -113,7 +113,7 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
 
     /// Today's cached personalized prompts (five, one per life area).
     struct DailyPrompt: Codable, Equatable, Sendable {
-        /// First prompt's text — kept for backward-compat with older docs that
+        /// First prompt's text, kept for backward-compat with older docs that
         /// stored a single prompt and only have this field.
         var text: String
         var date: Date
@@ -122,7 +122,7 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         /// The five area-anchored prompts. Absent on legacy single-prompt docs.
         var prompts: [DailyPromptItem]?
 
-        /// The prompts to show — the stored five, or a single-item fallback
+        /// The prompts to show: the stored five, or a single-item fallback
         /// synthesized from `text` for legacy docs.
         var items: [DailyPromptItem] {
             if let prompts, !prompts.isEmpty { return prompts }
@@ -166,6 +166,10 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
     var summaryConfig: SummaryConfig?
     /// Extended onboarding profile fields (free-text, field-encrypted).
     var details: ProfileDetails
+    /// Ethereum address linked for SIWE sign-in (spec §5), plaintext, written
+    /// server-side by `POST /v1/auth/siwe/link`. Unrelated to `walletCard`'s
+    /// server-minted LuminaSoul custodial wallet.
+    var walletAddress: String?
 
     init(
         id: String,
@@ -180,7 +184,8 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         totalMinutesInApp: Int = 0,
         dailyPrompt: DailyPrompt? = nil,
         summaryConfig: SummaryConfig? = nil,
-        details: ProfileDetails = ProfileDetails()
+        details: ProfileDetails = ProfileDetails(),
+        walletAddress: String? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -195,5 +200,6 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         self.dailyPrompt = dailyPrompt
         self.summaryConfig = summaryConfig
         self.details = details
+        self.walletAddress = walletAddress
     }
 }

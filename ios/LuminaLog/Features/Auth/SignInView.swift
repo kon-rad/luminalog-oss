@@ -44,6 +44,11 @@ struct SignInView: View {
 
                     appleButton
                     googleButton
+                    if AppConfig.reownProjectId != nil {
+                        WalletConnectButton(isWorking: isWorking) {
+                            run { try await services.auth.signInWithWallet() }
+                        }
+                    }
                 }
                 .padding(.horizontal, Spacing.l)
                 .padding(.bottom, Spacing.xl)
@@ -112,7 +117,7 @@ struct SignInView: View {
             do {
                 try await operation()
             } catch AuthServiceError.cancelled {
-                // The user dismissed the provider sheet — not an error.
+                // The user dismissed the provider sheet, not an error.
             } catch {
                 errorMessage = friendlyMessage(for: error)
             }
