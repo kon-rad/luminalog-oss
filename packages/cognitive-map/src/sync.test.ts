@@ -47,4 +47,18 @@ describe('vendored iOS bundle is present', () => {
     expect(readFileSync(join(repoRoot, 'ios', 'LuminaLog', 'Resources', 'map.html'), 'utf8'))
       .toBe(readFileSync(join(packageRoot, 'ios', 'map.html'), 'utf8'))
   })
+
+  // Xcode's "vendor" group is a regular group, not a folder reference, so
+  // Resources/vendor/* gets flattened into the bundle root at build time (confirmed
+  // against graph.html and soul.html, which load the sibling constellation.min.js the
+  // same way). A "./vendor/..." src 404s silently and leaves `CognitiveMap` undefined,
+  // which map.html's own inline script then throws on when it calls
+  // CognitiveMap.mountCognitiveMap. WKWebView also redacts that failed script load's
+  // error to window.onerror, so it produces no signal at all beyond the later
+  // ReferenceError. This regressed once already; keep the path flat.
+  it('loads its script from the flattened bundle root, not a vendor/ subpath', () => {
+    const html = readFileSync(join(packageRoot, 'ios', 'map.html'), 'utf8')
+    expect(html).toContain('<script src="./cognitive-map.iife.js">')
+    expect(html).not.toContain('vendor/cognitive-map.iife.js"')
+  })
 })
