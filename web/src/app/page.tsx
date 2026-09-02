@@ -683,7 +683,7 @@ export default function Home() {
             {/* Monthly */}
             <div style={{ background: 'var(--surface)', border: '1px solid var(--hairline2)', borderRadius: 24, padding: '32px 30px', boxShadow: 'var(--shadow)' }}>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text3)' }}>Monthly</div>
-              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$29.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ month</span></div>
+              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$19.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ month</span></div>
               <div style={{ fontSize: 14, color: 'var(--text3)' }}>Cancel anytime</div>
               <ul style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {['Unlimited text, voice, video & photo entries', 'End-to-end encrypted, zero-knowledge by design', 'Private AI inference on Morpheus (TEE)', 'Unlimited AI insights & patterns', 'Unlimited chat with your AI', 'Daily 750-word streak + shareable insights card', 'Daily personalized prompt', 'Your On-Chain Soul, a soulbound token'].map(f => (
@@ -704,8 +704,8 @@ export default function Home() {
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'linear-gradient(90deg, var(--accent), var(--accentDeep))' }} />
               <div style={{ position: 'absolute', top: 18, right: 18, background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '4px 10px', borderRadius: 100 }}>Save 17%</div>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accentDeep)' }}>Annual</div>
-              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$299.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ year</span></div>
-              <div style={{ fontSize: 14, color: 'var(--text3)' }}>~$25.00 / month · billed once a year</div>
+              <div className="serif" style={{ fontSize: 42, fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 4px' }}>$199.99 <span style={{ fontFamily: 'var(--sans)', fontSize: 16, fontWeight: 500, color: 'var(--text2)' }}>/ year</span></div>
+              <div style={{ fontSize: 14, color: 'var(--text3)' }}>~$16.67 / month · billed once a year</div>
               <ul style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {['Everything in Monthly', 'Two months free', 'Full year of compounding self-knowledge'].map(f => (
                   <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15, textAlign: 'left' }}>
@@ -761,7 +761,7 @@ export default function Home() {
               <div style={{ position: 'absolute', bottom: -100, left: -40, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,255,255,0.09)', filter: 'blur(10px)' }} />
               <h2 className="serif" style={{ position: 'relative', zIndex: 1, fontSize: 'clamp(30px,4.2vw,52px)', fontWeight: 600, lineHeight: 1.06, letterSpacing: '-0.025em' }}>Merge with AI.<br />One conversation at a time.</h2>
               <p className="serif" style={{ position: 'relative', zIndex: 1, fontStyle: 'italic', fontSize: 26, color: 'rgba(255,255,255,0.88)', marginTop: 14 }}>It starts with one entry.</p>
-              <p style={{ position: 'relative', zIndex: 1, fontSize: 17, color: 'rgba(255,255,255,0.75)', marginTop: 10 }}>Free to download. Pro is $29.99 / month or $299.99 / year.</p>
+              <p style={{ position: 'relative', zIndex: 1, fontSize: 17, color: 'rgba(255,255,255,0.75)', marginTop: 10 }}>Free to download. Pro is $19.99 / month or $199.99 / year.</p>
               <div style={{ position: 'relative', zIndex: 1, marginTop: 36, display: 'flex', justifyContent: 'center' }}>
                 <AppStoreButton variant="white" />
               </div>

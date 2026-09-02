@@ -371,7 +371,7 @@ describe('forwardToPostHog', () => {
       app_user_id: 'uid1',
       store: 'APP_STORE',
       product_id: 'com.luminalog.pro.monthly',
-      price: 29.99,
+      price: 19.99,
       currency: 'USD',
       period_type: 'NORMAL',
     })
@@ -379,7 +379,7 @@ describe('forwardToPostHog', () => {
       store: 'app_store',
       product_id: 'com.luminalog.pro.monthly',
       period_type: 'NORMAL',
-      price: 29.99,
+      price: 19.99,
       currency: 'USD',
     })
   })
