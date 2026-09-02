@@ -350,6 +350,10 @@ final class ProxyAPIClient {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // AI routes legitimately take longer than URLSession's 60s default, and a
+        // spurious timeout on a working request looks exactly like a broken feature.
+        // Matches `makeRawRequest`.
+        request.timeoutInterval = 120
         let token = try await tokenProvider.idToken(forceRefresh: forceRefresh)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.httpBody = try encoder.encode(body)
@@ -371,6 +375,9 @@ final class ProxyAPIClient {
         }
         var request = URLRequest(url: url)
         request.httpMethod = method
+        // Same generous budget as `makeRequest`, so a poll gets what the POST that
+        // started it got.
+        request.timeoutInterval = 120
         let token = try await tokenProvider.idToken(forceRefresh: forceRefresh)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         return request

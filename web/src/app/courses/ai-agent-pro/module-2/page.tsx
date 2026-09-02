@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { CourseLayout, Pill, SectionHeading } from '@/components/course'
 import CourseQuiz from '@/components/CourseQuiz'
-import { COURSE_BASE } from '@/lib/ai-power-users/course'
+import { COURSE_BASE } from '@/lib/ai-agent-pro/course'
 import {
   MODULE_2_SKILLS,
   MODULE_2_AGENDA,
@@ -21,7 +21,7 @@ import {
   MODULE_2_GUIDE_URL,
   LUMA_URL,
   YOUTUBE_URL,
-} from '@/lib/ai-power-users/program'
+} from '@/lib/ai-agent-pro/program'
 
 export const metadata: Metadata = {
   title: 'Module 2 · Agent Mastery and Vibe Coding a Pro Website, Argo',
@@ -108,7 +108,7 @@ export default function ModuleTwoPage() {
           </div>
 
           <span className="eyebrow" style={{ marginBottom: 14, justifyContent: 'center' }}>
-            <Sparkles style={{ width: 14, height: 14 }} /> AI Power Users
+            <Sparkles style={{ width: 14, height: 14 }} /> AI Agent Pro
           </span>
           <h1
             className="serif"
@@ -354,7 +354,7 @@ export default function ModuleTwoPage() {
           </div>
           <CourseQuiz
             quizId="module-2"
-            quizTitle="AI Power Users · Module 2"
+            quizTitle="AI Agent Pro · Module 2"
             mcq={MODULE_2_MCQ}
             openQuestions={MODULE_2_OPEN_QUESTIONS}
           />
@@ -375,16 +375,23 @@ export default function ModuleTwoPage() {
                 Module 1 · Build Your Private AI Second Brain
               </div>
             </Link>
-            <div className="card" style={{ padding: '20px 22px', opacity: 0.7 }}>
+            <Link
+              href={`${COURSE_BASE}/module-3`}
+              className="card"
+              style={{ padding: '20px 22px', textDecoration: 'none', display: 'block' }}
+            >
               <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 6 }}>Next</div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Module 3 · Coming soon</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
+                Module 3 · Media Models and Your Own Domain
+              </div>
               <div
                 className="inline-flex items-center gap-1"
                 style={{ marginTop: 8, fontSize: 12.5, color: 'var(--accentDeep)', fontWeight: 600 }}
               >
-                <Check style={{ width: 12, height: 12 }} /> You are on Module 2
+                Your agent gets a camera
+                <ArrowRight style={{ width: 12, height: 12 }} />
               </div>
-            </div>
+            </Link>
           </div>
         </div>
       </section>

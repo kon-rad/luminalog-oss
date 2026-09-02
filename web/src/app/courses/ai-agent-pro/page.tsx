@@ -2,14 +2,14 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { CourseHero, CourseLayout, Pill, SectionHeading, ValuesGrid } from '@/components/course'
-import { COURSE_BASE, MODULES } from '@/lib/ai-power-users/course'
+import { COURSE_BASE, MODULES } from '@/lib/ai-agent-pro/course'
 
 export const metadata: Metadata = {
-  title: 'AI Power Users, Argo',
+  title: 'AI Agent Pro, Argo',
   description:
     'A hands-on course that turns anyone into a confident, safe power user of modern AI: from prompting to agents to running a private model locally.',
   openGraph: {
-    title: 'AI Power Users, Argo',
+    title: 'AI Agent Pro, Argo',
     description:
       'A hands-on course that turns anyone into a confident, safe power user of modern AI: from prompting to agents to running a private model locally.',
   },
@@ -26,7 +26,7 @@ export default function CourseOverviewPage() {
           <div style={{ textAlign: 'center', marginBottom: 38 }}>
             <SectionHeading>The modules</SectionHeading>
             <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 560, margin: '12px auto 0' }}>
-              Five modules, plus a Module 0 for anyone starting from zero on Windows 11. Each one
+              Seven modules, plus a Module 0 for anyone starting from zero on Windows 11. Each one
               is a standalone hands-on session, you leave with something working. New modules are
               announced as they are scheduled.
             </p>

@@ -79,7 +79,8 @@ export async function deleteEntryChunks(userId: string, entryId: string): Promis
 
 /**
  * Re-index an entry: purge its old chunks, embed the new chunks via the active
- * provider (Morpheus BGE-M3 when AI_PROVIDER=morpheus), and add one row per chunk.
+ * provider (Venice BGE-M3 as of ADR-0139, matching the index's vector space),
+ * and add one row per chunk.
  * Rows carry NO text — only the vector + metadata. Deterministic ids make it a
  * clean replace. Returns the number of chunks indexed.
  */

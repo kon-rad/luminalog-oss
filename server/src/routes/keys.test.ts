@@ -130,6 +130,18 @@ describe('wrapped-key storage: PUT then GET round-trips (userId-scoped)', () => 
     expect(getRes.body.wrappedKeys).toEqual({})
     expect(getRes.body.zkKeyVersion).toBeNull()
   })
+
+  it('accepts the eoa wrap method alongside icloud and recovery', async () => {
+    const putReq: any = { uid: 'u', body: { wraps: { eoa: env() } } }
+    const putRes = mockRes()
+    await putWrappedKeysHandler(putReq, putRes)
+    expect(putRes.statusCode).toBe(200)
+    expect(putRes.body.methods).toEqual(['eoa'])
+
+    const getRes = mockRes()
+    await getWrappedKeysHandler({ uid: 'u' } as any, getRes)
+    expect(getRes.body.wrappedKeys.eoa).toEqual(env())
+  })
 })
 
 describe('cross-tenant isolation', () => {

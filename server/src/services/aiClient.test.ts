@@ -21,6 +21,7 @@ import {
   resolveProviders,
   transcribeAudio,
   transcribeWithDeepgram,
+  embed,
 } from './aiClient'
 
 const noSleep = async () => {}
@@ -151,6 +152,55 @@ describe('transcribeAudio', () => {
   })
 })
 
+describe('transcribeAudio (provider routing, ADR-0138)', () => {
+  beforeEach(() => { vi.unstubAllGlobals() })
+  afterEach(() => {
+    delete (config as any).AI_PROVIDER
+    delete (config as any).VENICE_AI_API_KEY
+    delete (config as any).VENICE_BASE_URL
+    delete (config as any).VENICE_STT_MODEL
+  })
+
+  function jsonResp(payload: any) {
+    return { status: 200, ok: true, json: async () => payload, text: async () => '' } as any
+  }
+
+  it('routes to Venice with openai/whisper-large-v3 when AI_PROVIDER=venice', async () => {
+    ;(config as any).AI_PROVIDER = 'venice'
+    ;(config as any).VENICE_AI_API_KEY = 'vk'
+    ;(config as any).VENICE_STT_MODEL = 'openai/whisper-large-v3'
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResp({ text: 'venice transcript' }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const out = await transcribeAudio(Buffer.from('audio'), 'clip.m4a')
+
+    expect(out).toBe('venice transcript')
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(String(url)).toContain('venice.ai')
+    expect(String(url)).toContain('/audio/transcriptions')
+    const body = init.body as FormData
+    expect(body.get('model')).toBe('openai/whisper-large-v3')
+    expect(body.get('response_format')).toBe('json')
+    expect(init.headers.Authorization).toBe('Bearer vk')
+  })
+
+  it('still routes to Together when AI_PROVIDER=morpheus (Morpheus has no STT)', async () => {
+    ;(config as any).AI_PROVIDER = 'morpheus'
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResp({ text: 'together transcript', segments: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const out = await transcribeAudio(Buffer.from('audio'), 'clip.m4a')
+
+    expect(out).toBe('together transcript')
+    expect(String(fetchMock.mock.calls[0][0])).toContain('together.xyz')
+  })
+
+  it('throws when Venice is active with no API key configured', async () => {
+    ;(config as any).AI_PROVIDER = 'venice' // no VENICE_AI_API_KEY
+    await expect(transcribeAudio(Buffer.from('a'), 'c.m4a')).rejects.toThrow(/no API key/)
+  })
+})
+
 describe('transcribeWithDeepgram', () => {
   beforeEach(() => { vi.unstubAllGlobals() })
 
@@ -227,6 +277,10 @@ function resetProviderConfig() {
   c.MORPHEUS_BASE_URL = undefined
   c.MORPHEUS_CHAT_MODEL = undefined
   c.MORPHEUS_CHAT_MODEL_FALLBACKS = undefined
+  c.VENICE_AI_API_KEY = undefined
+  c.VENICE_BASE_URL = undefined
+  c.VENICE_CHAT_MODEL = undefined
+  c.VENICE_EMBEDDING_MODEL = undefined
 }
 
 // ── Morpheus model fallback chain (resilience) ───────────────────────────────
@@ -291,6 +345,20 @@ describe('resolveProviders', () => {
     expect(primary.apiKey).toBe('mk')
     expect(primary.chatModel).toBe('claude-opus-4.8')
   })
+
+  it('resolves Venice as the active provider when AI_PROVIDER=venice', () => {
+    config.AI_PROVIDER = 'venice'
+    ;(config as any).VENICE_AI_API_KEY = 'vk'
+    ;(config as any).VENICE_CHAT_MODEL = 'gemini-3-5-flash-lite'
+    const { primary } = resolveProviders()
+    expect(primary.name).toBe('venice')
+    expect(primary.apiKey).toBe('vk')
+    expect(primary.chatModel).toBe('gemini-3-5-flash-lite')
+    expect(primary.baseUrl).toContain('venice.ai')
+    // ADR-0139: Venice embeds with BGE-M3 by default, the same model Morpheus
+    // uses, so the provider switch keeps the production Chroma index compatible.
+    expect(primary.embeddingModel).toBe('text-embedding-bge-m3')
+  })
 })
 
 describe('chatCompletion (single provider, no fallback)', () => {
@@ -330,6 +398,76 @@ describe('chatCompletion (single provider, no fallback)', () => {
     config.AI_PROVIDER = 'morpheus' // no MORPHEUS_API_KEY
     await expect(chatCompletion([{ role: 'user', content: 'hi' }])).rejects.toThrow(/no API key/)
   })
+
+  it('hits the active provider (Venice) and returns its response', async () => {
+    config.AI_PROVIDER = 'venice'
+    ;(config as any).VENICE_AI_API_KEY = 'vk'
+    const fetchMock = vi.fn().mockResolvedValueOnce(resp(200))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const res = await chatCompletion([{ role: 'user', content: 'hi' }])
+
+    expect(res.ok).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][0]).toContain('venice.ai')
+  })
+
+  it('throws when Venice is active with no API key configured', async () => {
+    config.AI_PROVIDER = 'venice' // no VENICE_AI_API_KEY
+    await expect(chatCompletion([{ role: 'user', content: 'hi' }])).rejects.toThrow(/no API key/)
+  })
+})
+
+// ── embeddings via the active provider (ADR-0139) ─────────────────────────────
+// embed() is LIVE (ragStore RAG index/search, cognitiveMap dedupe). Venice embeds
+// with BGE-M3 by default so the provider switch keeps the Chroma index compatible.
+describe('embed (active provider)', () => {
+  beforeEach(() => { vi.unstubAllGlobals(); resetProviderConfig() })
+  afterEach(() => { vi.unstubAllGlobals(); resetProviderConfig() })
+
+  function embedResp(payload: { data: Array<{ embedding: number[]; index: number }> }) {
+    return { status: 200, ok: true, json: async () => payload, text: async () => '' } as any
+  }
+
+  it('POSTs model text-embedding-bge-m3 to the Venice embeddings endpoint', async () => {
+    config.AI_PROVIDER = 'venice'
+    ;(config as any).VENICE_AI_API_KEY = 'vk'
+    const fetchMock = vi.fn().mockResolvedValueOnce(embedResp({
+      data: [{ embedding: [0.1, 0.2], index: 0 }],
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const out = await embed(['a passage'])
+
+    expect(out).toEqual([[0.1, 0.2]])
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(String(url)).toContain('venice.ai')
+    expect(String(url)).toContain('/embeddings')
+    expect(init.headers.Authorization).toBe('Bearer vk')
+    const body = JSON.parse(init.body as string)
+    expect(body.model).toBe('text-embedding-bge-m3')
+    expect(body.input).toEqual(['a passage'])
+  })
+
+  it('restores sorted order from a shuffled response', async () => {
+    config.AI_PROVIDER = 'venice'
+    ;(config as any).VENICE_AI_API_KEY = 'vk'
+    const fetchMock = vi.fn().mockResolvedValueOnce(embedResp({
+      data: [{ embedding: [2], index: 1 }, { embedding: [1], index: 0 }],
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const out = await embed(['first', 'second'])
+    expect(out).toEqual([[1], [2]])
+  })
+
+  it('throws a clear config error if no embedding model is set, not an opaque 400', async () => {
+    config.AI_PROVIDER = 'venice'
+    ;(config as any).VENICE_AI_API_KEY = 'vk'
+    ;(config as any).VENICE_EMBEDDING_MODEL = '' // overrides the default to nothing
+
+    await expect(embed(['x'])).rejects.toThrow(/no embedding model configured/)
+  })
 })
 
 // ── voice provider routing (ADR-0109) ────────────────────────────────────────
@@ -366,6 +504,19 @@ describe('resolveVoiceProvider', () => {
     ;(config as any).VOICE_AI_PROVIDER = 'morpheus'
     ;(config as any).VOICE_CHAT_MODEL = 'some-better-slug'
     expect(resolveVoiceProvider().chatModel).toBe('some-better-slug')
+  })
+
+  it('switches to Venice by env, with the Venice voice default model', () => {
+    ;(config as any).VOICE_AI_PROVIDER = 'venice'
+    const p = resolveVoiceProvider()
+    expect(p.name).toBe('venice')
+    expect(p.chatModel).toBe('gemini-3-5-flash-lite')
+  })
+
+  it('lets VOICE_CHAT_MODEL override the Venice default too', () => {
+    ;(config as any).VOICE_AI_PROVIDER = 'venice'
+    ;(config as any).VOICE_CHAT_MODEL = 'some-other-venice-slug'
+    expect(resolveVoiceProvider().chatModel).toBe('some-other-venice-slug')
   })
 
   it('does not disturb the global provider resolution', () => {

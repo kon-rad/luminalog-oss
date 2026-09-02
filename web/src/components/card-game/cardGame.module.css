@@ -42,9 +42,37 @@
 /* ── The card ───────────────────────────────────────────────────────────── */
 
 .scene {
-  perspective: 1400px;
   width: min(370px, 84vw);
   margin: 0 auto;
+}
+
+/* The deal-in and discard travel live on this wrapper, never on the card
+ * itself. A running or filled CSS animation outranks a plain class rule in the
+ * cascade, so if the travel and the turn shared one element the animation's
+ * transform would pin the card face down and .revealed would never show. */
+.dealer {
+  perspective: 1400px;
+}
+
+/* The <button> is a bare hit target that must carry NO transform and NO
+ * transform-style of its own. WebKit flattens the 3D rendering context on form
+ * controls, so a button holding `transform-style: preserve-3d` degrades the turn
+ * into a mirrored card back: the rotation still applies, but the two faces are
+ * no longer in a shared 3D space, so backface-visibility never hides the back
+ * and the question never appears. Safari and every browser on iOS are affected,
+ * Chrome is not, which is why this survived desktop testing. The 3D lives on the
+ * plain .card <div> inside instead. */
+.cardButton {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.cardButton:disabled {
+  cursor: default;
 }
 
 .card {
@@ -53,15 +81,6 @@
   aspect-ratio: 5 / 7;
   transform-style: preserve-3d;
   transition: transform 0.62s cubic-bezier(0.2, 0.8, 0.2, 1);
-  cursor: pointer;
-  border: 0;
-  padding: 0;
-  background: none;
-  display: block;
-}
-
-.card:disabled {
-  cursor: default;
 }
 
 .revealed {
@@ -107,7 +126,8 @@
 }
 
 /* Deal-in: the card arrives from off to the right, the way it would be dealt
- * across a table. Keyed on the card id, so every new card plays it. */
+ * across a table. Keyed on the card id, so every new card plays it. Lives on
+ * .dealer, not on .card. */
 .dealing {
   animation: deal 0.52s cubic-bezier(0.2, 0.9, 0.25, 1) both;
 }

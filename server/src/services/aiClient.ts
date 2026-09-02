@@ -1,8 +1,9 @@
 import { config } from '../config'
 import { Readable } from 'stream'
 
-// Together's REST base. Transcription (Whisper) stays pinned here regardless of
-// AI_PROVIDER — Morpheus has no speech-to-text endpoint (ADR-0085).
+// Together's REST base, used by `transcribeAudioTogether()` and the Together chat
+// path. STT falls back here whenever the active provider is not Venice, since
+// Morpheus has no speech-to-text endpoint of its own (ADR-0085, ADR-0138).
 const TOGETHER_BASE = 'https://api.together.xyz/v1'
 
 // Defaults mirror the Zod defaults in config.ts, but are duplicated here so the
@@ -12,17 +13,24 @@ const DEFAULT_TOGETHER_EMBEDDING_MODEL = 'intfloat/multilingual-e5-large-instruc
 const DEFAULT_MORPHEUS_BASE = 'https://api.mor.org/api/v1'
 const DEFAULT_MORPHEUS_CHAT_MODEL = 'llama-3.3-70b'
 const DEFAULT_MORPHEUS_EMBEDDING_MODEL = 'text-embedding-bge-m3'
+const DEFAULT_VENICE_BASE = 'https://api.venice.ai/api/v1'
+const DEFAULT_VENICE_CHAT_MODEL = 'gemini-3-5-flash-lite'
+const DEFAULT_VENICE_STT_MODEL = 'openai/whisper-large-v3'
+const DEFAULT_VENICE_EMBEDDING_MODEL = 'text-embedding-bge-m3'
 
 // Per-provider defaults for the LIVE VOICE turn, which is latency-critical and
-// picks its provider independently of AI_PROVIDER (ADR-0109). Both are measured
-// fast, currently-routable ids — see the VOICE_AI_PROVIDER note in config.ts.
+// picks its provider independently of AI_PROVIDER (ADR-0109). Together and Morpheus
+// defaults are measured fast, currently-routable ids. Venice's default is unmeasured:
+// it was chosen as a deliberate product decision (ADR-0138) to accept latency risk;
+// see the VOICE_AI_PROVIDER note in config.ts.
 // The Morpheus one is deliberately `deepseek-v4-flash` (a routable slug that
 // returns real `content`), NOT `deepseek-v4-pro` (a reasoning model whose output
 // lands in `reasoning_content`, so it would stream an empty reply to Vapi).
 const DEFAULT_VOICE_TOGETHER_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
 const DEFAULT_VOICE_MORPHEUS_MODEL = 'deepseek-v4-flash'
+const DEFAULT_VOICE_VENICE_MODEL = 'gemini-3-5-flash-lite'
 
-export type AiProviderName = 'together' | 'morpheus'
+export type AiProviderName = 'together' | 'morpheus' | 'venice'
 export interface AiProvider {
   name: AiProviderName
   baseUrl: string
@@ -51,14 +59,28 @@ function morpheusProvider(): AiProvider {
   }
 }
 
+function veniceProvider(): AiProvider {
+  return {
+    name: 'venice',
+    baseUrl: config.VENICE_BASE_URL ?? DEFAULT_VENICE_BASE,
+    apiKey: config.VENICE_AI_API_KEY ?? '',
+    chatModel: config.VENICE_CHAT_MODEL ?? DEFAULT_VENICE_CHAT_MODEL,
+    embeddingModel: config.VENICE_EMBEDDING_MODEL ?? DEFAULT_VENICE_EMBEDDING_MODEL,
+  }
+}
+
 /**
  * The single active provider selected by AI_PROVIDER. There is NO cross-provider
  * fallback — a failed call is retried against the SAME provider (`fetchWithRetry`)
  * and then surfaced. Returns a `{ primary }` shape so existing callers keep working.
  */
 export function resolveProviders(): { primary: AiProvider } {
-  const name: AiProviderName = config.AI_PROVIDER === 'morpheus' ? 'morpheus' : 'together'
-  const primary = name === 'morpheus' ? morpheusProvider() : togetherProvider()
+  const name: AiProviderName =
+    config.AI_PROVIDER === 'morpheus' ? 'morpheus' :
+    config.AI_PROVIDER === 'venice' ? 'venice' : 'together'
+  const primary =
+    name === 'morpheus' ? morpheusProvider() :
+    name === 'venice' ? veniceProvider() : togetherProvider()
   return { primary }
 }
 
@@ -100,10 +122,15 @@ export function chatModelChain(): string[] {
  * overrides the chosen provider's voice default. ADR-0109.
  */
 export function resolveVoiceProvider(): AiProvider {
-  const name: AiProviderName = config.VOICE_AI_PROVIDER === 'morpheus' ? 'morpheus' : 'together'
-  const base = name === 'morpheus' ? morpheusProvider() : togetherProvider()
+  const name: AiProviderName =
+    config.VOICE_AI_PROVIDER === 'morpheus' ? 'morpheus' :
+    config.VOICE_AI_PROVIDER === 'venice' ? 'venice' : 'together'
+  const base =
+    name === 'morpheus' ? morpheusProvider() :
+    name === 'venice' ? veniceProvider() : togetherProvider()
   const fallbackModel =
-    name === 'morpheus' ? DEFAULT_VOICE_MORPHEUS_MODEL : DEFAULT_VOICE_TOGETHER_MODEL
+    name === 'morpheus' ? DEFAULT_VOICE_MORPHEUS_MODEL :
+    name === 'venice' ? DEFAULT_VOICE_VENICE_MODEL : DEFAULT_VOICE_TOGETHER_MODEL
   return { ...base, chatModel: config.VOICE_CHAT_MODEL || fallbackModel }
 }
 
@@ -186,7 +213,7 @@ export async function streamToBuffer(stream: Readable): Promise<Buffer> {
 type WhisperSegment = { text?: string }
 type WhisperResponse = { text?: string; segments?: WhisperSegment[]; duration?: number }
 
-export async function transcribeAudio(
+async function transcribeAudioTogether(
   buffer: Buffer,
   filename: string,
   opts: RetryOpts = {},
@@ -244,6 +271,62 @@ export async function transcribeAudio(
   return transcript
 }
 
+type VeniceTranscriptionResponse = { text?: string }
+
+// Venice's transcription API only supports `json`/`text` response formats (no
+// `verbose_json`), so there is no segment-stitching fallback here: it returns the
+// whole transcript in `text` directly. Only reached when AI_PROVIDER=venice.
+async function transcribeAudioVenice(
+  buffer: Buffer,
+  filename: string,
+  opts: RetryOpts = {},
+): Promise<string> {
+  if (!config.VENICE_AI_API_KEY) {
+    throw new Error('transcribeAudioVenice: no API key for provider=venice')
+  }
+  const makeInit = (): RequestInit => {
+    const form = new FormData()
+    form.append('model', config.VENICE_STT_MODEL ?? DEFAULT_VENICE_STT_MODEL)
+    form.append('response_format', 'json')
+    form.append('file', new Blob([buffer]), filename)
+    return {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${config.VENICE_AI_API_KEY}` },
+      body: form,
+    }
+  }
+
+  const res = await fetchWithRetry(
+    `${config.VENICE_BASE_URL ?? DEFAULT_VENICE_BASE}/audio/transcriptions`,
+    makeInit,
+    { timeoutMs: TRANSCRIBE_TIMEOUT_MS, ...opts },
+  )
+  if (!res.ok) {
+    throw new Error(`Venice transcribe error ${res.status}: ${await res.text()}`)
+  }
+  const data = (await res.json()) as VeniceTranscriptionResponse
+  const transcript = (data.text ?? '').trim()
+  const words = transcript ? transcript.split(/\s+/).length : 0
+  console.log(`[transcribeAudioVenice] words=${words}`)
+  return transcript
+}
+
+/**
+ * Transcribe a clip with the active provider's speech-to-text backend
+ * (ADR-0138). Venice when AI_PROVIDER=venice; Together otherwise, since Morpheus
+ * has no STT endpoint of its own (unchanged from before ADR-0138).
+ */
+export async function transcribeAudio(
+  buffer: Buffer,
+  filename: string,
+  opts: RetryOpts = {},
+): Promise<string> {
+  if (resolveProviders().primary.name === 'venice') {
+    return transcribeAudioVenice(buffer, filename, opts)
+  }
+  return transcribeAudioTogether(buffer, filename, opts)
+}
+
 type DeepgramResponse = {
   results?: { channels?: Array<{ alternatives?: Array<{ transcript?: string }> }> }
 }
@@ -286,11 +369,23 @@ export async function transcribeWithDeepgram(
  * is correct (only queries take an instruction; passages stay raw).
  */
 export async function embed(texts: string[]): Promise<number[][]> {
-  // Dormant path (no live caller today). Routes through the active provider so a
-  // future reactivation follows AI_PROVIDER. NOTE: Morpheus BGE-M3 is 1024-dim vs
-  // the on-device 512-dim index — reactivating on Morpheus is an index-breaking
-  // project, not a drop-in (ADR-0085).
+  // LIVE callers: ragStore.ts (RAG index + search) and cognitiveMap (beat dedupe).
+  // Routes through the active provider so embeddings follow AI_PROVIDER.
+  //
+  // Dimension parity (as of ADR-0139): Morpheus BGE-M3 and Venice
+  // text-embedding-bge-m3 both produce 1024-dim vectors, and a live probe on
+  // 2026-08-30 found them bit-identical (cosine 1.0), matching the production
+  // Chroma 1024-dim index. Switching between them is index-safe. Together's
+  // legacy multilingual-e5-large-instruct (if someone sets AI_PROVIDER=together
+  // with the matching .env model) is a DIFFERENT 1024-dim space and NOT
+  // cross-compatible — re-indexing is required to leave or join it. See ADR-0139.
   const p = resolveProviders().primary
+  if (!p.embeddingModel) {
+    throw new Error(
+      `${p.name} embed: no embedding model configured for provider=${p.name}. ` +
+      `Set the matching *_EMBEDDING_MODEL env var (ADR-0139).`,
+    )
+  }
   const res = await fetchWithRetry(`${p.baseUrl}/embeddings`, {
     method: 'POST',
     headers: {

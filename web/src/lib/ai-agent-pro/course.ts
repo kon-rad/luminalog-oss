@@ -1,5 +1,5 @@
 /* ──────────────────────────────────────────────────────────────────────────
- * Structured data for the AI Power Users course.
+ * Structured data for the AI Agent Pro course.
  *
  * Prose-free metadata shared by the overview, values, and lesson pages.
  * Lesson *prose* lives in the page components; this module holds the lists
@@ -13,11 +13,15 @@ import {
   Brain,
   SquareTerminal,
   CalendarClock,
+  Clapperboard,
+  Server,
+  Send,
+  CloudUpload,
   type LucideIcon,
 } from 'lucide-react'
 
 /* Every course URL hangs off this, so the route can move in one edit. */
-export const COURSE_BASE = '/courses/ai-power-users'
+export const COURSE_BASE = '/courses/ai-agent-pro'
 
 export interface CourseValue {
   icon: LucideIcon
@@ -102,7 +106,37 @@ export const MODULES: CourseModule[] = [
       'Your AI agent writes its own tools, then builds a real client website live, start to finish, deployed to a working URL, with model research and cost tracking along the way.',
     icon: Rocket,
   },
-  tbdModule(3),
+  {
+    slug: 'module-3',
+    n: 3,
+    title: 'Media Models and Your Own Domain',
+    summary:
+      'Your agent gets a camera. Two skills that read the media model catalogue and price a job before running it, one photograph turned into a moving hero, a design direction taken from work you admire, and the whole site on a domain you own.',
+    icon: Clapperboard,
+  },
   tbdModule(4),
-  tbdModule(5),
+  {
+    slug: 'module-5',
+    n: 5,
+    title: 'Deploy Your Agent and Sync Your Brain',
+    summary:
+      'Your agent moves off the laptop onto a hardened server that does not close, holding the same notes and the same skills. The vault becomes a private git repository, and a sync loop keeps both machines identical.',
+    icon: Server,
+  },
+  {
+    slug: 'module-6',
+    n: 6,
+    title: 'The Telegram Front Door',
+    summary:
+      'Your agent becomes reachable from your phone and asks permission before it acts. Deny by default, approvals you can refuse from a train platform, access tiers for a second person, and scheduled results that stay silent on quiet days.',
+    icon: Send,
+  },
+  {
+    slug: 'module-7',
+    n: 7,
+    title: 'Your Own Cloud Drive',
+    summary:
+      'Git carries five megabytes; the vault is nineteen gigabytes. Object storage takes the rest, a filter file defines the split, and a guarded two way sync keeps a laptop, a server and a bucket in step without deleting on both sides at once.',
+    icon: CloudUpload,
+  },
 ]

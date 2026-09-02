@@ -103,6 +103,9 @@ targets:
         # or the app backgrounds (paired with isIdleTimerDisabled while active).
         UIBackgroundModes:
           - audio
+          - fetch
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.konradgnat.luminalog.encouragement.refresh
         NSMicrophoneUsageDescription: "Argo uses the microphone so you can record voice journal entries and dictate your thoughts."
         NSSpeechRecognitionUsageDescription: "Argo transcribes your voice recordings — on-device when your device supports it — so your spoken reflections become searchable journal text."
         NSCameraUsageDescription: "Argo uses the camera so you can capture photos and videos as part of your journal entries."

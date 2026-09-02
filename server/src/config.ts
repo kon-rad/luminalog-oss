@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const schema = z.object({
+export const schema = z.object({
   PORT: z.string().default('3200'),
   NODE_ENV: z.string().default('development'),
   FIREBASE_SERVICE_ACCOUNT_JSON: z.string(),
@@ -11,12 +11,34 @@ const schema = z.object({
   TOGETHER_CHAT_MODEL: z.string().default('meta-llama/Llama-3.3-70B-Instruct-Turbo'),
   // Server LLM provider switch. `together` preserves the legacy provider; `morpheus`
   // routes chat/summary/entry-AI/daily-report to the Morpheus decentralized TEE
-  // marketplace (ADR-0085). No cross-provider fallback — a failed call is retried
-  // against the SAME provider. All Morpheus vars are OPTIONAL/defaulted so flipping
-  // the switch never crash-loops boot.
-  AI_PROVIDER: z.enum(['together', 'morpheus']).default('morpheus'),
+  // marketplace (ADR-0085); `venice` routes them to Venice AI (ADR-0138), an
+  // OpenAI-compatible gateway that also serves speech-to-text (Morpheus does not).
+  // Defaults to `venice` as of ADR-0139: Venice proved live-compatible with the
+  // existing RAG index (its text-embedding-bge-m3 returns vectors bit-identical to
+  // Morpheus's, see VENICE_EMBEDDING_MODEL below), and it is the production choice.
+  // `AI_PROVIDER=morpheus` reverts everything except live voice instantly (env only).
+  // No cross-provider fallback: a failed call is retried against the SAME provider.
+  // All Morpheus/Venice vars are OPTIONAL/defaulted so flipping the switch never
+  // crash-loops boot; an unconfigured key only fails the individual request.
+  AI_PROVIDER: z.enum(['together', 'morpheus', 'venice']).default('venice'),
   MORPHEUS_API_KEY: z.string().optional(),
   MORPHEUS_BASE_URL: z.string().default('https://api.mor.org/api/v1'),
+  // Venice AI (ADR-0138). `gemini-3-5-flash-lite` is the cheapest current Gemini
+  // Flash tier on Venice ($0.38/$3.13 per M input/output tokens), at Venice's
+  // "Anonymized" privacy tier (encrypted in transit, no prompt retention after the
+  // request completes, but not hardware-isolated the way Morpheus's TEE is).
+  // VENICE_STT_MODEL is Venice's OpenAI-compatible Whisper-large-v3 endpoint, used
+  // by transcribeAudio() only when AI_PROVIDER=venice.
+  VENICE_AI_API_KEY: z.string().optional(),
+  VENICE_BASE_URL: z.string().default('https://api.venice.ai/api/v1'),
+  VENICE_CHAT_MODEL: z.string().default('gemini-3-5-flash-lite'),
+  VENICE_STT_MODEL: z.string().default('openai/whisper-large-v3'),
+  // Venice embedding model (ADR-0139). text-embedding-bge-m3 is the same open-weights
+  // BAAI BGE-M3 model Morpheus embeds with: on a live probe (2026-08-30) Venice and
+  // Morpheus returned vectors with cosine 1.000000 for every probe text, so switching
+  // providers does not break the 1024-dim production Chroma index. embed()/embedQuery()
+  // are LIVE callers (ragStore.ts RAG index/search, cognitiveMap beat dedupe).
+  VENICE_EMBEDDING_MODEL: z.string().default('text-embedding-bge-m3'),
   // THE global chat model. Change this one var (env override or here) to swap the
   // model app-wide. Must be a lowercase-hyphen SLUG that Morpheus can currently
   // route to. `deepseek-v4-flash` = open-source, reliably available (HTTP 200),
@@ -42,18 +64,20 @@ const schema = z.object({
   // `custom-llm-llm-failed` if a turn is too slow. It therefore gets its own
   // provider switch, independent of the global `AI_PROVIDER` (ADR-0109).
   //
-  // Why voice defaults to `together` while everything else stays on Morpheus:
-  // Morpheus reserves capacity for "priority models" and now 503s 159 of its 163
-  // models — including EVERY Gemini and Claude slug. The previous default
-  // (`Gemini 3.5 Flash`) failed 8/8 live probes, so every voice turn fell through
-  // to the "having a moment" fallback. Measured from the droplet (10 runs, real
-  // voice turn, streaming TTFB):
+  // Defaults to `venice` as of ADR-0138, a deliberate product decision made WITHOUT
+  // a live-turn latency probe (unlike the together/morpheus numbers below, which
+  // were measured before that switch). If Venice turns out too slow for real-time
+  // speech, revert instantly with `VOICE_AI_PROVIDER=together` (no code change, no
+  // redeploy beyond the env var).
+  //
+  // Prior history, why voice ONCE defaulted to `together` while everything else
+  // stayed on Morpheus: Morpheus reserves capacity for "priority models" and 503s
+  // most of its models, including every Gemini and Claude slug. Measured from the
+  // droplet (10 runs, real voice turn, streaming TTFB):
   //   together meta-llama/Llama-3.3-70B-Instruct-Turbo → ~0.95s median, 2.06s max, 10/10
   //   morpheus glm-5.2                                 → ~1.6s median, 5.27s max
   //   morpheus deepseek-v4-flash                       → ~2.5s median, 10.1s max
-  // Flip back with `VOICE_AI_PROVIDER=morpheus` the moment Morpheus can serve a
-  // fast slug again — no code change needed.
-  VOICE_AI_PROVIDER: z.enum(['together', 'morpheus']).default('together'),
+  VOICE_AI_PROVIDER: z.enum(['together', 'morpheus', 'venice']).default('venice'),
   // Overrides the voice model for whichever provider VOICE_AI_PROVIDER selects.
   // Unset → that provider's built-in voice default (see aiClient.ts). This is the
   // knob to turn when a better Morpheus slug appears: set VOICE_AI_PROVIDER=morpheus
@@ -159,6 +183,15 @@ if (!parsed.success) {
 }
 
 export const config = parsed.data
+
+// Boot-time guardrail for the risk noted in ADR-0138: if either provider switch is
+// set to venice but no Venice key is configured, every Venice-routed request fails
+// at call time with no visible warning until then. Warn, don't crash: an
+// unconfigured key must never crash-loop the server (see the other OPTIONAL Venice
+// vars above).
+if ((config.AI_PROVIDER === 'venice' || config.VOICE_AI_PROVIDER === 'venice') && !config.VENICE_AI_API_KEY) {
+  console.warn('[config] AI_PROVIDER or VOICE_AI_PROVIDER is set to venice but VENICE_AI_API_KEY is empty: Venice-routed requests will fail at call time (ADR-0138).')
+}
 
 /**
  * True only when every env var the on-chain mint path needs is present. When

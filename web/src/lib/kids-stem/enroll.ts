@@ -55,7 +55,7 @@ export const INCLUDED: IncludedItem[] = [
   {
     title: 'Lifetime membership of the Argo community',
     detail:
-      'The Argo subscription mints a membership NFT: a lifetime membership of the Argo high-alignment community and network state. While the subscription is active it also opens the community Telegram, where you connect and coordinate with other Argonauts, global travellers, creative technologists and innovators. What holds the community together is a shared practice: our weapon is the ability to speak, to write, and to generate and develop ideas. That is what we train here, in the AI Power Users class, and in the journal itself.',
+      'The Argo subscription mints a membership NFT: a lifetime membership of the Argo high-alignment community and network state. While the subscription is active it also opens the community Telegram, where you connect and coordinate with other Argonauts, global travellers, creative technologists and innovators. What holds the community together is a shared practice: our weapon is the ability to speak, to write, and to generate and develop ideas. That is what we train here, in the AI Agent Pro class, and in the journal itself.',
   },
   {
     title: 'Friendly M Helper',

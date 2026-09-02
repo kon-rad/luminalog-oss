@@ -368,7 +368,7 @@ export const SLIDES: Slide[] = [
       'That subscription carries something more.',
       "It mints an NFT, a lifetime membership of the Argo high-alignment community and network state. And while you're subscribed, it opens the community Telegram, where you connect and coordinate with the other Argonauts. Global travellers, global creative technologists, innovators.",
       'Here is what holds that community together. We are warriors, in this sense: our weapon is our ability to speak, to write, and to generate and develop ideas.',
-      "That is what we practise in this kids' class. It is what we practise in the AI Power Users class. And it is what we practise in the Argo journal.",
+      "That is what we practise in this kids' class. It is what we practise in the AI Agent Pro class. And it is what we practise in the Argo journal.",
     ],
   },
   {

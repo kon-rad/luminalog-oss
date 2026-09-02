@@ -52,7 +52,16 @@ export default function ConsentBanner() {
       role="dialog"
       aria-label="Cookie choices"
       className="fixed bottom-0 left-0 right-0 z-50 mx-auto flex max-w-3xl flex-col gap-3 rounded-t-2xl px-5 py-4 text-sm sm:flex-row sm:items-center"
-      style={{ background: 'var(--surface2, #16130E)', color: 'var(--text, #F4F0E9)', border: '1px solid var(--hairline2, rgba(255,255,255,0.12))' }}
+      // The panel is always ink, in both themes, so its colors must come from the
+      // theme-STABLE `--dark-*` tokens (defined once in :root and deliberately not
+      // redefined under html.dark). Using `--text`/`--hairline2` here painted
+      // near-black #2B2722 text onto the near-black panel in light mode, which is
+      // the default: roughly 1.2:1 contrast, effectively invisible.
+      style={{
+        background: 'var(--dark-bg, #16130E)',
+        color: 'var(--dark-text, #F3EEE4)',
+        border: '1px solid var(--dark-hairline, rgba(255,240,220,0.08))',
+      }}
     >
       <p className="flex-1">
         We measure our ads on this website. Accept to let Meta and Google see that you
@@ -60,7 +69,7 @@ export default function ConsentBanner() {
         <a href="/privacy" className="underline">Privacy</a>
       </p>
       <div className="flex gap-2">
-        <button type="button" onClick={() => decide('denied')} className="rounded-full px-4 py-2" style={{ border: '1px solid var(--hairline2, rgba(255,255,255,0.2))' }}>
+        <button type="button" onClick={() => decide('denied')} className="rounded-full px-4 py-2 whitespace-nowrap" style={{ border: '1px solid rgba(255,240,220,0.22)' }}>
           Decline
         </button>
         <button type="button" onClick={() => decide('granted')} className="rounded-full px-4 py-2 font-semibold" style={{ background: '#F2CB4C', color: '#171412' }}>

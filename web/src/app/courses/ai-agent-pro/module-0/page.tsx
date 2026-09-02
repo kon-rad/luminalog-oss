@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { CourseLayout, Pill, SectionHeading } from '@/components/course'
 import CourseQuiz from '@/components/CourseQuiz'
-import { COURSE_BASE, MODULES } from '@/lib/ai-power-users/course'
+import { COURSE_BASE, MODULES } from '@/lib/ai-agent-pro/course'
 import {
   MODULE_0_TOOLSTACK,
   MODULE_0_OBJECTIVES,
@@ -23,12 +23,12 @@ import {
   MODULE_0_GUIDE_URL,
   MODULE_0_MATERIALS_URL,
   YOUTUBE_URL,
-} from '@/lib/ai-power-users/program'
+} from '@/lib/ai-agent-pro/program'
 
 export const metadata: Metadata = {
   title: 'Module 0 · Fundamentals for Windows 11, Argo',
   description:
-    'The pre-course hour of AI Power Users, for anyone who has never opened a terminal. One folder, four windows: Windows Terminal, File Explorer, Handy, Obsidian, and VS Code. No AI, no agent, no code.',
+    'The pre-course hour of AI Agent Pro, for anyone who has never opened a terminal. One folder, four windows: Windows Terminal, File Explorer, Handy, Obsidian, and VS Code. No AI, no agent, no code.',
 }
 
 const outlineButton: React.CSSProperties = {
@@ -85,7 +85,7 @@ export default function ModuleZeroPage() {
           </div>
 
           <span className="eyebrow" style={{ marginBottom: 14, justifyContent: 'center' }}>
-            <Sparkles style={{ width: 14, height: 14 }} /> AI Power Users
+            <Sparkles style={{ width: 14, height: 14 }} /> AI Agent Pro
           </span>
           <h1
             className="serif"
@@ -348,7 +348,7 @@ export default function ModuleZeroPage() {
           </div>
           <CourseQuiz
             quizId="module-0"
-            quizTitle="AI Power Users · Module 0"
+            quizTitle="AI Agent Pro · Module 0"
             mcq={MODULE_0_MCQ}
             openQuestions={MODULE_0_OPEN_QUESTIONS}
           />
@@ -407,7 +407,7 @@ export default function ModuleZeroPage() {
 /* The whole module list as cards, with the current one marked. */
 function ModuleGrid({ currentSlug }: { currentSlug: string }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6" style={{ gap: 16 }}>
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4" style={{ gap: 16 }}>
       {MODULES.map((mod) => {
         const isCurrent = mod.slug === currentSlug
         const card = (

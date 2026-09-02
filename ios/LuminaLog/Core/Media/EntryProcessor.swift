@@ -564,7 +564,8 @@ final class BackgroundEntryProcessor: EntryProcessor {
         case .voice, .video:
             // Model 1 (zero-knowledge): the server never persists the audio, but good
             // transcription needs a real model — so send the still-local recording to the
-            // STATELESS /transcribe-clip endpoint (Together `whisper-large-v3`, transcribed
+            // STATELESS /transcribe-clip endpoint (Deepgram when configured, else
+            // whichever Whisper the server's active provider routes to, transcribed
             // in memory and discarded) and store the returned text as content. This shares
             // the clip's plaintext audio with the AI provider for that one request, the same
             // "you choose what your AI sees" trade-off as chat/summary — see the privacy

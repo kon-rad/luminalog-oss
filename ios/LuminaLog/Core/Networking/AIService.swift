@@ -5,6 +5,12 @@ enum AIServiceError: Error {
     /// The requested AI operation isn't available on this path (e.g. `generateEntryAI`
     /// is only implemented on the zero-knowledge `ProxyAIService` path).
     case unavailable
+    /// A server-side generation job reported failure. Carries the upstream message,
+    /// which describes the provider failure and never the entry.
+    case jobFailed(String)
+    /// A generation job was still running when the client's poll ceiling was reached.
+    /// The job keeps running server-side, so a later attempt usually collects it.
+    case jobTimedOut
 }
 
 /// The three per-entry AI artifacts produced together in one call. On the legacy
@@ -29,6 +35,13 @@ struct VoiceCallContext: Sendable {
     let todayContext: String
     let ragContext: String
     let focalEntry: String?
+}
+
+/// One generated encouragement message as returned by the server. Plain text on
+/// the wire; the client seals it before it ever touches disk.
+struct GeneratedEncouragement: Decodable, Equatable, Sendable {
+    let title: String
+    let body: String
 }
 
 /// All AI features — backed by the proxy API in production
@@ -65,6 +78,12 @@ protocol AIService: AnyObject {
     /// single server-side LLM call. The client caches them for the day.
     func dailyPrompt() async throws -> [DailyPromptItem]
 
+    /// Generates the morning batch of encouragement messages from the user's last
+    /// seven days of entries. Returns an empty array when there is nothing to
+    /// ground them in. Zero-knowledge: the client decrypts and sends plaintext,
+    /// the server persists nothing.
+    func generateEncouragements() async throws -> [GeneratedEncouragement]
+
     /// Streaming assistant reply — yields token/word deltas as they arrive.
     func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error>
 
@@ -80,7 +99,8 @@ protocol AIService: AnyObject {
     /// Failures are swallowed; a server-side reconcile retries later.
     func requestIndex(journalId: String) async
 
-    /// Server-side transcription via Together AI Whisper for voice/video entries.
+    /// Server-side transcription via Whisper (Together AI or Venice AI, whichever the
+    /// server's active provider resolves to) for voice/video entries.
     /// Downloads audio from S3, transcribes, updates Firestore
     /// content+transcriptStatus to ready, then re-indexes to Chroma.
     /// Throws on network or server error; the entry stays with
@@ -145,4 +165,9 @@ extension AIService {
     /// Default: no on-device index to warm (non-ZK paths and mocks). Only the
     /// zero-knowledge `ProxyAIService` overrides this.
     func warmSemanticIndex() async {}
+
+    /// Default: only the zero-knowledge `ProxyAIService` gathers the week's
+    /// entries and calls the server. Mocks and test stubs inherit the empty batch,
+    /// which the coordinator treats as "nothing to schedule".
+    func generateEncouragements() async throws -> [GeneratedEncouragement] { [] }
 }

@@ -68,4 +68,44 @@ final class EntryMapRequestTests: XCTestCase {
         XCTAssertEqual(response.edges.first?.type, .evidenceFor)
         XCTAssertEqual(response.edges.first?.polarity, -1)
     }
+
+    // MARK: - The async job wire shapes
+
+    func testTicketDecodesFromThe202() throws {
+        let ticket = try decoder().decode(
+            ProxyAIService.EntryMapJobTicket.self,
+            from: Data(#"{"jobId":"job-1","status":"pending"}"#.utf8)
+        )
+        XCTAssertEqual(ticket.jobId, "job-1")
+    }
+
+    func testPendingJobCarriesNoMap() throws {
+        let response = try decoder().decode(
+            ProxyAIService.EntryMapJobResponse.self,
+            from: Data(#"{"status":"pending"}"#.utf8)
+        )
+        XCTAssertEqual(response.status, .pending)
+        XCTAssertNil(response.completed)
+    }
+
+    func testDoneJobCarriesTheMap() throws {
+        let payload = #"""
+        {"status":"done","v":1,"beats":[],"edges":[],"model":"glm-5.2","generatedAt":"2026-08-24T10:00:00Z"}
+        """#
+        let response = try decoder().decode(
+            ProxyAIService.EntryMapJobResponse.self, from: Data(payload.utf8)
+        )
+        let completed = try XCTUnwrap(response.completed)
+        XCTAssertEqual(ProxyAIService.generation(from: completed).model, "glm-5.2")
+    }
+
+    func testFailedJobCarriesTheErrorAndNoMap() throws {
+        let response = try decoder().decode(
+            ProxyAIService.EntryMapJobResponse.self,
+            from: Data(#"{"status":"failed","error":"every model refused"}"#.utf8)
+        )
+        XCTAssertEqual(response.status, .failed)
+        XCTAssertEqual(response.error, "every model refused")
+        XCTAssertNil(response.completed)
+    }
 }

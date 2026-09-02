@@ -293,5 +293,13 @@ enum MockData {
         DailyPromptItem(area: "Joy & Play", text: "Your favorite entries are the boring-Tuesday ones with small textures, what tiny moment from yesterday do you want to keep?"),
     ]
 
+    static let cannedEncouragements: [GeneratedEncouragement] = [
+        .init(title: "One small step", body: "You named the hard part on Monday. Do the five-minute version of it today."),
+        .init(title: "The pattern is shifting", body: "Three entries this week ended calmer than they started. That is new."),
+        .init(title: "Why you started", body: "The goal you wrote down in spring is still the one you keep circling back to."),
+        .init(title: "You are learning this", body: "Asking for the thing you need is getting easier. It showed up twice this week."),
+        .init(title: "Rest is part of it", body: "You slowed down on purpose and the week held. Let that count as progress."),
+    ]
+
     static let cannedChatReply = "That sounds like it's been quietly weighing on you for a while. Reading back through your recent entries, I notice you tend to move forward fastest when you shrink the first step until it's almost embarrassingly small: the two-sentence email, the ten-minute Sunday reset, the list instead of the rewrite. What would the embarrassingly small version of this look like? I'd also gently point out that the last three times you dreaded something, the doing turned out lighter than the anticipating. Maybe this is another dock moment."
 }

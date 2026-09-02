@@ -10,11 +10,25 @@ export type { CognitiveMap } from './types'
 
 const JSON_MODE = { type: 'json_object' } as const
 
+/**
+ * Per-call budget for the map's LLM calls, which are far slower than a chat turn: one
+ * extraction pass measures ~37s against the 30s default, so the default aborts every
+ * attempt and the map can never be built.
+ *
+ * One attempt, not the default three: the model chain below IS the retry. Asking a
+ * wedged slug twice more is how a 30s budget turned into 90s of dead time per model.
+ * Scoped to this call, so `REQUEST_TIMEOUT_MS` and every other AI route, including the
+ * latency-critical voice turn, are untouched.
+ */
+const MAP_RETRY = { attempts: 1, timeoutMs: 90_000 } as const
+
 async function completionText(
   messages: Array<{ role: string; content: string }>,
   model: string,
 ): Promise<string> {
-  const res = await chatCompletion(messages, { model, response_format: JSON_MODE })
+  const res = await chatCompletion(messages, {
+    model, response_format: JSON_MODE, retry: MAP_RETRY,
+  })
   if (!res.ok) throw new Error(`AI error: ${res.status}`)
   const data = (await res.json()) as { choices: Array<{ message: { content: string } }> }
   return data.choices[0]?.message?.content ?? ''

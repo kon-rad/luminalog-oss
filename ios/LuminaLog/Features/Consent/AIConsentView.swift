@@ -19,9 +19,9 @@ struct AIConsentView: View {
                         .foregroundStyle(Color.textPrimary)
 
                     VStack(alignment: .leading, spacing: Spacing.s) {
-                        providerRow("Morpheus", "summaries, reflections, chat, and prompts, run inside a secure hardware enclave")
-                        providerRow("Deepgram (with Together AI as backup)", "transcribing your voice & video entries")
-                        providerRow("Vapi, Deepgram & Together AI", "live voice calls: Vapi carries the call audio, Deepgram transcribes it, and Together AI runs the conversational model")
+                        providerRow("Morpheus or Venice AI", "summaries, reflections, chat, and prompts, processed either inside a secure hardware enclave (Morpheus) or through Venice AI's anonymized, encrypted-in-transit pipeline")
+                        providerRow("Deepgram (with Together AI or Venice AI as backup)", "transcribing your voice & video entries")
+                        providerRow("Vapi, Deepgram & Venice AI", "live voice calls: Vapi carries the call audio, Deepgram transcribes it, and Venice AI runs the conversational model")
                     }
                     .padding(Spacing.m)
                     .background(RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous).fill(Color.cardBackground))
@@ -30,7 +30,7 @@ struct AIConsentView: View {
                         .font(.captionText)
                         .foregroundStyle(Color.textSecondary)
 
-                    Text("**Live voice calls work a little differently.** So your companion can recall relevant past entries in real time as you talk, during a call (and only for the length of the call) your device sends its encryption key to our server. The server uses it to decrypt just the entries needed to answer you **in memory only** (never written to disk and never saved) and feeds them to the AI that generates the reply. The key and any decrypted text are wiped the moment the call ends. Unlike our other AI features, which run inside a secure hardware enclave (Morpheus), **live voice currently runs on a conventional AI provider (Together AI)**: no enclave model is yet fast enough for real-time speech. Bringing voice into the enclave is on our roadmap. This applies only to live voice calls; your stored journal, text features, transcription, and search stay encrypted and unreadable to us, as always.")
+                    Text("**Live voice calls work a little differently.** So your companion can recall relevant past entries in real time as you talk, during a call (and only for the length of the call) your device sends its encryption key to our server. The server uses it to decrypt just the entries needed to answer you **in memory only** (never written to disk and never saved) and feeds them to the AI that generates the reply. The key and any decrypted text are wiped the moment the call ends. Unlike our other AI features, which may run inside a secure hardware enclave (Morpheus) or through Venice AI's anonymized pipeline, **live voice currently runs on a conventional AI provider (Venice AI)**: no enclave model is yet fast enough for real-time speech. Bringing voice into the enclave is on our roadmap. This applies only to live voice calls; your stored journal, text features, transcription, and search stay encrypted and unreadable to us, as always.")
                         .font(.captionText)
                         .foregroundStyle(Color.textSecondary)
 

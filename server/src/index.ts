@@ -8,6 +8,7 @@ import { vapiRouter } from './routes/vapi'
 import { revenueCatRouter, entitlementRouter } from './routes/revenuecat'
 import { mediaRouter } from './routes/media'
 import { keysRouter } from './routes/keys'
+import { authRouter } from './routes/auth'
 import { leaderboardRouter } from './routes/leaderboard'
 import { soulRouter } from './routes/soul'
 import { nftRouter } from './routes/nft'
@@ -32,10 +33,11 @@ app.use('/v1/revenuecat', revenueCatRouter)
 app.use('/v1/entitlement', entitlementRouter)
 app.use('/v1/media', mediaRouter)
 app.use('/v1/keys', keysRouter)
+app.use('/v1/auth', authRouter) // SIWE sign-in/link (nonce + verify unauthenticated, link authenticated)
 app.use('/v1/leaderboards', leaderboardRouter)
 app.use('/v1/soul', soulRouter)
 app.use('/v1/vectors', vectorsRouter) // encrypted per-user vector blob store (client-side semantic RAG)
-app.use('/v1/rag', ragRouter) // chunk-level semantic RAG (server embeds via Morpheus; no text at rest)
+app.use('/v1/rag', ragRouter) // chunk-level semantic RAG (server embeds via the active provider; no text at rest)
 app.use('/v1/nft', nftRouter) // public (no auth): ERC-721 metadata for tokenURI
 app.use('/v1/course', courseRouter) // authed: quiz submit + mint
 app.use('/v1/course-badge', courseBadgeRouter) // public (no auth): ERC-721 metadata for tokenURI

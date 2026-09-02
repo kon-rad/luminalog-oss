@@ -12,6 +12,11 @@ struct RootView: View {
 
     /// Re-arms the smart daily reminder on goal progress, foreground, settings.
     @StateObject private var reminders = ReminderCoordinator()
+
+    /// Generates and arms the AI encouragement notifications. Built in `.task`
+    /// rather than as a `@StateObject` because it needs `services`, which is not
+    /// available at init time.
+    @State private var encouragements: EncouragementCoordinator?
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selectedTab: AppTab = .home
@@ -150,18 +155,31 @@ struct RootView: View {
             }
         }
         .task {
+            if encouragements == nil {
+                encouragements = EncouragementCoordinator(
+                    ai: services.ai,
+                    repository: services.encouragements
+                )
+            }
             // Re-arm whenever the profile changes (goal progress, timezone).
             for await profile in services.profiles.profile() {
                 latestProfile = profile
                 await reminders.refresh(profile: profile)
+                await encouragements?.runCycle(profile: profile)
             }
         }
         .onChange(of: scenePhase) { _, phase in
             // Self-heal after a fired notification or a day rollover.
             if phase == .active {
                 Task { await reminders.refresh(profile: latestProfile) }
+                // Catch-up path: iOS may run the 5 AM background refresh late or
+                // not at all, so every foreground re-runs the (idempotent) cycle.
+                Task { await encouragements?.runCycle(profile: latestProfile) }
                 services.drafts.reload()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .encouragementRefreshRequested)) { _ in
+            Task { await encouragements?.runCycle(profile: latestProfile) }
         }
     }
 
