@@ -290,3 +290,48 @@ final class LiveWalletConnectService: WalletConnectService {
         }
     }
 }
+
+/// Orchestrates "connect (if needed) -> fetch nonce -> build SIWE message ->
+/// sign -> call the server" for both the sign-in and link paths (spec §5.2).
+/// Extracted from `FirebaseAuthService` so it is testable without a live
+/// `Auth.auth()`.
+@MainActor
+final class WalletSignInFlow {
+    private let wallet: WalletConnectService
+    private let authClient: SIWEAuthClient
+    private let chainId: Int
+
+    init(wallet: WalletConnectService, authClient: SIWEAuthClient, chainId: Int = 1) {
+        self.wallet = wallet
+        self.authClient = authClient
+        self.chainId = chainId
+    }
+
+    /// Returns a Firebase custom token, per `SIWEAuthClient.verify`.
+    func signIn() async throws -> String {
+        let address = try await connectedAddress()
+        let (message, signature) = try await signSIWEMessage(address: address)
+        return try await authClient.verify(message: message, signature: signature)
+    }
+
+    /// Returns the linked address, per `SIWEAuthClient.link`.
+    func link() async throws -> String {
+        let address = try await connectedAddress()
+        let (message, signature) = try await signSIWEMessage(address: address)
+        return try await authClient.link(message: message, signature: signature)
+    }
+
+    private func connectedAddress() async throws -> String {
+        if let address = wallet.connectedAddress { return address }
+        try await wallet.connect()
+        guard let address = wallet.connectedAddress else { throw WalletConnectError.noActiveSession }
+        return address
+    }
+
+    private func signSIWEMessage(address: String) async throws -> (message: String, signature: String) {
+        let nonce = try await authClient.fetchNonce()
+        let message = SIWEMessageBuilder.build(nonce: nonce, address: address, chainId: chainId)
+        let signature = try await wallet.personalSign(message: message)
+        return (message, signature)
+    }
+}

@@ -42,6 +42,15 @@ final class MockAuthService: AuthService {
         setUser(MockData.userId)
     }
 
+    func signInWithWallet() async throws {
+        try? await Task.sleep(nanoseconds: 400_000_000)
+        setUser("mock-wallet-uid")
+    }
+
+    func linkWallet() async throws -> String {
+        "0xmocklinkedaddress"
+    }
+
     /// Instant demo sign-in. Intentionally NOT part of `AuthService` — the
     /// sign-in screen reaches it via a closure injected by the routing layer.
     func signInDemo() async {

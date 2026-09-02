@@ -1,4 +1,5 @@
 import Foundation
+import ReownAppKit
 
 /// Dependency container holding one implementation per service protocol.
 /// Built once at launch and injected into the SwiftUI environment.
@@ -146,10 +147,35 @@ final class AppServices: ObservableObject {
 
     /// Production service wiring: always uses Firebase and real backends.
     static func live() -> AppServices {
-        let auth = FirebaseAuthService()
         let api = ProxyAPIClient(
             baseURL: AppConfig.proxyBaseURL,
             tokenProvider: FirebaseTokenProvider()
+        )
+        // Reown (WalletConnect) must be configured exactly once, before any
+        // `LiveWalletConnectService` instance touches `AppKit.instance` (a
+        // lazy static that `fatalError`s if `.configure` was never called).
+        // `configure` no-ops when `projectId` is empty (Local.xcconfig not
+        // set), so wallet-connect stays inert rather than crashing the app.
+        LiveWalletConnectService.configure(
+            projectId: AppConfig.reownProjectId ?? "",
+            metadata: AppMetadata(
+                name: "Argo",
+                description: "Argo: a private, end-to-end encrypted AI journal.",
+                url: "https://myargoquest.com",
+                icons: ["https://myargoquest.com/logo-icon.png"],
+                // `Redirect.init` only throws for an invalid/missing universal
+                // link under `linkMode: true`; this call passes neither
+                // (`linkMode` defaults to false, `universal` is nil), so it
+                // cannot fail.
+                redirect: try! AppMetadata.Redirect(
+                    native: "com.konradgnat.luminalog://", universal: nil)
+            )
+        )
+        let auth = FirebaseAuthService(
+            walletFlow: WalletSignInFlow(
+                wallet: LiveWalletConnectService(),
+                authClient: LiveSIWEAuthClient(baseURL: AppConfig.proxyBaseURL, authenticatedClient: api)
+            )
         )
         // Zero-knowledge key path: the DEK is loaded ON DEVICE from KEK_icloud (iCloud
         // Keychain) + the server's opaque client wraps (which the server cannot open).

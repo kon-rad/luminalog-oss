@@ -50,4 +50,14 @@ enum AppConfig {
     /// prompt. Pointing it at a PostHog host would add a tracking domain to the
     /// privacy manifest and change the App Store privacy label. Do not change it.
     static let posthogHost: URL = proxyBaseURL.appendingPathComponent("v1/ph")
+
+    /// Reown (WalletConnect) Cloud project ID, from the `REOWN_PROJECT_ID`
+    /// Info.plist key supplied by `Local.xcconfig`. Public client-side value,
+    /// not a secret. When absent, `LiveWalletConnectService.configure` no-ops
+    /// and every wallet-connect call fails closed with `.notConfigured`.
+    static let reownProjectId: String? = {
+        guard let raw = Bundle.main.object(forInfoDictionaryKey: "REOWN_PROJECT_ID") as? String,
+              !raw.isEmpty else { return nil }
+        return raw
+    }()
 }
