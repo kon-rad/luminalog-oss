@@ -44,8 +44,10 @@ struct SignInView: View {
 
                     appleButton
                     googleButton
-                    WalletConnectButton(isWorking: isWorking) {
-                        run { try await services.auth.signInWithWallet() }
+                    if AppConfig.reownProjectId != nil {
+                        WalletConnectButton(isWorking: isWorking) {
+                            run { try await services.auth.signInWithWallet() }
+                        }
                     }
                 }
                 .padding(.horizontal, Spacing.l)

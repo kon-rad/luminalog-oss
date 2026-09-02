@@ -124,7 +124,9 @@ struct SettingsView: View {
                     }
                     userInfoCard
                     walletCard
-                    walletLinkCard
+                    if AppConfig.reownProjectId != nil {
+                        walletLinkCard
+                    }
                     appearanceCard
                     reminderCard
                     settingsCard
