@@ -12,7 +12,7 @@ private func timestamp(_ value: Any?) -> Date? {
     (value as? Timestamp)?.dateValue()
 }
 
-/// Errors thrown when a document cannot be decrypted (fail closed — never show
+/// Errors thrown when a document cannot be decrypted (fail closed, never show
 /// ciphertext as if it were text).
 enum MappingDecryptionError: Error { case missingField(String) }
 
@@ -94,7 +94,7 @@ extension JournalEntry {
         ]
         if let contentEditedAt { data["contentEditedAt"] = Timestamp(date: contentEditedAt) }
         if !editHistory.isEmpty {
-            // Metadata only (timestamps + field names) — not field-encrypted.
+            // Metadata only (timestamps + field names), not field-encrypted.
             data["editHistory"] = editHistory.map(\.firestoreData)
         }
         if let transcriptStatus { data["transcriptStatus"] = transcriptStatus.rawValue }
@@ -241,12 +241,13 @@ extension UserProfile {
                       let systemPrompt = c["systemPrompt"] as? String else { return nil }
                 return UserProfile.SummaryConfig(wordLength: wordLength, systemPrompt: systemPrompt)
             }(),
-            details: UserProfile.ProfileDetails(data: data["profileDetails"] as? [String: Any] ?? [:], cipher: cipher)
+            details: UserProfile.ProfileDetails(data: data["profileDetails"] as? [String: Any] ?? [:], cipher: cipher),
+            walletAddress: data["walletAddress"] as? String
         )
     }
 
     /// Auth-provider identity fields that are absent (or blank) on an existing
-    /// `users/{uid}` document. All plaintext — none of these are encrypted.
+    /// `users/{uid}` document. All plaintext, none of these are encrypted.
     struct IdentityBackfill: Equatable {
         var displayName: String?
         var email: String?
@@ -264,7 +265,7 @@ extension UserProfile {
     }
 
     /// Which identity fields the signed-in provider can fill in on an EXISTING
-    /// document. Fills only what is missing or blank — a name or photo the user
+    /// document. Fills only what is missing or blank: a name or photo the user
     /// changed in-app always wins over the provider's copy.
     static func identityBackfill(
         existing: [String: Any],
@@ -313,7 +314,7 @@ extension UserProfile {
 
 extension UserProfile.ProfileDetails {
 
-    /// (Firestore key, keypath) for every encrypted detail field — the single
+    /// (Firestore key, keypath) for every encrypted detail field: the single
     /// place the wire format is enumerated, so a field is added in one spot.
     private static let fields: [(String, WritableKeyPath<UserProfile.ProfileDetails, String?>)] = [
         ("goals", \.goals), ("hobbies", \.hobbies), ("age", \.age),
@@ -560,7 +561,7 @@ extension MessageSource {
 
 extension EmotionScore {
 
-    /// Plaintext map (derived numeric — not field-encrypted).
+    /// Plaintext map (derived numeric, not field-encrypted).
     init?(firestore data: [String: Any]?) {
         guard let data, let source = data["source"] as? String else { return nil }
         let scores = (data["scores"] as? [String: Any] ?? [:]).compactMapValues {
