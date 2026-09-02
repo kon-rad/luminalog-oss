@@ -28,6 +28,7 @@ struct SettingsView: View {
     @State private var showCredits = false
     @State private var showConfig = false
     @State private var showRecordings = false
+    @State private var showMessageHistory = false
     @State private var showSignOutDialog = false
     @State private var showDeleteExplainerAlert = false
     @State private var showDeleteFinalAlert = false
@@ -156,6 +157,9 @@ struct SettingsView: View {
                         onResumeDraft(draftId)
                     }
                 )
+            }
+            .navigationDestination(isPresented: $showMessageHistory) {
+                DailyMessagesHistoryView(repository: services.encouragements)
             }
         }
         .task { viewModel.start() }
@@ -507,6 +511,8 @@ struct SettingsView: View {
                 }
                 rowDivider
                 encouragementRow
+                rowDivider
+                messageHistoryRow
             }
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
@@ -542,6 +548,26 @@ struct SettingsView: View {
                 .labelsHidden()
         }
         .padding(Spacing.m)
+    }
+
+    /// Pushes to the read-only history of every daily-encouragement message
+    /// already delivered to this device. Stays visible regardless of the toggle
+    /// above: turning the feature off stops new messages, it doesn't erase past ones.
+    private var messageHistoryRow: some View {
+        Button { showMessageHistory = true } label: {
+            HStack(spacing: Spacing.m) {
+                settingsIcon("clock", tint: .accentWarm)
+                Text("Message history")
+                    .font(.uiBody)
+                    .foregroundStyle(Color.textPrimary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+            }
+            .padding(Spacing.m)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Settings

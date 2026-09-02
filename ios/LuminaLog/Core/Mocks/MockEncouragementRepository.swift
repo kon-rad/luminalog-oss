@@ -32,4 +32,12 @@ final class InMemoryEncouragementRepository: EncouragementRepository {
     func deleteExpired(createdBefore date: Date) async throws {
         stored.removeAll { !$0.isDelivered && $0.createdAt < date }
     }
+
+    func recentDelivered(limit: Int, before now: Date, after lastDeliveredAt: Date?) async throws -> [EncouragementMessage] {
+        let delivered = stored
+            .filter { guard let at = $0.deliveredAt else { return false }; return at <= now }
+            .sorted { $0.deliveredAt! > $1.deliveredAt! }
+        let remaining = lastDeliveredAt.map { cursor in delivered.drop { $0.deliveredAt! >= cursor } } ?? ArraySlice(delivered)
+        return Array(remaining.prefix(limit))
+    }
 }

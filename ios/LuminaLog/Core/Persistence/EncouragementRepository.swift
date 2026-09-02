@@ -14,6 +14,12 @@ protocol EncouragementRepository: AnyObject {
     func markDelivered(id: String, at date: Date) async throws
     /// Permanently deletes undelivered messages created before `date`.
     func deleteExpired(createdBefore date: Date) async throws
+    /// Up to `limit` messages already delivered at or before `now`, most recently
+    /// delivered first. Pass the `deliveredAt` of the last message already loaded
+    /// to page further back; nil loads the first page. Excludes messages merely
+    /// scheduled for a later slot today, which carry a future `deliveredAt`
+    /// (see `EncouragementMessage`'s doc comment on what "delivered" means).
+    func recentDelivered(limit: Int, before now: Date, after lastDeliveredAt: Date?) async throws -> [EncouragementMessage]
 }
 
 /// `EncouragementRepository` backed by `dailyEncouragements/{uid}/messages/{id}`.
@@ -87,6 +93,24 @@ final class FirestoreEncouragementRepository: EncouragementRepository {
         let batch = db.batch()
         for doc in snap.documents { batch.deleteDocument(doc.reference) }
         try await batch.commit()
+    }
+
+    func recentDelivered(limit: Int, before now: Date, after lastDeliveredAt: Date?) async throws -> [EncouragementMessage] {
+        guard let uid = auth.currentUserId, let cipher = keys.currentCipher else { return [] }
+        // The inequality filter and the orderBy must share a field (Firestore
+        // requirement), which also gives us the exclusion for free: an undelivered
+        // message's `deliveredAt` is NSNull, and null never satisfies `<=`, so it
+        // never matches this query without a separate filter.
+        var query: Query = messagesCollection(uid)
+            .whereField("deliveredAt", isLessThanOrEqualTo: Timestamp(date: now))
+            .order(by: "deliveredAt", descending: true)
+        if let lastDeliveredAt {
+            query = query.start(after: [Timestamp(date: lastDeliveredAt)])
+        }
+        let snap = try await query.limit(to: limit).getDocuments()
+        return snap.documents.compactMap { doc in
+            try? EncouragementMessage(firestore: doc.data(), id: doc.documentID, cipher: cipher)
+        }
     }
 }
 
