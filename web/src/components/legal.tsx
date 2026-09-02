@@ -11,7 +11,7 @@ import SocialLinks from '@/components/SocialLinks'
  * share, a no-training pledge, App Store subscriptions, and Voice Credits.
  * ────────────────────────────────────────────────────────────────────────── */
 
-export const LEGAL_UPDATED = 'August 29, 2026'
+export const LEGAL_UPDATED = 'August 31, 2026'
 
 export function LegalLayout({
   title,
@@ -215,10 +215,12 @@ export function PrivacyContent() {
         anonymized and encrypted in transit, <strong>not</strong>{' '}
         inside a hardware secure enclave, because no enclave model is yet fast enough for real-time
         speech. Moving live voice to enclave-based inference is on our roadmap. Every other AI
-        feature (chat, insights, summaries, and daily prompts) runs inside a hardware secure
-        enclave (Morpheus). This transient, in-memory decryption happens only during a live voice
-        call; your stored entries, text features, transcription, and search continue to work
-        without our servers reading your journal.
+        feature (chat, insights, summaries, and daily prompts) is processed by one of two
+        providers depending on which is active for that feature: either inside a hardware secure
+        enclave (Morpheus), or, currently the default, through Venice AI's anonymized,
+        encrypted-in-transit pipeline. This transient, in-memory decryption happens only during a
+        live voice call; your stored entries, text features, transcription, and search continue to
+        work without our servers reading your journal.
       </P>
 
       <H2>Advertising and analytics: the website and the app are different</H2>
@@ -258,7 +260,7 @@ export function PrivacyContent() {
         'AI model providers (for example, Morpheus or Venice AI) to generate insights, summaries, prompts, and conversation, and to run the conversational model during live voice calls.',
         'Speech-to-text providers (for example, Deepgram) to transcribe your voice and video journal entries into text.',
         'Live voice-conversation transport (for example, Vapi), which carries the call audio and uses Deepgram for speech-to-text, to run real-time spoken conversations with the AI; your audio is processed to run the call.',
-        'Confidential AI inference (Morpheus), a network that runs our models inside a hardware secure enclave (a trusted execution environment), covering chat, insights, summaries, and daily prompts. Live voice calls are the exception: they currently run on Venice AI, a provider whose privacy tier for this use is anonymized and encrypted in transit rather than hardware-isolated, so the past entries our server transiently decrypts during a call (see Section 5) go to that provider rather than to an enclave. Moving live voice into the enclave is on our roadmap.',
+        'AI inference processors for chat, insights, summaries, and daily prompts: depending on which is active for a given feature, our models run either inside a hardware secure enclave (Morpheus, a trusted execution environment) or, currently the default, through Venice AI\'s anonymized, encrypted-in-transit pipeline. Live voice calls always run on Venice AI specifically, since no enclave model is yet fast enough for real-time speech, so the past entries our server transiently decrypts during a call (see Section 5) go to that provider rather than to an enclave. Moving live voice into the enclave is on our roadmap.',
         'Subscription-management providers (for example, RevenueCat) to process purchases and manage your subscription and entitlement status.',
         'An image provider (for example, Unsplash) used to match a themed photograph to your daily insight card; photographer attribution is shown on the card.',
         'Apple, for sign-in, subscriptions, and in-app purchases.',
