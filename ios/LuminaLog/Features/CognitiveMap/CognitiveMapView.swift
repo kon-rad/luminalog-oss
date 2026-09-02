@@ -17,6 +17,7 @@ struct CognitiveMapView: View {
     @State private var isGenerating = false
     @State private var didFail = false
     @State private var selectedBeat: Beat?
+    @State private var isShowingLegend = false
 
     var body: some View {
         Group {
@@ -38,6 +39,9 @@ struct CognitiveMapView: View {
         .sheet(item: $selectedBeat) { beat in
             BeatInspectorSheet(beat: beat, entryContent: entry.content)
         }
+        .sheet(isPresented: $isShowingLegend) {
+            CognitiveMapLegendSheet()
+        }
     }
 
     private func mapBody(_ map: CognitiveMap) -> some View {
@@ -45,6 +49,17 @@ struct CognitiveMapView: View {
             selectedBeat = map.beat(id: beatId)
         }
         .accessibilityLabel("Cognitive map with \(map.drawnBeats.count) beats")
+        .overlay(alignment: .topTrailing) {
+            Button {
+                isShowingLegend = true
+            } label: {
+                Image(systemName: "info.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundStyle(Color.textSecondary, Color.cardBackground)
+            }
+            .accessibilityLabel("What the shapes and colors mean")
+            .padding(Spacing.m)
+        }
     }
 
     private func statusView(_ message: String, showsSpinner: Bool) -> some View {
