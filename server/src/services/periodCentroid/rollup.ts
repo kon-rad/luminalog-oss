@@ -1,5 +1,6 @@
 import { db } from '../../middleware/firebaseAuth'
 import { computeDayCentroid } from '../constellation/dayCentroid'
+import { pcaTo3D } from '../constellation/pca'
 import {
   type PeriodType, LIFETIME_INDEX,
   weekIndexFromDayIndex, monthIndexFromDayIndex, quarterIndexFromDayIndex, yearIndexFromDayIndex,
@@ -139,4 +140,37 @@ export async function updatePeriodCentroidsForDay(userId: string, dayIndex: numb
     await allVectorsOfTier(userId, 'year'),
     {},
   )
+}
+
+export interface PeriodPositionPoint {
+  periodIndex: number
+  x: number
+  y: number
+  z: number
+  childCount: number
+}
+
+/**
+ * All of a user's centroid points for one tier, PCA-projected together so their
+ * relative positions are meaningful, sorted oldest-first. Never returns the raw
+ * `vector` field: this is the only read path a client-facing route should call.
+ */
+export async function getPeriodPositions(
+  userId: string,
+  periodType: PeriodType,
+): Promise<PeriodPositionPoint[]> {
+  const snap = await periodsCollection(userId).where('periodType', '==', periodType).get()
+  const rows = snap.docs
+    .map((d: any) => d.data() as PeriodCentroidDoc)
+    .sort((a: PeriodCentroidDoc, b: PeriodCentroidDoc) => a.periodIndex - b.periodIndex)
+  if (rows.length === 0) return []
+
+  const projected = pcaTo3D(rows.map((r: PeriodCentroidDoc) => r.vector))
+  return rows.map((r: PeriodCentroidDoc, i: number) => ({
+    periodIndex: r.periodIndex,
+    x: projected[i]!.x,
+    y: projected[i]!.y,
+    z: projected[i]!.z,
+    childCount: r.childCount,
+  }))
 }

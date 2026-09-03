@@ -43,7 +43,12 @@ vi.mock('../constellation/dayCentroid', () => ({
   computeDayCentroid: (...a: any[]) => computeDayCentroid(...a),
 }))
 
-import { meanVector, updatePeriodCentroidsForDay } from './rollup'
+const pcaTo3D = vi.fn((vectors: number[][]) => vectors.map((v, i) => ({ x: v[0] ?? 0, y: v[1] ?? 0, z: v[2] ?? 0 })))
+vi.mock('../constellation/pca', () => ({
+  pcaTo3D: (...a: any[]) => pcaTo3D(...a),
+}))
+
+import { meanVector, updatePeriodCentroidsForDay, getPeriodPositions } from './rollup'
 import { weekIndexFromDayIndex, monthIndexFromDayIndex, quarterIndexFromDayIndex, yearIndexFromDayIndex } from './periodIndex'
 
 beforeEach(() => {
@@ -164,5 +169,43 @@ describe('updatePeriodCentroidsForDay', () => {
     const juneMonth = monthIndexFromDayIndex(dayLateJune)
     const juneMonthKey = `u1/month_${juneMonth}`
     expect(docs[juneMonthKey]).toBeUndefined()
+  })
+})
+
+describe('getPeriodPositions', () => {
+  it('returns an empty array when the tier has no docs', async () => {
+    expect(await getPeriodPositions('u1', 'week')).toEqual([])
+  })
+
+  it('never exposes the raw vector, only the projected position', async () => {
+    const day = Math.floor(Date.UTC(2026, 5, 1) / 86_400_000)
+    computeDayCentroid.mockResolvedValue({ centroid: [1, 2, 3], wordTotal: 100 })
+    await updatePeriodCentroidsForDay('u1', day)
+
+    const points = await getPeriodPositions('u1', 'day')
+    expect(points).toHaveLength(1)
+    expect(points[0]).toMatchObject({ periodIndex: day, childCount: 1 })
+    expect(points[0]).not.toHaveProperty('vector')
+    expect(typeof points[0]!.x).toBe('number')
+  })
+
+  it('sorts points by periodIndex ascending', async () => {
+    const dayA = Math.floor(Date.UTC(2026, 5, 1) / 86_400_000)
+    const dayB = Math.floor(Date.UTC(2026, 5, 20) / 86_400_000)
+    computeDayCentroid.mockResolvedValueOnce({ centroid: [1, 0, 0], wordTotal: 100 })
+    await updatePeriodCentroidsForDay('u1', dayB)
+    computeDayCentroid.mockResolvedValueOnce({ centroid: [0, 1, 0], wordTotal: 100 })
+    await updatePeriodCentroidsForDay('u1', dayA)
+
+    const points = await getPeriodPositions('u1', 'day')
+    expect(points.map(p => p.periodIndex)).toEqual([dayA, dayB])
+  })
+
+  it('scopes to one user', async () => {
+    const day = Math.floor(Date.UTC(2026, 5, 1) / 86_400_000)
+    computeDayCentroid.mockResolvedValueOnce({ centroid: [1, 0, 0], wordTotal: 100 })
+    await updatePeriodCentroidsForDay('u1', day)
+
+    expect(await getPeriodPositions('u2', 'day')).toEqual([])
   })
 })
