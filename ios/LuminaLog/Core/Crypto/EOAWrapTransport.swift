@@ -8,7 +8,7 @@ protocol EOAWrapTransport {
     /// `PUT /v1/keys/wrapped` with `{wraps: {eoa: envelope}}`.
     func uploadEOAWrap(_ wrap: WrappedKey) async throws
     /// `GET /v1/keys/wrapped`, returning only the `eoa` slot (nil if absent
-    /// or malformed — fail closed rather than hand back a garbage wrap).
+    /// or malformed; fails closed, never returning a garbage wrap).
     func fetchEOAWrap() async throws -> WrappedKey?
 }
 
