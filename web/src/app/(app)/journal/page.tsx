@@ -1,13 +1,13 @@
 'use client'
 
-// Journal tab root (design B.8) — browse all entries: a type-filter chip row,
+// Journal tab root (design B.8). Browse all entries: a type-filter chip row,
 // a date-sectioned ("Today" / "This Week" / "Month Year") live stream of
 // `EntryRow`s, and a toolbar wiring Search, Constellation (M8-T2), and
 // Insights (M8-T1) to their respective modals.
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { BarChart3, Hexagon, Search } from 'lucide-react'
+import { BarChart3, Hexagon, Maximize2, Search } from 'lucide-react'
 import { useSession } from '@/lib/session/session-context'
 import { streamEntries } from '@/lib/firestore/journals'
 import EntryRow from '@/components/app/EntryRow'
@@ -16,6 +16,7 @@ import { SkeletonRow } from '@/components/app/Skeleton'
 import SearchModal from '@/components/app/SearchModal'
 import InsightsModal from '@/components/app/InsightsModal'
 import ConstellationModal from '@/components/app/ConstellationModal'
+import ZoomPyramidModal from '@/components/app/ZoomPyramidModal'
 import { localDayKey } from '@/lib/stats/dailyGoalStreak'
 import type { JournalEntry, JournalType } from '@/lib/firestore/models'
 
@@ -75,6 +76,7 @@ export default function JournalPage() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [insightsOpen, setInsightsOpen] = useState(false)
   const [constellationOpen, setConstellationOpen] = useState(false)
+  const [zoomOpen, setZoomOpen] = useState(false)
 
   useEffect(() => {
     if (!uid) return
@@ -118,12 +120,14 @@ export default function JournalPage() {
           <ToolbarButton icon={Search} label="Search" onClick={() => setSearchOpen(true)} />
           <ToolbarButton icon={Hexagon} label="Constellation" onClick={() => setConstellationOpen(true)} />
           <ToolbarButton icon={BarChart3} label="Insights" onClick={() => setInsightsOpen(true)} />
+          <ToolbarButton icon={Maximize2} label="Zoom" onClick={() => setZoomOpen(true)} />
         </div>
       </div>
 
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
       <InsightsModal open={insightsOpen} onClose={() => setInsightsOpen(false)} entries={entries} />
       <ConstellationModal open={constellationOpen} onClose={() => setConstellationOpen(false)} />
+      <ZoomPyramidModal open={zoomOpen} onClose={() => setZoomOpen(false)} entries={entries} />
 
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {FILTERS.map(({ key, label }) => {
