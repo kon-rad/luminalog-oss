@@ -10,6 +10,7 @@ import { extractAudio } from '../services/audioExtractor'
 import { PROMPTS } from '../services/prompts'
 import { generateSummaryText, generateEntryAI } from '../services/summaryGenerator'
 import { startMapJob, getMapJob } from '../services/cognitiveMap/jobs'
+import { startPeriodNarrativeJob, getPeriodNarrativeJob } from '../services/periodNarrative/jobs'
 import { config } from '../config'
 import type { ProfileFields } from '../services/profileContext'
 import { decryptMedia } from '../crypto/mediaCipher'
@@ -24,6 +25,9 @@ import {
 import { dailyReportHandler } from './dailyReport'
 
 export const aiRouter = Router()
+
+const PERIOD_TYPES = ['day', 'week', 'month', 'quarter', 'year', 'lifetime'] as const
+type RoutePeriodType = typeof PERIOD_TYPES[number]
 
 /** Canonical word count: matches the iOS `WordCount.of` (whitespace split). */
 function countWords(content: string): number {
@@ -168,6 +172,77 @@ export async function entryMapJobHandler(req: Request, res: Response): Promise<v
 
 aiRouter.post('/entry-map', firebaseAuth, requirePro, requireAiConsent, entryMapHandler)
 aiRouter.get('/entry-map/:jobId', firebaseAuth, requirePro, requireAiConsent, entryMapJobHandler)
+
+// Zero-knowledge zoom-pyramid narrative (Track 2 of the cognitive-map zoom-pyramid
+// design spec). The client decrypts the beats for every entry in a period and POSTs
+// them as PLAINTEXT, grouped by day; the server chunks and synthesizes a single
+// paragraph and forgets everything the moment it returns. STATELESS AT REST, same
+// posture as /entry-map: no DEK, no Firestore read/write. A JOB, not a synchronous
+// response: a multi-chunk map-reduce (a busy quarter, most years, lifetime) can take
+// longer than a client can hold a request open for, exactly like /entry-map.
+export async function periodNarrativeHandler(req: Request, res: Response): Promise<void> {
+  const uid = (req as any).uid as string
+  const { periodType, periodIndex, days } = req.body as {
+    periodType?: string
+    periodIndex?: number
+    days?: Array<{ dayIndex?: number; beats?: Array<{ text?: string; kind?: string; domain?: string; isSpine?: boolean }> }>
+  }
+
+  if (typeof periodType !== 'string' || !PERIOD_TYPES.includes(periodType as RoutePeriodType)) {
+    res.status(400).json({ error: 'Invalid periodType' }); return
+  }
+  if (typeof periodIndex !== 'number') {
+    res.status(400).json({ error: 'Missing periodIndex' }); return
+  }
+  if (!Array.isArray(days)) {
+    res.status(400).json({ error: 'Missing days' }); return
+  }
+
+  const parsedDays = days
+    .filter((d): d is { dayIndex: number; beats: any[] } =>
+      typeof d?.dayIndex === 'number' && Array.isArray(d?.beats))
+    .map(d => ({
+      dayIndex: d.dayIndex,
+      beats: d.beats
+        .filter((b: any) => typeof b?.text === 'string' && b.text.trim().length > 0)
+        .map((b: any) => ({
+          text: b.text as string,
+          kind: typeof b.kind === 'string' ? b.kind : 'event',
+          domain: typeof b.domain === 'string' ? b.domain : 'other',
+          isSpine: b.isSpine === true,
+        })),
+    }))
+
+  const totalBeats = parsedDays.reduce((sum, d) => sum + d.beats.length, 0)
+  if (totalBeats === 0) {
+    res.status(400).json({ error: 'No beats to synthesize' }); return
+  }
+
+  const jobId = startPeriodNarrativeJob(uid, periodType as RoutePeriodType, periodIndex, parsedDays)
+  res.status(202).json({ jobId, status: 'pending' })
+}
+
+aiRouter.post('/period-narrative', firebaseAuth, requirePro, requireAiConsent, periodNarrativeHandler)
+
+// Poll a period-narrative job. Same "failed job is a 200, not a 502" contract, and
+// same 404-for-anything-not-yours behavior, as /entry-map/:jobId.
+export async function periodNarrativeJobHandler(req: Request, res: Response): Promise<void> {
+  const uid = (req as any).uid as string
+  const job = getPeriodNarrativeJob(uid, req.params.jobId)
+
+  if (!job) {
+    res.status(404).json({ error: 'Unknown job' }); return
+  }
+  if (job.status === 'pending') {
+    res.json({ status: 'pending' }); return
+  }
+  if (job.status === 'failed') {
+    res.json({ status: 'failed', error: job.error ?? 'Period narrative generation failed' }); return
+  }
+  res.json({ status: 'done', ...job.result })
+}
+
+aiRouter.get('/period-narrative/:jobId', firebaseAuth, requirePro, requireAiConsent, periodNarrativeJobHandler)
 
 // Per-entry insights and follow-up prompts are no longer generated on demand:
 // they are produced together with the summary in ONE LLM call at index time
