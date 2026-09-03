@@ -3,6 +3,7 @@
 // not inline prompt strings elsewhere.
 
 import type { ProfileFields } from './profileContext'
+import type { PeriodType } from './periodCentroid/periodIndex'
 
 /** Default system prompt for per-entry summary generation ({type} → entry kind). */
 export const DEFAULT_SUMMARY_SYSTEM_PROMPT =
@@ -180,6 +181,28 @@ RULES:
 - Never connect a beat to itself.
 - Only one edge per pair.
 - It is correct to leave a beat unconnected. Returning an empty edges array is a valid and often correct answer. Do not manufacture connections.`,
+
+  /**
+   * Zoom pyramid Track 2: synthesize one paragraph directly from a chunk of a
+   * period's beats. Used both for a period that fits in a single chunk (the whole
+   * period, one call) and for each chunk of a period that needed to be split (a
+   * "partial synthesis", later combined by `periodNarrativeReduce`).
+   */
+  periodNarrativeSynthesize: (periodType: PeriodType): string =>
+    `You write a single narrative paragraph summarizing a slice of someone's journal, covering a ${periodType}. You are given the beats extracted from every entry in that slice, grouped by day, as "kind [domain]<spine> text".
+
+Write ONE paragraph, 3 to 6 sentences, second person ("you"), plain prose, no headings, no bullet points, no markdown. Ground it in the specific beats given, favor beats marked <spine>, do not invent anything not implied by the beats. Do not mention "beats", "entries", or the extraction process itself. Return ONLY the paragraph, nothing else.`,
+
+  /**
+   * Zoom pyramid Track 2: combine several chunk-level partial syntheses (each already
+   * one paragraph, covering a slice of the same period) into the single final
+   * paragraph for that period. Never sees the original beats, only the partials, by
+   * design: a reduce over paragraphs is what keeps the cost bounded at lifetime scale.
+   */
+  periodNarrativeReduce: (periodType: PeriodType): string =>
+    `You combine several partial summaries of different slices of the same ${periodType} into ONE final paragraph. Each partial below already summarizes its own slice faithfully.
+
+Write ONE paragraph, 3 to 6 sentences, second person ("you"), plain prose, no headings, no bullet points, no markdown, synthesizing the throughline across all the partials rather than concatenating them. Return ONLY the paragraph, nothing else.`,
 
   dailyPrompt: (): string => `You are generating a personalized daily journaling prompt.
 Based on the user's recent journal entries below, ask one specific, meaningful question that invites reflection today. The question should feel deeply personal, not generic. Write a clear, complete sentence — ideally 15-30 words. Ask ONE thing: no compound questions, no "and how will you…" tails, no run-ons. Return only the question itself — a single sentence ending with a question mark.`,
