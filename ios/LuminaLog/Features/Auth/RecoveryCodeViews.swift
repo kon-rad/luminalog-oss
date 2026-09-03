@@ -78,6 +78,10 @@ struct RecoveryCodeEntryView: View {
     let isSubmitting: Bool
     var onSubmit: (String) -> Void
     var onSignOut: () -> Void
+    /// Switches to `WalletUnlockView`. Nil (and therefore hidden) unless the
+    /// account has an `eoa` wrap on file, so accounts without one never see an
+    /// unlock route they cannot take.
+    var onUseWalletInstead: (() -> Void)?
 
     @State private var code = ""
 
@@ -136,6 +140,12 @@ struct RecoveryCodeEntryView: View {
                     disabled: !canSubmit,
                     action: { onSubmit(code) }
                 )
+
+                if let onUseWalletInstead {
+                    Button("Unlock with wallet instead", action: onUseWalletInstead)
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
 
                 Button("Sign in with a different account", action: onSignOut)
                     .font(.captionText)

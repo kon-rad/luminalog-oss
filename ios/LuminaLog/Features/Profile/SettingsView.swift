@@ -47,6 +47,14 @@ struct SettingsView: View {
     @State private var linkedWalletAddress: String?
     /// True while `linkWallet()` is in flight.
     @State private var isLinkingWallet = false
+    /// True once this account has an `eoa` wrap on file: seeded from the server
+    /// on appear, flipped locally the moment `enrollEOAKeyWrap()` succeeds.
+    @State private var eoaWrapEnrolled = false
+    /// True while `enrollEOAKeyWrap()` is in flight.
+    @State private var isEnrollingEOAWrap = false
+    /// Card-local failure text. Kept out of `viewModel.errorMessage` so the
+    /// explanation sits next to the button that produced it.
+    @State private var eoaWrapError: String?
 
     @AppStorage(ThemeMode.storageKey) private var themeMode: String = ThemeMode.system.rawValue
     @AppStorage(EncouragementPrefs.enabledKey) private var encouragementEnabled: Bool = EncouragementPrefs.defaultEnabled
@@ -127,6 +135,11 @@ struct SettingsView: View {
                     walletCard
                     if AppConfig.reownProjectId != nil {
                         walletLinkCard
+                        // Only once a wallet is actually linked: enrolling a
+                        // key-wrap with no wallet to sign it makes no sense.
+                        if linkedWalletAddress != nil {
+                            eoaKeyWrapCard
+                        }
                     }
                     appearanceCard
                     reminderCard
@@ -172,6 +185,17 @@ struct SettingsView: View {
         }
         .task { viewModel.start() }
         .task { await soulViewModel.load() }
+        // Seeds the "already set up" state of the eoa wrap slot, so a user who
+        // enrolled on another device (or in a previous session) isn't told to
+        // set it up again. A failure just leaves the card offering enrollment,
+        // which is idempotent.
+        .task {
+            guard let transport = services.eoaWrapTransport else { return }
+            // `try?` flattens the optional here, so nil covers both "request
+            // failed" and "no eoa wrap on file"; neither should claim enrolled.
+            let wrap = try? await transport.fetchEOAWrap()
+            eoaWrapEnrolled = wrap != nil
+        }
         // Seeds (and re-syncs) the locally-shown linked address from the live
         // `users/{uid}` document, e.g. when a wallet was linked in a prior
         // session or from another device.
@@ -480,6 +504,57 @@ struct SettingsView: View {
             } catch {
                 viewModel.errorMessage = (error as? AuthServiceError)?.localizedDescription
                     ?? error.localizedDescription
+            }
+        }
+    }
+
+    // MARK: - Unlock with Wallet (eoa key wrap)
+
+    /// Opt-in third wrap slot: a copy of the DEK wrapped under a KEK derived
+    /// from this wallet's signature. Purely additive, the iCloud and
+    /// recovery-code wraps are untouched by enrolling (or not enrolling) it.
+    private var eoaKeyWrapCard: some View {
+        EOAKeyWrapCard(
+            isEnrolled: eoaWrapEnrolled,
+            isWorking: isEnrollingEOAWrap,
+            errorMessage: eoaWrapError
+        ) {
+            enrollEOAKeyWrap()
+        }
+    }
+
+    /// Wraps the currently-installed DEK under the connected wallet's signature
+    /// and uploads it, only after `EOAKeyEnroller`'s own verify gate passes.
+    /// Failures land on the card itself rather than the shared error banner.
+    private func enrollEOAKeyWrap() {
+        guard !isEnrollingEOAWrap else { return }
+        // Nil only in preview/mock wiring, where there is nothing to enroll.
+        guard let enroller = services.eoaKeyEnroller, let wallet = services.wallet else { return }
+        guard let userId = currentUserId, let dek = services.keys.currentDataKey else {
+            eoaWrapError = "Your journal isn't unlocked on this device yet."
+            return
+        }
+
+        isEnrollingEOAWrap = true
+        eoaWrapError = nil
+        Task {
+            defer { isEnrollingEOAWrap = false }
+            do {
+                // Reuses the app's existing wallet session; only connects when
+                // nothing is connected (e.g. the link happened last launch).
+                if wallet.connectedAddress == nil {
+                    try await wallet.connect()
+                }
+                try await enroller.enroll(userId: userId, dek: dek)
+                eoaWrapEnrolled = true
+            } catch WalletConnectError.cancelled {
+                // The user dismissed the wallet sheet, not an error.
+            } catch EOAKeyEnrollerError.notAnEOA {
+                eoaWrapError = EOAKeyEnrollerError.notAnEOA.errorDescription
+            } catch KeyEnrollmentError.verificationFailed {
+                eoaWrapError = KeyEnrollmentError.verificationFailed.errorDescription
+            } catch {
+                eoaWrapError = error.localizedDescription
             }
         }
     }

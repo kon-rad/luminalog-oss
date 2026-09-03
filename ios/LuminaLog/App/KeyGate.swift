@@ -15,6 +15,13 @@ struct KeyGate<Content: View>: View {
 
     @ObservedObject var enrollment: KeyEnrollmentService
     let userId: String
+    /// The SAME connected-wallet session the rest of the app uses (sign-in,
+    /// wallet linking). Nil when wallet-connect isn't wired (previews/mocks),
+    /// which simply hides the wallet-unlock option.
+    var wallet: WalletConnectService?
+    /// Reads the `eoa` wrap slot, both to decide whether to offer the wallet
+    /// option at all and (inside `submitWalletUnlock`) to unwrap the DEK.
+    var eoaTransport: EOAWrapTransport?
     /// Called once the key becomes usable, so `SessionStore` can run the profile
     /// seed + stream it deferred while the user was locked out.
     var onUnlock: () async -> Void
@@ -22,6 +29,26 @@ struct KeyGate<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     @State private var isSubmitting = false
+    /// True once the server confirms this account has an `eoa` wrap on file.
+    /// Resolved here rather than passed in because the fetch is only worth
+    /// making when the user actually lands on `.needsRecoveryCode`.
+    @State private var hasEOAWrap = false
+    /// Which of the two unlock screens is showing. The recovery code stays the
+    /// default: it is the backstop every account has, while the wallet wrap is
+    /// opt-in.
+    @State private var showWalletUnlock = false
+
+    /// Whether the wallet-unlock option can be offered at all: the services are
+    /// wired AND this account has an `eoa` wrap to open.
+    private var canUnlockWithWallet: Bool {
+        hasEOAWrap && wallet != nil && eoaTransport != nil
+    }
+
+    /// True while the user is locked out and being asked for key material.
+    private var isLockedOut: Bool {
+        if case .needsRecoveryCode = enrollment.state { return true }
+        return false
+    }
 
     var body: some View {
         Group {
@@ -38,18 +65,29 @@ struct KeyGate<Content: View>: View {
                 }
 
             case .needsRecoveryCode(let failedAttempt):
-                RecoveryCodeEntryView(
-                    failedAttempt: failedAttempt,
-                    isSubmitting: isSubmitting,
-                    onSubmit: { code in
-                        Task {
-                            isSubmitting = true
-                            await enrollment.submitRecoveryCode(code, userId: userId)
-                            isSubmitting = false
-                        }
-                    },
-                    onSignOut: onSignOut
-                )
+                if showWalletUnlock && canUnlockWithWallet {
+                    WalletUnlockView(
+                        failedAttempt: failedAttempt,
+                        isSubmitting: isSubmitting,
+                        onUnlock: { unlockWithWallet() },
+                        onUseRecoveryCodeInstead: { showWalletUnlock = false },
+                        onSignOut: onSignOut
+                    )
+                } else {
+                    RecoveryCodeEntryView(
+                        failedAttempt: failedAttempt,
+                        isSubmitting: isSubmitting,
+                        onSubmit: { code in
+                            Task {
+                                isSubmitting = true
+                                await enrollment.submitRecoveryCode(code, userId: userId)
+                                isSubmitting = false
+                            }
+                        },
+                        onSignOut: onSignOut,
+                        onUseWalletInstead: canUnlockWithWallet ? { showWalletUnlock = true } : nil
+                    )
+                }
 
             case .failed(let message):
                 KeyUnlockFailedView(message: message) {
@@ -62,6 +100,34 @@ struct KeyGate<Content: View>: View {
         .task(id: enrollment.state == .unlocked) {
             guard enrollment.state == .unlocked else { return }
             await onUnlock()
+        }
+        // Only asked once the user is actually locked out, and only once per
+        // lockout: a failed attempt re-emits `.needsRecoveryCode` but leaves
+        // this id `true`, so the fetch is not repeated.
+        .task(id: isLockedOut) {
+            guard isLockedOut, let eoaTransport, !hasEOAWrap else { return }
+            // A fetch failure (offline) simply leaves the wallet option hidden;
+            // the recovery code stays available either way.
+            let wrap = try? await eoaTransport.fetchEOAWrap()
+            hasEOAWrap = wrap != nil
+        }
+    }
+
+    /// Sign the fixed key-wrap message with the connected wallet and unwrap the
+    /// DEK from the `eoa` slot. Reuses the app's existing wallet session,
+    /// connecting first only when nothing is connected yet.
+    private func unlockWithWallet() {
+        guard !isSubmitting, let wallet, let eoaTransport else { return }
+        Task {
+            isSubmitting = true
+            defer { isSubmitting = false }
+            if wallet.connectedAddress == nil {
+                // A cancelled connect is a user decision, not a failed unlock:
+                // leave the state (and the on-screen message) untouched.
+                do { try await wallet.connect() } catch { return }
+            }
+            await enrollment.submitWalletUnlock(
+                userId: userId, wallet: wallet, eoaTransport: eoaTransport)
         }
     }
 }

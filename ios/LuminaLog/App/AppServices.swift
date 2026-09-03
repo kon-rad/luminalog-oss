@@ -61,6 +61,17 @@ final class AppServices: ObservableObject {
     /// unlock. `KeyGate` renders its state; `SessionStore` waits on it before any
     /// encrypted read/write. See ADR-0114.
     let keyEnrollment: KeyEnrollmentService
+    /// The ONE wallet-connect session shared by every wallet feature: SIWE
+    /// sign-in/link (inside `auth`) and the eoa key-wrap paths below. Exposed
+    /// so `KeyGate`/`SettingsView` reuse the same session rather than opening a
+    /// second, independent connection. Nil for `mocks()`.
+    let wallet: WalletConnectService?
+    /// Reads/writes ONLY the `eoa` wrap slot, leaving icloud+recovery alone.
+    /// Nil alongside `api`.
+    let eoaWrapTransport: EOAWrapTransport?
+    /// Binds the installed DEK to a wallet-signature-derived KEK (the Settings
+    /// "Unlock with Wallet" enrollment). Nil alongside `wallet`/`api`.
+    let eoaKeyEnroller: EOAKeyEnroller?
     /// App-level observer that reconciles today's daily-goal progress + streak
     /// from the entries created today (self-healing across transcript retries,
     /// edits, and deletes). Started per signed-in user from `LuminaLogApp`.
@@ -105,7 +116,10 @@ final class AppServices: ObservableObject {
         keyMigrator: ClientKeyEnroller? = nil,
         keyMigrationTransport: KeyMigrationTransport? = nil,
         keyEnrollment: KeyEnrollmentService,
-        entryAIGenerator: EntryAIGenerator
+        entryAIGenerator: EntryAIGenerator,
+        wallet: WalletConnectService? = nil,
+        eoaWrapTransport: EOAWrapTransport? = nil,
+        eoaKeyEnroller: EOAKeyEnroller? = nil
     ) {
         self.auth = auth
         self.keys = keys
@@ -135,6 +149,9 @@ final class AppServices: ObservableObject {
         self.keyMigrationTransport = keyMigrationTransport
         self.keyEnrollment = keyEnrollment
         self.entryAIGenerator = entryAIGenerator
+        self.wallet = wallet
+        self.eoaWrapTransport = eoaWrapTransport
+        self.eoaKeyEnroller = eoaKeyEnroller
         self.dailyGoalReconciler = DailyGoalReconciler(journals: journals, profiles: profiles)
         // Built here (not in the factories) from the injected repositories, mirroring
         // `dailyGoalReconciler`. The recoverer is the same fetch→decrypt→transcribe
@@ -174,9 +191,13 @@ final class AppServices: ObservableObject {
                     native: "com.konradgnat.luminalog://", universal: nil)
             )
         )
+        // ONE wallet-connect session for the whole app: SIWE sign-in/link and
+        // the eoa key-wrap enrollment/unlock all drive this same instance, so a
+        // wallet connected for one is already connected for the other.
+        let wallet = LiveWalletConnectService()
         let auth = FirebaseAuthService(
             walletFlow: WalletSignInFlow(
-                wallet: LiveWalletConnectService(),
+                wallet: wallet,
                 authClient: LiveSIWEAuthClient(baseURL: AppConfig.proxyBaseURL, authenticatedClient: api)
             )
         )
@@ -303,6 +324,14 @@ final class AppServices: ObservableObject {
             keys: keys, enroller: keyMigrator, transport: migrationTransport
         )
 
+        // Additive third wrap slot: a DEK copy wrapped under a KEK derived from
+        // the wallet's signature over a fixed message. Purely opt-in, and it
+        // never touches the icloud/recovery pair above.
+        let eoaWrapTransport = ProxyEOAWrapTransport(api: api)
+        let eoaKeyEnroller = EOAKeyEnroller(
+            wallet: wallet, eoaCheck: RPCEOACheck(), transport: eoaWrapTransport
+        )
+
         // The Soul Constellation is now computed SERVER-side (from the indexed chunk
         // vectors, on `/v1/rag/index`); the Soul UI reads it via `GET /v1/soul`. No
         // on-device rebuild/sync remains.
@@ -341,7 +370,10 @@ final class AppServices: ObservableObject {
             keyMigrator: keyMigrator,
             keyMigrationTransport: migrationTransport,
             keyEnrollment: keyEnrollment,
-            entryAIGenerator: entryAIGenerator
+            entryAIGenerator: entryAIGenerator,
+            wallet: wallet,
+            eoaWrapTransport: eoaWrapTransport,
+            eoaKeyEnroller: eoaKeyEnroller
         )
     }
 
