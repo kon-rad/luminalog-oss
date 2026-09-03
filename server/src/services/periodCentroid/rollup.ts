@@ -148,6 +148,19 @@ export interface PeriodPositionPoint {
   y: number
   z: number
   childCount: number
+  /** The periodIndex of the tier directly above this one that this point rolls
+   *  into, so a client can filter to "this parent's children" when drilling in.
+   *  null for 'year' (parent is the single lifetime row) and 'lifetime' (no parent). */
+  parentIndex: number | null
+}
+
+const PARENT_FIELD: Record<PeriodType, keyof PeriodCentroidDoc | null> = {
+  day: 'weekIndex',
+  week: 'monthIndex',
+  month: 'quarterIndex',
+  quarter: 'yearIndex',
+  year: null,
+  lifetime: null,
 }
 
 /**
@@ -165,6 +178,7 @@ export async function getPeriodPositions(
     .sort((a: PeriodCentroidDoc, b: PeriodCentroidDoc) => a.periodIndex - b.periodIndex)
   if (rows.length === 0) return []
 
+  const parentField = PARENT_FIELD[periodType]
   const projected = pcaTo3D(rows.map((r: PeriodCentroidDoc) => r.vector))
   return rows.map((r: PeriodCentroidDoc, i: number) => ({
     periodIndex: r.periodIndex,
@@ -172,5 +186,6 @@ export async function getPeriodPositions(
     y: projected[i]!.y,
     z: projected[i]!.z,
     childCount: r.childCount,
+    parentIndex: parentField ? ((r as any)[parentField] ?? null) : null,
   }))
 }

@@ -247,4 +247,27 @@ describe('getPeriodPositions', () => {
 
     expect(await getPeriodPositions('u2', 'day')).toEqual([])
   })
+
+  it('carries the parent index for tiers below year', async () => {
+    const day = Math.floor(Date.UTC(2026, 5, 1) / 86_400_000)
+    computeDayCentroid.mockResolvedValue({ centroid: [1, 2, 3], wordTotal: 100 })
+    await updatePeriodCentroidsForDay('u1', day)
+
+    const [dayPoint] = await getPeriodPositions('u1', 'day')
+    expect(dayPoint!.parentIndex).toBe(weekIndexFromDayIndex(day))
+
+    const [weekPoint] = await getPeriodPositions('u1', 'week')
+    expect(weekPoint!.parentIndex).toBe(monthIndexFromDayIndex(thursdayDayIndexFromDayIndex(day)))
+  })
+
+  it('has no parentIndex at year or lifetime tier', async () => {
+    const day = Math.floor(Date.UTC(2026, 5, 1) / 86_400_000)
+    computeDayCentroid.mockResolvedValue({ centroid: [1, 2, 3], wordTotal: 100 })
+    await updatePeriodCentroidsForDay('u1', day)
+
+    const [yearPoint] = await getPeriodPositions('u1', 'year')
+    expect(yearPoint!.parentIndex).toBeNull()
+    const [lifetimePoint] = await getPeriodPositions('u1', 'lifetime')
+    expect(lifetimePoint!.parentIndex).toBeNull()
+  })
 })

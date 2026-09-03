@@ -11,6 +11,7 @@ import { PROMPTS } from '../services/prompts'
 import { generateSummaryText, generateEntryAI } from '../services/summaryGenerator'
 import { startMapJob, getMapJob } from '../services/cognitiveMap/jobs'
 import { startPeriodNarrativeJob, getPeriodNarrativeJob } from '../services/periodNarrative/jobs'
+import { getPeriodPositions } from '../services/periodCentroid/rollup'
 import { config } from '../config'
 import type { ProfileFields } from '../services/profileContext'
 import { decryptMedia } from '../crypto/mediaCipher'
@@ -243,6 +244,30 @@ export async function periodNarrativeJobHandler(req: Request, res: Response): Pr
 }
 
 aiRouter.get('/period-narrative/:jobId', firebaseAuth, requirePro, requireAiConsent, periodNarrativeJobHandler)
+
+// Zero-knowledge zoom-pyramid position track (Track 1 of the cognitive-map
+// zoom-pyramid design spec). Plain Firestore read of already-computed PCA
+// projections, never raw vectors, never entry text: no job/poll needed, this
+// answers synchronously unlike /entry-map and /period-narrative. No AI consent
+// gate: no LLM ever sees journal text on this path.
+export async function periodPositionsHandler(req: Request, res: Response): Promise<void> {
+  const uid = (req as any).uid as string
+  const periodType = req.params.periodType
+
+  if (!PERIOD_TYPES.includes(periodType as RoutePeriodType)) {
+    res.status(400).json({ error: 'Invalid periodType' }); return
+  }
+
+  try {
+    const points = await getPeriodPositions(uid, periodType as RoutePeriodType)
+    res.json({ points })
+  } catch (err) {
+    console.error('[period-positions] failed to read positions', err)
+    res.status(500).json({ error: 'internal' })
+  }
+}
+
+aiRouter.get('/period-positions/:periodType', firebaseAuth, requirePro, periodPositionsHandler)
 
 // Per-entry insights and follow-up prompts are no longer generated on demand:
 // they are produced together with the summary in ONE LLM call at index time
