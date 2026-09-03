@@ -183,7 +183,7 @@ final class KeyEnrollmentService: ObservableObject {
     // MARK: - Wallet unlock
 
     /// Unlock with the connected wallet's signature over the fixed key-wrap
-    /// message (spec s6.2 step 7). Mirrors `submitRecoveryCode`: fails closed
+    /// message (spec §6.2 step 7). Mirrors `submitRecoveryCode`: fails closed
     /// on any mismatch, and does NOT re-enroll (unlike the recovery-code path,
     /// re-signing the SAME fixed message from the SAME wallet already
     /// reproduces the same KEK, so there is nothing to re-bind on this device).

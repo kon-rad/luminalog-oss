@@ -1,6 +1,6 @@
 import Foundation
 
-/// Uploads/fetches ONLY the `eoa` wrap slot (spec clause 6.1), independent of
+/// Uploads/fetches ONLY the `eoa` wrap slot (spec §6.1), independent of
 /// `KeyMigrationTransport`'s icloud+recovery pair. The server's `PUT
 /// /v1/keys/wrapped` merges the wraps map (`server/src/routes/keys.ts`), so
 /// this never touches the other two slots.

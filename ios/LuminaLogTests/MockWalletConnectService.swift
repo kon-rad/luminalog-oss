@@ -12,6 +12,13 @@ final class MockWalletConnectService: WalletConnectService {
     /// Signature returned by `personalSign` on success. A fixed, valid-looking
     /// hex string is enough: `SIWEAuthClient` only checks the prefix.
     var signatureToReturn = "0x" + String(repeating: "ab", count: 65)
+    /// Optional per-call override, consumed front-to-back on successive
+    /// `personalSign` calls. Empty (the default) means every call returns
+    /// `signatureToReturn`, i.e. a deterministic signer. Set it to model a
+    /// non-deterministic wallet, which is what `EOAKeyEnroller`'s determinism
+    /// gate exists to catch. Once exhausted, calls fall back to
+    /// `signatureToReturn`.
+    var signatureQueue: [String] = []
 
     init(connectedAddress: String? = "0x1234567890123456789012345678901234567890") {
         self.connectedAddress = connectedAddress
@@ -30,6 +37,7 @@ final class MockWalletConnectService: WalletConnectService {
         if let signError { throw signError }
         guard connectedAddress != nil else { throw WalletConnectError.noActiveSession }
         signedMessages.append(message)
-        return signatureToReturn
+        if signatureQueue.isEmpty { return signatureToReturn }
+        return signatureQueue.removeFirst()
     }
 }

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Alternative to `RecoveryCodeEntryView` on `KeyGate`, shown when the account
-/// has an `eoa` wrap on file (spec section 6.2 step 7). The two are
+/// has an `eoa` wrap on file (spec §6.2 step 7). The two are
 /// complementary, not exclusive: `KeyGate` offers both options so a locked-out
 /// user can pick whichever key material they still have.
 struct WalletUnlockView: View {

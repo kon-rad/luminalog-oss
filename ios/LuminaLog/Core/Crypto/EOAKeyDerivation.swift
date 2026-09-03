@@ -1,18 +1,18 @@
 import Foundation
 import CryptoKit
 
-/// Pure-crypto helper for the EOA-derived key-wrap third slot (spec s6).
+/// Pure-crypto helper for the EOA-derived key-wrap third slot (spec §6).
 ///
 /// Signs a FIXED, versioned message (no server nonce, unlike SIWE) so the same
 /// wallet always reproduces the same signature (RFC 6979 determinism, EOAs
 /// only) and therefore the same KEK. Same derivation SHAPE as
-/// `RecoveryCode.swift`, reused rather than re-invented (spec s6.2 step 4): the
+/// `RecoveryCode.swift`, reused rather than re-invented (spec §6.2 step 4): the
 /// only difference is the input key material (a signature, not a typed code),
 /// so there is no normalization step here.
 enum EOAKeyDerivation {
 
     /// The fixed message signed for key derivation. Versioned so it can change
-    /// later without silently breaking old wraps (spec s6.2 step 2) - a version
+    /// later without silently breaking old wraps (spec §6.2 step 2) - a version
     /// bump requires re-deriving and re-wrapping under a new HKDF `info` below.
     static let fixedMessage = "Argo key derivation v1"
 

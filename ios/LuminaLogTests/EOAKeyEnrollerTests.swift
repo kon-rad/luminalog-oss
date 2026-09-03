@@ -35,10 +35,31 @@ final class EOAKeyEnrollerTests: XCTestCase {
 
         try await sut.enroll(userId: "u1", dek: dek)
 
-        XCTAssertEqual(wallet.signedMessages, [EOAKeyDerivation.fixedMessage])
+        // Signed twice: once to derive the KEK, once more for the determinism
+        // gate (spec §6.2 step 6).
+        XCTAssertEqual(wallet.signedMessages, [EOAKeyDerivation.fixedMessage, EOAKeyDerivation.fixedMessage])
         let uploaded = try XCTUnwrap(transport.uploaded)
         let kek = EOAKeyDerivation.deriveKEK(fromSignature: wallet.signatureToReturn)
         XCTAssertEqual(try uploaded.unwrapping(under: kek).rawData, dek.rawData)
+    }
+
+    /// A wallet whose `personal_sign` is not deterministic derives a different
+    /// KEK on every unlock, so the wrap it just uploaded would be dead on the
+    /// next attempt. The determinism gate must catch that at enrollment time.
+    @MainActor
+    func testRejectsAWalletThatSignsNonDeterministically() async throws {
+        let (sut, transport, wallet) = makeSUT()
+        wallet.signatureQueue = ["0xfirstsignature", "0xsecondsignature"]
+
+        do {
+            try await sut.enroll(userId: "u1", dek: SymmetricKey(size: .bits256))
+            XCTFail("expected verificationFailed for a non-deterministic signature")
+        } catch KeyEnrollmentError.verificationFailed {
+            // expected
+        }
+
+        XCTAssertEqual(wallet.signedMessages.count, 2)   // signed a second time
+        XCTAssertNotNil(transport.uploaded)              // upload happened, then was rejected
     }
 
     @MainActor

@@ -28,6 +28,47 @@ final class EOACheckTests: XCTestCase {
         XCTAssertFalse(isEOA)
     }
 
+    /// A gateway that has stopped serving `eth_*` answers HTTP 200 with a
+    /// JSON-RPC `error` member and no `result`. That must surface as
+    /// `.rpcError`, not `.malformedResponse`, or endpoint staleness is
+    /// indistinguishable from garbage on the wire (which is exactly how the
+    /// dead `cloudflare-eth.com` default shipped unnoticed).
+    func testJSONRPCErrorResponseThrowsRPCErrorNotMalformed() async throws {
+        let sut = makeSUT { request in
+            let body = #"{"jsonrpc":"2.0","id":1,"error":{"code":-32046,"message":"Cannot fulfill request"}}"#.data(using: .utf8)!
+            return (body, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        }
+        do {
+            _ = try await sut.isEOA(address: "0x1234567890123456789012345678901234567890")
+            XCTFail("expected EOACheckError.rpcError")
+        } catch EOACheckError.rpcError(let code, let message) {
+            XCTAssertEqual(code, -32046)
+            XCTAssertEqual(message, "Cannot fulfill request")
+        } catch {
+            XCTFail("expected EOACheckError.rpcError, got \(error)")
+        }
+    }
+
+    func testMalformedBodyStillThrowsMalformedResponse() async throws {
+        let sut = makeSUT { request in
+            let body = #"{"jsonrpc":"2.0","id":1}"#.data(using: .utf8)!
+            return (body, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        }
+        do {
+            _ = try await sut.isEOA(address: "0x1234567890123456789012345678901234567890")
+            XCTFail("expected EOACheckError.malformedResponse")
+        } catch EOACheckError.malformedResponse {
+            // expected
+        }
+    }
+
+    func testDefaultMainnetRPCURLIsTheLiveEndpoint() {
+        XCTAssertEqual(
+            RPCEOACheck.defaultMainnetRPCURL,
+            URL(string: "https://ethereum-rpc.publicnode.com")
+        )
+    }
+
     func testRequestSendsEthGetCodeWithTheGivenAddress() async throws {
         var capturedBody: Data?
         let sut = makeSUT { request in

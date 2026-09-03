@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings entry to enroll the eoa key-wrap slot (spec section 6.3): it
+/// Settings entry to enroll the eoa key-wrap slot (spec §6.3): it
 /// explicitly states that iCloud and the recovery code keep working regardless,
 /// so a user never assumes connecting a wallet REPLACES their existing
 /// backstops.
