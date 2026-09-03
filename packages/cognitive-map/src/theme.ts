@@ -40,6 +40,12 @@ export const INK_VARS = {
  * These are starting values. Tune them against the real screens; do not replace them
  * with saturated primaries.
  */
+export const PYRAMID_VARS = {
+  /** Fill for every zoom-pyramid tier dot. One colour, not domain-coded: a tier
+   *  dot represents a PERIOD, not a single beat, so it carries no domain. */
+  tierDot: '--cm-tier-dot',
+} as const
+
 export const DEFAULT_LIGHT: Record<string, string> = {
   [DOMAIN_VARS.craft]: '#4F6F94',
   [DOMAIN_VARS.body]: '#6E8C77',
@@ -53,6 +59,7 @@ export const DEFAULT_LIGHT: Record<string, string> = {
   [INK_VARS.surface]: '#F4F0E9',
   [INK_VARS.edge]: '#7C7468',
   [INK_VARS.keeper]: '#9C7C2A',
+  [PYRAMID_VARS.tierDot]: '#897BA8',
 }
 
 export const DEFAULT_DARK: Record<string, string> = {
@@ -68,4 +75,5 @@ export const DEFAULT_DARK: Record<string, string> = {
   [INK_VARS.surface]: '#16130E',
   [INK_VARS.edge]: '#A89E8F',
   [INK_VARS.keeper]: '#F2CB4C',
+  [PYRAMID_VARS.tierDot]: '#B3A6D1',
 }
