@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Zoom Pyramid</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: transparent; }
+  /* ui-serif resolves to New York in WKWebView, matching map.html and the rest of
+     the app's Font.system(design: .serif) usage. */
+  body { font-family: ui-serif, Georgia, serif; -webkit-user-select: none; user-select: none; }
+  #root { width: 100%; height: 100%; }
+</style>
+<div id="root"></div>
+<!-- Xcode flattens Resources/vendor/ into the bundle root at build time (it's a
+     PBXGroup, not a folder reference), same as map.html loading this same file. -->
+<script src="./cognitive-map.iife.js"></script>
+<script>
+  var handle = null;
+
+  function post(name, payload) {
+    // WKWebView redacts window.onerror to "Script error." for anything thrown
+    // inside vendor/cognitive-map.iife.js (see map.html's identical note), so every
+    // bridge call below is wrapped in try/catch to surface the real Error object.
+    try { window.webkit.messageHandlers[name].postMessage(payload); } catch (e) {}
+  }
+
+  // Called once by the native host to mount the pyramid at a given starting tier.
+  window.mountZoomPyramid = function (initialTier) {
+    try {
+      var root = document.getElementById('root');
+      if (handle) { handle.destroy(); handle = null; }
+      handle = CognitiveMap.mountZoomPyramid(root, {
+        initialTier: initialTier || 'week',
+        onNeedTierData: function (periodType) { post('needTierData', periodType); },
+        onNeedNarrative: function (periodType, periodIndex) {
+          post('needNarrative', JSON.stringify({ periodType: periodType, periodIndex: periodIndex }));
+        },
+        onNeedEntry: function (dayPeriodIndex) { post('needEntry', dayPeriodIndex); },
+        onFocusChange: function (info) { post('focusChange', JSON.stringify(info)); },
+        onSelectBeat: function (beatId) { post('selectBeat', beatId); },
+      });
+    } catch (e) {
+      post('log', 'mount threw: ' + (e && e.message) + (e && e.stack ? '\n' + e.stack : ''));
+    }
+  };
+
+  // Called by the native host whenever a tier's positions, a narrative, or a
+  // resolved entry map arrives. `kind` picks which handle method to call:
+  // 'tier' -> setTierData(a=periodType, b=points)
+  // 'narrative' -> setNarrative(a=periodType, b=periodIndex, c=narrative)
+  // 'entry' -> setEntryMap(a=dayPeriodIndex, b=map)
+  window.pushZoomPyramidData = function (kind, a, b, c) {
+    try {
+      if (!handle) return;
+      if (kind === 'tier') handle.setTierData(a, b);
+      else if (kind === 'narrative') handle.setNarrative(a, b, c);
+      else if (kind === 'entry') handle.setEntryMap(a, b);
+    } catch (e) {
+      post('log', 'push threw: ' + (e && e.message) + (e && e.stack ? '\n' + e.stack : ''));
+    }
+  };
+
+  // A native "back" control (e.g. a toolbar chevron) can call this in addition to
+  // the renderer's own pinch-to-zoom-out gesture.
+  window.zoomPyramidZoomOut = function () {
+    try { handle && handle.zoomOut(); } catch (e) { post('log', 'zoomOut threw: ' + (e && e.message)); }
+  };
+
+  window.onerror = function (message, source, line, column) {
+    post('log', 'JS error: ' + message + ' @' + (source || '') + ':' + line + ':' + column);
+  };
+</script>

@@ -17,7 +17,7 @@ dest="$here/../../web/src/lib/cognitive-map"
 mkdir -p "$dest"
 rm -f "$dest"/*.ts "$dest"/*.tsx
 
-for file in types layout wrap rank theme render mount index; do
+for file in types layout wrap rank theme render mount pyramidLayout pyramidRender pyramid index; do
   cp "$here/src/$file.ts" "$dest/$file.ts"
 done
 cp "$here/src/react.tsx" "$dest/react.tsx"

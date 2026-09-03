@@ -12,5 +12,6 @@ npm --prefix "$here" run build
 mkdir -p "$resources/vendor"
 cp "$here/dist/cognitive-map.iife.js" "$resources/vendor/cognitive-map.iife.js"
 cp "$here/ios/map.html" "$resources/map.html"
+cp "$here/ios/pyramid.html" "$resources/pyramid.html"
 
 echo "synced cognitive-map into $resources"

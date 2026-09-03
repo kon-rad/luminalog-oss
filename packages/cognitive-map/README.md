@@ -45,6 +45,7 @@ import { CognitiveMapView } from '@argo/cognitive-map/react'
 | Export | Purpose |
 |---|---|
 | `mountCognitiveMap(el, map, opts)` | Mounts into a DOM element. Scale-to-fit, pinch/drag pan, tap-to-select. Returns `{ update, destroy }` |
+| `mountZoomPyramid(el, opts)` | Mounts the day-through-lifetime tier stack, delegating to `mountCognitiveMap` at the entry tier. Returns `{ setTierData, setNarrative, setEntryMap, drillIn, zoomOut, destroy }` |
 | `CognitiveMapView` | React wrapper around the above |
 | `layout(map)` | Pure. Map to positioned nodes and routed edges, in abstract units |
 | `renderSvg(layout)` | Pure. Layout to an `SVGSVGElement` |
@@ -69,6 +70,14 @@ design system and the web design system without knowing either exists.
 
 `DEFAULT_LIGHT` / `DEFAULT_DARK` are fallbacks for tests and plain browsers. iOS passes
 values from `CognitiveMapTheme.swift`; web passes its Tailwind equivalents.
+
+## The zoom pyramid: push in, pull requests out
+
+`mountZoomPyramid` never fetches. It asks for what it's missing via
+`onNeedTierData` / `onNeedNarrative` / `onNeedEntry` (one-way, fire-and-forget, safe
+across a WKWebView bridge that cannot correlate a request to a response) and the
+host pushes answers back via `setTierData` / `setNarrative` / `setEntryMap`. See
+`docs/superpowers/specs/2026-09-03-cognitive-map-zoom-pyramid-design.md` for why.
 
 ## Visual language
 
