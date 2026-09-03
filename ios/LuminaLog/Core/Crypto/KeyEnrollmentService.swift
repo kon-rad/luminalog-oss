@@ -180,6 +180,52 @@ final class KeyEnrollmentService: ObservableObject {
         state = .unlocked
     }
 
+    // MARK: - Wallet unlock
+
+    /// Unlock with the connected wallet's signature over the fixed key-wrap
+    /// message (spec s6.2 step 7). Mirrors `submitRecoveryCode`: fails closed
+    /// on any mismatch, and does NOT re-enroll (unlike the recovery-code path,
+    /// re-signing the SAME fixed message from the SAME wallet already
+    /// reproduces the same KEK, so there is nothing to re-bind on this device).
+    func submitWalletUnlock(
+        userId: String,
+        wallet: WalletConnectService,
+        eoaTransport: EOAWrapTransport
+    ) async {
+        let wrap: WrappedKey?
+        do {
+            wrap = try await eoaTransport.fetchEOAWrap()
+        } catch {
+            state = .failed("Couldn't reach the server to check your wallet.")
+            return
+        }
+        guard let wrap else {
+            state = .failed("No wallet key is stored for this account.")
+            return
+        }
+
+        let signature: String
+        do {
+            signature = try await wallet.personalSign(message: EOAKeyDerivation.fixedMessage)
+        } catch {
+            Self.logger.error("wallet sign failed: \(error.localizedDescription, privacy: .public)")
+            state = .needsRecoveryCode(failedAttempt: true)
+            return
+        }
+
+        let kek = EOAKeyDerivation.deriveKEK(fromSignature: signature)
+        guard let dek = try? wrap.unwrapping(under: kek) else {
+            // Wrong wallet/account connected, or the wrap belongs to a
+            // different signature. Fails closed exactly like a wrong
+            // recovery code (submitRecoveryCode above).
+            state = .needsRecoveryCode(failedAttempt: true)
+            return
+        }
+
+        keys.install(dek: dek, userId: userId)
+        state = .unlocked
+    }
+
     // MARK: - Lifecycle
 
     /// Sign-out: forget the resolved state so the next user starts clean.
