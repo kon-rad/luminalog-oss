@@ -92,7 +92,7 @@ export function CognitiveMapPanel({ entry }: { entry: JournalEntry }) {
  * which covers an entry edited after mapping. Never highlights an unverified range.
  * Mirrors the iOS `BeatQuoteHighlighter`.
  */
-function BeatInspector({
+export function BeatInspector({
   beat,
   content,
   onClose,
