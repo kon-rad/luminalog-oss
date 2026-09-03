@@ -121,18 +121,18 @@ export async function updatePeriodCentroidsForDay(userId: string, dayIndex: numb
     { monthIndex: weekMonth, quarterIndex: weekQuarter, yearIndex: weekYear },
   )
   await writeOrDeleteTier(
-    userId, 'month', month,
-    await childVectors(userId, 'week', 'monthIndex', month),
-    { quarterIndex: quarter, yearIndex: year },
+    userId, 'month', weekMonth,
+    await childVectors(userId, 'week', 'monthIndex', weekMonth),
+    { quarterIndex: weekQuarter, yearIndex: weekYear },
   )
   await writeOrDeleteTier(
-    userId, 'quarter', quarter,
-    await childVectors(userId, 'month', 'quarterIndex', quarter),
-    { yearIndex: year },
+    userId, 'quarter', weekQuarter,
+    await childVectors(userId, 'month', 'quarterIndex', weekQuarter),
+    { yearIndex: weekYear },
   )
   await writeOrDeleteTier(
-    userId, 'year', year,
-    await childVectors(userId, 'quarter', 'yearIndex', year),
+    userId, 'year', weekYear,
+    await childVectors(userId, 'quarter', 'yearIndex', weekYear),
     {},
   )
   await writeOrDeleteTier(

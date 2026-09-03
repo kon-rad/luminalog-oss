@@ -37,6 +37,13 @@ service cloud.firestore {
         allow read, write: if false;
       }
 
+      // periodCentroids: same sensitivity class as constellationCentroids (server-only,
+      // non-invertible-but-still-sensitive embedding vectors). Same defense-in-depth
+      // rationale.
+      match /periodCentroids/{docId} {
+        allow read, write: if false;
+      }
+
       // Course quiz attempts (AI Power Users / Kids STEM knowledge checks).
       // Each submit is a new attempt doc. Owner-only — plaintext, educational,
       // low-sensitivity content (not journal data). v2 rules do not cascade the

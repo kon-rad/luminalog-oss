@@ -45,11 +45,14 @@ vi.mock('../constellation/dayCentroid', () => ({
 
 const pcaTo3D = vi.fn((vectors: number[][]) => vectors.map((v, i) => ({ x: v[0] ?? 0, y: v[1] ?? 0, z: v[2] ?? 0 })))
 vi.mock('../constellation/pca', () => ({
-  pcaTo3D: (...a: any[]) => pcaTo3D(...a),
+  pcaTo3D: (vectors: number[][]) => pcaTo3D(vectors),
 }))
 
 import { meanVector, updatePeriodCentroidsForDay, getPeriodPositions } from './rollup'
-import { weekIndexFromDayIndex, monthIndexFromDayIndex, quarterIndexFromDayIndex, yearIndexFromDayIndex } from './periodIndex'
+import {
+  weekIndexFromDayIndex, monthIndexFromDayIndex, quarterIndexFromDayIndex, yearIndexFromDayIndex,
+  thursdayDayIndexFromDayIndex,
+} from './periodIndex'
 
 beforeEach(() => {
   for (const k of Object.keys(docs)) delete docs[k]
@@ -169,6 +172,42 @@ describe('updatePeriodCentroidsForDay', () => {
     const juneMonth = monthIndexFromDayIndex(dayLateJune)
     const juneMonthKey = `u1/month_${juneMonth}`
     expect(docs[juneMonthKey]).toBeUndefined()
+  })
+
+  it('rolls up to the week-anchor month/quarter/year/lifetime after only the minority-side day', async () => {
+    // 2026-06-29 (Mon) is in June, but its ISO week's Thursday (2026-07-02) is in July.
+    // Process ONLY this single minority-side day (no follow-up majority-side day) and
+    // assert the month/quarter/year/lifetime tiers are already rolled up using the
+    // week's anchor (July) attribution, not the day's own (June) attribution.
+    const dayLateJune = dayIndexFor(2026, 6, 29)
+    computeDayCentroid.mockResolvedValueOnce({ centroid: [1, 1, 1], wordTotal: 100 })
+    await updatePeriodCentroidsForDay('u1', dayLateJune)
+
+    const weekAnchorDay = thursdayDayIndexFromDayIndex(dayLateJune)
+    const anchorMonth = monthIndexFromDayIndex(weekAnchorDay)
+    const anchorQuarter = quarterIndexFromDayIndex(weekAnchorDay)
+    const anchorYear = yearIndexFromDayIndex(weekAnchorDay)
+
+    expect(docs[`u1/month_${anchorMonth}`]).toMatchObject({
+      periodType: 'month', periodIndex: anchorMonth, vector: [1, 1, 1], childCount: 1,
+      quarterIndex: anchorQuarter, yearIndex: anchorYear,
+    })
+    expect(docs[`u1/quarter_${anchorQuarter}`]).toMatchObject({
+      periodType: 'quarter', periodIndex: anchorQuarter, vector: [1, 1, 1], childCount: 1,
+      yearIndex: anchorYear,
+    })
+    expect(docs[`u1/year_${anchorYear}`]).toMatchObject({
+      periodType: 'year', periodIndex: anchorYear, vector: [1, 1, 1], childCount: 1,
+    })
+    expect(docs['u1/lifetime_0']).toMatchObject({
+      periodType: 'lifetime', periodIndex: 0, vector: [1, 1, 1], childCount: 1,
+    })
+
+    // The day's own (June) month should NOT have been used as the rollup key.
+    const juneMonth = monthIndexFromDayIndex(dayLateJune)
+    if (juneMonth !== anchorMonth) {
+      expect(docs[`u1/month_${juneMonth}`]).toBeUndefined()
+    }
   })
 })
 
