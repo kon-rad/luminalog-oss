@@ -95,6 +95,15 @@ enum Model1Requests {
         let type: String
     }
 
+    /// Model-1 period-narrative body: PLAINTEXT beats grouped by day -> one paragraph.
+    /// Field names mirror the server contract exactly (server/src/routes/ai.ts
+    /// periodNarrativeHandler): periodType, periodIndex, days[].
+    struct PeriodNarrativeBody: Encodable {
+        let periodType: String
+        let periodIndex: Int
+        let days: [PeriodNarrativeDayInput]
+    }
+
     /// Model-1 daily-prompt body. Presence of `entries` triggers the server branch.
     struct DailyPromptBody: Encodable {
         let name: String

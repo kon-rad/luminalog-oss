@@ -279,6 +279,67 @@ final class ProxyAIService: AIService {
         )
     }
 
+    // MARK: - Zoom pyramid
+
+    /// Position response envelope from `GET /v1/ai/period-positions/:periodType`.
+    private struct PeriodPositionsResponse: Decodable {
+        let points: [PeriodPositionPoint]
+    }
+
+    /// The server's `POST /v1/ai/period-narrative` job ticket response.
+    private struct PeriodNarrativeJobTicket: Decodable {
+        let jobId: String
+    }
+
+    private enum PeriodNarrativeJobStatus: String, Decodable {
+        case pending, done, failed
+    }
+
+    /// The server's `GET /v1/ai/period-narrative/{jobId}` response shape.
+    private struct PeriodNarrativeJobResponse: Decodable {
+        let status: PeriodNarrativeJobStatus
+        let error: String?
+        let narrative: String?
+    }
+
+    func periodPositions(periodType: String) async throws -> [PeriodPositionPoint] {
+        guard DevFlags.aiModel1 else { throw AIServiceError.unavailable }
+        let response: PeriodPositionsResponse =
+            try await api.get(path: "/v1/ai/period-positions/\(periodType)")
+        return response.points
+    }
+
+    func generatePeriodNarrative(
+        periodType: String, periodIndex: Int, days: [PeriodNarrativeDayInput]
+    ) async throws -> String {
+        guard DevFlags.aiModel1 else { throw AIServiceError.unavailable }
+        let ticket: PeriodNarrativeJobTicket = try await api.post(
+            path: "/v1/ai/period-narrative",
+            body: Model1Requests.PeriodNarrativeBody(periodType: periodType, periodIndex: periodIndex, days: days)
+        )
+        return try await pollPeriodNarrative(jobId: ticket.jobId)
+    }
+
+    /// Polls a period-narrative job to completion. Mirrors `pollEntryMap` exactly
+    /// (same deadline-via-`Date()` reasoning, same cancellation-is-torn-down-not-failed
+    /// classification); see that function's doc comment.
+    private func pollPeriodNarrative(jobId: String) async throws -> String {
+        let deadline = Date().addingTimeInterval(mapPollCeiling)
+        while Date() < deadline {
+            let response: PeriodNarrativeJobResponse = try await api.get(path: "/v1/ai/period-narrative/\(jobId)")
+            switch response.status {
+            case .done:
+                guard let narrative = response.narrative else { throw AIServiceError.unavailable }
+                return narrative
+            case .failed:
+                throw AIServiceError.jobFailed(response.error ?? "Period narrative generation failed")
+            case .pending:
+                try await Task.sleep(nanoseconds: UInt64(mapPollInterval * 1_000_000_000))
+            }
+        }
+        throw AIServiceError.jobTimedOut
+    }
+
     func dailyPrompt() async throws -> [DailyPromptItem] {
         // ── Model 1 (zero-knowledge) branch ──────────────────────────────────
         // Send the user's most-recent entries as PLAINTEXT plus the decrypted

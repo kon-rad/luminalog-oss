@@ -74,6 +74,21 @@ protocol AIService: AnyObject {
     /// Vapi system prompt. Returns nil off the ZK path (the server builds context then).
     func voiceCallContext(journalId: String?) async throws -> VoiceCallContext?
 
+    /// Zero-knowledge zoom-pyramid position track: one tier's positioned dots. Plain
+    /// read, not a job (see the route's own doc comment: no LLM call on this path).
+    /// Off the ZK path this is unused and the default implementation throws `.unavailable`.
+    func periodPositions(periodType: String) async throws -> [PeriodPositionPoint]
+
+    /// Zero-knowledge zoom-pyramid narrative track: one period's synthesized paragraph,
+    /// built directly from the beats of every entry in that period. The caller already
+    /// decrypted those beats locally (`entry.cognitiveMap.map.beats`); this sends them
+    /// as PLAINTEXT to the stateless, chunked map-reduce endpoint and returns the single
+    /// resulting paragraph. Off the ZK path this is unused and the default
+    /// implementation throws `.unavailable`.
+    func generatePeriodNarrative(
+        periodType: String, periodIndex: Int, days: [PeriodNarrativeDayInput]
+    ) async throws -> String
+
     /// Today's five personalized prompts — one per life area — generated in a
     /// single server-side LLM call. The client caches them for the day.
     func dailyPrompt() async throws -> [DailyPromptItem]
@@ -161,6 +176,18 @@ extension AIService {
     /// Default: no client-built voice context (non-ZK paths and mocks). Only the
     /// zero-knowledge `ProxyAIService` overrides this.
     func voiceCallContext(journalId: String?) async throws -> VoiceCallContext? { nil }
+
+    /// Default: only the zero-knowledge `ProxyAIService` reads period positions.
+    func periodPositions(periodType: String) async throws -> [PeriodPositionPoint] {
+        throw AIServiceError.unavailable
+    }
+
+    /// Default: only the zero-knowledge `ProxyAIService` synthesizes period narratives.
+    func generatePeriodNarrative(
+        periodType: String, periodIndex: Int, days: [PeriodNarrativeDayInput]
+    ) async throws -> String {
+        throw AIServiceError.unavailable
+    }
 
     /// Default: no on-device index to warm (non-ZK paths and mocks). Only the
     /// zero-knowledge `ProxyAIService` overrides this.
