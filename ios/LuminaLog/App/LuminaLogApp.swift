@@ -122,6 +122,8 @@ struct LuminaLogApp: App {
                         KeyGate(
                             enrollment: services.keyEnrollment,
                             userId: uid,
+                            wallet: services.wallet,
+                            eoaTransport: services.eoaWrapTransport,
                             onUnlock: { await session.keyDidUnlock() },
                             onSignOut: { try? services.auth.signOut() }
                         ) {
