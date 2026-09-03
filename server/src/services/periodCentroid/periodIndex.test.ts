@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   weekIndexFromDayIndex, monthIndexFromDayIndex, quarterIndexFromDayIndex,
-  yearIndexFromDayIndex, LIFETIME_INDEX,
+  yearIndexFromDayIndex, LIFETIME_INDEX, thursdayDayIndexFromDayIndex,
 } from './periodIndex'
 
 const dayIndexFor = (y: number, m: number, d: number): number =>
@@ -57,6 +57,20 @@ describe('weekIndexFromDayIndex', () => {
   it('advances between adjacent weeks', () => {
     expect(weekIndexFromDayIndex(dayIndexFor(2026, 6, 8)))
       .toBeGreaterThan(weekIndexFromDayIndex(dayIndexFor(2026, 6, 1)))
+  })
+})
+
+describe('thursdayDayIndexFromDayIndex', () => {
+  it('is stable across every day in the same ISO week', () => {
+    const monday = dayIndexFor(2026, 6, 1)
+    const sunday = dayIndexFor(2026, 6, 7)
+    expect(thursdayDayIndexFromDayIndex(monday)).toBe(thursdayDayIndexFromDayIndex(sunday))
+  })
+
+  it('returns the actual Thursday for a boundary-spanning week', () => {
+    // 2026-06-29 (Mon) .. 2026-07-05 (Sun) is one ISO week; its Thursday is 2026-07-02.
+    const monday = dayIndexFor(2026, 6, 29)
+    expect(thursdayDayIndexFromDayIndex(monday)).toBe(dayIndexFor(2026, 7, 2))
   })
 })
 

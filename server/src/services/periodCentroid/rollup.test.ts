@@ -59,6 +59,10 @@ describe('meanVector', () => {
   it('is a no-op copy for a single vector', () => {
     expect(meanVector([[1, 2, 3]])).toEqual([1, 2, 3])
   })
+
+  it('returns an empty array for an empty input', () => {
+    expect(meanVector([])).toEqual([])
+  })
 })
 
 describe('updatePeriodCentroidsForDay', () => {
@@ -136,5 +140,29 @@ describe('updatePeriodCentroidsForDay', () => {
 
     expect(docs[`u1/day_${day}`].vector).toEqual([1, 1, 1])
     expect(docs[`u2/day_${day}`].vector).toEqual([9, 9, 9])
+  })
+
+  it('does not create stale month docs when an ISO week straddles calendar months', async () => {
+    // 2026-06-29 (Mon) is in June but in an ISO week whose Thursday (2026-07-02) is in July.
+    // The week doc should be tagged with July's month, not June's.
+    const dayLateJune = dayIndexFor(2026, 6, 29)
+    computeDayCentroid.mockResolvedValueOnce({ centroid: [1, 1, 1], wordTotal: 100 })
+    await updatePeriodCentroidsForDay('u1', dayLateJune)
+
+    // 2026-07-01 (Wed) is in July and in the same ISO week. Updating it should not
+    // retroactively create or modify a June month doc.
+    const dayEarlyJuly = dayIndexFor(2026, 7, 1)
+    computeDayCentroid.mockResolvedValueOnce({ centroid: [2, 2, 2], wordTotal: 100 })
+    await updatePeriodCentroidsForDay('u1', dayEarlyJuly)
+
+    // The week doc should exist and be tagged with July (not June).
+    const week = weekIndexFromDayIndex(dayLateJune)
+    expect(docs[`u1/week_${week}`]).toBeDefined()
+    expect(docs[`u1/week_${week}`].monthIndex).toBe(monthIndexFromDayIndex(dayIndexFor(2026, 7, 2)))
+
+    // June's month doc should not exist (no days in June contributed to it).
+    const juneMonth = monthIndexFromDayIndex(dayLateJune)
+    const juneMonthKey = `u1/month_${juneMonth}`
+    expect(docs[juneMonthKey]).toBeUndefined()
   })
 })

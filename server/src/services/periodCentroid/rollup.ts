@@ -3,6 +3,7 @@ import { computeDayCentroid } from '../constellation/dayCentroid'
 import {
   type PeriodType, LIFETIME_INDEX,
   weekIndexFromDayIndex, monthIndexFromDayIndex, quarterIndexFromDayIndex, yearIndexFromDayIndex,
+  thursdayDayIndexFromDayIndex,
 } from './periodIndex'
 
 interface PeriodCentroidDoc {
@@ -19,6 +20,7 @@ interface PeriodCentroidDoc {
 
 /** Component-wise mean of one or more equal-length vectors. */
 export function meanVector(vectors: number[][]): number[] {
+  if (vectors.length === 0) return []
   const d = vectors[0]!.length
   const mean = new Array<number>(d).fill(0)
   for (const v of vectors) for (let j = 0; j < d; j++) mean[j] += v[j]!
@@ -89,6 +91,11 @@ export async function updatePeriodCentroidsForDay(userId: string, dayIndex: numb
   const quarter = quarterIndexFromDayIndex(dayIndex)
   const year = yearIndexFromDayIndex(dayIndex)
 
+  const weekAnchorDay = thursdayDayIndexFromDayIndex(dayIndex)
+  const weekMonth = monthIndexFromDayIndex(weekAnchorDay)
+  const weekQuarter = quarterIndexFromDayIndex(weekAnchorDay)
+  const weekYear = yearIndexFromDayIndex(weekAnchorDay)
+
   const day = await computeDayCentroid(userId, dayIndex)
   const dayRef = periodsCollection(userId).doc(`day_${dayIndex}`)
   if (day === null) {
@@ -110,7 +117,7 @@ export async function updatePeriodCentroidsForDay(userId: string, dayIndex: numb
   await writeOrDeleteTier(
     userId, 'week', week,
     await childVectors(userId, 'day', 'weekIndex', week),
-    { monthIndex: month, quarterIndex: quarter, yearIndex: year },
+    { monthIndex: weekMonth, quarterIndex: weekQuarter, yearIndex: weekYear },
   )
   await writeOrDeleteTier(
     userId, 'month', month,

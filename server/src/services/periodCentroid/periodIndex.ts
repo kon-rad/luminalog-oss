@@ -56,3 +56,18 @@ export function weekIndexFromDayIndex(dayIndex: number): number {
   const isoWeek = Math.round((thursday.getTime() - week1Monday.getTime()) / (7 * 86_400_000)) + 1
   return isoYear * 100 + isoWeek
 }
+
+/**
+ * The day-index of the Thursday of the ISO week containing `dayIndex`. Used to derive
+ * a week's calendar month/quarter/year attribution from a fixed point that cannot
+ * flip depending on which day in the week triggered the computation, since (unlike
+ * day/month/quarter/year, which always nest cleanly) an ISO week can straddle a
+ * calendar month, quarter, or year boundary.
+ */
+export function thursdayDayIndexFromDayIndex(dayIndex: number): number {
+  const d = dateForDayIndex(dayIndex)
+  const mondayBasedDow = (d.getUTCDay() + 6) % 7
+  const thursday = new Date(d)
+  thursday.setUTCDate(d.getUTCDate() - mondayBasedDow + 3)
+  return Math.floor(thursday.getTime() / 86_400_000)
+}
