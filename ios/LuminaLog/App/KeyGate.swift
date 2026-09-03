@@ -37,6 +37,12 @@ struct KeyGate<Content: View>: View {
     /// default: it is the backstop every account has, while the wallet wrap is
     /// opt-in.
     @State private var showWalletUnlock = false
+    /// Which route produced the current `failedAttempt`. Both routes fail into
+    /// the SAME `.needsRecoveryCode(failedAttempt: true)` state, so without this
+    /// a mistyped code would greet the wallet screen with "that wallet didn't
+    /// unlock your journal" (and vice versa), pushing the user away from a route
+    /// they have not actually tried yet.
+    @State private var lastAttemptWasWallet = false
 
     /// Whether the wallet-unlock option can be offered at all: the services are
     /// wired AND this account has an `eoa` wrap to open.
@@ -67,7 +73,8 @@ struct KeyGate<Content: View>: View {
             case .needsRecoveryCode(let failedAttempt):
                 if showWalletUnlock && canUnlockWithWallet {
                     WalletUnlockView(
-                        failedAttempt: failedAttempt,
+                        // Only report a failure this screen actually caused.
+                        failedAttempt: failedAttempt && lastAttemptWasWallet,
                         isSubmitting: isSubmitting,
                         onUnlock: { unlockWithWallet() },
                         onUseRecoveryCodeInstead: { showWalletUnlock = false },
@@ -75,11 +82,13 @@ struct KeyGate<Content: View>: View {
                     )
                 } else {
                     RecoveryCodeEntryView(
-                        failedAttempt: failedAttempt,
+                        // Only report a failure this screen actually caused.
+                        failedAttempt: failedAttempt && !lastAttemptWasWallet,
                         isSubmitting: isSubmitting,
                         onSubmit: { code in
                             Task {
                                 isSubmitting = true
+                                lastAttemptWasWallet = false
                                 await enrollment.submitRecoveryCode(code, userId: userId)
                                 isSubmitting = false
                             }
@@ -126,6 +135,7 @@ struct KeyGate<Content: View>: View {
                 // leave the state (and the on-screen message) untouched.
                 do { try await wallet.connect() } catch { return }
             }
+            lastAttemptWasWallet = true
             await enrollment.submitWalletUnlock(
                 userId: userId, wallet: wallet, eoaTransport: eoaTransport)
         }
