@@ -33,6 +33,14 @@ const PRO: string[] = [
   'The cognitive map of your themes over time',
 ]
 
+const MEMBERSHIP: string[] = [
+  'Private AI agent mentorship',
+  'Private AI agent chat group',
+  'Organized AI agent mastermind groups',
+  'Special access to more content',
+  'AI kids class: 2x a week, 1 hour online',
+]
+
 function Check() {
   return (
     <span aria-hidden="true" style={{ color: 'var(--accent)', marginRight: 10 }}>
@@ -117,6 +125,27 @@ export default function PricingPage() {
 
             <ul style={{ marginTop: 26, display: 'grid', gap: 12, fontSize: 15, lineHeight: 1.5 }}>
               {PRO.map((line) => (
+                <li key={line} style={{ display: 'flex', alignItems: 'flex-start' }}>
+                  <Check />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+
+            <p
+              style={{
+                marginTop: 26,
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: 'var(--text3)',
+              }}
+            >
+              Also included in your membership
+            </p>
+            <ul style={{ marginTop: 12, display: 'grid', gap: 12, fontSize: 15, lineHeight: 1.5 }}>
+              {MEMBERSHIP.map((line) => (
                 <li key={line} style={{ display: 'flex', alignItems: 'flex-start' }}>
                   <Check />
                   <span>{line}</span>

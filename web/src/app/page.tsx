@@ -695,6 +695,17 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
+              <p style={{ marginTop: 22, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text3)', textAlign: 'left' }}>Also included in your membership</p>
+              <ul style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {['Private AI agent mentorship', 'Private AI agent chat group', 'Organized AI agent mastermind groups', 'Special access to more content', 'AI kids class: 2x a week, 1 hour online'].map(f => (
+                  <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15, textAlign: 'left' }}>
+                    <span style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
               <div style={{ marginTop: 28 }}>
                 <AppStoreButton variant="full" label="Download on the App Store" />
               </div>
