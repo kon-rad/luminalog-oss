@@ -9,9 +9,6 @@ vi.mock('../services/ragStore', () => ({
 vi.mock('../services/constellation/constellationService', () => ({
   updateConstellationForDay: vi.fn(async () => {}),
 }))
-vi.mock('../services/periodCentroid/rollup', () => ({
-  updatePeriodCentroidsForDay: vi.fn(async () => {}),
-}))
 vi.mock('../services/ragGraph', () => ({
   computeJournalGraph: vi.fn(async () => ({ nodes: ['e1', 'e2'], edges: [{ a: 'e1', b: 'e2', score: 0.8 }] })),
 }))
@@ -24,7 +21,6 @@ vi.mock('../middleware/requirePro', () => ({ requirePro: vi.fn() }))
 import { indexHandler, deleteHandler, searchHandler, graphHandler } from './rag'
 import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryDayIndex } from '../services/ragStore'
 import { updateConstellationForDay } from '../services/constellation/constellationService'
-import { updatePeriodCentroidsForDay } from '../services/periodCentroid/rollup'
 import { computeJournalGraph } from '../services/ragGraph'
 
 function mockRes() {
@@ -74,24 +70,6 @@ describe('indexHandler', () => {
     expect(res.json).toHaveBeenCalledWith({ ok: true, entryId: 'e1', chunks: 2 })
   })
 
-  it('also refreshes the period centroid pipeline for the indexed day', async () => {
-    const res = mockRes()
-    await indexHandler(
-      { uid: 'u1', body: { entryId: 'e1', dayIndex: 5, chunks: ['a'] } } as any,
-      res,
-    )
-    expect(updatePeriodCentroidsForDay).toHaveBeenCalledWith('u1', 5)
-  })
-
-  it('does not fail the request when the period centroid refresh throws', async () => {
-    ;(updatePeriodCentroidsForDay as any).mockRejectedValueOnce(new Error('boom'))
-    const res = mockRes()
-    await indexHandler(
-      { uid: 'u1', body: { entryId: 'e1', dayIndex: 5, chunks: ['a'] } } as any,
-      res,
-    )
-    expect(res.json).toHaveBeenCalledWith({ ok: true, entryId: 'e1', chunks: 2 })
-  })
 })
 
 describe('deleteHandler', () => {
@@ -102,12 +80,6 @@ describe('deleteHandler', () => {
     expect(deleteEntryChunks).toHaveBeenCalledWith('u1', 'e9')
     expect(updateConstellationForDay).toHaveBeenCalledWith('u1', 42)
     expect(res.json).toHaveBeenCalledWith({ deleted: true, entryId: 'e9' })
-  })
-
-  it('also refreshes the period centroid pipeline for the deleted entry\'s day', async () => {
-    const res = mockRes()
-    await deleteHandler({ uid: 'u1', params: { entryId: 'e9' } } as any, res)
-    expect(updatePeriodCentroidsForDay).toHaveBeenCalledWith('u1', 42)
   })
 
   it('skips the constellation recompute when the entry had no indexed day', async () => {

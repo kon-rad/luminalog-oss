@@ -4,7 +4,6 @@ import { requireAiConsent } from '../middleware/requireAiConsent'
 import { requirePro } from '../middleware/requirePro'
 import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryDayIndex } from '../services/ragStore'
 import { updateConstellationForDay } from '../services/constellation/constellationService'
-import { updatePeriodCentroidsForDay } from '../services/periodCentroid/rollup'
 import { computeJournalGraph } from '../services/ragGraph'
 
 /**
@@ -21,18 +20,11 @@ async function refreshConstellationForDay(userId: string, dayIndex: number): Pro
   }
 }
 
-/**
- * Recompute the zoom pyramid's day-through-lifetime centroids for one day, off the
- * request's critical path. Same non-fatal posture as `refreshConstellationForDay`, a
- * failure here must never fail the index/delete that triggered it.
- */
-async function refreshPeriodCentroidsForDay(userId: string, dayIndex: number): Promise<void> {
-  try {
-    await updatePeriodCentroidsForDay(userId, dayIndex)
-  } catch (e) {
-    console.error('[rag] period centroid refresh failed', { dayIndex }, e)
-  }
-}
+// The zoom pyramid's periodCentroid rollup (`refreshPeriodCentroidsForDay`, calling
+// `updatePeriodCentroidsForDay` from `../services/periodCentroid/rollup`) is
+// deliberately unwired here: the feature is paused pending more design work (see
+// DEV-LOG). The service and its tests are untouched; re-add the two call sites
+// below (indexHandler, deleteHandler) to resume.
 
 // Chunk-level semantic RAG. The vector store holds NO journal text, only vectors
 // + metadata. Chunking happens on the CLIENT (deterministic); this router just
@@ -67,8 +59,6 @@ export async function indexHandler(req: Request, res: Response): Promise<void> {
     })
     // Keep the day's constellation star in sync with the just-indexed chunks.
     await refreshConstellationForDay(uid, dayIndex)
-    // Keep the zoom pyramid's centroids in sync with the just-indexed chunks.
-    await refreshPeriodCentroidsForDay(uid, dayIndex)
     res.json({ ok: true, entryId: body.entryId, chunks: n })
   } catch (e) {
     console.error('[rag/index]', e)
@@ -88,7 +78,6 @@ export async function deleteHandler(req: Request, res: Response): Promise<void> 
     await deleteEntryChunks(uid, entryId)
     if (dayIndex !== null) {
       await refreshConstellationForDay(uid, dayIndex)
-      await refreshPeriodCentroidsForDay(uid, dayIndex)
     }
     res.json({ deleted: true, entryId })
   } catch (e) {

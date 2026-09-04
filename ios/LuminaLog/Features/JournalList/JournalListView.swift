@@ -39,7 +39,6 @@ struct JournalListView: View {
     @State private var isSearchPresented = false
     @State private var isMapPresented = false
     @State private var isInsightsPresented = false
-    @State private var isZoomPresented = false
 
     var body: some View {
         NavigationStack {
@@ -80,14 +79,6 @@ struct JournalListView: View {
                     }
                     .accessibilityLabel("Journal insights")
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        isZoomPresented = true
-                    } label: {
-                        Image(systemName: "arrow.up.left.and.arrow.down.right.circle")
-                    }
-                    .accessibilityLabel("Zoom out over your whole journal")
-                }
             }
             .navigationDestination(for: JournalDetailRoute.self) { route in
                 JournalDetailView(
@@ -123,9 +114,6 @@ struct JournalListView: View {
             }
             .fullScreenCover(isPresented: $isInsightsPresented) {
                 InsightsView(journals: journals)
-            }
-            .fullScreenCover(isPresented: $isZoomPresented) {
-                ZoomPyramidView(journals: journals, ai: ai)
             }
         }
         .task {
