@@ -9,6 +9,7 @@ import { revenueCatRouter, entitlementRouter } from './routes/revenuecat'
 import { mediaRouter } from './routes/media'
 import { keysRouter } from './routes/keys'
 import { authRouter } from './routes/auth'
+import { authSolanaRouter } from './routes/authSolana'
 import { leaderboardRouter } from './routes/leaderboard'
 import { soulRouter } from './routes/soul'
 import { nftRouter } from './routes/nft'
@@ -34,6 +35,7 @@ app.use('/v1/entitlement', entitlementRouter)
 app.use('/v1/media', mediaRouter)
 app.use('/v1/keys', keysRouter)
 app.use('/v1/auth', authRouter) // SIWE sign-in/link (nonce + verify unauthenticated, link authenticated)
+app.use('/v1/auth', authSolanaRouter) // SIWS sign-in/link (nonce + verify unauthenticated, link authenticated)
 app.use('/v1/leaderboards', leaderboardRouter)
 app.use('/v1/soul', soulRouter)
 app.use('/v1/vectors', vectorsRouter) // encrypted per-user vector blob store (client-side semantic RAG)
