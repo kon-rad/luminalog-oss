@@ -24,10 +24,18 @@ service cloud.firestore {
       // /verify resolves identity with where('walletAddress','==',address), so the
       // squatter would be handed a custom token when the real owner signs in. That
       // would defeat the entire proof-of-ownership guarantee.
+      //
+      // `walletAddressSolana` is the Solana equivalent, server-owned the same way:
+      // written ONLY by the SIWS routes (POST /v1/auth/siws/verify and /link, see
+      // server/src/routes/authSolana.ts) after a signature over a single-use server
+      // nonce proves ownership of the address. Identity resolves via the
+      // walletLinksSolana/{address} claim doc (denied to clients below), so a
+      // direct client write here would let a squatter hijack a victim's sign-in the
+      // same way an unlocked walletAddress would.
       allow create: if request.auth != null && request.auth.uid == userId
-        && !request.resource.data.keys().hasAny(['entitlement', 'walletAddress']);
+        && !request.resource.data.keys().hasAny(['entitlement', 'walletAddress', 'walletAddressSolana']);
       allow update: if request.auth != null && request.auth.uid == userId
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['entitlement', 'walletAddress']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['entitlement', 'walletAddress', 'walletAddressSolana']);
 
       // Soul Constellation day-centroids hold RAW journal-text embedding vectors.
       // Server-only (Admin SDK bypasses rules). Explicitly denied to clients as
@@ -180,6 +188,16 @@ service cloud.firestore {
     // public GET /v1/events/past, both via the Admin SDK, so clients never need
     // direct access. See ADR-0124.
     match /pastEvents/{slug} {
+      allow read, write: if false;
+    }
+
+    // address -> {uid} claim doc: the identity anchor for Sign-In with Solana
+    // (server/src/routes/authSolana.ts's resolveOrCreateUid and linkSolanaHandler).
+    // Whoever controls a doc's `uid` value controls who signs in as that uid, so
+    // this MUST be server-only. Written exclusively via the Admin SDK (which
+    // bypasses these rules) after a signature proves ownership of the address;
+    // a direct client write would let anyone claim any address for any uid.
+    match /walletLinksSolana/{address} {
       allow read, write: if false;
     }
   }

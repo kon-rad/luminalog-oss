@@ -83,6 +83,16 @@ import {
   authSolanaRouter,
 } from './authSolana'
 
+// Captured before any `vi.spyOn(nacl.sign.detached, 'verify')` call anywhere
+// in this file runs (module top-level code executes before any beforeEach),
+// so it is guaranteed to be the genuine, unmocked implementation. Restoring
+// TO THIS directly (rather than a spy's own .mockRestore()) sidesteps a real
+// vitest gotcha: repeated vi.spyOn() calls on the same method across many
+// beforeEach hooks, none of which ever restore, stack spies on top of each
+// other. A later .mockRestore() then only unwraps ONE layer back to the
+// PREVIOUS test's mocked state, not the real function.
+const realNaclVerify = nacl.sign.detached.verify
+
 function mockRes() {
   const res: any = { statusCode: 200 }
   res.status = (c: number) => { res.statusCode = c; return res }
@@ -176,11 +186,12 @@ describe('verifySiwsRequest', () => {
     if (!result.ok) expect(result.status).toBe(401)
   })
 
-  it('rejects an unrecognized domain', async () => {
+  it('rejects an unrecognized domain WITHOUT calling signature verification (check-ordering, relay-attack guard)', async () => {
     const nonce = issueSolanaNonce()
     const result = await verifySiwsRequest(siwsMessage('evil.example', nonce), SIGNATURE_B58, ADDRESS)
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.status).toBe(400)
+    expect(verifyMock).not.toHaveBeenCalled()
   })
 
   it('rejects a replayed (already-consumed) nonce', async () => {
@@ -208,6 +219,44 @@ describe('verifySiwsRequest', () => {
   it('exposes the allowed-domains set for tests/ops visibility', () => {
     expect(ALLOWED_SIWS_DOMAINS.has('myargoquest.com')).toBe(true)
     expect(ALLOWED_SIWS_DOMAINS.has('luminalog.com')).toBe(true)
+  })
+
+  // The tests above all stub nacl.sign.detached.verify, so none of them prove
+  // the actual byte-handling (message encoding, base58 decode order, argument
+  // order to verify()) is correct: a bug swapping the signature and address
+  // arguments, or base64-encoding instead of base58, would still pass every
+  // one of them. These two tests let the real tweetnacl implementation run.
+  describe('with a real ed25519 keypair (no mocked verify)', () => {
+    it('accepts a genuinely valid signature over the real message bytes', async () => {
+      nacl.sign.detached.verify = realNaclVerify // let the real implementation run
+
+      const keyPair = nacl.sign.keyPair()
+      const address = bs58.encode(keyPair.publicKey)
+      const nonce = issueSolanaNonce()
+      const message = siwsMessage('myargoquest.com', nonce, address)
+      const signatureBytes = nacl.sign.detached(new TextEncoder().encode(message), keyPair.secretKey)
+      const signature = bs58.encode(signatureBytes)
+
+      const result = await verifySiwsRequest(message, signature, address)
+      expect(result.ok).toBe(true)
+      if (result.ok) expect(result.address).toBe(address)
+    })
+
+    it('fails closed (401) on a valid-base58 but wrong signature over the real message bytes', async () => {
+      nacl.sign.detached.verify = realNaclVerify // let the real implementation run
+
+      const keyPair = nacl.sign.keyPair()
+      const address = bs58.encode(keyPair.publicKey)
+      const nonce = issueSolanaNonce()
+      const message = siwsMessage('myargoquest.com', nonce, address)
+      // A random 64-byte array is valid base58 but not a real signature over
+      // this message, so the real (non-mocked) verify() must return false.
+      const wrongSignature = bs58.encode(nacl.randomBytes(64))
+
+      const result = await verifySiwsRequest(message, wrongSignature, address)
+      expect(result.ok).toBe(false)
+      if (!result.ok) expect(result.status).toBe(401)
+    })
   })
 })
 
@@ -262,6 +311,53 @@ describe('POST /v1/auth/siws/link (authenticated)', () => {
     await linkSolanaHandler(req, res)
     expect(res.statusCode).toBe(409)
     expect(userStore.get('caller-uid')?.walletAddressSolana).toBeUndefined()
+  })
+
+  it('409s when the caller already has a different Solana wallet linked, and does not overwrite it', async () => {
+    const OTHER_ADDRESS = bs58.encode(new Uint8Array(32).fill(3))
+    userStore.set('caller-uid', { walletAddressSolana: OTHER_ADDRESS })
+    linkStore.set(OTHER_ADDRESS, { uid: 'caller-uid' })
+    const nonce = issueSolanaNonce()
+    const req: any = { uid: 'caller-uid', body: { message: siwsMessage('myargoquest.com', nonce), signature: SIGNATURE_B58, address: ADDRESS } }
+    const res = mockRes()
+    await linkSolanaHandler(req, res)
+    expect(res.statusCode).toBe(409)
+    expect(userStore.get('caller-uid')?.walletAddressSolana).toBe(OTHER_ADDRESS)
+    expect(linkStore.has(ADDRESS)).toBe(false)
+  })
+
+  it('is idempotent when the caller re-links their own already-linked wallet', async () => {
+    userStore.set('caller-uid', { walletAddressSolana: ADDRESS })
+    linkStore.set(ADDRESS, { uid: 'caller-uid' })
+    const nonce = issueSolanaNonce()
+    const req: any = { uid: 'caller-uid', body: { message: siwsMessage('myargoquest.com', nonce), signature: SIGNATURE_B58, address: ADDRESS } }
+    const res = mockRes()
+    await linkSolanaHandler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(userStore.get('caller-uid')?.walletAddressSolana).toBe(ADDRESS)
+  })
+
+  it('409s (not 500) when the link create() races against a different caller claiming the same never-before-seen address', async () => {
+    // Arm raceLosers so the link doc's create() throws already-exists on its
+    // next call, simulating a concurrent request from a DIFFERENT uid winning
+    // the race for this address, exactly like resolveOrCreateUid's own race test.
+    raceLosers.set(ADDRESS, 'someone-else')
+    const nonce = issueSolanaNonce()
+    const req: any = { uid: 'caller-uid', body: { message: siwsMessage('myargoquest.com', nonce), signature: SIGNATURE_B58, address: ADDRESS } }
+    const res = mockRes()
+    await linkSolanaHandler(req, res)
+    expect(res.statusCode).toBe(409)
+    expect(userStore.get('caller-uid')?.walletAddressSolana).toBeUndefined()
+  })
+
+  it('treats the link create() race as idempotent success when the winner is the caller\'s own concurrent request', async () => {
+    raceLosers.set(ADDRESS, 'caller-uid')
+    const nonce = issueSolanaNonce()
+    const req: any = { uid: 'caller-uid', body: { message: siwsMessage('myargoquest.com', nonce), signature: SIGNATURE_B58, address: ADDRESS } }
+    const res = mockRes()
+    await linkSolanaHandler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(userStore.get('caller-uid')?.walletAddressSolana).toBe(ADDRESS)
   })
 })
 

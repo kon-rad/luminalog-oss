@@ -52,6 +52,19 @@ export async function solanaNonceHandler(_req: Request, res: Response): Promise<
   res.json({ nonce: issueSolanaNonce() })
 }
 
+/** A `walletLinksSolana/{address}` claim doc's `uid` field is written only by
+ *  this file, but read it defensively rather than blind-casting: a malformed
+ *  doc (missing `uid`) would otherwise silently become `undefined as string`,
+ *  which then reaches something like `admin.auth().getUser(undefined)` and
+ *  fails with an unhelpful error far from the actual problem. */
+function readClaimUid(doc: FirebaseFirestore.DocumentSnapshot): string {
+  const uid = doc.get('uid')
+  if (typeof uid !== 'string' || uid.length === 0) {
+    throw new Error('Corrupted Solana wallet link: missing uid')
+  }
+  return uid
+}
+
 /**
  * Race-safe uid resolution for a Solana address. A plain Firestore
  * transaction cannot close this race on its own: `admin.auth().createUser()`
@@ -70,7 +83,7 @@ export async function solanaNonceHandler(_req: Request, res: Response): Promise<
 export async function resolveOrCreateUid(address: string): Promise<string> {
   const linkRef = db.collection('walletLinksSolana').doc(address)
   const existing = await linkRef.get()
-  if (existing.exists) return existing.get('uid') as string
+  if (existing.exists) return readClaimUid(existing)
 
   const created = await admin.auth().createUser({})
   try {
@@ -78,7 +91,7 @@ export async function resolveOrCreateUid(address: string): Promise<string> {
   } catch (e: any) {
     if (e.code === 6 || e.code === 'already-exists') {
       const winner = await linkRef.get()
-      return winner.get('uid') as string
+      return readClaimUid(winner)
     }
     throw e
   }
@@ -193,7 +206,9 @@ export async function verifySolanaHandler(req: Request, res: Response): Promise<
 
 // POST /v1/auth/siws/link: authenticated. Attach a wallet to the CALLER's
 // existing account. Rejects (409) if the address is already claimed by a
-// different uid via the walletLinksSolana claim doc.
+// different uid via the walletLinksSolana claim doc, or if the caller's
+// account already has a DIFFERENT Solana wallet linked (re-linking the SAME
+// address is idempotent and still succeeds).
 export async function linkSolanaHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
   const { message, signature, address } = req.body as { message?: unknown; signature?: unknown; address?: unknown }
@@ -203,13 +218,44 @@ export async function linkSolanaHandler(req: Request, res: Response): Promise<vo
     return
   }
   try {
+    // Reject linking a different wallet on top of one already linked: without
+    // this, users/{uid}.walletAddressSolana would silently be overwritten
+    // while the OLD address's walletLinksSolana claim doc kept pointing at
+    // this uid, leaving two addresses resolving to the same account with only
+    // one of them named on the user doc.
+    const callerDoc = await db.collection('users').doc(uid).get()
+    const callerWalletAddressSolana = callerDoc.exists ? (callerDoc.get('walletAddressSolana') as string | undefined) : undefined
+    if (callerWalletAddressSolana && callerWalletAddressSolana !== result.address) {
+      res.status(409).json({ error: 'A different Solana wallet is already linked to this account' })
+      return
+    }
+
     const linkRef = db.collection('walletLinksSolana').doc(result.address)
     const existing = await linkRef.get()
-    if (existing.exists && existing.get('uid') !== uid) {
+    if (existing.exists && readClaimUid(existing) !== uid) {
       res.status(409).json({ error: 'Wallet already linked to a different account' })
       return
     }
-    if (!existing.exists) await linkRef.create({ uid })
+    if (!existing.exists) {
+      try {
+        await linkRef.create({ uid })
+      } catch (e: any) {
+        // TOCTOU: two callers raced to claim the same never-before-seen
+        // address between the .get() above and this .create(). Same
+        // already-exists shape resolveOrCreateUid handles above.
+        if (e.code === 6 || e.code === 'already-exists') {
+          const winner = await linkRef.get()
+          if (readClaimUid(winner) !== uid) {
+            res.status(409).json({ error: 'Wallet already linked to a different account' })
+            return
+          }
+          // The race resolved in the caller's own favor (their own concurrent
+          // request won): fall through as the idempotent success case.
+        } else {
+          throw e
+        }
+      }
+    }
     await db.collection('users').doc(uid).set({ walletAddressSolana: result.address }, { merge: true })
     const user = await admin.auth().getUser(uid)
     await admin.auth().setCustomUserClaims(uid, { ...(user.customClaims ?? {}), walletAddressSolana: result.address })
