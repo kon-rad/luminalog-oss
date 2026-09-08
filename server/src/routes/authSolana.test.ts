@@ -2,9 +2,17 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 import nacl from 'tweetnacl'
 import bs58 from 'bs58'
 
-const { linkStore, userStore } = vi.hoisted(() => ({
+const { linkStore, userStore, raceLosers } = vi.hoisted(() => ({
   linkStore: new Map<string, { uid: string }>(),
   userStore: new Map<string, Record<string, any>>(),
+  // Addresses whose next create() call should simulate losing a concurrent
+  // race: the competitor's write "lands" (linkStore gets the winner's uid)
+  // and create() throws already-exists, exactly as Firestore would for two
+  // concurrent create()s on the same document path. Consulted only inside
+  // create(), so the preceding get() still observes exists: false and the
+  // code under test genuinely takes the "not yet claimed, attempt to claim"
+  // branch before losing the race.
+  raceLosers: new Map<string, string>(),
 }))
 
 vi.mock('../middleware/firebaseAuth', () => {
@@ -28,6 +36,14 @@ vi.mock('../middleware/firebaseAuth', () => {
       },
       async create(data: { uid: string }) {
         if (linkStore.has(address)) {
+          const err: any = new Error('already exists')
+          err.code = 6
+          throw err
+        }
+        const winnerUid = raceLosers.get(address)
+        if (winnerUid !== undefined) {
+          raceLosers.delete(address)
+          linkStore.set(address, { uid: winnerUid })
           const err: any = new Error('already exists')
           err.code = 6
           throw err
@@ -85,6 +101,7 @@ describe('resolveOrCreateUid (race-safe uid resolution)', () => {
   beforeEach(() => {
     linkStore.clear()
     userStore.clear()
+    raceLosers.clear()
     authMock.createUser.mockReset()
     let n = 0
     authMock.createUser.mockImplementation(async () => ({ uid: `new-uid-${n++}` }))
@@ -105,17 +122,15 @@ describe('resolveOrCreateUid (race-safe uid resolution)', () => {
   })
 
   it('resolves to the winner when the claim races (create() throws already-exists)', async () => {
-    // Simulate: link doc did not exist at read time, but another request wins
-    // the create() race before this one's create() call lands.
-    const realCreate = authMock.createUser.getMockImplementation()!
-    let firstCall = true
-    // Patch the link doc's create() indirectly by pre-seeding AFTER the read:
-    // easiest reliable way in this in-memory stand-in is to seed linkStore
-    // right before resolveOrCreateUid's own create() call would run, which we
-    // approximate by seeding it here (before the read) with a DIFFERENT uid
-    // than createUser would produce, and asserting the loser defers to it.
-    linkStore.set('SolAddr2222', { uid: 'winner-uid' })
+    // Simulate: link doc does not exist at read time (so resolveOrCreateUid
+    // takes the "not yet claimed" branch and calls createUser()), but a
+    // competing request's create() lands first. raceLosers arms the link
+    // doc's create() to throw already-exists on its next call for this
+    // address, writing the winner's uid to linkStore at that moment, exactly
+    // like a real concurrent Firestore create() race.
+    raceLosers.set('SolAddr2222', 'winner-uid')
     const uid = await resolveOrCreateUid('SolAddr2222')
     expect(uid).toBe('winner-uid')
+    expect(authMock.createUser).toHaveBeenCalledTimes(1)
   })
 })

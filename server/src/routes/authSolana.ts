@@ -6,14 +6,14 @@ import { firebaseAuth, db } from '../middleware/firebaseAuth'
 
 // ---------------------------------------------------------------------------
 // Sign-In with Solana (SIWS). Own nonce map, own domain allowlist, own
-// verification primitive (ed25519/base58 via tweetnacl/bs58) -- deliberately
+// verification primitive (ed25519/base58 via tweetnacl/bs58), deliberately
 // NOT shared with the Ethereum auth.ts router: a shared nonce map would make a
 // Solana nonce usable to satisfy an Ethereum verify or vice versa if the two
 // routers were ever merged carelessly. See spec section 5.1.
 //
 // Two signatures, not one (spec section 3): this file only handles SIWS
 // sign-in/link. The fixed-message key-wrap derivation signature is verified
-// nowhere server-side -- the server never sees it, only the resulting opaque
+// nowhere server-side: the server never sees it, only the resulting opaque
 // wrap envelope via keys.ts.
 // ---------------------------------------------------------------------------
 
@@ -58,7 +58,7 @@ export async function solanaNonceHandler(_req: Request, res: Response): Promise<
  * is an external Auth API call, not a Firestore read/write, so it cannot run
  * inside a `db.runTransaction()` callback. Instead, `walletLinksSolana/{address}`
  * acts as the atomicity anchor via `DocumentReference.create()`, which fails
- * atomically (code 6 / 'already-exists') if the document already exists --
+ * atomically (code 6 / 'already-exists') if the document already exists.
  * Firestore guarantees only one concurrent `create()` on the same document
  * path succeeds, with no transaction needed. See spec's "Race-safe uid
  * resolution" subsection.
