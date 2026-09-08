@@ -85,3 +85,85 @@ export async function resolveOrCreateUid(address: string): Promise<string> {
   await db.collection('users').doc(created.uid).set({ walletAddressSolana: address }, { merge: true })
   return created.uid
 }
+
+/** Same relay-attack rationale as auth.ts's ALLOWED_SIWE_DOMAINS: without this
+ *  check, a phishing site could get a victim to sign a message CLAIMING an
+ *  allowed domain, fetch a real nonce from this server, and relay the
+ *  signature to /verify or /link. */
+export const ALLOWED_SIWS_DOMAINS = new Set(['myargoquest.com', 'luminalog.com'])
+
+interface ParsedSiwsMessage {
+  domain: string
+  address: string
+  nonce: string
+}
+
+/** Hand-rolled parser for the fixed SIWS message shape this server issues via
+ *  its own /nonce endpoint and the web client's `siwsMessage.ts` builder
+ *  (line 1: "{domain} wants you to sign in..."; line 2: address; a "Nonce: "
+ *  line further down). No Solana equivalent of viem/siwe exists (research
+ *  doc), so this is intentionally minimal rather than a general SIWS parser. */
+function parseSiwsMessage(message: string): ParsedSiwsMessage | null {
+  const lines = message.split('\n')
+  const firstLine = lines[0] ?? ''
+  const domainMatch = firstLine.match(/^(\S+) wants you to sign in with your Solana account:$/)
+  const address = lines[1]?.trim()
+  const nonceLine = lines.find(l => l.startsWith('Nonce: '))
+  if (!domainMatch || !address || !nonceLine) return null
+  return { domain: domainMatch[1], address, nonce: nonceLine.slice('Nonce: '.length).trim() }
+}
+
+interface SiwsVerifyResult { ok: true; address: string }
+interface SiwsVerifyFailure { ok: false; status: number; error: string }
+
+/** Parse, signature-verify, and nonce-consume a SIWS request. Shared by
+ *  /verify and /link so both enforce the identical replay-protected check.
+ *  `address` is the request body's own `address` field, checked against the
+ *  message-embedded one so a caller cannot supply a validly-signed message for
+ *  one address alongside a different `address` param. */
+export async function verifySiwsRequest(
+  message: unknown,
+  signature: unknown,
+  address: unknown,
+): Promise<SiwsVerifyResult | SiwsVerifyFailure> {
+  if (typeof message !== 'string' || message.length === 0) {
+    return { ok: false, status: 400, error: 'Missing or invalid message' }
+  }
+  if (typeof signature !== 'string' || signature.length === 0) {
+    return { ok: false, status: 400, error: 'Missing or invalid signature' }
+  }
+  if (typeof address !== 'string' || address.length === 0) {
+    return { ok: false, status: 400, error: 'Missing or invalid address' }
+  }
+
+  const parsed = parseSiwsMessage(message)
+  if (!parsed) {
+    return { ok: false, status: 400, error: 'Malformed SIWS message' }
+  }
+  if (parsed.address !== address) {
+    return { ok: false, status: 400, error: 'Address does not match signed message' }
+  }
+  if (!ALLOWED_SIWS_DOMAINS.has(parsed.domain)) {
+    return { ok: false, status: 400, error: 'Unrecognized SIWS domain' }
+  }
+
+  let signatureValid: boolean
+  try {
+    const messageBytes = new TextEncoder().encode(message)
+    const signatureBytes = bs58.decode(signature)
+    const addressBytes = bs58.decode(address)
+    signatureValid = nacl.sign.detached.verify(messageBytes, signatureBytes, addressBytes)
+  } catch (e) {
+    console.error('[auth/siws] signature verification threw', e)
+    signatureValid = false
+  }
+  if (!signatureValid) {
+    return { ok: false, status: 401, error: 'Invalid signature' }
+  }
+
+  if (!consumeSolanaNonce(parsed.nonce)) {
+    return { ok: false, status: 401, error: 'Invalid or expired nonce' }
+  }
+
+  return { ok: true, address }
+}

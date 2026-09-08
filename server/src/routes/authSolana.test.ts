@@ -68,7 +68,7 @@ const authMock = vi.hoisted(() => ({
 }))
 vi.mock('firebase-admin', () => ({ default: { auth: () => authMock } }))
 
-import { issueSolanaNonce, consumeSolanaNonce, solanaNonceHandler, resolveOrCreateUid } from './authSolana'
+import { issueSolanaNonce, consumeSolanaNonce, solanaNonceHandler, resolveOrCreateUid, verifySiwsRequest, ALLOWED_SIWS_DOMAINS } from './authSolana'
 
 function mockRes() {
   const res: any = { statusCode: 200 }
@@ -132,5 +132,68 @@ describe('resolveOrCreateUid (race-safe uid resolution)', () => {
     const uid = await resolveOrCreateUid('SolAddr2222')
     expect(uid).toBe('winner-uid')
     expect(authMock.createUser).toHaveBeenCalledTimes(1)
+  })
+})
+
+const ADDRESS = '7cVfgArCheMR6Cs4t6vz5rfnqd56vZq4ndaBrY5xkxXy' // valid base58, 32 bytes decoded
+const SIGNATURE_B58 = bs58.encode(new Uint8Array(64).fill(7)) // shape-valid placeholder
+
+function siwsMessage(domain: string, nonce: string, address = ADDRESS) {
+  return `${domain} wants you to sign in with your Solana account:\n${address}\n\nSign in to Argo.\n\nURI: https://${domain}\nVersion: 1\nChain ID: solana:mainnet\nNonce: ${nonce}\nIssued At: 2026-09-08T00:00:00.000Z`
+}
+
+describe('verifySiwsRequest', () => {
+  let verifyMock: any
+  beforeEach(() => {
+    verifyMock = vi.spyOn(nacl.sign.detached, 'verify').mockReturnValue(true)
+  })
+
+  it('accepts a well-formed message with a valid signature and allowlisted domain', async () => {
+    const nonce = issueSolanaNonce()
+    const result = await verifySiwsRequest(siwsMessage('myargoquest.com', nonce), SIGNATURE_B58, ADDRESS)
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.address).toBe(ADDRESS)
+  })
+
+  it('rejects when the signature does not verify', async () => {
+    verifyMock.mockReturnValue(false)
+    const nonce = issueSolanaNonce()
+    const result = await verifySiwsRequest(siwsMessage('myargoquest.com', nonce), SIGNATURE_B58, ADDRESS)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.status).toBe(401)
+  })
+
+  it('rejects an unrecognized domain', async () => {
+    const nonce = issueSolanaNonce()
+    const result = await verifySiwsRequest(siwsMessage('evil.example', nonce), SIGNATURE_B58, ADDRESS)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.status).toBe(400)
+  })
+
+  it('rejects a replayed (already-consumed) nonce', async () => {
+    const nonce = issueSolanaNonce()
+    consumeSolanaNonce(nonce)
+    const result = await verifySiwsRequest(siwsMessage('myargoquest.com', nonce), SIGNATURE_B58, ADDRESS)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.status).toBe(401)
+  })
+
+  it('rejects when the address param does not match the message-embedded address', async () => {
+    const nonce = issueSolanaNonce()
+    const otherAddress = bs58.encode(new Uint8Array(32).fill(9))
+    const result = await verifySiwsRequest(siwsMessage('myargoquest.com', nonce), SIGNATURE_B58, otherAddress)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.status).toBe(400)
+  })
+
+  it('400s on a missing message', async () => {
+    const result = await verifySiwsRequest(undefined, SIGNATURE_B58, ADDRESS)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.status).toBe(400)
+  })
+
+  it('exposes the allowed-domains set for tests/ops visibility', () => {
+    expect(ALLOWED_SIWS_DOMAINS.has('myargoquest.com')).toBe(true)
+    expect(ALLOWED_SIWS_DOMAINS.has('luminalog.com')).toBe(true)
   })
 })
