@@ -65,10 +65,23 @@ vi.mock('../middleware/firebaseAuth', () => {
 
 const authMock = vi.hoisted(() => ({
   createUser: vi.fn(async () => ({ uid: 'new-uid' })),
+  getUser: vi.fn(async (uid: string) => ({ uid, customClaims: undefined })),
+  setCustomUserClaims: vi.fn(async () => undefined),
+  createCustomToken: vi.fn(async (uid: string) => `token-for-${uid}`),
 }))
 vi.mock('firebase-admin', () => ({ default: { auth: () => authMock } }))
 
-import { issueSolanaNonce, consumeSolanaNonce, solanaNonceHandler, resolveOrCreateUid, verifySiwsRequest, ALLOWED_SIWS_DOMAINS } from './authSolana'
+import {
+  issueSolanaNonce,
+  consumeSolanaNonce,
+  solanaNonceHandler,
+  resolveOrCreateUid,
+  verifySiwsRequest,
+  ALLOWED_SIWS_DOMAINS,
+  verifySolanaHandler,
+  linkSolanaHandler,
+  authSolanaRouter,
+} from './authSolana'
 
 function mockRes() {
   const res: any = { statusCode: 200 }
@@ -195,5 +208,69 @@ describe('verifySiwsRequest', () => {
   it('exposes the allowed-domains set for tests/ops visibility', () => {
     expect(ALLOWED_SIWS_DOMAINS.has('myargoquest.com')).toBe(true)
     expect(ALLOWED_SIWS_DOMAINS.has('luminalog.com')).toBe(true)
+  })
+})
+
+describe('POST /v1/auth/siws/verify', () => {
+  beforeEach(() => {
+    linkStore.clear()
+    userStore.clear()
+    vi.spyOn(nacl.sign.detached, 'verify').mockReturnValue(true)
+    authMock.createUser.mockReset().mockResolvedValue({ uid: 'new-uid' })
+  })
+
+  it('creates a new uid and returns a custom token for an unseen wallet', async () => {
+    const nonce = issueSolanaNonce()
+    const req: any = { body: { message: siwsMessage('myargoquest.com', nonce), signature: SIGNATURE_B58, address: ADDRESS } }
+    const res = mockRes()
+    await verifySolanaHandler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(userStore.get('new-uid')?.walletAddressSolana).toBe(ADDRESS)
+  })
+
+  it('401s on an invalid signature', async () => {
+    vi.spyOn(nacl.sign.detached, 'verify').mockReturnValue(false)
+    const nonce = issueSolanaNonce()
+    const req: any = { body: { message: siwsMessage('myargoquest.com', nonce), signature: SIGNATURE_B58, address: ADDRESS } }
+    const res = mockRes()
+    await verifySolanaHandler(req, res)
+    expect(res.statusCode).toBe(401)
+  })
+})
+
+describe('POST /v1/auth/siws/link (authenticated)', () => {
+  beforeEach(() => {
+    linkStore.clear()
+    userStore.clear()
+    vi.spyOn(nacl.sign.detached, 'verify').mockReturnValue(true)
+  })
+
+  it('links a fresh wallet to the caller uid', async () => {
+    const nonce = issueSolanaNonce()
+    const req: any = { uid: 'caller-uid', body: { message: siwsMessage('myargoquest.com', nonce), signature: SIGNATURE_B58, address: ADDRESS } }
+    const res = mockRes()
+    await linkSolanaHandler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(userStore.get('caller-uid')?.walletAddressSolana).toBe(ADDRESS)
+  })
+
+  it('409s when the address is already claimed by a different uid', async () => {
+    linkStore.set(ADDRESS, { uid: 'someone-else' })
+    const nonce = issueSolanaNonce()
+    const req: any = { uid: 'caller-uid', body: { message: siwsMessage('myargoquest.com', nonce), signature: SIGNATURE_B58, address: ADDRESS } }
+    const res = mockRes()
+    await linkSolanaHandler(req, res)
+    expect(res.statusCode).toBe(409)
+    expect(userStore.get('caller-uid')?.walletAddressSolana).toBeUndefined()
+  })
+})
+
+describe('authSolanaRouter wiring', () => {
+  it('requires firebaseAuth only on /siws/link', () => {
+    const layerFor = (path: string) => (authSolanaRouter as any).stack.find((l: any) => l.route?.path === path)
+    const namesFor = (path: string) => layerFor(path).route.stack.map((h: any) => h.name)
+    expect(namesFor('/siws/nonce')).toEqual(['solanaNonceHandler'])
+    expect(namesFor('/siws/verify')).toEqual(['verifySolanaHandler'])
+    expect(namesFor('/siws/link')).toEqual(['firebaseAuth', 'linkSolanaHandler'])
   })
 })

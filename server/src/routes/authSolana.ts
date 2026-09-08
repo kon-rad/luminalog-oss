@@ -167,3 +167,60 @@ export async function verifySiwsRequest(
 
   return { ok: true, address }
 }
+
+// POST /v1/auth/siws/verify: unauthenticated. Sign-in (or wallet-first
+// signup): resolve users/{uid} by walletAddressSolana via resolveOrCreateUid,
+// or mint a new Firebase uid if none exists. The wallet address is NEVER the
+// uid.
+export async function verifySolanaHandler(req: Request, res: Response): Promise<void> {
+  const { message, signature, address } = req.body as { message?: unknown; signature?: unknown; address?: unknown }
+  const result = await verifySiwsRequest(message, signature, address)
+  if (!result.ok) {
+    res.status(result.status).json({ error: result.error })
+    return
+  }
+  try {
+    const uid = await resolveOrCreateUid(result.address)
+    const user = await admin.auth().getUser(uid)
+    await admin.auth().setCustomUserClaims(uid, { ...(user.customClaims ?? {}), walletAddressSolana: result.address })
+    const firebaseCustomToken = await admin.auth().createCustomToken(uid)
+    res.json({ firebaseCustomToken })
+  } catch (e) {
+    console.error('[auth/siws/verify]', e)
+    res.status(500).json({ error: 'Verify failed' })
+  }
+}
+
+// POST /v1/auth/siws/link: authenticated. Attach a wallet to the CALLER's
+// existing account. Rejects (409) if the address is already claimed by a
+// different uid via the walletLinksSolana claim doc.
+export async function linkSolanaHandler(req: Request, res: Response): Promise<void> {
+  const uid = (req as any).uid as string
+  const { message, signature, address } = req.body as { message?: unknown; signature?: unknown; address?: unknown }
+  const result = await verifySiwsRequest(message, signature, address)
+  if (!result.ok) {
+    res.status(result.status).json({ error: result.error })
+    return
+  }
+  try {
+    const linkRef = db.collection('walletLinksSolana').doc(result.address)
+    const existing = await linkRef.get()
+    if (existing.exists && existing.get('uid') !== uid) {
+      res.status(409).json({ error: 'Wallet already linked to a different account' })
+      return
+    }
+    if (!existing.exists) await linkRef.create({ uid })
+    await db.collection('users').doc(uid).set({ walletAddressSolana: result.address }, { merge: true })
+    const user = await admin.auth().getUser(uid)
+    await admin.auth().setCustomUserClaims(uid, { ...(user.customClaims ?? {}), walletAddressSolana: result.address })
+    res.json({ walletAddressSolana: result.address })
+  } catch (e) {
+    console.error('[auth/siws/link]', e)
+    res.status(500).json({ error: 'Link failed' })
+  }
+}
+
+export const authSolanaRouter = Router()
+authSolanaRouter.get('/siws/nonce', solanaNonceHandler)
+authSolanaRouter.post('/siws/verify', verifySolanaHandler)
+authSolanaRouter.post('/siws/link', firebaseAuth, linkSolanaHandler)
