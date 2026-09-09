@@ -142,6 +142,14 @@ describe('wrapped-key storage: PUT then GET round-trips (userId-scoped)', () => 
     await getWrappedKeysHandler({ uid: 'u' } as any, getRes)
     expect(getRes.body.wrappedKeys.eoa).toEqual(env())
   })
+
+  it('accepts a wallet_solana envelope', async () => {
+    const req: any = { uid: 'u', body: { wraps: { wallet_solana: { v: 1, iv: 'aa', ct: 'bb', tag: 'cc' } } } }
+    const res = mockRes()
+    await putWrappedKeysHandler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(store.get('u')?.wrappedKeys?.wallet_solana).toEqual({ v: 1, iv: 'aa', ct: 'bb', tag: 'cc' })
+  })
 })
 
 describe('cross-tenant isolation', () => {

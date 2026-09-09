@@ -19,7 +19,7 @@ export const keysRouter = Router()
 // ---------------------------------------------------------------------------
 
 /** Methods (KEK slots) a wrap may be stored under. */
-const WRAP_METHODS = ['icloud', 'recovery', 'eoa'] as const
+const WRAP_METHODS = ['icloud', 'recovery', 'eoa', 'wallet_solana'] as const
 type WrapMethod = (typeof WRAP_METHODS)[number]
 
 interface Envelope { v: number; iv: string; ct: string; tag: string }
