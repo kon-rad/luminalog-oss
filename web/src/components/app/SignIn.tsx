@@ -13,12 +13,21 @@ type Provider = 'apple' | 'google' | 'solana'
 
 /** Connect-then-sign: opens the wallet picker if nothing is connected yet, and
  *  runs the SIWS sign-in the moment `connected` flips true afterward. If a
- *  wallet is already connected, signs in immediately with no picker. */
-function useSolanaSignIn(onError: (message: string) => void) {
+ *  wallet is already connected, signs in immediately with no picker.
+ *
+ *  `onCancel` covers the picker-dismissed-without-connecting path: if the
+ *  user closes the wallet-adapter modal (or the adapter's own connect UI
+ *  fails internally) before `connected` ever flips true, `connected` never
+ *  changes and `signInWithSolana()` is never called, so `onError` never
+ *  fires either. Watching `visible` catches that transition (true -> false
+ *  while still disconnected) and resets the pending/loading state without
+ *  surfacing an error, since closing the picker isn't a failure. */
+function useSolanaSignIn(onError: (message: string) => void, onCancel: () => void) {
   const { connected } = useWallet()
-  const { setVisible } = useWalletModal()
+  const { setVisible, visible } = useWalletModal()
   const { signInWithSolana } = useAuth()
   const pending = useRef(false)
+  const wasVisible = useRef(false)
 
   const start = () => {
     if (connected) {
@@ -36,6 +45,14 @@ function useSolanaSignIn(onError: (message: string) => void) {
     }
   }, [connected, signInWithSolana, onError])
 
+  useEffect(() => {
+    if (wasVisible.current && !visible && pending.current && !connected) {
+      pending.current = false
+      onCancel()
+    }
+    wasVisible.current = visible
+  }, [visible, connected, onCancel])
+
   return start
 }
 
@@ -43,10 +60,13 @@ export default function SignIn() {
   const { signInWithApple, signInWithGoogle } = useAuth()
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const startSolanaSignIn = useSolanaSignIn((message) => {
-    setError(message)
-    setLoadingProvider(null)
-  })
+  const startSolanaSignIn = useSolanaSignIn(
+    (message) => {
+      setError(message)
+      setLoadingProvider(null)
+    },
+    () => setLoadingProvider(null),
+  )
 
   const handle = async (provider: Provider) => {
     setError(null)
