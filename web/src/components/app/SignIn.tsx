@@ -1,23 +1,52 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { FirebaseError } from 'firebase/app'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { useAuth } from '@/lib/auth-context'
 
-// Sign-in gate screen (design B.4): centered aperture wordmark + serif
-// tagline, "Sign in with Apple" (black HIG-style) + "Continue with Google"
-// (ghost, "G" badge). States: idle / loading (buttons dim + spinner) / inline
-// error — popup-cancellation errors are silently ignored (the user just
-// closed the popup, not a real failure).
 const IGNORED_ERROR_CODES = new Set(['auth/popup-closed-by-user', 'auth/cancelled-popup-request'])
 
-type Provider = 'apple' | 'google'
+type Provider = 'apple' | 'google' | 'solana'
+
+/** Connect-then-sign: opens the wallet picker if nothing is connected yet, and
+ *  runs the SIWS sign-in the moment `connected` flips true afterward. If a
+ *  wallet is already connected, signs in immediately with no picker. */
+function useSolanaSignIn(onError: (message: string) => void) {
+  const { connected } = useWallet()
+  const { setVisible } = useWalletModal()
+  const { signInWithSolana } = useAuth()
+  const pending = useRef(false)
+
+  const start = () => {
+    if (connected) {
+      signInWithSolana().catch(() => onError('Sign-in failed. Please try again.'))
+    } else {
+      pending.current = true
+      setVisible(true)
+    }
+  }
+
+  useEffect(() => {
+    if (connected && pending.current) {
+      pending.current = false
+      signInWithSolana().catch(() => onError('Sign-in failed. Please try again.'))
+    }
+  }, [connected, signInWithSolana, onError])
+
+  return start
+}
 
 export default function SignIn() {
   const { signInWithApple, signInWithGoogle } = useAuth()
   const [loadingProvider, setLoadingProvider] = useState<Provider | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const startSolanaSignIn = useSolanaSignIn((message) => {
+    setError(message)
+    setLoadingProvider(null)
+  })
 
   const handle = async (provider: Provider) => {
     setError(null)
@@ -25,18 +54,21 @@ export default function SignIn() {
     try {
       if (provider === 'apple') {
         await signInWithApple()
-      } else {
+      } else if (provider === 'google') {
         await signInWithGoogle()
+      } else {
+        startSolanaSignIn()
+        return // loadingProvider clears via useSolanaSignIn's onError, or on navigation away on success
       }
     } catch (err) {
       const code = err instanceof FirebaseError ? err.code : undefined
       if (code && IGNORED_ERROR_CODES.has(code)) {
-        // User closed the popup — not an error worth surfacing.
+        // User closed the popup: not an error worth surfacing.
       } else {
         setError('Sign-in failed. Please try again.')
       }
     } finally {
-      setLoadingProvider(null)
+      if (provider !== 'solana') setLoadingProvider(null)
     }
   }
 
@@ -92,6 +124,23 @@ export default function SignIn() {
           )}
         </button>
 
+        <button
+          type="button"
+          onClick={() => handle('solana')}
+          disabled={busy}
+          className="btn-ghost w-full justify-center transition-opacity duration-150"
+          style={{ opacity: busy && loadingProvider !== 'solana' ? 0.5 : 1 }}
+        >
+          {loadingProvider === 'solana' ? (
+            <Spinner />
+          ) : (
+            <>
+              <SolanaGlyph />
+              <span>Connect Solana Wallet</span>
+            </>
+          )}
+        </button>
+
         {error && (
           <p className="text-center text-sm" style={{ color: 'var(--danger)' }}>
             {error}
@@ -128,5 +177,22 @@ function GoogleGlyph() {
     >
       G
     </span>
+  )
+}
+
+function SolanaGlyph() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <defs>
+        <linearGradient id="solana-glyph-gradient" x1="0" y1="0" x2="24" y2="24">
+          <stop offset="0" stopColor="#9945FF" />
+          <stop offset="1" stopColor="#14F195" />
+        </linearGradient>
+      </defs>
+      <path
+        fill="url(#solana-glyph-gradient)"
+        d="M4.5 16.6c.2-.2.5-.3.8-.3h14.4c.5 0 .7.6.4.9l-3 3c-.2.2-.5.3-.8.3H1.9c-.5 0-.7-.6-.4-.9l3-3zm0-9.2c.2-.2.5-.3.8-.3h14.4c.5 0 .7.6.4.9l-3 3c-.2.2-.5.3-.8.3H1.9c-.5 0-.7-.6-.4-.9l3-3zM19.7 12c.2.2.3.5.3.8v0c0 .5-.6.7-.9.4l-3-3a1.1 1.1 0 0 1-.3-.8v0c0-.5.6-.7.9-.4l3 3z"
+      />
+    </svg>
   )
 }
