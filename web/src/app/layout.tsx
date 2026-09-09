@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth-context'
 import AnalyticsProvider from '@/components/AnalyticsProvider'
+import SolanaWalletProvider from '@/lib/wallet/WalletProvider'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://myargoquest.com'),
@@ -25,9 +26,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Outside AuthProvider on purpose: measurement must not wait on auth,
             and a signed-out marketing visitor is exactly the traffic measured. */}
         <AnalyticsProvider />
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        {/* SolanaWalletProvider wraps AuthProvider (not the reverse) so
+            AuthProvider's body can call useWallet() directly. */}
+        <SolanaWalletProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </SolanaWalletProvider>
       </body>
     </html>
   )
