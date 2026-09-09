@@ -1,5 +1,11 @@
 'use client'
 
+// Sign-in gate screen: idle / loading / inline-error, one provider at a time.
+// Both an OAuth popup being closed (Apple/Google) and the Solana wallet
+// picker being dismissed without connecting are deliberate no-ops: the
+// spinner clears and the user lands back on idle with no error banner,
+// since neither is a real failure.
+
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { FirebaseError } from 'firebase/app'
@@ -11,47 +17,93 @@ const IGNORED_ERROR_CODES = new Set(['auth/popup-closed-by-user', 'auth/cancelle
 
 type Provider = 'apple' | 'google' | 'solana'
 
+/** `WalletSignMessageError` (thrown by @solana/wallet-adapter-base) wraps
+ *  whatever the underlying wallet threw, copying its `message` verbatim (see
+ *  StandardWalletAdapter's signMessage: `new WalletSignMessageError(error?.message,
+ *  error)`). Wallets reject a declined signature with a message along the
+ *  lines of "User rejected the request", so matching on both the wrapper
+ *  type and that wording distinguishes "user said no" from an actual
+ *  signing failure without guessing at an unrelated error shape. */
+function isSolanaUserRejection(err: unknown): boolean {
+  return err instanceof Error && err.name === 'WalletSignMessageError' && /reject/i.test(err.message)
+}
+
 /** Connect-then-sign: opens the wallet picker if nothing is connected yet, and
  *  runs the SIWS sign-in the moment `connected` flips true afterward. If a
  *  wallet is already connected, signs in immediately with no picker.
  *
+ *  Connecting is two steps in wallet-adapter: the picker's `select()` only
+ *  chooses an adapter, it never connects it. So `start()` also calls
+ *  `connect()` itself, either immediately (a wallet is already selected,
+ *  e.g. persisted from a prior visit) or via the effect below once the
+ *  picker lands a selection.
+ *
  *  `onCancel` covers the picker-dismissed-without-connecting path: if the
- *  user closes the wallet-adapter modal (or the adapter's own connect UI
- *  fails internally) before `connected` ever flips true, `connected` never
- *  changes and `signInWithSolana()` is never called, so `onError` never
- *  fires either. Watching `visible` catches that transition (true -> false
- *  while still disconnected) and resets the pending/loading state without
- *  surfacing an error, since closing the picker isn't a failure. */
+ *  user closes the wallet-adapter modal without ever selecting a wallet,
+ *  `connected` never changes and `signInWithSolana()` is never called, so
+ *  `onError` never fires either. Watching `visible` catches that transition
+ *  (true -> false while still disconnected), gated on no wallet having been
+ *  selected so it doesn't also fire on a legitimate "just selected, now
+ *  connecting" transition (the picker closes ~150ms after `select()`, well
+ *  before `connected` can flip true). */
 function useSolanaSignIn(onError: (message: string) => void, onCancel: () => void) {
-  const { connected } = useWallet()
+  const { connected, connecting, wallet, connect } = useWallet()
   const { setVisible, visible } = useWalletModal()
   const { signInWithSolana } = useAuth()
   const pending = useRef(false)
   const wasVisible = useRef(false)
 
+  const signIn = () => {
+    signInWithSolana().catch((err) => {
+      console.error('[SignIn] Solana sign-in failed', err)
+      if (isSolanaUserRejection(err)) {
+        onCancel()
+      } else {
+        onError('Sign-in failed. Please try again.')
+      }
+    })
+  }
+
   const start = () => {
     if (connected) {
-      signInWithSolana().catch(() => onError('Sign-in failed. Please try again.'))
+      signIn()
+      return
+    }
+    pending.current = true
+    if (wallet) {
+      connect().catch(() => {
+        pending.current = false
+        onCancel()
+      })
     } else {
-      pending.current = true
       setVisible(true)
     }
   }
 
+  // The picker only selects a wallet; this actually connects it once selected.
+  useEffect(() => {
+    if (pending.current && wallet && !connected && !connecting) {
+      connect().catch(() => {
+        pending.current = false
+        onCancel()
+      })
+    }
+  }, [wallet, connected, connecting, connect, onCancel])
+
   useEffect(() => {
     if (connected && pending.current) {
       pending.current = false
-      signInWithSolana().catch(() => onError('Sign-in failed. Please try again.'))
+      signIn()
     }
-  }, [connected, signInWithSolana, onError])
+  }, [connected, signInWithSolana, onError, onCancel])
 
   useEffect(() => {
-    if (wasVisible.current && !visible && pending.current && !connected) {
+    if (wasVisible.current && !visible && pending.current && !connected && !wallet) {
       pending.current = false
       onCancel()
     }
     wasVisible.current = visible
-  }, [visible, connected, onCancel])
+  }, [visible, connected, wallet, onCancel])
 
   return start
 }
@@ -85,6 +137,7 @@ export default function SignIn() {
       if (code && IGNORED_ERROR_CODES.has(code)) {
         // User closed the popup: not an error worth surfacing.
       } else {
+        console.error('[SignIn] OAuth sign-in failed', err)
         setError('Sign-in failed. Please try again.')
       }
     } finally {

@@ -3,7 +3,7 @@
 // domain sign-in line, line 2 is the bare address, and a "Nonce: " line carries
 // the server-issued nonce. This is a format contract (a mismatch is a bug), NOT
 // a frozen key-derivation contract (see the DISTINCT fixed message in
-// solanaWallet.ts, stage 3) -- no key material derives from this text.
+// solanaWallet.ts, stage 3): no key material derives from this text.
 
 export interface SiwsMessageParams {
   domain: string

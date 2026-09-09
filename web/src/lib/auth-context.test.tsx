@@ -6,7 +6,6 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import { useContext } from 'react'
 
 const world = {
   publicKey: { toBase58: () => '7cVfgArCheMR6Cs4t6vz5rfnqd56vZq4ndaBrY5xkxXy' } as any,
@@ -57,6 +56,7 @@ function Probe() {
 }
 
 beforeEach(() => {
+  world.publicKey = { toBase58: () => '7cVfgArCheMR6Cs4t6vz5rfnqd56vZq4ndaBrY5xkxXy' } as any
   world.fetchCalls = []
   signInWithCustomTokenMock.mockClear()
   world.signMessage.mockClear()
@@ -84,5 +84,6 @@ describe('signInWithSolana', () => {
     render(<FreshProvider><Probe /></FreshProvider>)
     screen.getByText('go').click()
     await waitFor(() => expect(world.fetchCalls).toHaveLength(0))
+    expect(signInWithCustomTokenMock).not.toHaveBeenCalled()
   })
 })

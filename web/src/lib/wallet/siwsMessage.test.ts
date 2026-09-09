@@ -34,4 +34,21 @@ describe('buildSiwsMessage', () => {
     expect(msg).toContain('Chain ID: solana:mainnet')
     expect(msg).toContain(`Issued At: ${params.issuedAt}`)
   })
+
+  it('builds the exact whole message byte-for-byte, not just the right fragments', () => {
+    const msg = buildSiwsMessage(params)
+    const expected = [
+      `${params.domain} wants you to sign in with your Solana account:`,
+      params.address,
+      '',
+      params.statement,
+      '',
+      `URI: ${params.uri}`,
+      'Version: 1',
+      'Chain ID: solana:mainnet',
+      `Nonce: ${params.nonce}`,
+      `Issued At: ${params.issuedAt}`,
+    ].join('\n')
+    expect(msg).toBe(expected)
+  })
 })

@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Two independent things happen with one wallet: this signs ONE nonce'd
   // message for sign-in only. It never touches the fixed key-wrap-derivation
-  // message (stage 3) -- see spec section 3.
+  // message (stage 3), see spec section 3.
   const handleSignInWithSolana = async () => {
     if (!publicKey || !signMessage) {
       throw new Error('No Solana wallet connected')
