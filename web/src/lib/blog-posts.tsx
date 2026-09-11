@@ -3661,7 +3661,125 @@ function PrivateAIEnclavesContent() {
   )
 }
 
+/* ── Post: Pitching Argo at Startup Village Borneo ── */
+function PitchingArgoStartupVillageBorneoContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/pitching-argo-startup-village-borneo-1.jpg"
+        alt="Konrad on stage at the Voco, presenting Argo"
+        width={1920}
+        height={1080}
+        priority
+      />
+      <P>
+        Konrad Gnat pitched Argo on stage at the Startup Village Borneo Demo Day, held September
+        9, 2026, at the Voco in Kuching, Sarawak.
+      </P>
+
+      <H2>What Startup Village Borneo is</H2>
+      <P>
+        Startup Village Borneo is Superteam Malaysia&apos;s week-long founder program, running
+        September 6&ndash;9, 2026, in Kuching: an Amazing Race through the city to open the week,
+        workshops through the middle days, and a public Demo Day to close it out. The organizers
+        put up a $10,000 prize pool spread across the Demo Day pitch competition, the Amazing
+        Race, a content track, and a sustainability track, with separate partner challenges from
+        Meteora, RedotPay, and GetBlock. The judging panel for Demo Day was Sam (SOCOE), Chaerin
+        (Solana Foundation), Jacob (Superscrypt), and Anatoly (No Limit Holdings).
+      </P>
+
+      <H2>The pitch</H2>
+      <P>
+        Konrad&apos;s pitch opened on a problem: ideas end up scattered across other people&apos;s
+        databases, half-formed and easy to lose. Argo&apos;s answer, in his framing, is a private
+        AI app built around daily journaling: writing, speaking, or recording a video entry, and
+        using that as raw material for a pitch, a post, or a decision. &ldquo;It&apos;s zero
+        knowledge, open source,&rdquo; he said. &ldquo;We don&apos;t store any of your data on our
+        servers.&rdquo;
+      </P>
+      <P>
+        He described the mechanics: speak, write, or record a journal entry, and get back entry
+        insights, a short summary, follow-up prompts, and related ideas pulled from past entries,
+        plus a short social post drafted from the entry and a daily notification pulled from your
+        own past writing. On traction, he said Argo has been live for two weeks with ten paying
+        subscribers, alongside an existing audience built over more than 100 events and 517 hours
+        watched on YouTube. He closed on where the product lives now, signed in with Solana, at
+        myargoquest.com, and a flywheel he&apos;s building around it with AI agent classes.
+        He&apos;s a sole founder.
+      </P>
+
+      <H2>A quick interview, and a hopeful sign-off</H2>
+      <Figure
+        src="/blog/pitching-argo-startup-village-borneo-2.jpg"
+        alt="The post-pitch interview in front of the Startup Village Borneo backdrop"
+        width={1920}
+        height={1080}
+        caption="Right after the pitch, in front of the event's step-and-repeat backdrop."
+      />
+      <P>
+        Right after the pitch, Konrad did a short interview in front of the event&apos;s
+        step-and-repeat backdrop. Asked how it went, he said &ldquo;I nailed it,&rdquo; pointing
+        to two specifics: not filling pauses with &ldquo;ums&rdquo; or &ldquo;likes,&rdquo; and
+        having his ideas in a clear order. He was candid about what he&apos;d add with more time:
+        more on the competitive landscape and how the idea is validated. Asked whether he could
+        read the judges&apos; reaction, he said he couldn&apos;t: &ldquo;I made eye contact with
+        them a few times. I don&apos;t know what they&apos;re thinking.&rdquo; He guessed the
+        reaction was positive.
+      </P>
+      <Figure
+        src="/blog/pitching-argo-startup-village-borneo-3.jpg"
+        alt="Right after the pitch: First place, let's go"
+        width={1920}
+        height={1080}
+        caption="“First place, let's go”: a hopeful line, not a result."
+      />
+      <P>
+        The interview closes on &ldquo;First place, first place, let&apos;s go,&rdquo; a hopeful
+        line, not a result. Startup Village Borneo&apos;s own schedule places judging and the
+        prize announcement after the pitch block this was filmed in, so no outcome had been
+        decided yet at this point. The video doesn&apos;t show or state one.
+      </P>
+      <P>
+        The rest of the interview is logistics: the camera is a GoPro, bought rather than found;
+        he&apos;s heading next to Singapore, then Token2049, then Devcon in Mumbai.
+      </P>
+
+      <H2>What&apos;s confirmed vs. what&apos;s said in hope</H2>
+      <UL
+        items={[
+          <>
+            <strong>Confirmed, stated on camera:</strong> the pitch content (what Argo is, how it
+            works, live two weeks, ten paying subscribers, 100+ events and 517 hours of prior
+            YouTube audience); the event name, dates, and venue; the judging panel, from the
+            event&apos;s own materials.
+          </>,
+          <>
+            <strong>Said in hope, not confirmed:</strong> &ldquo;First place, let&apos;s
+            go.&rdquo; No result is stated or shown in this video.
+          </>,
+        ]}
+      />
+
+      <H2>Watch and follow</H2>
+      <P>
+        Subscribe on <A href="https://www.youtube.com/@myargoquest">YouTube</A> or visit{' '}
+        <A href="https://myargoquest.com">myargoquest.com</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'pitching-argo-startup-village-borneo',
+    title: 'Pitching Argo at Startup Village Borneo',
+    description:
+      'Konrad Gnat pitches Argo at the Startup Village Borneo Demo Day in Kuching, Sarawak: what the app does, the traction so far, and a candid post-pitch interview, including a hopeful sign-off that the video does not confirm as a result.',
+    date: 'September 9, 2026',
+    isoDate: '2026-09-09T13:00',
+    readingTime: '4 min read',
+    Content: PitchingArgoStartupVillageBorneoContent,
+  },
   {
     slug: 'how-private-ai-works-morpheus-tees-enclaves',
     title: 'How private AI actually works: Morpheus, TEEs, and secure enclaves',
