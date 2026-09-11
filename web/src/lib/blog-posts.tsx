@@ -3744,22 +3744,6 @@ function PitchingArgoStartupVillageBorneoContent() {
         he&apos;s heading next to Singapore, then Token2049, then Devcon in Mumbai.
       </P>
 
-      <H2>What&apos;s confirmed vs. what&apos;s said in hope</H2>
-      <UL
-        items={[
-          <>
-            <strong>Confirmed, stated on camera:</strong> the pitch content (what Argo is, how it
-            works, live two weeks, ten paying subscribers, 100+ events and 517 hours of prior
-            YouTube audience); the event name, dates, and venue; the judging panel, from the
-            event&apos;s own materials.
-          </>,
-          <>
-            <strong>Said in hope, not confirmed:</strong> &ldquo;First place, let&apos;s
-            go.&rdquo; No result is stated or shown in this video.
-          </>,
-        ]}
-      />
-
       <H2>Watch and follow</H2>
       <P>
         Subscribe on <A href="https://www.youtube.com/@myargoquest">YouTube</A> or visit{' '}
