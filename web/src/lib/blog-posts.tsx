@@ -3753,7 +3753,133 @@ function PitchingArgoStartupVillageBorneoContent() {
   )
 }
 
+/* ── Post: What's new in Argo 1.0.1: Mirror and wallet unlock ── */
+function ArgoMirrorWalletUnlockContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/argo-1-0-1-mirror-wallet-unlock-1.jpg"
+        alt="An open leather journal and a phone glowing with warm light, side by side on a wooden desk"
+        width={2752}
+        height={1536}
+        priority
+      />
+      <P>
+        Argo 1.0.1 is out on the App Store, and it carries two real changes rather than the usual
+        pile of small fixes. The first is a rework of the daily encouragement notifications, now
+        called Mirror. The second is a new way to unlock your journal using an Ethereum wallet,
+        alongside the two ways you already had. Here&apos;s what actually changed and why it might
+        matter to how you use the app.
+      </P>
+
+      <H2>Mirror: three honest reflections instead of five generic ones</H2>
+      <P>
+        The old &ldquo;daily encouragement&rdquo; feature sent you a rotating message once a day,
+        picked from a small set of generic lines. It was fine, but it wasn&apos;t really about
+        you. Mirror replaces it with three short reflections a day, one in the morning, one in the
+        afternoon, and one in the evening, and each one is grounded in what you actually wrote.
+      </P>
+      <P>
+        That distinction matters more than it sounds. A generic encouragement can go out to
+        anyone. A Mirror reflection only gets generated from your own recent entries, so if you
+        haven&apos;t written anything worth reflecting on, you won&apos;t get a notification
+        pretending otherwise. No entries this week means no invented insight showing up on your
+        lock screen.
+      </P>
+      <Figure
+        src="/blog/argo-1-0-1-mirror-wallet-unlock-2.jpg"
+        alt="A hand writing in a paper journal at night, with a phone showing a warm glowing notification just out of focus"
+        width={2400}
+        height={1792}
+      />
+      <P>
+        If you miss one, it isn&apos;t gone. Settings now has a Mirror History screen where every
+        delivered reflection sits with its time of day and timestamp, newest first. It&apos;s a
+        small addition, but it turns what used to be a disposable push notification into something
+        you can actually go back and read.
+      </P>
+      <P>
+        Mirror is on by default, same as the old encouragements were, and it asks for the same
+        notification permission the app already requested before. You can turn it off in Settings
+        at any time, which cancels anything still pending for the day and stops new ones from
+        being scheduled.
+      </P>
+
+      <H2>A third way to unlock your journal</H2>
+      <P>
+        The bigger structural change in this release is optional, and it&apos;s aimed at a
+        specific kind of user: someone who already has a crypto wallet and wants one less thing to
+        remember.
+      </P>
+      <P>
+        Argo has always protected your journal with end-to-end encryption, and until now you could
+        unlock it two ways: through iCloud Keychain, or with a recovery code you saved somewhere
+        safe. 1.0.1 adds a third option. If you connect an Ethereum wallet to your account, you can
+        enroll it as a key. From then on, signing a message with that wallet is enough to unlock
+        your journal on a new device, no recovery code required.
+      </P>
+      <Figure
+        src="/blog/argo-1-0-1-mirror-wallet-unlock-3.jpg"
+        alt="A glowing gold key hovering above the clasp of a closed leather journal"
+        width={2752}
+        height={1536}
+      />
+      <P>
+        It&apos;s worth being specific about what this is and isn&apos;t. It&apos;s purely
+        additive: your iCloud Keychain and recovery code both keep working exactly as before,
+        whether or not you set up a wallet. And it only works with a wallet you personally hold
+        the keys to. Smart-contract wallets like Gnosis Safe or Argent get rejected at enrollment
+        with a plain explanation, because they can&apos;t produce the kind of deterministic
+        signature the unlock check depends on. If you sign in from a wallet on Base, Arbitrum, or
+        Optimism instead of Ethereum mainnet, that&apos;s fine too, the feature was built to work
+        across chains from the start.
+      </P>
+      <P>
+        The setup lives in Settings, under a card that only shows up once you&apos;ve linked a
+        wallet. Tap it, sign the message your wallet prompts you for, and the card switches to
+        show your wallet is enrolled. If you ever lose access to your device and need to get back
+        in on a new one, you&apos;ll see an &ldquo;Unlock with Wallet&rdquo; option sitting next to
+        the recovery code screen, and you can switch between the two if the first one doesn&apos;t
+        work.
+      </P>
+
+      <H2>Three keys, one journal</H2>
+      <Figure
+        src="/blog/argo-1-0-1-mirror-wallet-unlock-4.jpg"
+        alt="A silver cloud charm, a wax-sealed envelope, and a gold key resting together on a dark surface"
+        width={2400}
+        height={1792}
+      />
+      <P>
+        Put together, that&apos;s iCloud, a recovery code, and now a wallet, three independent ways
+        into the same encrypted journal. None of them depends on the others, so losing access to
+        one doesn&apos;t lock you out if you&apos;ve set up another. You don&apos;t have to touch
+        any of this to keep journaling the way you already do. Mirror will keep showing up three
+        times a day if you leave it on, and your existing unlock method will keep working exactly
+        as it did in 1.0.0.
+      </P>
+      <P>
+        Both changes are live now in the current build. If you update and don&apos;t see Mirror
+        History or the wallet card in Settings right away, force-close the app and reopen it.
+      </P>
+      <P>
+        <em>Argo Writer Agent</em>
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'argo-1-0-1-mirror-wallet-unlock',
+    title: "What's new in Argo 1.0.1: Mirror and unlocking your journal with your wallet",
+    description:
+      'Argo 1.0.1 reworks daily encouragements into Mirror, three reflections a day grounded in your own entries, and adds an optional third way to unlock your journal: your Ethereum wallet, alongside iCloud Keychain and your recovery code.',
+    date: 'September 12, 2026',
+    isoDate: '2026-09-12T09:00',
+    readingTime: '5 min read',
+    Content: ArgoMirrorWalletUnlockContent,
+  },
   {
     slug: 'pitching-argo-startup-village-borneo',
     title: 'Pitching Argo at Startup Village Borneo',
