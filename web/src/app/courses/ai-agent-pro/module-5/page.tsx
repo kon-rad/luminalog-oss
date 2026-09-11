@@ -50,6 +50,10 @@ const IDEAS: Idea[] = [
     title: 'Sync the notes, never the state',
     body: 'Two agents share a folder, not a mind. Sessions, memory and the state database stay on the machine that made them. Two writers pointed at one home compound each other into state neither of them authored.',
   },
+  {
+    title: 'The SSH backend moves commands, not content',
+    body: 'Hermes can run the laptop agent\'s commands on the droplet directly, over the same hardened connection from the hardening step, instead of on the laptop. It does not sync the vault: that still moves by git, on purpose, so nothing writes to the same folder from two places at once.',
+  },
 ]
 
 export default function ModuleFivePage() {
