@@ -24,7 +24,7 @@ const NAV_LINKS: [label: string, href: string][] = [
   ['Blog', '/blog'],
 ]
 
-export default function Navbar() {
+export default function Navbar({ immersive = false }: { immersive?: boolean } = {}) {
   const router = useRouter()
   const [scrolled, setScrolled] = useState(false)
   const [signingIn, setSigningIn] = useState(false)
@@ -86,11 +86,31 @@ export default function Navbar() {
       id="nav"
       style={{
         position: 'sticky', top: 0, zIndex: 200,
-        background: 'rgba(244,240,233,0.82)',
+        background: immersive && !scrolled ? 'transparent' : 'rgba(244,240,233,0.82)',
         backdropFilter: 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
         borderBottom: scrolled ? '1px solid var(--hairline)' : '1px solid transparent',
-        transition: 'border-color .25s, background .25s',
+        transition: 'border-color .25s, background .25s, color .25s',
+        ...(immersive && !scrolled
+          ? ({
+              // The header's own dark-theme override. Every descendant in
+              // this file reads color via var(--text)/var(--text2)/etc., so
+              // redefining those custom properties here cascades to the
+              // brand link, both dropdowns, and the sign-in menu without
+              // touching their individual inline styles.
+              '--text': '#F3EEE4',
+              '--text2': '#A89E8F',
+              '--text3': '#8B8173',
+              '--accent': '#E5A063',
+              '--accentDeep': '#CE7F44',
+              '--accentSoft': '#3A2F22',
+              '--hairline': 'rgba(255,240,220,0.08)',
+              '--hairline2': 'rgba(255,240,220,0.13)',
+              '--surface': '#221E18',
+              '--shadowHover': '0 2px 4px rgba(0,0,0,0.30), 0 18px 46px rgba(0,0,0,0.40)',
+              color: '#F3EEE4',
+            } as React.CSSProperties)
+          : {}),
       }}
     >
       <div className="wrap">
