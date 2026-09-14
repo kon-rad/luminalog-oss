@@ -34,6 +34,8 @@ struct SettingsView: View {
     @State private var showDeleteFinalAlert = false
     /// DEBUG-only: drives the onboarding-replay full-screen cover.
     @State private var showOnboardingPreview = false
+    /// DEBUG-only: drives the Hermes Bridge developer panel sheet.
+    @State private var showHermesBridge = false
     /// DEBUG-only: true while the "Generate Daily Report" tool is regenerating.
     @State private var isGeneratingReport = false
     /// DEBUG-only: set when report generation fails, shown inline on the row.
@@ -245,19 +247,11 @@ struct SettingsView: View {
             Text("There's no way to recover your journal after this.")
         }
         #if DEBUG
-        .fullScreenCover(isPresented: $showOnboardingPreview) {
-            // Replay the full onboarding sequence against an isolated UserDefaults
-            // suite so the dev preview never touches the user's real onboarding
-            // completion flag or buffered draft. onComplete/onDismiss both dismiss.
-            OnboardingView(
-                store: OnboardingStore(
-                    defaults: UserDefaults(suiteName: "ll-dev-onboarding-preview") ?? .standard
-                ),
-                speech: speech ?? AppleSpeechTranscriber(),
-                onComplete: { showOnboardingPreview = false },
-                onDismiss: { showOnboardingPreview = false }
-            )
-        }
+        .modifier(DeveloperToolsPresentation(
+            showOnboardingPreview: $showOnboardingPreview,
+            showHermesBridge: $showHermesBridge,
+            speech: speech
+        ))
         #endif
     }
 
@@ -783,12 +777,43 @@ struct SettingsView: View {
                 generateReportRow
                 rowDivider
                 reindexEntriesRow
+                rowDivider
+                hermesBridgeRow
             }
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
                     .fill(Color.cardBackground)
             )
         }
+    }
+
+    /// Opens the Hermes Bridge developer panel: pair with and talk to the
+    /// `hermes-bridge` gateway running on Konrad's own server, in front of
+    /// `run_hermes.sh` and the secondbrain vault (docs/features/hermes-bridge.md).
+    private var hermesBridgeRow: some View {
+        Button {
+            showHermesBridge = true
+        } label: {
+            HStack(spacing: Spacing.m) {
+                settingsIcon("terminal", tint: .accentWarm)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Hermes Bridge")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Pair with your Hermes agent runtime")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+            }
+            .padding(Spacing.m)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Hermes Bridge, pair with your Hermes agent runtime")
     }
 
     /// Generates a *fresh* report for the current day from the latest data and
@@ -1177,6 +1202,42 @@ struct SettingsView: View {
         .padding(.top, Spacing.s)
     }
 }
+
+#if DEBUG
+/// Bundles the DEBUG-only developer-tool sheets into one `ViewModifier` so
+/// `SettingsView.body`'s already-long modifier chain gains only a single
+/// `.modifier(...)` call instead of two more chained closures. Without this,
+/// the added `.sheet` pushed the surrounding chain past the type checker's
+/// "unable to type-check this expression in reasonable time" limit.
+private struct DeveloperToolsPresentation: ViewModifier {
+    @Binding var showOnboardingPreview: Bool
+    @Binding var showHermesBridge: Bool
+    let speech: SpeechTranscriber?
+
+    func body(content: Content) -> some View {
+        content
+            .fullScreenCover(isPresented: $showOnboardingPreview) {
+                // Replay the full onboarding sequence against an isolated UserDefaults
+                // suite so the dev preview never touches the user's real onboarding
+                // completion flag or buffered draft. onComplete/onDismiss both dismiss.
+                OnboardingView(
+                    store: OnboardingStore(
+                        defaults: UserDefaults(suiteName: "ll-dev-onboarding-preview") ?? .standard
+                    ),
+                    speech: speech ?? AppleSpeechTranscriber(),
+                    onComplete: { showOnboardingPreview = false },
+                    onDismiss: { showOnboardingPreview = false }
+                )
+            }
+            .sheet(isPresented: $showHermesBridge) {
+                HermesBridgeView(viewModel: HermesBridgeViewModel(
+                    service: URLSessionHermesBridgeService(),
+                    secretStore: KeychainStore()
+                ))
+            }
+    }
+}
+#endif
 
 // MARK: - Previews
 
