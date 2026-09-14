@@ -2,10 +2,12 @@
 
 import { useRef } from 'react'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
-import SoulGalaxy from '@/components/SoulGalaxy'
 import { generateSoulDemoPoints } from '@/lib/landing/soulDemoPoints'
 import { INK, CREAM, MUTE, ACCENT } from './theme'
+
+const SoulGalaxy = dynamic(() => import('@/components/SoulGalaxy'), { ssr: false })
 
 const DEMO_POINTS = generateSoulDemoPoints(48)
 
@@ -18,12 +20,12 @@ export default function SoulSection() {
   const scale = useTransform(scrollYProgress, [0, 0.3], [0.9, 1])
 
   return (
-    <section ref={ref} style={{ position: 'relative', height: reduce ? 'auto' : '260vh', background: INK }}>
+    <section id="practice" ref={ref} style={{ position: 'relative', height: reduce ? 'auto' : '260vh', background: INK }}>
       <div
         style={{
           position: reduce ? 'relative' : 'sticky',
-          top: 0,
-          height: '100vh',
+          top: reduce ? undefined : 69,
+          height: reduce ? 'auto' : 'calc(100vh - 69px)',
           display: 'flex',
           alignItems: 'center',
           color: CREAM,

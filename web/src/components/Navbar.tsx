@@ -17,7 +17,7 @@ const NAV_LINKS: [label: string, href: string][] = [
   ['Reflect', '/#reflect'],
   ['Practice', '/#practice'],
   ['Privacy', '/#privacy'],
-  ['Pricing', '/#pricing'],
+  ['Pricing', '/pricing'],
   ['Courses', '/courses'],
   ['Card Game', '/card-game'],
   ['Events', '/events'],
@@ -36,6 +36,7 @@ export default function Navbar({ immersive = false }: { immersive?: boolean } = 
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 10)
+    handler()
     window.addEventListener('scroll', handler, { passive: true })
     return () => window.removeEventListener('scroll', handler)
   }, [])
@@ -86,7 +87,7 @@ export default function Navbar({ immersive = false }: { immersive?: boolean } = 
       id="nav"
       style={{
         position: 'sticky', top: 0, zIndex: 200,
-        background: immersive && !scrolled ? 'transparent' : 'rgba(244,240,233,0.82)',
+        background: immersive && !scrolled ? '#16130E' : 'rgba(244,240,233,0.82)',
         backdropFilter: 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
         borderBottom: scrolled ? '1px solid var(--hairline)' : '1px solid transparent',

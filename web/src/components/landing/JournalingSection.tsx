@@ -34,12 +34,11 @@ export default function JournalingSection() {
       <div
         style={{
           position: reduce ? 'relative' : 'sticky',
-          top: 0,
-          height: '100vh',
+          top: reduce ? undefined : 69,
+          height: reduce ? 'auto' : 'calc(100vh - 69px)',
           display: 'flex',
           alignItems: 'center',
           color: CREAM,
-          overflow: 'hidden',
         }}
       >
         <div className="wrap" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 56, alignItems: 'center' }}>

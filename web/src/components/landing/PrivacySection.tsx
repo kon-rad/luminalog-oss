@@ -30,7 +30,7 @@ export default function PrivacySection() {
   const reduce = useReducedMotion()
 
   return (
-    <section style={{ background: INK, color: CREAM, padding: '140px 0' }}>
+    <section id="privacy" style={{ background: INK, color: CREAM, padding: '140px 0' }}>
       <div className="wrap" style={{ textAlign: 'center' }}>
         <motion.h2
           className="serif"

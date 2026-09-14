@@ -46,7 +46,7 @@ export default function Home() {
               </p>
             </div>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', paddingTop: 6 }}>
-              {[['Events', '/events'], ['Blog', '/blog'], ['Card Game', '/card-game'], ['Privacy Policy', '/privacy'], ['Terms', '/terms'], ['Support', 'mailto:konradmgnat@gmail.com']].map(([label, href]) => (
+              {[['Events', '/events'], ['Blog', '/blog'], ['Card Game', '/card-game'], ['Pricing', '/pricing'], ['Privacy Policy', '/privacy'], ['Terms', '/terms'], ['Support', 'mailto:konradmgnat@gmail.com']].map(([label, href]) => (
                 <a key={label} href={href} style={{ fontSize: 14, color: 'var(--text2)' }}>{label}</a>
               ))}
             </div>

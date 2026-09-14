@@ -47,7 +47,7 @@ export default function Hero() {
         transition={{ duration: 0.9, ease: 'easeOut' }}
         style={{ position: 'relative', width: 96, height: 120 }}
       >
-        <Image src="/argo-emblem-alpha.png" alt="Argo" fill style={{ objectFit: 'contain' }} priority />
+        <Image src="/argo-emblem-alpha.png" alt="Argo" fill sizes="96px" style={{ objectFit: 'contain' }} priority />
       </motion.div>
 
       <motion.h1

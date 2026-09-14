@@ -36,7 +36,7 @@ const CARDS: Card[] = [
 
 export default function InsightsCarousel() {
   return (
-    <section style={{ background: INK, color: CREAM, padding: '120px 0' }}>
+    <section id="reflect" style={{ background: INK, color: CREAM, padding: '120px 0' }}>
       <div className="wrap">
         <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: ACCENT }}>
           The payoff
@@ -65,7 +65,7 @@ export default function InsightsCarousel() {
             }}
           >
             {card.kind === 'image' ? (
-              <Image src={card.src} alt={card.alt} width={320} height={580} style={{ width: '100%', height: 'auto', display: 'block' }} />
+              <Image src={card.src} alt={card.alt} width={462} height={1000} style={{ width: '100%', height: 'auto', display: 'block' }} />
             ) : (
               <div style={{ padding: '32px 26px', minHeight: 300, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: ACCENT }}>
