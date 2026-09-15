@@ -154,16 +154,17 @@ final class VapiVoiceCallService: VoiceCallService {
 
         broadcaster.send(.connecting)
 
-        // Zero-knowledge (Model-1): build the RAG context ON DEVICE from plaintext and
-        // send it so the server can bake it into the Vapi system prompt — no server-side
-        // decryption mid-call. Bounded by a hard timeout: the first build after a fresh
-        // launch primes the on-device embedding index (slow — it embeds every entry), and
-        // we must NOT let that block the call from connecting. On timeout we start the call
-        // with no context (the assistant just has less anchoring); the build keeps running
-        // in the background so the index is primed for the next call.
+        // Zero-knowledge (Model-1): gather plaintext context and send it so the server
+        // can bake it into the Vapi system prompt: no server-side decryption mid-call.
+        // `voiceCallContext` itself bounds only its network step (the PAST-entries
+        // semantic search), so this can never stall the call from connecting: the focal
+        // entry and today's entries are local-only lookups and always come back fast,
+        // regardless of RAG latency. (Previously this whole build was raced against one
+        // hard deadline here, which meant a slow search silently dropped the focal entry
+        // along with everything else. See `ProxyAIService.voiceCallContext`.)
         var request = CallConfigRequest(chatId: chatId, journalId: journalId)
         request.now = Self.localNowStamp()
-        if let context = await boundedVoiceContext(journalId: journalId, seconds: 3) {
+        if let context = try? await self.ai.voiceCallContext(journalId: journalId) {
             request.name = context.name
             request.bio = context.bio
             request.profile = context.profile
@@ -293,23 +294,6 @@ final class VapiVoiceCallService: VoiceCallService {
 
     // MARK: - Helpers
 
-    /// Builds the voice context but gives up after `seconds`, returning nil. The build
-    /// keeps running unstructured on timeout so a slow first-time index prime still
-    /// completes in the background (ready for the next call) without blocking connection.
-    private func boundedVoiceContext(journalId: String?, seconds: Double) async -> VoiceCallContext? {
-        await withCheckedContinuation { (continuation: CheckedContinuation<VoiceCallContext?, Never>) in
-            let once = ResumeOnce()
-            Task { @MainActor in
-                let ctx = try? await self.ai.voiceCallContext(journalId: journalId)
-                if once.claim() { continuation.resume(returning: ctx) }
-            }
-            Task {
-                try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-                if once.claim() { continuation.resume(returning: nil) }
-            }
-        }
-    }
-
     /// Device-local wall clock at call start, e.g. `2026-07-13 14:29 PDT`. Sent to the
     /// server so `PROMPTS.voiceChat` can anchor the assistant's "today"/"now" against
     /// the local timestamps carried in each RAG block.
@@ -407,7 +391,9 @@ final class VapiVoiceCallService: VoiceCallService {
 
 /// Thread-safe one-shot guard so exactly one of the racing context/timeout tasks
 /// resumes the continuation (resuming a `CheckedContinuation` twice would crash).
-private final class ResumeOnce: @unchecked Sendable {
+/// Shared with `ProxyAIService.withBudget`, which races the voice-call RAG search
+/// against its own timeout using the same one-shot-resume primitive.
+final class ResumeOnce: @unchecked Sendable {
     private let lock = NSLock()
     private var claimed = false
     func claim() -> Bool {

@@ -37,11 +37,22 @@ struct VoiceCallContext: Sendable {
     let focalEntry: String?
 }
 
-/// One generated encouragement message as returned by the server. Plain text on
-/// the wire; the client seals it before it ever touches disk.
-struct GeneratedEncouragement: Decodable, Equatable, Sendable {
-    let title: String
-    let body: String
+/// Today's three Mirror Echoes as returned by the server, one per time-of-day
+/// slot. Plain text on the wire; the client seals each one before it ever
+/// touches disk. A slot is nil when the model had nothing to ground it in
+/// (e.g. no journal entries that week) and should simply be skipped.
+struct GeneratedMirrorEchoes: Decodable, Equatable, Sendable {
+    let morning: String?
+    let afternoon: String?
+    let evening: String?
+
+    func text(for timeOfDay: TimeOfDay) -> String? {
+        switch timeOfDay {
+        case .morning: return morning
+        case .afternoon: return afternoon
+        case .evening: return evening
+        }
+    }
 }
 
 /// All AI features — backed by the proxy API in production
@@ -93,11 +104,11 @@ protocol AIService: AnyObject {
     /// single server-side LLM call. The client caches them for the day.
     func dailyPrompt() async throws -> [DailyPromptItem]
 
-    /// Generates the morning batch of encouragement messages from the user's last
-    /// seven days of entries. Returns an empty array when there is nothing to
-    /// ground them in. Zero-knowledge: the client decrypts and sends plaintext,
-    /// the server persists nothing.
-    func generateEncouragements() async throws -> [GeneratedEncouragement]
+    /// Generates today's three Mirror Echoes from the user's last seven days of
+    /// entries. A slot comes back nil when there is nothing to ground it in.
+    /// Zero-knowledge: the client decrypts and sends plaintext, the server
+    /// persists nothing.
+    func generateMirrorEchoes() async throws -> GeneratedMirrorEchoes
 
     /// Streaming assistant reply — yields token/word deltas as they arrive.
     func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error>
@@ -194,7 +205,9 @@ extension AIService {
     func warmSemanticIndex() async {}
 
     /// Default: only the zero-knowledge `ProxyAIService` gathers the week's
-    /// entries and calls the server. Mocks and test stubs inherit the empty batch,
-    /// which the coordinator treats as "nothing to schedule".
-    func generateEncouragements() async throws -> [GeneratedEncouragement] { [] }
+    /// entries and calls the server. Mocks and test stubs inherit the all-nil
+    /// batch, which the coordinator treats as "nothing to schedule".
+    func generateMirrorEchoes() async throws -> GeneratedMirrorEchoes {
+        GeneratedMirrorEchoes(morning: nil, afternoon: nil, evening: nil)
+    }
 }

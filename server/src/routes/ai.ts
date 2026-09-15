@@ -23,6 +23,7 @@ import {
   parseEncouragements, fallbackEncouragements,
   ENCOURAGEMENT_COUNT, ENCOURAGEMENT_TITLE_MAX, ENCOURAGEMENT_BODY_MAX,
 } from '../services/dailyEncouragements'
+import { parseMirrorEchoes, fallbackMirrorEchoes } from '../services/dailyMirror'
 import { dailyReportHandler } from './dailyReport'
 
 export const aiRouter = Router()
@@ -337,6 +338,25 @@ aiRouter.post('/daily-prompt', firebaseAuth, requirePro, requireAiConsent, daily
 aiRouter.post('/daily-report', firebaseAuth, requirePro, requireAiConsent, dailyReportHandler)
 
 
+/** Shared entry shape both `/daily-encouragements` and `/daily-mirror` accept. */
+interface JournalContextEntry {
+  id?: string
+  type?: string
+  title?: string
+  content?: string
+}
+
+/** `[type · title]\nsnippet` blocks joined by a divider, one per entry. */
+function buildJournalContext(entries: JournalContextEntry[]): string {
+  return entries
+    .map(e => {
+      const title = (e.title ?? '') || 'Untitled'
+      const content = e.content ?? ''
+      return `[${e.type ?? 'text'} · ${title}]\n${content.slice(0, 800)}`
+    })
+    .join('\n\n---\n\n')
+}
+
 /**
  * Generates the morning batch of encouragement messages in ONE LLM call.
  *
@@ -366,13 +386,7 @@ export async function dailyEncouragementsHandler(req: Request, res: Response): P
       res.json({ messages: [], sourceEntryIds: [] }); return
     }
 
-    const journalContext = entries
-      .map(e => {
-        const title = (e.title ?? '') || 'Untitled'
-        const content = e.content ?? ''
-        return `[${e.type ?? 'text'} · ${title}]\n${content.slice(0, 800)}`
-      })
-      .join('\n\n---\n\n')
+    const journalContext = buildJournalContext(entries)
 
     const systemPrompt = PROMPTS.dailyEncouragements({
       name: ((body.name as string) ?? '').split(' ')[0] ?? '',
@@ -396,3 +410,56 @@ export async function dailyEncouragementsHandler(req: Request, res: Response): P
 }
 
 aiRouter.post('/daily-encouragements', firebaseAuth, requirePro, requireAiConsent, dailyEncouragementsHandler)
+
+/**
+ * Generates today's three Mirror Echoes: one sentence each for the morning,
+ * afternoon, and evening notification slots. ADDITIVE alongside
+ * `/daily-encouragements` (ADR-0150) rather than a change to it: the already
+ * shipped App Store build keeps calling the old route with the old shape
+ * unmodified, and only an updated client calls this one, so this ships with
+ * no risk of breaking an installed build that has not updated yet.
+ *
+ * Zero-knowledge: same contract as `/daily-encouragements` (plaintext
+ * entries/profile/name in, nothing persisted server-side). Internally this
+ * makes ONE model call for all three slots at once (up to two on a single
+ * retry), same as `/daily-encouragements`; it is still at most ONE
+ * client-triggered generation per user per day, since the client only calls
+ * it once `hasBatch` is false.
+ */
+export async function dailyMirrorHandler(req: Request, res: Response): Promise<void> {
+  try {
+    const body = (req.body ?? {}) as {
+      entries?: Array<{ id?: string; type?: string; title?: string; content?: string }>
+      profile?: ProfileFields
+      name?: string
+    }
+
+    if (!Array.isArray(body.entries)) {
+      res.status(400).json({ error: 'Missing client context (entries)' }); return
+    }
+
+    const entries = body.entries
+    const sourceEntryIds = entries.map(e => e.id).filter((id): id is string => Boolean(id))
+
+    // Nothing to ground the echoes in: return null for every slot rather than
+    // ask the model to invent a week the user did not write.
+    if (entries.length === 0) {
+      res.json({ morning: null, afternoon: null, evening: null, sourceEntryIds: [] }); return
+    }
+
+    const journalContext = buildJournalContext(entries)
+    const systemPrompt = PROMPTS.mirrorEchoes({ journalContext })
+    const trigger = 'Generate the three echoes now as strict JSON.'
+
+    let echoes = parseMirrorEchoes(await generate(systemPrompt, trigger))
+    if (!echoes) echoes = parseMirrorEchoes(await generate(systemPrompt, trigger))
+    if (!echoes) echoes = fallbackMirrorEchoes()
+
+    res.json({ ...echoes, sourceEntryIds })
+  } catch (err: any) {
+    console.error('[ai/daily-mirror]', err)
+    res.status(500).json({ error: err.message })
+  }
+}
+
+aiRouter.post('/daily-mirror', firebaseAuth, requirePro, requireAiConsent, dailyMirrorHandler)

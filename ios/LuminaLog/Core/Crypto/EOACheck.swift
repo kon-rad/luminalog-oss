@@ -85,8 +85,19 @@ final class RPCEOACheck: EOACheck {
         guard let code = json["result"] as? String else {
             throw EOACheckError.malformedResponse
         }
-        // An EOA's code is exactly "0x" (empty). Any other value is deployed
-        // bytecode, i.e. a smart-contract wallet.
+        // An EOA's code is exactly "0x" (empty). One exception: EIP-7702
+        // lets an EOA delegate execution to a contract by writing a fixed
+        // 23-byte "designator" (0xef0100 || the 20-byte delegate address) at
+        // its own address; MetaMask and other wallets now upgrade accounts
+        // to this by default ("smart accounts"). That designator changes
+        // `eth_call`/`eth_sendTransaction` behaviour, but `personal_sign`
+        // still runs outside the delegation and is signed by the same EOA
+        // key exactly as deterministically as before, so it must not be
+        // treated as a smart-contract wallet here. Any other non-"0x" value
+        // is real deployed bytecode, i.e. a genuine smart-contract wallet.
+        if code.count == 48, code.lowercased().hasPrefix("0xef0100") {
+            return true
+        }
         return code == "0x"
     }
 }

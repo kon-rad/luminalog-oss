@@ -148,8 +148,10 @@ final class ProxyAIService: AIService {
         let text: String?
     }
 
-    private struct DailyEncouragementsResponse: Decodable {
-        let messages: [GeneratedEncouragement]
+    private struct DailyMirrorResponse: Decodable {
+        let morning: String?
+        let afternoon: String?
+        let evening: String?
     }
 
     private struct ChatBody: Encodable {
@@ -367,18 +369,20 @@ final class ProxyAIService: AIService {
     }
 
     /// Gathers the last seven days of decrypted entries plus the decrypted profile
-    /// and asks the server for the morning encouragement batch. Zero-knowledge:
+    /// and asks the server for today's three Mirror Echoes. Zero-knowledge:
     /// everything on the wire is plaintext the device decrypted, and the server
-    /// persists none of it. Returns [] when the week holds no entries, which the
-    /// coordinator treats as "nothing to schedule" rather than an error.
-    func generateEncouragements() async throws -> [GeneratedEncouragement] {
-        guard let journals else { return [] }
+    /// persists none of it. Returns an all-nil batch when the week holds no
+    /// entries, which the coordinator treats as "nothing to schedule" rather
+    /// than an error.
+    func generateMirrorEchoes() async throws -> GeneratedMirrorEchoes {
+        let empty = GeneratedMirrorEchoes(morning: nil, afternoon: nil, evening: nil)
+        guard let journals else { return empty }
         guard let since = Calendar(identifier: .gregorian)
-            .date(byAdding: .day, value: -7, to: now()) else { return [] }
+            .date(byAdding: .day, value: -7, to: now()) else { return empty }
 
         let recent = await firstEmission(journals.recentEntries(limit: 60)) ?? []
         let entries = Model1Requests.encouragementEntries(from: recent, since: since)
-        guard !entries.isEmpty else { return [] }
+        guard !entries.isEmpty else { return empty }
 
         let profile = await loadProfile()
         let body = Model1Requests.DailyEncouragementsBody(
@@ -386,9 +390,9 @@ final class ProxyAIService: AIService {
             profile: profile.map { Model1Requests.profileFields(from: $0.details) } ?? [:],
             entries: entries
         )
-        let response: DailyEncouragementsResponse =
-            try await api.post(path: "/v1/ai/daily-encouragements", body: body)
-        return response.messages
+        let response: DailyMirrorResponse =
+            try await api.post(path: "/v1/ai/daily-mirror", body: body)
+        return GeneratedMirrorEchoes(morning: response.morning, afternoon: response.afternoon, evening: response.evening)
     }
 
     func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error> {
@@ -795,9 +799,21 @@ final class ProxyAIService: AIService {
         )
     }
 
-    /// Builds the Model-1 voice-call context on-device: profile + on-device RAG over
-    /// all entries (queried by the focal entry, else recent text), so it can be baked
-    /// into the Vapi system prompt at call start. Mirrors `buildModel1ChatBody`.
+    /// Seconds allotted to the PAST-entries semantic search (`coordinator.search`, a
+    /// `/v1/rag/search` round trip) before it's given up on. Matches the server's own
+    /// per-turn `RAG_BUDGET_MS` (`vapi.ts`) for the same class of network call.
+    private static let voiceRagBudgetSeconds: Double = 1.5
+
+    /// Builds the Model-1 voice-call context: profile + focal/today's entries (fast,
+    /// local-only lookups) plus a best-effort semantic search over PAST entries, so it
+    /// can be baked into the Vapi system prompt at call start. Mirrors `buildModel1ChatBody`.
+    ///
+    /// The PAST-entries search is a network round trip (`ServerSemanticIndex` →
+    /// `/v1/rag/search`) and is bounded to `voiceRagBudgetSeconds`: a slow/cold search
+    /// degrades only `ragContext` to empty, and never delays or drops `focalEntry` /
+    /// `todayContext`, which need no network at all. Previously the entire function was
+    /// raced against a single hard deadline by the caller, so a slow search silently
+    /// discarded the focal entry too, along with everything else.
     func voiceCallContext(journalId: String?) async throws -> VoiceCallContext? {
         guard DevFlags.aiModel1, let journals, let profiles else { return nil }
         let profile = await firstEmission(profiles.profile()).flatMap { $0 }
@@ -826,9 +842,11 @@ final class ProxyAIService: AIService {
             .map(\.content)
             .joined(separator: "\n\n")
         let ragQuery = String((focal?.content ?? recentText).suffix(2000))
-        let ranked = await Model1Requests.rankedEntries(
-            from: pastEntries, query: ragQuery, now: now(), searcher: coordinator
-        )
+        let ranked = await Self.withBudget(seconds: Self.voiceRagBudgetSeconds, fallback: []) {
+            await Model1Requests.rankedEntries(
+                from: pastEntries, query: ragQuery, now: self.now(), searcher: self.coordinator
+            )
+        }
         // Local timestamp + type per block so the assistant can reason about when/how each
         // entry was made; paired with CURRENT DATE & TIME in the system prompt.
         let ragContext = Model1Requests.format(ranked, snippetChars: 500, dateStyle: .dateTimeLocal)
@@ -840,6 +858,28 @@ final class ProxyAIService: AIService {
             ragContext: ragContext,
             focalEntry: focal?.content
         )
+    }
+
+    /// Races `operation` against a `seconds` deadline, returning `fallback` if the
+    /// deadline wins. The loser is never cancelled, just left to finish in the
+    /// background and discarded, matching the fail-soft `withBudget` used server-side
+    /// (`vapi.ts`) for the equivalent per-turn RAG step.
+    private static func withBudget<T: Sendable>(
+        seconds: Double,
+        fallback: T,
+        operation: @escaping @Sendable () async -> T
+    ) async -> T {
+        await withCheckedContinuation { (continuation: CheckedContinuation<T, Never>) in
+            let once = ResumeOnce()
+            Task {
+                let value = await operation()
+                if once.claim() { continuation.resume(returning: value) }
+            }
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                if once.claim() { continuation.resume(returning: fallback) }
+            }
+        }
     }
 
     /// UserDefaults latch: the one-time server-RAG migration backfill has completed.

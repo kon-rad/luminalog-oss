@@ -9,6 +9,14 @@ struct TranscriptBlock: View {
     let text: String
     /// When set, an "Edit" button is shown in the header's top-right corner.
     var onEdit: (() -> Void)? = nil
+    /// Text the header's copy button copies. Defaults to `text`; pass an empty
+    /// string when `text` is a placeholder (e.g. "No transcript yet.") so the
+    /// copy button disables instead of copying the placeholder.
+    var copyText: String? = nil
+
+    private var resolvedCopyText: String {
+        copyText ?? text
+    }
 
     @State private var isExpanded = false
 
@@ -27,6 +35,7 @@ struct TranscriptBlock: View {
                     .foregroundStyle(Color.textSecondary)
                     .kerning(0.8)
                 Spacer()
+                CopyButton(text: resolvedCopyText, accessibilityText: "Copy \(label.lowercased())")
                 if let onEdit {
                     Button(action: onEdit) {
                         HStack(spacing: Spacing.xs) {

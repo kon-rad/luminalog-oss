@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 /// Settings screen (bottom-nav tab): compact profile card at the top navigates
 /// to the full ProfileDetailView; below that, all settings sections live here.
@@ -34,6 +35,8 @@ struct SettingsView: View {
     @State private var showDeleteFinalAlert = false
     /// DEBUG-only: drives the onboarding-replay full-screen cover.
     @State private var showOnboardingPreview = false
+    /// DEBUG-only: drives the Hermes Bridge developer panel sheet.
+    @State private var showHermesBridge = false
     /// DEBUG-only: true while the "Generate Daily Report" tool is regenerating.
     @State private var isGeneratingReport = false
     /// DEBUG-only: set when report generation fails, shown inline on the row.
@@ -42,11 +45,25 @@ struct SettingsView: View {
     @State private var isReindexing = false
     /// DEBUG-only: live re-index progress / final outcome, shown inline.
     @State private var reindexStatus: String?
+    /// DEBUG-only: true while the "Backfill 3 Days of Mirrors" tool is writing.
+    @State private var isBackfillingMirrors = false
+    /// DEBUG-only: live backfill progress / final outcome, shown inline.
+    @State private var backfillMirrorsStatus: String?
+    /// DEBUG-only: which of today's 3 Mirror slots the "Send Next Mirror
+    /// Notification" tool has already fired this session. In-memory only
+    /// (resets on relaunch) since this is manual notification QA, not a
+    /// record of anything real.
+    @State private var mirrorNotificationsFiredToday: Set<TimeOfDay> = []
     /// Address linked for SIWE sign-in, seeded from `viewModel.profile` and
     /// updated optimistically once `linkWallet()` succeeds.
     @State private var linkedWalletAddress: String?
     /// True while `linkWallet()` is in flight.
     @State private var isLinkingWallet = false
+    /// Transient wallet-connect failure, shown as a toast rather than the
+    /// persistent `errorBanner` (unlike sign-out/delete failures above, a
+    /// dropped wallet round trip is routine enough to not warrant a banner
+    /// the user has to dismiss).
+    @State private var walletToastMessage: String?
     /// True once this account has an `eoa` wrap on file: seeded from the server
     /// on appear, flipped locally the moment `enrollEOAKeyWrap()` succeeds.
     @State private var eoaWrapEnrolled = false
@@ -62,6 +79,11 @@ struct SettingsView: View {
     @Environment(\.openURL) private var openURL
 
     private let reminders: ReminderCoordinator
+    /// Owns the daily-encouragement cycle (batch generation + OS permission
+    /// request). Optional because `RootView` builds it lazily in a `.task`
+    /// once `AppServices` is available; nil only in the brief window before
+    /// that task runs, and in previews that don't wire one up.
+    private let encouragements: EncouragementCoordinator?
     @State private var reminderPermissionDenied = false
 
     init(
@@ -75,6 +97,7 @@ struct SettingsView: View {
         leaderboard: LeaderboardService,
         ai: AIService,
         soul: SoulService,
+        encouragements: EncouragementCoordinator? = nil,
         onResumeDraft: @escaping (String) -> Void = { _ in }
     ) {
         self.init(
@@ -94,6 +117,7 @@ struct SettingsView: View {
             ai: ai,
             soul: soul,
             currentUserId: auth.currentUserId,
+            encouragements: encouragements,
             onResumeDraft: onResumeDraft
         )
     }
@@ -108,6 +132,7 @@ struct SettingsView: View {
         ai: AIService,
         soul: SoulService = MockSoulService(),
         currentUserId: String? = nil,
+        encouragements: EncouragementCoordinator? = nil,
         onResumeDraft: @escaping (String) -> Void = { _ in }
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -119,6 +144,7 @@ struct SettingsView: View {
         self.leaderboard = leaderboard
         self.ai = ai
         self.currentUserId = currentUserId
+        self.encouragements = encouragements
         self.onResumeDraft = onResumeDraft
     }
 
@@ -202,6 +228,7 @@ struct SettingsView: View {
         .onChange(of: viewModel.profile?.walletAddress) { _, newValue in
             linkedWalletAddress = newValue
         }
+        .toast(message: $walletToastMessage)
         .sheet(isPresented: $showPaywall) {
             SubscriptionPaywall()
         }
@@ -245,19 +272,11 @@ struct SettingsView: View {
             Text("There's no way to recover your journal after this.")
         }
         #if DEBUG
-        .fullScreenCover(isPresented: $showOnboardingPreview) {
-            // Replay the full onboarding sequence against an isolated UserDefaults
-            // suite so the dev preview never touches the user's real onboarding
-            // completion flag or buffered draft. onComplete/onDismiss both dismiss.
-            OnboardingView(
-                store: OnboardingStore(
-                    defaults: UserDefaults(suiteName: "ll-dev-onboarding-preview") ?? .standard
-                ),
-                speech: speech ?? AppleSpeechTranscriber(),
-                onComplete: { showOnboardingPreview = false },
-                onDismiss: { showOnboardingPreview = false }
-            )
-        }
+        .modifier(DeveloperToolsPresentation(
+            showOnboardingPreview: $showOnboardingPreview,
+            showHermesBridge: $showHermesBridge,
+            speech: speech
+        ))
         #endif
     }
 
@@ -488,9 +507,11 @@ struct SettingsView: View {
         }
     }
 
-    /// Links a wallet to the already signed-in account via SIWE. Reports
-    /// failures the same way other actions in this file do: into
-    /// `viewModel.errorMessage`, surfaced by `errorBanner` above.
+    /// Links a wallet to the already signed-in account via SIWE. Failures
+    /// surface as a toast (`walletToastMessage`), not the persistent
+    /// `errorBanner`: a dropped wallet round trip is common enough (app
+    /// switching, a slow relay) that it shouldn't leave a banner sitting at
+    /// the top of Settings until the user dismisses it.
     private func linkWallet() {
         guard !isLinkingWallet else { return }
         isLinkingWallet = true
@@ -502,7 +523,7 @@ struct SettingsView: View {
             } catch AuthServiceError.cancelled {
                 // The user dismissed the wallet sheet, not an error.
             } catch {
-                viewModel.errorMessage = (error as? AuthServiceError)?.localizedDescription
+                walletToastMessage = (error as? AuthServiceError)?.localizedDescription
                     ?? error.localizedDescription
             }
         }
@@ -640,44 +661,60 @@ struct SettingsView: View {
             )
 
             Text(reminderPermissionDenied
-                 ? "Enable notifications for Argo in Settings to get reminders."
+                 ? "Enable notifications for Argo in Settings to get reminders and \(EncouragementPrefs.displayName)."
                  : "Reminders only fire on days you haven't reached \(DailyGoal.wordTarget) words yet.")
                 .font(.captionText)
                 .foregroundStyle(reminderPermissionDenied ? Color.danger : Color.textSecondary)
         }
     }
 
-    /// Toggles the AI encouragement notifications. The coordinator reads this
-    /// same `UserDefaults` key on its next cycle, and the scene-active cycle
-    /// cancels the pending slots when it is off, so the toggle needs no other
-    /// plumbing. Off also skips the morning AI request entirely.
+    /// Toggles Mirror's Echo notifications. Turning it on asks
+    /// `EncouragementCoordinator` to request OS notification permission (shared
+    /// with the reminders above) and run the cycle immediately; turning it off
+    /// cancels the pending slots. `encouragementEnabled` mirrors the
+    /// coordinator's own `UserDefaults` flag so the switch reflects the
+    /// persisted state instantly, then corrects itself if the OS denies.
     private var encouragementRow: some View {
         HStack(spacing: Spacing.m) {
             settingsIcon("sparkles", tint: .accentWarm)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Daily encouragement")
+                Text(EncouragementPrefs.displayName)
                     .font(.uiBody)
                     .foregroundStyle(Color.textPrimary)
-                Text("Three AI notes a day, drawn from your week")
+                Text("Three quiet reflections a day, drawn from your week")
                     .font(.captionText)
                     .foregroundStyle(Color.textSecondary)
             }
             Spacer()
-            Toggle("Daily encouragement", isOn: $encouragementEnabled)
+            Toggle(EncouragementPrefs.displayName, isOn: encouragementToggleBinding)
                 .tint(Color.accentWarm)
                 .labelsHidden()
         }
         .padding(Spacing.m)
     }
 
-    /// Pushes to the read-only history of every daily-encouragement message
-    /// already delivered to this device. Stays visible regardless of the toggle
-    /// above: turning the feature off stops new messages, it doesn't erase past ones.
+    private var encouragementToggleBinding: Binding<Bool> {
+        Binding(
+            get: { encouragementEnabled },
+            set: { newValue in
+                encouragementEnabled = newValue
+                Task {
+                    let granted = await encouragements?.setEnabled(newValue, profile: viewModel.profile) ?? newValue
+                    encouragementEnabled = granted
+                    if newValue { reminderPermissionDenied = !granted }
+                }
+            }
+        )
+    }
+
+    /// Pushes to the read-only history of every Mirror Echo already delivered
+    /// to this device. Stays visible regardless of the toggle above: turning
+    /// the feature off stops new messages, it doesn't erase past ones.
     private var messageHistoryRow: some View {
         Button { showMessageHistory = true } label: {
             HStack(spacing: Spacing.m) {
                 settingsIcon("clock", tint: .accentWarm)
-                Text("Message history")
+                Text("Mirror history")
                     .font(.uiBody)
                     .foregroundStyle(Color.textPrimary)
                 Spacer()
@@ -783,12 +820,47 @@ struct SettingsView: View {
                 generateReportRow
                 rowDivider
                 reindexEntriesRow
+                rowDivider
+                backfillMirrorsRow
+                rowDivider
+                sendMirrorNotificationRow
+                rowDivider
+                hermesBridgeRow
             }
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
                     .fill(Color.cardBackground)
             )
         }
+    }
+
+    /// Opens the Hermes Bridge developer panel: pair with and talk to the
+    /// `hermes-bridge` gateway running on Konrad's own server, in front of
+    /// `run_hermes.sh` and the secondbrain vault (docs/features/hermes-bridge.md).
+    private var hermesBridgeRow: some View {
+        Button {
+            showHermesBridge = true
+        } label: {
+            HStack(spacing: Spacing.m) {
+                settingsIcon("terminal", tint: .accentWarm)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Hermes Bridge")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Pair with your Hermes agent runtime")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+            }
+            .padding(Spacing.m)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Hermes Bridge, pair with your Hermes agent runtime")
     }
 
     /// Generates a *fresh* report for the current day from the latest data and
@@ -928,6 +1000,167 @@ struct SettingsView: View {
             } catch {
                 reindexStatus = "Re-index failed, tap to retry"
             }
+        }
+    }
+
+    /// Canned per-slot copy shared by the two Mirror dev tools below. Not
+    /// AI-generated: it exists purely to exercise storage/notification
+    /// plumbing without depending on journal entries or a network round trip.
+    private static let devMirrorCopy: [TimeOfDay: String] = [
+        .morning: "Notice one thing you're looking forward to today.",
+        .afternoon: "Check in: how does your energy compare to this morning?",
+        .evening: "What's one moment from today worth remembering?",
+    ]
+
+    /// "yyyy-MM-dd" in the device's current timezone, matching the document-id
+    /// prefix `EncouragementRepository` reads by.
+    private static func mirrorDateKey(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    /// Writes 3 past days of fabricated Mirror Echoes (3 slots/day) straight
+    /// into this device's own encrypted Mirror history via
+    /// `services.encouragements`, so Mirror History has something to show
+    /// without waiting on the real daily AI cycle. Reuses the real
+    /// `{dateKey}_{timeOfDay}` document ids, so pressing again overwrites
+    /// rather than duplicates.
+    private var backfillMirrorsRow: some View {
+        Button {
+            backfillMirrors()
+        } label: {
+            HStack(spacing: Spacing.m) {
+                settingsIcon("clock.arrow.circlepath", tint: .accentWarm)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Backfill 3 Days of Mirrors")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text(backfillMirrorsStatus ?? "Seed the last 3 days into Mirror History")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                if isBackfillingMirrors {
+                    ProgressView()
+                        .tint(Color.accentWarm)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.textSecondary.opacity(0.6))
+                }
+            }
+            .padding(Spacing.m)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isBackfillingMirrors)
+        .accessibilityLabel("Backfill 3 Days of Mirrors, seed the last 3 days into Mirror History")
+    }
+
+    private func backfillMirrors() {
+        guard !isBackfillingMirrors else { return }
+        isBackfillingMirrors = true
+        backfillMirrorsStatus = "Backfilling…"
+        Task {
+            defer { isBackfillingMirrors = false }
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = .current
+            let today = calendar.startOfDay(for: Date())
+            var messages: [EncouragementMessage] = []
+            for daysAgo in 1...3 {
+                guard let dayStart = calendar.date(byAdding: .day, value: -daysAgo, to: today) else { continue }
+                let dateKey = Self.mirrorDateKey(dayStart)
+                for slot in EncouragementSlot.all {
+                    guard let fireDate = calendar.date(
+                        bySettingHour: slot.hour, minute: slot.minute, second: 0, of: dayStart
+                    ) else { continue }
+                    messages.append(EncouragementMessage(
+                        id: EncouragementIds.documentId(dateKey: dateKey, timeOfDay: slot.timeOfDay),
+                        timeOfDay: slot.timeOfDay,
+                        text: Self.devMirrorCopy[slot.timeOfDay] ?? "Take a quiet moment.",
+                        createdAt: dayStart,
+                        deliveredAt: fireDate
+                    ))
+                }
+            }
+            do {
+                try await services.encouragements.save(messages)
+                backfillMirrorsStatus = "Backfilled \(messages.count) messages across 3 days"
+            } catch {
+                backfillMirrorsStatus = "Backfill failed, tap to retry"
+            }
+        }
+    }
+
+    /// Fires one immediate local notification per press, walking through
+    /// today's 3 Mirror slots in order (morning, afternoon, evening) so
+    /// pressing 3 times exercises the same delivery path a real day would,
+    /// without waiting for 9 AM/1 PM/4 PM. Uses today's already-generated
+    /// Echo for a slot when one exists, else the same canned copy the
+    /// backfill tool uses. Fires under a `-dev-preview` identifier, distinct
+    /// from the real scheduled `ll-encouragement-N` request for that slot, so
+    /// it can never cancel or overwrite a real pending notification.
+    private var sendMirrorNotificationRow: some View {
+        Button {
+            sendNextMirrorNotification()
+        } label: {
+            HStack(spacing: Spacing.m) {
+                settingsIcon("bell.badge", tint: .accentWarm)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Send Next Mirror Notification")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text(mirrorNotificationStatus)
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+            }
+            .padding(Spacing.m)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(mirrorNotificationsFiredToday.count >= EncouragementSlot.all.count)
+        .accessibilityLabel("Send Next Mirror Notification, \(mirrorNotificationStatus)")
+    }
+
+    private var mirrorNotificationStatus: String {
+        let remaining = EncouragementSlot.all.count - mirrorNotificationsFiredToday.count
+        return remaining > 0
+            ? "\(remaining) of \(EncouragementSlot.all.count) due today left to send"
+            : "All 3 sent for today"
+    }
+
+    private func sendNextMirrorNotification() {
+        guard let slot = EncouragementSlot.all.first(where: { !mirrorNotificationsFiredToday.contains($0.timeOfDay) }) else { return }
+        mirrorNotificationsFiredToday.insert(slot.timeOfDay)
+        Task {
+            let dateKey = Self.mirrorDateKey(Date())
+            let today = (try? await services.encouragements.messages(forDateKey: dateKey)) ?? []
+            let text = today.first(where: { $0.timeOfDay == slot.timeOfDay })?.text
+                ?? Self.devMirrorCopy[slot.timeOfDay]
+                ?? "Take a quiet moment."
+
+            let center = UNUserNotificationCenter.current()
+            _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+
+            let content = UNMutableNotificationContent()
+            content.title = EncouragementPrefs.displayName
+            content.body = text
+            content.sound = .default
+            let request = UNNotificationRequest(
+                identifier: "ll-encouragement-dev-preview-\(slot.timeOfDay.rawValue)",
+                content: content,
+                trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            )
+            try? await center.add(request)
         }
     }
 
@@ -1177,6 +1410,42 @@ struct SettingsView: View {
         .padding(.top, Spacing.s)
     }
 }
+
+#if DEBUG
+/// Bundles the DEBUG-only developer-tool sheets into one `ViewModifier` so
+/// `SettingsView.body`'s already-long modifier chain gains only a single
+/// `.modifier(...)` call instead of two more chained closures. Without this,
+/// the added `.sheet` pushed the surrounding chain past the type checker's
+/// "unable to type-check this expression in reasonable time" limit.
+private struct DeveloperToolsPresentation: ViewModifier {
+    @Binding var showOnboardingPreview: Bool
+    @Binding var showHermesBridge: Bool
+    let speech: SpeechTranscriber?
+
+    func body(content: Content) -> some View {
+        content
+            .fullScreenCover(isPresented: $showOnboardingPreview) {
+                // Replay the full onboarding sequence against an isolated UserDefaults
+                // suite so the dev preview never touches the user's real onboarding
+                // completion flag or buffered draft. onComplete/onDismiss both dismiss.
+                OnboardingView(
+                    store: OnboardingStore(
+                        defaults: UserDefaults(suiteName: "ll-dev-onboarding-preview") ?? .standard
+                    ),
+                    speech: speech ?? AppleSpeechTranscriber(),
+                    onComplete: { showOnboardingPreview = false },
+                    onDismiss: { showOnboardingPreview = false }
+                )
+            }
+            .sheet(isPresented: $showHermesBridge) {
+                HermesBridgeView(viewModel: HermesBridgeViewModel(
+                    service: URLSessionHermesBridgeService(),
+                    secretStore: KeychainStore()
+                ))
+            }
+    }
+}
+#endif
 
 // MARK: - Previews
 

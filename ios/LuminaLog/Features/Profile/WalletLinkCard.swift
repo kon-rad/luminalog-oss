@@ -32,6 +32,15 @@ struct WalletLinkCard: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(isWorking)
+                // Two separate wallet-app round trips happen back to back
+                // (approve the connection, then approve a sign-in message);
+                // say so up front so the second app switch doesn't read as
+                // the flow hanging or repeating.
+                if isWorking {
+                    Text("Approve the connection in your wallet app, then approve the sign-in request that follows. Argo will switch you there each time.")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
             }
         }
         .padding(Spacing.m)

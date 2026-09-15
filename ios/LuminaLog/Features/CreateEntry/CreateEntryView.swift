@@ -12,6 +12,12 @@ struct CreateEntryView: View {
     @StateObject private var viewModel: CreateEntryViewModel
     @StateObject private var recorder = RecordingSession()
 
+    /// Fired the instant Save is tapped, before the screen dismisses, so a
+    /// parent still on screen (e.g. `RootView`) can surface a "Saving…" toast.
+    /// The actual save (and any pending audio merge) continues in the
+    /// background after this view is gone.
+    var onSaveStarted: () -> Void = {}
+
     // Local presentation state.
     @State private var isRecorderPresented = false
     @State private var showCloseDialog = false
@@ -32,16 +38,20 @@ struct CreateEntryView: View {
     @State private var showUploadPicker = false
     @FocusState private var editorFocused: Bool
 
-    init(request: CreateEntryRequest, services: AppServices) {
-        self.init(viewModel: CreateEntryViewModel(
-            request: request,
-            dependencies: CreateEntryDependencies(services: services)
-        ))
+    init(request: CreateEntryRequest, services: AppServices, onSaveStarted: @escaping () -> Void = {}) {
+        self.init(
+            viewModel: CreateEntryViewModel(
+                request: request,
+                dependencies: CreateEntryDependencies(services: services)
+            ),
+            onSaveStarted: onSaveStarted
+        )
     }
 
     /// Internal init for previews/tests that pre-seed the view model.
-    init(viewModel: CreateEntryViewModel) {
+    init(viewModel: CreateEntryViewModel, onSaveStarted: @escaping () -> Void = {}) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.onSaveStarted = onSaveStarted
     }
 
     var body: some View {
@@ -227,6 +237,12 @@ struct CreateEntryView: View {
                 Spacer()
 
                 Button {
+                    // Close instantly and let the parent surface a "Saving…" toast;
+                    // the actual save (including any still-merging audio) finishes
+                    // in the background via `EntryProcessor`, which is built to
+                    // survive this screen going away.
+                    onSaveStarted()
+                    dismiss()
                     Task {
                         // If Stop was just tapped, the merge may still be running, so
                         // await it (and attach the clip) so the save includes the

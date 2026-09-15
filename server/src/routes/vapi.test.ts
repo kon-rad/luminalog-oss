@@ -40,7 +40,7 @@ vi.mock('../services/voiceRecordingStore', () => ({
   finalRecordingKey: (uid: string, callId: string) => `users/${uid}/voice/${callId}.wav`,
 }))
 
-import { callConfigHandler, llmProxyHandler } from './vapi'
+import { callConfigHandler, llmProxyHandler, buildFirstMessage } from './vapi'
 import { config } from '../config'
 import { PROMPTS } from '../services/prompts'
 import { searchChunks } from '../services/ragStore'
@@ -223,6 +223,30 @@ describe('vapi call-config overrides', () => {
     expect(ov.artifactPlan.recordingEnabled).toBe(true)
     expect(ov.server.url).toContain('/v1/vapi/webhook')
     expect(ov.serverMessages).toContain('end-of-call-report')
+  })
+
+  it('forces assistant-speaks-first with a static, LLM-free firstMessage', async () => {
+    const req: any = { uid: 'user-123', body: { chatId: 'chat-9', name: 'Konrad' } }
+    const res = mockRes()
+    await callConfigHandler(req, res)
+    const ov = res.body.assistantOverrides
+    expect(ov.firstMessageMode).toBe('assistant-speaks-first')
+    expect(ov.firstMessage).toBe(buildFirstMessage('Konrad'))
+    expect(ov.firstMessage).not.toContain('undefined')
+  })
+})
+
+describe('buildFirstMessage', () => {
+  it('greets by name when one is given', () => {
+    expect(buildFirstMessage('Konrad')).toBe(
+      "Hi, Konrad. I'm your private AI journal companion. What's on your mind?",
+    )
+  })
+
+  it('falls back to a nameless greeting', () => {
+    expect(buildFirstMessage('')).toBe(
+      "Hi. I'm your private AI journal companion. What's on your mind?",
+    )
   })
 })
 
@@ -467,6 +491,20 @@ describe('vapi /llm/:token proxy', () => {
     )
   })
 
+  it('seeds a synthetic opening turn when the call has no prior user/assistant history', async () => {
+    // Vapi's opening turn carries no prior conversation at all. Sending
+    // system-only `messages` makes Venice's OpenAI→Gemini translation produce
+    // an EMPTY `contents` array, which Vertex rejects with 400 "at least one
+    // contents field is required" (confirmed in production logs).
+    const token = makeSession()
+    const req: any = { params: { token }, body: { messages: [] } }
+    const res = mockSseRes()
+    await llmProxyHandler(req, res, journalsDbMock({}))
+    const sentMessages = (chatCompletion as any).mock.calls[0][0]
+    expect(sentMessages.length).toBeGreaterThanOrEqual(2)
+    expect(sentMessages.some((m: any) => m.role !== 'system')).toBe(true)
+  })
+
   it('fails soft (graceful spoken line + DONE) on a pre-stream Morpheus error', async () => {
     ;(chatCompletion as any).mockResolvedValue(sseResponse('', 502))
     const token = makeSession()
@@ -515,6 +553,162 @@ describe('vapi /llm/:token proxy', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+// ── filler chunk + turn dedup (Vapi retry-storm fix) ─────────────────────────
+
+describe('vapi /llm delayed filler + retry-storm dedup', () => {
+  beforeEach(() => {
+    _clearAllSessions()
+    ;(searchChunks as any).mockReset().mockResolvedValue([])
+    // A FRESH Response per call: a real ReadableStream can only be read once,
+    // and several tests below legitimately call the handler more than once.
+    ;(chatCompletion as any).mockReset().mockImplementation(() => Promise.resolve(sseResponse('Hello there')))
+    ;(PROMPTS.voiceChat as any).mockClear()
+  })
+
+  const dek = Buffer.alloc(32, 9)
+  const makeSession = (overrides: Record<string, unknown> = {}) =>
+    createSession({
+      uid: 'user-1', chatId: 'chat-1', dek, name: 'Ada', bio: 'bio',
+      profile: {}, todayContext: '', ...overrides,
+    } as any)
+
+  /** Flushes pending microtasks (RAG + prompt build) so an async chain reaches its next `await`. */
+  const flush = () => new Promise(resolve => setTimeout(resolve, 0))
+
+  it('flushes headers immediately but withholds the filler chunk until the turn has been silent for the delay', async () => {
+    ;(searchChunks as any).mockReturnValue(new Promise<any[]>(() => {})) // never resolves
+    const token = makeSession()
+    const req: any = { params: { token }, body: { messages: [{ role: 'user', content: 'hi' }] } }
+    const res = mockSseRes()
+    vi.useFakeTimers()
+    try {
+      const p = llmProxyHandler(req, res, journalsDbMock({}))
+      expect(res.headersSent).toBe(true)
+      expect(res.writes.join('')).not.toContain('chatcmpl-filler')
+
+      await vi.advanceTimersByTimeAsync(1_499) // just under TURN_FILLER_DELAY_MS
+      expect(res.writes.join('')).not.toContain('chatcmpl-filler')
+
+      await vi.advanceTimersByTimeAsync(1) // crosses TURN_FILLER_DELAY_MS (1500)
+      const out = res.writes.join('')
+      expect(out).toContain('chatcmpl-filler')
+      // A real acknowledgment word, never the old "Mm," disfluency.
+      expect(out).toMatch(/Got it\.|I see\.|Right\.|Sure\./)
+
+      await p
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('speaks no filler at all when the turn resolves before the delay', async () => {
+    const token = makeSession()
+    const req: any = { params: { token }, body: { messages: [{ role: 'user', content: 'hi' }] } }
+    const res = mockSseRes()
+    await llmProxyHandler(req, res, journalsDbMock({}))
+    const out = res.writes.join('')
+    expect(out).not.toContain('chatcmpl-filler')
+    expect(out).toContain('Hello there')
+  })
+
+  it('when the turn IS slow, the filler chunk precedes the real content chunk', async () => {
+    ;(chatCompletion as any).mockImplementation(
+      () => new Promise(resolve => setTimeout(() => resolve(sseResponse('Hello there')), 2_000)),
+    )
+    const token = makeSession()
+    const req: any = { params: { token }, body: { messages: [{ role: 'user', content: 'hi' }] } }
+    const res = mockSseRes()
+    vi.useFakeTimers()
+    try {
+      const p = llmProxyHandler(req, res, journalsDbMock({}))
+      await vi.advanceTimersByTimeAsync(2_100)
+      await p
+      const out = res.writes.join('')
+      const fillerIdx = out.indexOf('chatcmpl-filler')
+      const realIdx = out.indexOf('Hello there')
+      expect(fillerIdx).toBeGreaterThanOrEqual(0)
+      expect(realIdx).toBeGreaterThan(fillerIdx)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('coalesces a concurrent duplicate request onto the same in-flight generation', async () => {
+    let resolveUpstream!: (r: Response) => void
+    ;(chatCompletion as any).mockImplementation(() => new Promise<Response>(resolve => { resolveUpstream = resolve }))
+    const token = makeSession()
+    const messages = [{ role: 'user', content: 'q' }]
+    const res1 = mockSseRes()
+    const res2 = mockSseRes()
+
+    // No await between the two calls: req2 is Vapi's retry landing while req1's
+    // RAG+LLM call is still in flight, exactly like the production retry storm.
+    const p1 = llmProxyHandler({ params: { token }, body: { messages } } as any, res1, journalsDbMock({}))
+    const p2 = llmProxyHandler({ params: { token }, body: { messages } } as any, res2, journalsDbMock({}))
+
+    await flush() // let p1's RAG step resolve so it reaches the chatCompletion call
+    resolveUpstream(sseResponse('Hi there'))
+    await Promise.all([p1, p2])
+
+    // Only ONE real generation ran: the duplicate joined it instead of
+    // re-running RAG + paying for a second, independent completion.
+    expect((chatCompletion as any)).toHaveBeenCalledTimes(1)
+    expect(res1.writes.join('')).toContain('Hi there')
+    expect(res2.writes.join('')).toContain('Hi there')
+  })
+
+  it('reuses the cached final text for a late duplicate arriving after the turn already completed', async () => {
+    const token = makeSession()
+    const messages = [{ role: 'user', content: 'q' }]
+    const res1 = mockSseRes()
+    await llmProxyHandler({ params: { token }, body: { messages } } as any, res1, journalsDbMock({}))
+    expect((chatCompletion as any)).toHaveBeenCalledTimes(1)
+
+    const res2 = mockSseRes()
+    await llmProxyHandler({ params: { token }, body: { messages } } as any, res2, journalsDbMock({}))
+
+    // The identical retry, arriving well after completion, still does not
+    // re-run the generation: it gets the same already-spoken answer.
+    expect((chatCompletion as any)).toHaveBeenCalledTimes(1)
+    expect(res2.writes.join('')).toContain('Hello there')
+  })
+
+  it('a genuinely new turn (different message history) is NOT treated as a duplicate', async () => {
+    const token = makeSession()
+    const res1 = mockSseRes()
+    await llmProxyHandler(
+      { params: { token }, body: { messages: [{ role: 'user', content: 'first' }] } } as any,
+      res1, journalsDbMock({}),
+    )
+    const res2 = mockSseRes()
+    await llmProxyHandler(
+      {
+        params: { token },
+        body: { messages: [
+          { role: 'user', content: 'first' },
+          { role: 'assistant', content: 'Hello there' },
+          { role: 'user', content: 'second' },
+        ] },
+      } as any,
+      res2, journalsDbMock({}),
+    )
+    expect((chatCompletion as any)).toHaveBeenCalledTimes(2)
+  })
+
+  it('registers a close-event listener on the request for connection-abandonment diagnostics', async () => {
+    const token = makeSession()
+    const handlers: Record<string, Function[]> = {}
+    const req: any = {
+      params: { token },
+      body: { messages: [{ role: 'user', content: 'hi' }] },
+      on: (event: string, cb: Function) => { (handlers[event] ??= []).push(cb) },
+    }
+    const res = mockSseRes()
+    await llmProxyHandler(req, res, journalsDbMock({}))
+    expect(handlers['close']?.length ?? 0).toBeGreaterThan(0)
   })
 })
 

@@ -51,19 +51,36 @@ final class SegmentRecorder: NSObject, SegmentRecording {
     }
 
     func begin(url: URL) async throws {
+        // DIAGNOSTIC (temporary): times each step of the start-recording path so
+        // we can see, from a real device log, which call is responsible for the
+        // ~30s lag some users see on the first recording after launch. Remove
+        // once the slow step is identified.
+        let t0 = CFAbsoluteTimeGetCurrent()
+        func mark(_ label: String) {
+            let dt = CFAbsoluteTimeGetCurrent() - t0
+            Self.logger.notice("⏱️ [begin] \(label, privacy: .public): +\(dt, format: .fixed(precision: 2), privacy: .public)s")
+        }
+
+        mark("start")
         guard await AVAudioApplication.requestRecordPermission() else {
             throw SegmentRecorderError.permissionDenied
         }
+        mark("requestRecordPermission done")
+
         let session = AVAudioSession.sharedInstance()
         do {
             try session.setCategory(.playAndRecord, options: [.defaultToSpeaker])
+            mark("setCategory done")
             try session.setActive(true)
+            mark("setActive(true) done")
         } catch {
             throw SegmentRecorderError.sessionFailed
         }
 
         let input = engine.inputNode
+        mark("inputNode accessed")
         let format = input.inputFormat(forBus: 0)
+        mark("inputFormat read")
         sampleRate = format.sampleRate > 0 ? format.sampleRate : 44_100
         framesWritten = 0
         levels = []
@@ -80,12 +97,13 @@ final class SegmentRecorder: NSObject, SegmentRecording {
             audioFile = try AVAudioFile(forWriting: url, settings: settings,
                                         commonFormat: format.commonFormat,
                                         interleaved: format.isInterleaved)
+            mark("AVAudioFile created")
         } catch {
             throw SegmentRecorderError.fileError
         }
 
         input.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak self] buffer, _ in
-            // Runs on AVAudioEngine's real-time audio thread — NOT the main actor.
+            // Runs on AVAudioEngine's real-time audio thread, NOT the main actor.
             // Write synchronously here (the buffer is only valid during this call),
             // then hop the scalar bookkeeping to the main actor.
             do {
@@ -101,10 +119,13 @@ final class SegmentRecorder: NSObject, SegmentRecording {
                 self.appendLevelSample(sample)
             }
         }
+        mark("tap installed")
 
         engine.prepare()
+        mark("engine.prepare() done")
         do {
             try engine.start()
+            mark("engine.start() done")
         } catch {
             input.removeTap(onBus: 0)
             throw SegmentRecorderError.sessionFailed

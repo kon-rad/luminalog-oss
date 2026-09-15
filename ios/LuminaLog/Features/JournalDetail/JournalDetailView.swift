@@ -393,7 +393,8 @@ struct JournalDetailView: View {
                 text: entry.content.isEmpty
                     ? "No transcript yet. Tap Edit to add one."
                     : entry.content,
-                onEdit: { isEditingTranscript = true }
+                onEdit: { isEditingTranscript = true },
+                copyText: entry.content
             )
         }
     }

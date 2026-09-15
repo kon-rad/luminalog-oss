@@ -3,6 +3,7 @@ import SwiftUI
 /// A small auto-dismissing confirmation pill anchored to the bottom of the view.
 private struct ToastModifier: ViewModifier {
     @Binding var message: String?
+    let duration: Duration
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .bottom) {
@@ -15,8 +16,8 @@ private struct ToastModifier: ViewModifier {
                     .background(Capsule().fill(.black.opacity(0.8)))
                     .padding(.bottom, Spacing.xl)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .task {
-                        try? await Task.sleep(nanoseconds: 1_800_000_000)
+                    .task(id: message) {
+                        try? await Task.sleep(for: duration)
                         withAnimation { self.message = nil }
                     }
             }
@@ -27,7 +28,9 @@ private struct ToastModifier: ViewModifier {
 
 extension View {
     /// Shows a transient toast whenever `message` becomes non-nil, then clears it.
-    func toast(message: Binding<String?>) -> some View {
-        modifier(ToastModifier(message: message))
+    /// `duration` defaults to a short confirmation-length pill (e.g. "Copied!");
+    /// pass a longer value for a toast carrying a full sentence, like an error.
+    func toast(message: Binding<String?>, duration: Duration = .seconds(1.8)) -> some View {
+        modifier(ToastModifier(message: message, duration: duration))
     }
 }

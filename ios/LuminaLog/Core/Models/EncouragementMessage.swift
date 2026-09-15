@@ -1,22 +1,33 @@
 import Foundation
 
-/// One AI-generated encouragement message, stored client-encrypted at
-/// `dailyEncouragements/{uid}/messages/{dateKey}_{millis}_{index}`.
+/// One of Mirror's three fixed daily delivery windows. Each carries its own
+/// tone (see `PROMPTS.mirrorEcho` server-side): morning is about intention and
+/// grounding, afternoon about calibration and momentum, evening about
+/// decompression and synthesis.
+enum TimeOfDay: String, Sendable {
+    case morning, afternoon, evening
+
+    /// Shown on the Message History row ("Morning", "Afternoon", "Evening").
+    var label: String { rawValue.capitalized }
+}
+
+/// One AI-generated Mirror Echo: a single sentence written for one time-of-day
+/// slot, stored client-encrypted at
+/// `dailyEncouragements/{uid}/messages/{dateKey}_{timeOfDay}`.
 ///
-/// Five are generated each morning; three are delivered per day as local
-/// notifications, oldest undelivered first, and anything still undelivered after
-/// `EncouragementExpiry.days` is pruned. `deliveredAt` is set when the message is
-/// handed to `UNUserNotificationCenter`, which is the closest signal the client
-/// has: iOS never tells the app whether a notification was actually presented.
+/// Exactly one is generated per slot per day (never a queue, never a rollover):
+/// a slot either gets today's echo, or it is skipped. `deliveredAt` is set when
+/// the message is handed to `UNUserNotificationCenter`, which is the closest
+/// signal the client has: iOS never tells the app whether a notification was
+/// actually presented.
 struct EncouragementMessage: Identifiable, Equatable, Sendable {
     /// Firestore document id. Lexical order is chronological (see `EncouragementIds`).
     var id: String
-    /// Notification title. At most 40 characters so iOS does not truncate it.
-    var title: String
-    /// Notification body. At most 180 characters for the same reason.
-    var body: String
+    var timeOfDay: TimeOfDay
+    /// The Echo sentence. At most 220 characters so iOS does not truncate it.
+    var text: String
     var createdAt: Date
-    /// The slot fire time this message was scheduled into, or nil while queued.
+    /// The slot fire time this message was scheduled into, or nil until armed.
     var deliveredAt: Date?
 
     var isDelivered: Bool { deliveredAt != nil }
@@ -26,23 +37,14 @@ struct EncouragementMessage: Identifiable, Equatable, Sendable {
 /// can rely on ordering without touching Firestore.
 enum EncouragementIds {
 
-    /// `{yyyy-MM-dd}_{millisSince1970}_{index}` so that sorting document ids
-    /// lexically sorts messages chronologically, the same trick
-    /// `DailyReportRepository` uses. The millis are zero-padded to 13 digits so
-    /// string comparison matches numeric comparison.
-    static func documentId(dateKey: String, generatedAt: Date, index: Int) -> String {
-        let millis = Int(generatedAt.timeIntervalSince1970 * 1000)
-        let padded = String(format: "%013d", millis)
-        return "\(dateKey)_\(padded)_\(index)"
+    /// `{yyyy-MM-dd}_{timeOfDay}`: one document per slot per day, so a re-run of
+    /// the same day's cycle overwrites rather than duplicates.
+    static func documentId(dateKey: String, timeOfDay: TimeOfDay) -> String {
+        "\(dateKey)_\(timeOfDay.rawValue)"
     }
 
     /// The `yyyy-MM-dd` prefix of a document id, or "" if it is malformed.
     static func dateKeyPrefix(_ id: String) -> String {
         id.split(separator: "_").first.map(String.init) ?? ""
     }
-}
-
-/// How long an undelivered message stays in the queue before it is pruned.
-enum EncouragementExpiry {
-    static let days = 3
 }

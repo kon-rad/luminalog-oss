@@ -26,9 +26,9 @@ final class MockAIService: AIService {
         return MockData.cannedDailyPrompts
     }
 
-    func generateEncouragements() async throws -> [GeneratedEncouragement] {
+    func generateMirrorEchoes() async throws -> GeneratedMirrorEchoes {
         try await Task.sleep(nanoseconds: generationDelay)
-        return MockData.cannedEncouragements
+        return MockData.cannedMirrorEchoes
     }
 
     func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error> {

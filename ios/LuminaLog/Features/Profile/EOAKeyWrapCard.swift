@@ -40,6 +40,14 @@ struct EOAKeyWrapCard: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(isWorking)
+                // This asks the wallet to sign twice in a row (spec §6.2's
+                // determinism gate); say so up front so the second app
+                // switch doesn't read as the flow hanging or repeating.
+                if isWorking {
+                    Text("Argo will switch you to your wallet app twice to sign a confirmation message. Approve both.")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
             }
         }
         .padding(Spacing.m)
