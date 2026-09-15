@@ -16,7 +16,9 @@ const CANCEL_CODES = new Set(['auth/popup-closed-by-user', 'auth/cancelled-popup
 type LinkItem = { label: string; href: string; external?: boolean }
 
 // The "Products" submenu, shared by the desktop dropdown and the mobile
-// drawer's expandable section.
+// drawer's expandable section. The three in-page anchors (Privacy, Reflect,
+// Practice) resolve against ids added to the immersive landing page's
+// PrivacySection, InsightsCarousel, and SoulSection respectively.
 const PRODUCTS_LINKS: LinkItem[] = [
   { label: 'Privacy', href: '/#privacy' },
   { label: 'Open Source', href: 'https://github.com/kon-rad/luminalog-oss', external: true },
@@ -24,6 +26,7 @@ const PRODUCTS_LINKS: LinkItem[] = [
   { label: 'Events', href: '/events' },
   { label: 'Courses', href: '/courses' },
   { label: 'Card Game', href: '/card-game' },
+  { label: 'Pricing', href: '/pricing' },
   { label: 'Reflect', href: '/#reflect' },
   { label: 'Practice', href: '/#practice' },
 ]
@@ -59,7 +62,7 @@ function useOutsideClose(active: boolean, ref: { current: HTMLElement | null }, 
   }, [active, ref, onClose])
 }
 
-export default function Navbar() {
+export default function Navbar({ immersive = false }: { immersive?: boolean } = {}) {
   const router = useRouter()
   const [scrolled, setScrolled] = useState(false)
   const [signingIn, setSigningIn] = useState(false)
@@ -71,6 +74,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 10)
+    handler()
     window.addEventListener('scroll', handler, { passive: true })
     return () => window.removeEventListener('scroll', handler)
   }, [])
@@ -146,11 +150,31 @@ export default function Navbar() {
       id="nav"
       style={{
         position: 'sticky', top: 0, zIndex: 200,
-        background: 'rgba(244,240,233,0.82)',
+        background: immersive && !scrolled ? '#16130E' : 'rgba(244,240,233,0.82)',
         backdropFilter: 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
         borderBottom: scrolled ? '1px solid var(--hairline)' : '1px solid transparent',
-        transition: 'border-color .25s, background .25s',
+        transition: 'border-color .25s, background .25s, color .25s',
+        ...(immersive && !scrolled
+          ? ({
+              // The header's own dark-theme override. Every descendant in
+              // this file reads color via var(--text)/var(--text2)/etc., so
+              // redefining those custom properties here cascades to the
+              // brand link, both dropdowns, and the sign-in menu without
+              // touching their individual inline styles.
+              '--text': '#F3EEE4',
+              '--text2': '#A89E8F',
+              '--text3': '#8B8173',
+              '--accent': '#E5A063',
+              '--accentDeep': '#CE7F44',
+              '--accentSoft': '#3A2F22',
+              '--hairline': 'rgba(255,240,220,0.08)',
+              '--hairline2': 'rgba(255,240,220,0.13)',
+              '--surface': '#221E18',
+              '--shadowHover': '0 2px 4px rgba(0,0,0,0.30), 0 18px 46px rgba(0,0,0,0.40)',
+              color: '#F3EEE4',
+            } as React.CSSProperties)
+          : {}),
       }}
     >
       <div className="wrap">
@@ -167,6 +191,28 @@ export default function Navbar() {
           <div className="flex items-center gap-6">
             <NavDropdown label="Products" items={PRODUCTS_LINKS} />
             <NavDropdown label="Socials" items={SOCIAL_LINKS} />
+
+            <a
+              href="https://www.youtube.com/@myargoquest"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="nav-link hidden md:inline-flex items-center"
+              title="Argo on YouTube"
+              aria-label="Argo on YouTube"
+            >
+              <YouTubeGlyph />
+            </a>
+
+            <a
+              href="https://www.youtube.com/@ArgoPodcast"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="nav-link hidden md:inline-flex items-center"
+              title="The Argo Podcast on YouTube"
+              aria-label="The Argo Podcast on YouTube"
+            >
+              <YouTubeGlyph />
+            </a>
 
             {!loading && (
               user ? (
@@ -362,6 +408,14 @@ function SolanaGlyph() {
         fill="url(#solana-glyph-gradient)"
         d="M4.5 16.6c.2-.2.5-.3.8-.3h14.4c.5 0 .7.6.4.9l-3 3c-.2.2-.5.3-.8.3H1.9c-.5 0-.7-.6-.4-.9l3-3zm0-9.2c.2-.2.5-.3.8-.3h14.4c.5 0 .7.6.4.9l-3 3c-.2.2-.5.3-.8.3H1.9c-.5 0-.7-.6-.4-.9l3-3zM19.7 12c.2.2.3.5.3.8v0c0 .5-.6.7-.9.4l-3-3a1.1 1.1 0 0 1-.3-.8v0c0-.5.6-.7.9-.4l3 3z"
       />
+    </svg>
+  )
+}
+
+function YouTubeGlyph() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden style={{ flexShrink: 0 }}>
+      <path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 0 0 .5 6.19C0 8.08 0 12 0 12s0 3.92.5 5.81a3.02 3.02 0 0 0 2.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 0 0 2.12-2.14C24 15.92 24 12 24 12s0-3.92-.5-5.81zM9.55 15.57V8.43L15.82 12z" />
     </svg>
   )
 }
