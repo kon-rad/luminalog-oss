@@ -64,18 +64,100 @@ export const KIDS_CLASSES: KidsClass[] = [
 
 /** One line on what the course is for, shown at the top of the course index. */
 export const COURSE_PURPOSE =
-  'A class in the three skills that decide most of what follows: speaking, writing, and the quality of your ideas. Children practise them with pen and paper, one STEM concept at a time.'
+  'A class in the three skills that decide most of what follows: speaking, writing, and the quality of your ideas. A small group meets live online every two weeks, drawing, journaling, and working on a project of their own, one STEM concept at a time.'
 
-/** The class in order, for the short agenda on the course index. */
+/** The class in order, for the short agenda on the course index. This is the
+ * live online class, see ONLINE_CLASS_AGENDA below for the full breakdown. */
 export const AGENDA_SUMMARY: string[] = [
-  'Breathwork, a short meditation, then yoga stretches and movement.',
-  'A drawing prompt. Everyone shares what they drew, and we record it.',
-  'A journaling prompt. Everyone shares what they wrote, and we record it.',
-  'Nobody critiques. We celebrate them for creating.',
-  'A STEM concept, explained for a three, seven and twelve year old.',
-  'They teach it back in their own drawings and words, and we record it.',
-  'Finish all three and earn a point. Ten points earns a reward.',
+  'Welcome and check-in: names, ages, and an icebreaker question.',
+  'A drawing prompt tied to the day’s concept.',
+  'A journaling prompt on the same concept, optional to complete.',
+  'A STEM concept, explained, then everyone says how they understand it.',
+  'Project time: everyone builds something they are curious about, then shares.',
+  'Closing circle: everyone shares one thing they learned.',
 ]
+
+/* ── The online, live video-call class ───────────────────────────────────── */
+
+/** Quick facts for the online class, shown near the top of the course index. */
+export const ONLINE_CLASS_FACTS: { label: string; value: string }[] = [
+  { label: 'Format', value: '60 minutes, live on Google Meet' },
+  { label: 'Group', value: 'Up to 5 children and 1 teacher' },
+  { label: 'Schedule', value: 'Once every two weeks, two classes a month' },
+]
+
+/** The full sixty-minute breakdown of the online class. */
+export const ONLINE_CLASS_AGENDA: ClassSegment[] = [
+  {
+    minutes: 5,
+    title: 'Welcome and check-in',
+    detail:
+      'Everyone introduces themselves: name, age, and one thing they are interested in right now, plus an icebreaker question, a new one every class.',
+  },
+  {
+    minutes: 10,
+    title: 'Free drawing',
+    detail: 'One drawing prompt, tied to the day’s main concept, given fresh each class.',
+  },
+  {
+    minutes: 10,
+    title: 'Free journaling',
+    detail: 'One writing prompt, related to the same concept, optional to complete.',
+  },
+  {
+    minutes: 10,
+    title: 'The STEM concept',
+    detail:
+      'A new idea, for example what is a computer, presented to the group. Then everyone goes around and says how they understand it, in their own words.',
+  },
+  {
+    minutes: 20,
+    title: 'Project time',
+    detail:
+      'Each child works on their own project, something they are genuinely curious about: researching, drawing, writing, building with their hands, or creating on the computer. The teacher is available throughout for questions: what to make, what to learn, what resources exist, how to get unstuck. At the end, everyone goes around and shares what they worked on, about sixty seconds each.',
+  },
+  {
+    minutes: 5,
+    title: 'Closing circle',
+    detail: 'Everyone shares one thing they learned in the class.',
+  },
+]
+
+/** What lands in the parent portal after every online class. */
+export const ONLINE_PORTAL_OUTPUT: string[] = [
+  'The full class recording',
+  'A full text transcript',
+  'Summary notes from the session',
+  'For each child, a short 30 to 90 second highlight video of the moments they spoke and what they created',
+  'Five key things each child learned or expressed in the class',
+  'Five things each child would benefit from learning, doing, practising, or paying attention to next',
+]
+
+export const ONLINE_PORTAL_NOTE =
+  'Every video is downloadable, and parents can leave notes or messages for the teacher directly in the portal.'
+
+export interface TimeSlot {
+  dayChicago: string
+  timeChicago: string
+  dayTimeSingapore: string
+}
+
+/** Nine weekly slots (3 days x 3 times). Each slot is its own fixed group,
+ * meeting every two weeks at that same day and time. */
+export const ONLINE_TIME_SLOTS: TimeSlot[] = [
+  { dayChicago: 'Wednesday', timeChicago: '7:00 PM', dayTimeSingapore: 'Thursday, 8:00 AM' },
+  { dayChicago: 'Wednesday', timeChicago: '8:00 PM', dayTimeSingapore: 'Thursday, 9:00 AM' },
+  { dayChicago: 'Wednesday', timeChicago: '9:00 PM', dayTimeSingapore: 'Thursday, 10:00 AM' },
+  { dayChicago: 'Thursday', timeChicago: '7:00 PM', dayTimeSingapore: 'Friday, 8:00 AM' },
+  { dayChicago: 'Thursday', timeChicago: '8:00 PM', dayTimeSingapore: 'Friday, 9:00 AM' },
+  { dayChicago: 'Thursday', timeChicago: '9:00 PM', dayTimeSingapore: 'Friday, 10:00 AM' },
+  { dayChicago: 'Friday', timeChicago: '7:00 PM', dayTimeSingapore: 'Saturday, 8:00 AM' },
+  { dayChicago: 'Friday', timeChicago: '8:00 PM', dayTimeSingapore: 'Saturday, 9:00 AM' },
+  { dayChicago: 'Friday', timeChicago: '9:00 PM', dayTimeSingapore: 'Saturday, 10:00 AM' },
+]
+
+export const ONLINE_TIMEZONE_NOTE =
+  'Singapore does not observe daylight saving time. These times use US Central Daylight Time, in effect through 1 November 2026. After the US clocks change to Central Standard Time, every Singapore time above moves one hour later until US daylight saving resumes in March 2027.'
 
 /* ── Module 0: the class structure (from the Luma description) ───────────── */
 

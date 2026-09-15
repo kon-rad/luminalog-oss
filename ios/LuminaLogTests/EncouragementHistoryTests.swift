@@ -8,7 +8,7 @@ import XCTest
 final class EncouragementHistoryTests: XCTestCase {
 
     private func message(_ id: String, delivered: Date?) -> EncouragementMessage {
-        EncouragementMessage(id: id, title: "T-\(id)", body: "B-\(id)", createdAt: Date(timeIntervalSince1970: 0), deliveredAt: delivered)
+        EncouragementMessage(id: id, timeOfDay: .morning, text: "T-\(id)", createdAt: Date(timeIntervalSince1970: 0), deliveredAt: delivered)
     }
 
     func testExcludesMessagesNotYetDelivered() async throws {

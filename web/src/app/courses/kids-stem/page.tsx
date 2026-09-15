@@ -1,13 +1,24 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Sparkles, ArrowRight } from 'lucide-react'
+import { Sparkles, ArrowRight, Check } from 'lucide-react'
 import { CourseLayout, Pill, SectionHeading } from '@/components/course'
-import { KIDS_COURSE_BASE, KIDS_CLASSES, COURSE_PURPOSE, AGENDA_SUMMARY } from '@/lib/kids-stem/course'
+import {
+  KIDS_COURSE_BASE,
+  KIDS_CLASSES,
+  COURSE_PURPOSE,
+  AGENDA_SUMMARY,
+  ONLINE_CLASS_FACTS,
+  ONLINE_CLASS_AGENDA,
+  ONLINE_PORTAL_OUTPUT,
+  ONLINE_PORTAL_NOTE,
+  ONLINE_TIME_SLOTS,
+  ONLINE_TIMEZONE_NOTE,
+} from '@/lib/kids-stem/course'
 
 export const metadata: Metadata = {
   title: 'Kids Wholistic Creativity & STEM, Argo',
   description:
-    'A class for kids 2 to 12 in speaking, writing and the quality of their ideas. Drawing, journaling and one STEM concept per class. Follow along online, taught in person in Forest City.',
+    'A live online class for kids in speaking, writing and the quality of their ideas. A small group of 5, once every two weeks on a video call. Also taught in person in Forest City.',
   openGraph: {
     title: 'Kids Wholistic Creativity & STEM, Argo',
     description:
@@ -40,10 +51,46 @@ export default function KidsStemPage() {
           <p style={{ fontSize: 19, lineHeight: 1.6, color: 'var(--text2)', maxWidth: 680, margin: '0 auto' }}>
             {COURSE_PURPOSE}
           </p>
+          <div
+            className="flex flex-wrap items-center justify-center"
+            style={{ gap: '10px 28px', marginTop: 26 }}
+          >
+            {ONLINE_CLASS_FACTS.map((f) => (
+              <div key={f.label} className="flex gap-2" style={{ fontSize: 14.5, alignItems: 'baseline' }}>
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text3)',
+                  }}
+                >
+                  {f.label}
+                </span>
+                <span style={{ color: 'var(--text)', fontWeight: 600 }}>{f.value}</span>
+              </div>
+            ))}
+          </div>
           <div className="flex flex-wrap items-center justify-center gap-3" style={{ marginTop: 28 }}>
-            <Link href={`${KIDS_COURSE_BASE}/enroll`} className="btn-amber">
-              Join the class in Forest City
+            <Link href="#schedule" className="btn-amber">
+              See class times
               <ArrowRight style={{ width: 16, height: 16 }} />
+            </Link>
+            <Link
+              href={`${KIDS_COURSE_BASE}/enroll`}
+              className="inline-flex items-center gap-2 rounded-btn"
+              style={{
+                height: 52,
+                padding: '0 26px',
+                fontSize: 16,
+                fontWeight: 600,
+                color: 'var(--text)',
+                border: '1px solid var(--hairline2)',
+                background: 'var(--surface)',
+              }}
+            >
+              Join in person in Forest City
             </Link>
           </div>
         </div>
@@ -72,6 +119,149 @@ export default function KidsStemPage() {
               </li>
             ))}
           </ol>
+
+          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16, marginTop: 32 }}>
+            {ONLINE_CLASS_AGENDA.map((s) => (
+              <div key={s.title} className="card flex gap-4" style={{ padding: '18px 22px' }}>
+                <span
+                  className="inline-flex items-center justify-center serif"
+                  style={{
+                    flexShrink: 0,
+                    width: 52,
+                    height: 52,
+                    borderRadius: 14,
+                    background: 'var(--accentSoft)',
+                    color: 'var(--accentDeep)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textAlign: 'center',
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {s.minutes}
+                  <br />
+                  min
+                </span>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+                    {s.title}
+                  </h3>
+                  <p style={{ fontSize: 14.5, lineHeight: 1.55, color: 'var(--text2)' }}>{s.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* After every class */}
+      <section>
+        <div className="wrap" style={{ padding: '48px 0 8px', maxWidth: 760 }}>
+          <SectionHeading>After every class</SectionHeading>
+          <p style={{ fontSize: 16.5, lineHeight: 1.6, color: 'var(--text2)', margin: '12px 0 22px' }}>
+            Everything below is in the parent portal as soon as the class ends.
+          </p>
+          <ul className="flex flex-col" style={{ gap: 12 }}>
+            {ONLINE_PORTAL_OUTPUT.map((item) => (
+              <li key={item} className="flex gap-3" style={{ alignItems: 'flex-start' }}>
+                <span
+                  className="inline-flex items-center justify-center"
+                  style={{
+                    flexShrink: 0,
+                    width: 24,
+                    height: 24,
+                    borderRadius: 8,
+                    marginTop: 2,
+                    background: 'var(--accentSoft)',
+                    color: 'var(--accentDeep)',
+                  }}
+                >
+                  <Check style={{ width: 14, height: 14 }} />
+                </span>
+                <span style={{ fontSize: 15.5, lineHeight: 1.6, color: 'var(--text2)' }}>{item}</span>
+              </li>
+            ))}
+          </ul>
+          <p style={{ fontSize: 14.5, lineHeight: 1.6, color: 'var(--text3)', marginTop: 18 }}>
+            {ONLINE_PORTAL_NOTE}
+          </p>
+        </div>
+      </section>
+
+      {/* Class times */}
+      <section id="schedule">
+        <div className="wrap" style={{ padding: '48px 0 8px', maxWidth: 760 }}>
+          <SectionHeading>Class times</SectionHeading>
+          <p style={{ fontSize: 16.5, lineHeight: 1.6, color: 'var(--text2)', margin: '12px 0 22px' }}>
+            Every class is capped at 5 children and 1 teacher, so every child gets real time to speak,
+            share and be heard. Each slot below is its own fixed group, meeting every two weeks at that
+            same day and time.
+          </p>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 15 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--hairline2)' }}>
+                  <th
+                    style={{
+                      textAlign: 'left',
+                      padding: '8px 12px 8px 0',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      color: 'var(--text3)',
+                    }}
+                  >
+                    Day (Chicago)
+                  </th>
+                  <th
+                    style={{
+                      textAlign: 'left',
+                      padding: '8px 12px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      color: 'var(--text3)',
+                    }}
+                  >
+                    Time (Chicago)
+                  </th>
+                  <th
+                    style={{
+                      textAlign: 'left',
+                      padding: '8px 0 8px 12px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      color: 'var(--text3)',
+                    }}
+                  >
+                    Day and time (Singapore)
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {ONLINE_TIME_SLOTS.map((slot, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid var(--hairline)' }}>
+                    <td style={{ padding: '10px 12px 10px 0', color: 'var(--text)', fontWeight: 600 }}>
+                      {slot.dayChicago}
+                    </td>
+                    <td style={{ padding: '10px 12px', color: 'var(--text2)', fontVariantNumeric: 'tabular-nums' }}>
+                      {slot.timeChicago}
+                    </td>
+                    <td style={{ padding: '10px 0 10px 12px', color: 'var(--text2)', fontVariantNumeric: 'tabular-nums' }}>
+                      {slot.dayTimeSingapore}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p style={{ fontSize: 13.5, lineHeight: 1.6, color: 'var(--text3)', marginTop: 16 }}>
+            {ONLINE_TIMEZONE_NOTE}
+          </p>
         </div>
       </section>
 

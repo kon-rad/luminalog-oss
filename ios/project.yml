@@ -9,8 +9,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "8"
+    MARKETING_VERSION: "1.0.1"
+    CURRENT_PROJECT_VERSION: "9"
     DEVELOPMENT_TEAM: "GA978N825M"
     CODE_SIGN_STYLE: Automatic
 
@@ -78,6 +78,8 @@ targets:
         product: PostHog
       - package: Reown
         product: ReownAppKit
+      - package: Reown
+        product: WalletConnectNetworking
       - package: CryptoSwift
         product: CryptoSwift
     settings:
@@ -94,6 +96,12 @@ targets:
       properties:
         com.apple.developer.applesignin:
           - Default
+        # Reown/WalletConnect's Networking/Sign/Pairing client factories use this
+        # group both as a UserDefaults(suiteName:) suite and as the Keychain
+        # kSecAttrAccessGroup (see WalletConnectService.configure); it must match
+        # the groupIdentifier passed there.
+        com.apple.security.application-groups:
+          - group.com.konradgnat.luminalog
     info:
       path: LuminaLog/Resources/Info.plist
       properties:

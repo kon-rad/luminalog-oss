@@ -23,6 +23,9 @@ struct RootView: View {
     @State private var createRequest: CreateEntryRequest?
     @State private var journalChatRequest: JournalChatRequest?
     @State private var isKeyboardVisible = false
+    /// Shown the instant Save is tapped in the Create flow, which now dismisses
+    /// immediately while the entry finishes saving in the background.
+    @State private var toastMessage: String?
     /// Latest profile snapshot, used to re-arm the reminder on scene-active.
     @State private var latestProfile: UserProfile?
 
@@ -105,6 +108,7 @@ struct RootView: View {
                     leaderboard: services.leaderboard,
                     ai: services.ai,
                     soul: services.soul,
+                    encouragements: encouragements,
                     onResumeDraft: { draftId in
                         selectedTab = .home
                         createRequest = CreateEntryRequest(resumeDraftId: draftId)
@@ -128,9 +132,14 @@ struct RootView: View {
         }
         .onAppear { services.activity.setOnHomeTab(selectedTab == .home) }
         .fullScreenCover(item: $createRequest) { request in
-            CreateEntryView(request: request, services: services)
-                .tracksInterruptionSurface(services.activity)
+            CreateEntryView(
+                request: request,
+                services: services,
+                onSaveStarted: { toastMessage = "Saving journal entry" }
+            )
+            .tracksInterruptionSurface(services.activity)
         }
+        .toast(message: $toastMessage)
         .fullScreenCover(item: $journalChatRequest) { request in
             switch request.kind {
             case .text:

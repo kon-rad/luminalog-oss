@@ -4,6 +4,19 @@ import SwiftUI
 /// resolved-and-active; otherwise blocks the whole app with a non-dismissible
 /// paywall. Pro = app access (see docs/PRICING.md); voice additionally meters
 /// credits inside the app.
+///
+/// `content` (`RootView`) stays mounted at all times, with the paywall/spinner
+/// overlaid on top while locked: the same "keep it mounted, toggle visibility"
+/// technique `RootView.tabContent` uses for its own tabs. Previously this
+/// `switch`ed between three structurally different view trees, which tore down
+/// and remounted `RootView` the instant the entitlement resolved (see
+/// ADR-0090). Remounting right after RevenueCat's UIKit-hosted paywall, whose
+/// template plants a purchase panel across roughly the bottom half of the
+/// screen, let that outgoing view's safe-area geometry bleed into
+/// `AppTabBar`'s first layout pass, so on a brand-new subscriber's first
+/// unlock the tab bar would render oversized for a frame before snapping to
+/// its real height. Keeping `content()` permanently mounted means `AppTabBar`
+/// never has an adjacent view's geometry to interpolate against.
 struct PaywallGate<Content: View>: View {
 
     @StateObject private var viewModel: PaywallGateViewModel
@@ -23,7 +36,11 @@ struct PaywallGate<Content: View>: View {
     }
 
     var body: some View {
-        Group {
+        ZStack {
+            content()
+                .allowsHitTesting(viewModel.state == .unlocked)
+                .accessibilityHidden(viewModel.state != .unlocked)
+
             switch viewModel.state {
             case .checking:
                 ZStack {
@@ -33,7 +50,7 @@ struct PaywallGate<Content: View>: View {
             case .locked:
                 SubscriptionPaywall(isDismissible: false, onSignOut: onSignOut)
             case .unlocked:
-                content()
+                EmptyView()
             }
         }
         .task { viewModel.start() }

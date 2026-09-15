@@ -9,10 +9,12 @@ import { SessionProvider } from '@/lib/session/session-context'
 import PaywallGate from '@/components/app/PaywallGate'
 import KeyUnlockGate from '@/components/app/keys/KeyUnlockGate'
 import AppShell from '@/components/app/AppShell'
+import OfflineBanner from '@/components/app/OfflineBanner'
 
 export default function AppGroupLayout({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
+      <OfflineBanner />
       <SessionProvider>
         <PaywallGate>
           <KeyUnlockGate>

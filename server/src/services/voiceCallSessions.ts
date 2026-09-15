@@ -31,6 +31,19 @@ export interface VoiceCallSession {
   lastStreamedChars?: number
   /** DIAGNOSTIC: 1-based turn counter within this call, for log correlation. */
   turnSeq?: number
+  /**
+   * The most recent turn's dedup fingerprint + a promise for its final spoken
+   * text. Vapi's custom-LLM connector can retry an unresolved turn by opening a
+   * BRAND NEW request with the identical `messages` history rather than waiting
+   * on the original one, which previously made the proxy re-run RAG and a fresh
+   * non-deterministic completion for every retry. A retry now matches this
+   * fingerprint and awaits the SAME promise instead of starting over. The
+   * promise is intentionally left in place after it resolves (never cleared
+   * back to undefined) so a LATE duplicate arriving after the turn already
+   * completed still gets the identical cached answer; it is only replaced when
+   * a genuinely new turn (a different message history) begins.
+   */
+  pendingTurn?: { fingerprint: string; textPromise: Promise<string> }
 }
 
 export interface CreateSessionData {

@@ -3,8 +3,9 @@ import OSLog
 import SwiftUI
 import UserNotifications
 
-/// Runs the daily encouragement cycle: generate the morning batch, store it
-/// encrypted, prune what aged out, and arm the day's remaining notification slots.
+/// Runs Mirror's daily cycle: generate today's three time-of-day Echoes, store
+/// them encrypted, and arm whichever of the day's notification slots are still
+/// ahead of now.
 ///
 /// The cycle is idempotent. It runs from two places: the 5 AM `BGAppRefreshTask`
 /// and every scene-active transition (the catch-up path, since iOS may run the
@@ -63,27 +64,18 @@ final class EncouragementCoordinator: ObservableObject {
             await cancelAllSlots()
             return
         }
-        guard await hasNotificationPermission() else { return }
+        guard await ensureNotificationPermission() else { return }
 
         let reference = now()
         let timezone = TimeZone(identifier: profile?.timezone ?? "") ?? .current
+        let key = Self.dateKey(reference, timezone: timezone)
 
         do {
-            try await generateBatchIfNeeded(reference: reference, timezone: timezone)
+            try await generateBatchIfNeeded(dateKey: key, reference: reference)
 
-            var queue = try await repository.undelivered()
-
-            let stale = EncouragementPlanner.expired(queue, now: reference)
-            if !stale.isEmpty {
-                let cutoff = Calendar(identifier: .gregorian)
-                    .date(byAdding: .day, value: -EncouragementExpiry.days, to: reference) ?? reference
-                try await repository.deleteExpired(createdBefore: cutoff)
-                let staleIds = Set(stale.map(\.id))
-                queue.removeAll { staleIds.contains($0.id) }
-            }
-
+            let today = try await repository.messages(forDateKey: key)
             let plan = EncouragementPlanner.plan(
-                now: reference, queue: queue, slots: EncouragementSlot.all, timezone: timezone
+                now: reference, today: today, slots: EncouragementSlot.all, timezone: timezone
             )
             try await arm(plan)
         } catch {
@@ -93,35 +85,50 @@ final class EncouragementCoordinator: ObservableObject {
 
     // MARK: - Private
 
-    private func hasNotificationPermission() async -> Bool {
-        let status = await scheduler.authorizationStatus()
-        return status == .authorized || status == .provisional || status == .ephemeral
+    /// True once the OS has granted permission. Unlike a plain status check,
+    /// this also REQUESTS permission the first time it sees `.notDetermined`:
+    /// the feature defaults to on (see `EncouragementPrefs`) and the Settings
+    /// toggle is rarely touched, so this cycle is often the only place that
+    /// would ever trigger the system prompt. Safe to call on every cycle:
+    /// once the user has answered, iOS returns the cached answer instead of
+    /// prompting again.
+    private func ensureNotificationPermission() async -> Bool {
+        switch await scheduler.authorizationStatus() {
+        case .authorized, .provisional, .ephemeral:
+            return true
+        case .notDetermined:
+            return await scheduler.requestAuthorization()
+        default:
+            return false
+        }
     }
 
     /// Calls the AI at most once per local day. Nothing is written when the model
-    /// returns no messages, so the next foreground retries rather than banking a
-    /// day of silence.
-    private func generateBatchIfNeeded(reference: Date, timezone: TimeZone) async throws {
-        let key = Self.dateKey(reference, timezone: timezone)
-        if try await repository.hasBatch(forDateKey: key) { return }
+    /// had nothing to ground any slot in, so the next foreground retries rather
+    /// than banking a day of silence.
+    private func generateBatchIfNeeded(dateKey: String, reference: Date) async throws {
+        if try await repository.hasBatch(forDateKey: dateKey) { return }
 
-        let generated = try await ai.generateEncouragements()
-        guard !generated.isEmpty else { return }
-
-        let messages = generated.enumerated().map { index, item in
-            EncouragementMessage(
-                id: EncouragementIds.documentId(dateKey: key, generatedAt: reference, index: index),
-                title: item.title,
-                body: item.body,
+        let echoes = try await ai.generateMirrorEchoes()
+        let messages = EncouragementSlot.all.compactMap { slot -> EncouragementMessage? in
+            guard let text = echoes.text(for: slot.timeOfDay)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !text.isEmpty else { return nil }
+            return EncouragementMessage(
+                id: EncouragementIds.documentId(dateKey: dateKey, timeOfDay: slot.timeOfDay),
+                timeOfDay: slot.timeOfDay,
+                text: text,
                 createdAt: reference,
                 deliveredAt: nil
             )
         }
+        guard !messages.isEmpty else { return }
         try await repository.save(messages)
     }
 
     /// Arms each planned slot and cancels any slot the plan did not fill, so a
-    /// shorter queue never leaves a stale notification pending from an earlier run.
+    /// missed or ungrounded slot never leaves a stale notification pending from
+    /// an earlier run. The notification title is always the static feature
+    /// name; the model-generated text is the body only.
     private func arm(_ plan: [EncouragementAssignment]) async throws {
         let assigned = Dictionary(uniqueKeysWithValues: plan.map { ($0.slotId, $0) })
         for slot in EncouragementSlot.all {
@@ -131,8 +138,8 @@ final class EncouragementCoordinator: ObservableObject {
             }
             await scheduler.reschedule(
                 identifier: slot.id,
-                title: assignment.message.title,
-                body: assignment.message.body,
+                title: EncouragementPrefs.displayName,
+                body: assignment.message.text,
                 to: assignment.fireDate
             )
             try await repository.markDelivered(id: assignment.message.id, at: assignment.fireDate)

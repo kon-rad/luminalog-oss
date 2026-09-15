@@ -9,9 +9,9 @@ final class EncouragementMappingTests: XCTestCase {
     func testRoundTripsThroughFirestoreData() throws {
         let created = Date(timeIntervalSince1970: 1_700_000_000)
         let message = EncouragementMessage(
-            id: "2026-08-24_1700000000000_0",
-            title: "One small step",
-            body: "You named the hard part yesterday. Take the smallest version of it today.",
+            id: "2026-08-24_morning",
+            timeOfDay: .morning,
+            text: "You named the hard part yesterday. Take the smallest version of it today.",
             createdAt: created,
             deliveredAt: nil
         )
@@ -19,17 +19,17 @@ final class EncouragementMappingTests: XCTestCase {
         let data = try message.firestoreData(cipher: cipher)
         let decoded = try EncouragementMessage(firestore: data, id: message.id, cipher: cipher)
 
-        XCTAssertEqual(decoded.title, message.title)
-        XCTAssertEqual(decoded.body, message.body)
+        XCTAssertEqual(decoded.timeOfDay, message.timeOfDay)
+        XCTAssertEqual(decoded.text, message.text)
         XCTAssertEqual(decoded.createdAt.timeIntervalSince1970, created.timeIntervalSince1970, accuracy: 1)
         XCTAssertNil(decoded.deliveredAt)
     }
 
-    func testTitleAndBodyAreNotStoredInPlaintext() throws {
+    func testTextIsNotStoredInPlaintext() throws {
         let message = EncouragementMessage(
-            id: "2026-08-24_1700000000000_1",
-            title: "Secret title",
-            body: "Secret body text.",
+            id: "2026-08-24_afternoon",
+            timeOfDay: .afternoon,
+            text: "Secret reflection text.",
             createdAt: Date(),
             deliveredAt: nil
         )
@@ -37,42 +37,52 @@ final class EncouragementMappingTests: XCTestCase {
         let data = try message.firestoreData(cipher: cipher)
         let dump = String(describing: data)
 
-        XCTAssertFalse(dump.contains("Secret title"))
-        XCTAssertFalse(dump.contains("Secret body text."))
+        XCTAssertFalse(dump.contains("Secret reflection text."))
     }
 
     func testDecryptionFailsWhenTheAADContextDoesNotMatch() throws {
         let message = EncouragementMessage(
-            id: "2026-08-24_1700000000000_9",
-            title: "T", body: "B",
+            id: "2026-08-24_evening",
+            timeOfDay: .evening, text: "T",
             createdAt: Date(timeIntervalSince1970: 1_700_000_000),
             deliveredAt: nil
         )
         var data = try message.firestoreData(cipher: cipher)
-        // Swap the title ciphertext for one sealed under a different context.
-        data["title"] = try cipher.sealed("T", "dailyReports.findings")
+        // Swap the text ciphertext for one sealed under a different context.
+        data["text"] = try cipher.sealed("T", "dailyReports.findings")
 
         XCTAssertThrowsError(try EncouragementMessage(firestore: data, id: message.id, cipher: cipher))
     }
 
-    func testDocumentIdSortsChronologicallyWithinAndAcrossDays() {
-        let earlier = Date(timeIntervalSince1970: 1_700_000_000)
-        let later = Date(timeIntervalSince1970: 1_700_086_400)
+    func testDecodingFailsWhenTimeOfDayIsMissingOrUnrecognized() throws {
+        let message = EncouragementMessage(
+            id: "2026-08-24_morning",
+            timeOfDay: .morning, text: "T",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000),
+            deliveredAt: nil
+        )
+        var data = try message.firestoreData(cipher: cipher)
+        data["timeOfDay"] = "midnight"
 
-        let a = EncouragementIds.documentId(dateKey: "2026-08-24", generatedAt: earlier, index: 0)
-        let b = EncouragementIds.documentId(dateKey: "2026-08-24", generatedAt: earlier, index: 1)
-        let c = EncouragementIds.documentId(dateKey: "2026-08-25", generatedAt: later, index: 0)
+        XCTAssertThrowsError(try EncouragementMessage(firestore: data, id: message.id, cipher: cipher))
+    }
 
-        XCTAssertTrue(a < b)
-        XCTAssertTrue(b < c)
+    func testDocumentIdEmbedsDateKeyAndTimeOfDay() {
+        let a = EncouragementIds.documentId(dateKey: "2026-08-24", timeOfDay: .morning)
+        let b = EncouragementIds.documentId(dateKey: "2026-08-24", timeOfDay: .evening)
+        let c = EncouragementIds.documentId(dateKey: "2026-08-25", timeOfDay: .morning)
+
+        XCTAssertEqual(a, "2026-08-24_morning")
+        XCTAssertEqual(b, "2026-08-24_evening")
         XCTAssertEqual(EncouragementIds.dateKeyPrefix(a), "2026-08-24")
+        XCTAssertEqual(EncouragementIds.dateKeyPrefix(c), "2026-08-25")
     }
 
     func testDeliveredAtSurvivesTheRoundTrip() throws {
         let delivered = Date(timeIntervalSince1970: 1_700_050_000)
         let message = EncouragementMessage(
-            id: "2026-08-24_1700000000000_2",
-            title: "T", body: "B",
+            id: "2026-08-24_afternoon",
+            timeOfDay: .afternoon, text: "T",
             createdAt: Date(timeIntervalSince1970: 1_700_000_000),
             deliveredAt: delivered
         )
@@ -81,5 +91,18 @@ final class EncouragementMappingTests: XCTestCase {
         let decoded = try EncouragementMessage(firestore: data, id: message.id, cipher: cipher)
 
         XCTAssertEqual(decoded.deliveredAt?.timeIntervalSince1970 ?? 0, delivered.timeIntervalSince1970, accuracy: 1)
+    }
+
+    func testDeliveredAtIsOmittedRatherThanWrittenAsNullWhileQueued() throws {
+        let message = EncouragementMessage(
+            id: "2026-08-24_morning",
+            timeOfDay: .morning, text: "T",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000),
+            deliveredAt: nil
+        )
+
+        let data = try message.firestoreData(cipher: cipher)
+
+        XCTAssertNil(data["deliveredAt"])
     }
 }

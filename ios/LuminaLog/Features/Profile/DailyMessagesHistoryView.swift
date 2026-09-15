@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Settings > Message history: every daily-encouragement notification already
-/// delivered to this device, newest first. Read-only; the on/off toggle for the
-/// feature itself lives back on the Settings screen.
+/// Settings > Mirror history: every Echo notification already delivered to
+/// this device, newest first. Read-only; the on/off toggle for the feature
+/// itself lives back on the Settings screen.
 struct DailyMessagesHistoryView: View {
 
     let repository: EncouragementRepository
@@ -27,7 +27,7 @@ struct DailyMessagesHistoryView: View {
             .padding(.bottom, AppTabBar.scrollBottomPadding)
         }
         .background(Color.appBackground.ignoresSafeArea())
-        .navigationTitle("Message History")
+        .navigationTitle("Mirror History")
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadMore() }
     }
@@ -56,13 +56,10 @@ struct DailyMessagesHistoryView: View {
 
     private func row(_ message: EncouragementMessage) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(Self.timestampLabel(message.deliveredAt ?? message.createdAt))
+            Text("\(message.timeOfDay.label) \u{00b7} \(Self.timestampLabel(message.deliveredAt ?? message.createdAt))")
                 .font(.captionText)
                 .foregroundStyle(Color.textSecondary)
-            Text(message.title)
-                .font(.uiBody.weight(.semibold))
-                .foregroundStyle(Color.textPrimary)
-            Text(message.body)
+            Text(message.text)
                 .font(.uiBody)
                 .foregroundStyle(Color.textPrimary)
         }
@@ -75,7 +72,7 @@ struct DailyMessagesHistoryView: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 32, weight: .light))
                 .foregroundStyle(Color.accentWarm)
-            Text("Your daily messages will show up here once they start arriving.")
+            Text("Your reflections will show up here once they start arriving.")
                 .font(.uiBody)
                 .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)

@@ -7,53 +7,31 @@ struct EncouragementAssignment: Equatable {
     let message: EncouragementMessage
 }
 
-/// Pure scheduling math for the daily encouragement notifications. No Firestore,
-/// no `UNUserNotificationCenter`, no clock: everything is passed in, so the
-/// rotation rules are fully unit-testable.
+/// Pure scheduling math for Mirror's notifications. No Firestore, no
+/// `UNUserNotificationCenter`, no clock: everything is passed in, so the
+/// mapping is fully unit-testable.
 enum EncouragementPlanner {
 
-    /// Undelivered messages created more than `EncouragementExpiry.days` before
-    /// `now`. These are pruned so the queue stays bounded: five arrive each
-    /// morning, three are delivered, and the rest age out.
-    static func expired(_ queue: [EncouragementMessage], now: Date) -> [EncouragementMessage] {
-        guard let cutoff = Calendar(identifier: .gregorian).date(
-            byAdding: .day, value: -EncouragementExpiry.days, to: now
-        ) else { return [] }
-        return queue.filter { !$0.isDelivered && $0.createdAt < cutoff }
-    }
-
-    /// Assigns the oldest undelivered messages to today's remaining slots.
-    ///
-    /// Rotation: the queue is sorted oldest first, so yesterday's leftovers fire
-    /// before this morning's fresh batch. Only slots strictly ahead of `now` are
-    /// scheduled, which makes a mid-day run (the foreground catch-up path) fill
-    /// just the slots that have not passed.
+    /// Maps today's already-generated echoes onto the slots whose fire time is
+    /// still ahead of `now`. A slot with no matching `timeOfDay` message (the AI
+    /// had nothing to ground it in that day) or whose fire time has already
+    /// passed is omitted; the coordinator cancels whatever is not in the result,
+    /// so a missed slot is simply skipped rather than back-filled or rolled over.
     static func plan(
         now: Date,
-        queue: [EncouragementMessage],
+        today: [EncouragementMessage],
         slots: [EncouragementSlot],
         timezone: TimeZone
     ) -> [EncouragementAssignment] {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timezone
+        let byTimeOfDay = Dictionary(uniqueKeysWithValues: today.map { ($0.timeOfDay, $0) })
 
-        let pending = queue
-            .filter { !$0.isDelivered }
-            .sorted { ($0.createdAt, $0.id) < ($1.createdAt, $1.id) }
-        guard !pending.isEmpty else { return [] }
-
-        var assignments: [EncouragementAssignment] = []
-        var next = pending.makeIterator()
-
-        for slot in slots {
+        return slots.compactMap { slot in
             guard let fire = calendar.date(
                 bySettingHour: slot.hour, minute: slot.minute, second: 0, of: now
-            ), fire > now else { continue }
-            guard let message = next.next() else { break }
-            assignments.append(
-                EncouragementAssignment(slotId: slot.id, fireDate: fire, message: message)
-            )
+            ), fire > now, let message = byTimeOfDay[slot.timeOfDay] else { return nil }
+            return EncouragementAssignment(slotId: slot.id, fireDate: fire, message: message)
         }
-        return assignments
     }
 }

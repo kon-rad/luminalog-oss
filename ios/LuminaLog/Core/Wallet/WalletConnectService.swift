@@ -2,6 +2,8 @@ import Foundation
 import Combine
 import CryptoSwift
 import ReownAppKit
+import WalletConnectNetworking
+import UIKit
 
 /// Errors from the wallet-connect layer (spec §5.2, §6.2).
 enum WalletConnectError: LocalizedError {
@@ -100,6 +102,93 @@ private func eip55Checksum(_ address: String) -> String {
     return result
 }
 
+/// A `WebSocketFactory` backed by `URLSessionWebSocketTask` (native, no
+/// third-party dependency). reown-swift's Example app uses Starscream's
+/// `WebSocket`, but the SDK only requires the `WebSocketFactory` protocol.
+private struct URLSessionWebSocketFactory: WebSocketFactory {
+    func create(with url: URL) -> WebSocketConnecting {
+        URLSessionWebSocketConnecting(url: url)
+    }
+}
+
+/// Adapter that makes `URLSessionWebSocketTask` conform to
+/// `WebSocketConnecting` so it can be used with reown-swift's relay.
+private final class URLSessionWebSocketConnecting: NSObject, WebSocketConnecting, URLSessionWebSocketDelegate {
+    let url: URL
+    private var session: URLSession!
+    private var task: URLSessionWebSocketTask!
+
+    var isConnected: Bool = false
+    var onConnect: (() -> Void)?
+    var onDisconnect: ((Error?) -> Void)?
+    var onText: ((String) -> Void)?
+    var request: URLRequest
+
+    init(url: URL) {
+        self.url = url
+        self.request = URLRequest(url: url)
+        super.init()
+        self.session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+    }
+
+    func connect() {
+        // Must use `request`, not `url`: reown-swift's RelayClientFactory sets
+        // the relay's required `Authorization: Bearer <JWT>` and `User-Agent`
+        // headers on `socket.request` after `WebSocketFactory.create(with:)`
+        // returns (see RelayClientFactory.swift), then calls this method
+        // expecting those headers to go out with the handshake. Opening from
+        // the bare `url` drops them, so the relay rejects the WebSocket
+        // upgrade (NSURLErrorDomain -1011, "bad response from the server").
+        task = session.webSocketTask(with: request)
+        task.resume()
+        // The delegate callback for didOpen is the signal.
+    }
+
+    func disconnect() {
+        task.cancel(with: .normalClosure, reason: nil)
+        task = nil
+    }
+
+    func write(string: String, completion: (() -> Void)?) {
+        task.send(.string(string)) { _ in completion?() }
+    }
+
+    // MARK: - URLSessionWebSocketDelegate
+
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+        isConnected = true
+        onConnect?()
+        receiveNext()
+    }
+
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+        isConnected = false
+        onDisconnect?(nil)
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: (any Error)?) {
+        if let error {
+            isConnected = false
+            onDisconnect?(error)
+        }
+    }
+
+    private func receiveNext() {
+        task.receive { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success(.string(let text)):
+                self.onText?(text)
+                self.receiveNext()
+            case .success(.data):
+                self.receiveNext()
+            case .failure:
+                self.isConnected = false
+            }
+        }
+    }
+}
+
 @MainActor
 final class LiveWalletConnectService: WalletConnectService {
 
@@ -150,6 +239,22 @@ final class LiveWalletConnectService: WalletConnectService {
     /// call fail closed with `.notConfigured` rather than crash.
     static func configure(projectId: String, metadata: AppMetadata) {
         guard !projectId.isEmpty else { return }
+        /// Must configure networking before AppKit; AppKit's lazy singleton
+        /// touches `Networking.interactor` during its own init.
+        ///
+        /// `groupIdentifier` must be a real App Group ID (reown-swift's client
+        /// factories use it both as the `UserDefaults(suiteName:)` and as the
+        /// Keychain `kSecAttrAccessGroup`), matching the
+        /// `com.apple.security.application-groups` entitlement in
+        /// LuminaLog.entitlements. It cannot be the app's own bundle identifier:
+        /// `UserDefaults(suiteName:)` returns nil (fatalError) when the suite name
+        /// collides with the app's standard domain, and an unentitled Keychain
+        /// access group fails with `errSecMissingEntitlement`.
+        Networking.configure(
+            groupIdentifier: "group.com.konradgnat.luminalog",
+            projectId: projectId,
+            socketFactory: URLSessionWebSocketFactory()
+        )
         AppKit.configure(
             projectId: projectId,
             metadata: metadata,
@@ -283,6 +388,16 @@ final class LiveWalletConnectService: WalletConnectService {
             Task {
                 do {
                     try await AppKit.instance.request(params: request)
+                    // Sending the request only queues it on the relay; unlike
+                    // AppKit's own connect UI (which deep-links as part of
+                    // presenting), a raw `request(params:)` call never
+                    // switches the user back into their wallet app. Without
+                    // this, the sign request sits unseen until the user
+                    // happens to reopen the wallet manually, which usually
+                    // loses the race against the timeout below. Mirrors
+                    // reown-swift's own Example app (AppKitLab/ContentView.swift),
+                    // which calls this immediately after every `request(...)`.
+                    AppKit.instance.launchCurrentWallet()
                 } catch {
                     resume(.failure(WalletConnectError.signRejected))
                 }

@@ -128,8 +128,9 @@ enum Model1Requests {
         let sourceEntryIds: [String]
     }
 
-    /// Body for `POST /v1/ai/daily-encouragements`. Zero-knowledge: the entries,
-    /// name and profile are all PLAINTEXT, decrypted on device.
+    /// Body for `POST /v1/ai/daily-mirror` (and the legacy `/v1/ai/daily-encouragements`
+    /// an older client build may still call). Zero-knowledge: the entries, name
+    /// and profile are all PLAINTEXT, decrypted on device.
     struct DailyEncouragementsBody: Encodable {
         let name: String
         let profile: [String: String]

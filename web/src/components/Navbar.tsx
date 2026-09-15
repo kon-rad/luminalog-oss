@@ -1,28 +1,63 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { FirebaseError } from 'firebase/app'
 import { useAuth } from '@/lib/auth-context'
+import { useSolanaSignIn } from '@/lib/wallet/useSolanaSignIn'
 import AppStoreButton from '@/components/AppStoreButton'
 import { TELEGRAM_HREF } from '@/components/SocialLinks'
 
 // Popup cancellations aren't errors; the user just dismissed the sheet.
 const CANCEL_CODES = new Set(['auth/popup-closed-by-user', 'auth/cancelled-popup-request'])
 
-// The section anchors shared by the desktop bar and the mobile drawer.
-const NAV_LINKS: [label: string, href: string][] = [
-  ['Reflect', '/#reflect'],
-  ['Practice', '/#practice'],
-  ['Privacy', '/#privacy'],
-  ['Pricing', '/#pricing'],
-  ['Courses', '/courses'],
-  ['Card Game', '/card-game'],
-  ['Events', '/events'],
-  ['Blog', '/blog'],
+type LinkItem = { label: string; href: string; external?: boolean }
+
+// The "Products" submenu, shared by the desktop dropdown and the mobile
+// drawer's expandable section.
+const PRODUCTS_LINKS: LinkItem[] = [
+  { label: 'Privacy', href: '/#privacy' },
+  { label: 'Open Source', href: 'https://github.com/kon-rad/luminalog-oss', external: true },
+  { label: 'Blog', href: '/blog' },
+  { label: 'Events', href: '/events' },
+  { label: 'Courses', href: '/courses' },
+  { label: 'Card Game', href: '/card-game' },
+  { label: 'Reflect', href: '/#reflect' },
+  { label: 'Practice', href: '/#practice' },
 ]
+
+// The "Socials" submenu, shared by the desktop dropdown and the mobile
+// drawer's expandable section.
+const SOCIAL_LINKS: LinkItem[] = [
+  { label: 'AI Agents Course', href: 'https://www.youtube.com/@ArgoPodcast', external: true },
+  { label: 'X', href: 'https://x.com/myargoquest', external: true },
+  { label: 'Instagram', href: 'https://instagram.com/myargoquest', external: true },
+  { label: 'Facebook', href: 'https://www.facebook.com/myargoquest', external: true },
+  { label: 'Telegram Community', href: TELEGRAM_HREF, external: true },
+  { label: 'GitHub', href: 'https://github.com/kon-rad/luminalog-oss', external: true },
+  { label: 'Konrad Gnat (X)', href: 'https://x.com/konrad_gnat', external: true },
+  { label: 'YouTube (@MyArgoQuest)', href: 'https://www.youtube.com/@myargoquest', external: true },
+]
+
+/* Shared outside-click / Escape close behavior for the Products, Socials,
+ * and sign-in dropdowns below. */
+function useOutsideClose(active: boolean, ref: { current: HTMLElement | null }, onClose: () => void) {
+  useEffect(() => {
+    if (!active) return
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+    }
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('mousedown', onDown)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('mousedown', onDown)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [active, ref, onClose])
+}
 
 export default function Navbar() {
   const router = useRouter()
@@ -81,6 +116,31 @@ export default function Navbar() {
     }
   }
 
+  // Solana is connect-then-sign rather than a single popup, so it goes through
+  // the shared hook (also used by the /journal gate's SignIn screen) instead
+  // of `signInWith` above. `startSolanaSignIn` returns immediately; the
+  // spinner clears via whichever of the three callbacks below eventually fires.
+  const startSolanaSignIn = useSolanaSignIn(
+    (message) => {
+      console.error('[navbar] Solana sign-in failed:', message)
+      setSigningIn(false)
+    },
+    () => setSigningIn(false), // wallet picker dismissed without connecting: not an error
+    () => {
+      setSigningIn(false)
+      router.push('/home')
+    },
+  )
+
+  const signInWithSolanaWallet = () => {
+    setSigningIn(true)
+    // Close our own dropdown/drawer up front: the wallet-adapter picker is a
+    // separate overlay that would otherwise render on top of it.
+    setMenuOpen(false)
+    setDrawerOpen(false)
+    startSolanaSignIn()
+  }
+
   return (
     <header
       id="nav"
@@ -105,22 +165,8 @@ export default function Navbar() {
 
           {/* Right */}
           <div className="flex items-center gap-6">
-            {NAV_LINKS.map(([label, href]) => (
-              <Link key={label} href={href} className="nav-link hidden md:block">{label}</Link>
-            ))}
-
-            {/* External, so a plain anchor rather than a Next <Link> like the
-                section anchors above. */}
-            <a
-              href={TELEGRAM_HREF}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="nav-link hidden md:inline-flex items-center gap-1.5"
-              title="Argo community on Telegram"
-            >
-              <TelegramGlyph />
-              Community
-            </a>
+            <NavDropdown label="Products" items={PRODUCTS_LINKS} />
+            <NavDropdown label="Socials" items={SOCIAL_LINKS} />
 
             {!loading && (
               user ? (
@@ -176,6 +222,16 @@ export default function Navbar() {
                           <GoogleGlyph />
                           Continue with Google
                         </button>
+                        <button
+                          role="menuitem"
+                          onClick={signInWithSolanaWallet}
+                          disabled={signingIn}
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold"
+                          style={{ color: 'var(--text)' }}
+                        >
+                          <SolanaGlyph />
+                          Connect Solana Wallet
+                        </button>
                       </div>
                     )}
                   </div>
@@ -184,8 +240,7 @@ export default function Navbar() {
               )
             )}
 
-            {/* Mobile controls: always-visible Blog + hamburger */}
-            <Link href="/blog" className="nav-link md:hidden">Blog</Link>
+            {/* Mobile control: hamburger opens the drawer below */}
             <button
               onClick={() => setDrawerOpen((v) => !v)}
               className="md:hidden inline-flex items-center justify-center"
@@ -205,31 +260,8 @@ export default function Navbar() {
       {drawerOpen && (
         <div ref={drawerRef} id="mobile-drawer" role="menu" className="md:hidden" style={{ borderTop: '1px solid var(--hairline)' }}>
           <div className="wrap" style={{ paddingTop: 12, paddingBottom: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {NAV_LINKS.map(([label, href]) => (
-              <Link
-                key={label}
-                href={href}
-                role="menuitem"
-                onClick={() => setDrawerOpen(false)}
-                className="nav-link"
-                style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', padding: '11px 4px' }}
-              >
-                {label}
-              </Link>
-            ))}
-
-            <a
-              href={TELEGRAM_HREF}
-              target="_blank"
-              rel="noopener noreferrer"
-              role="menuitem"
-              onClick={() => setDrawerOpen(false)}
-              className="nav-link inline-flex items-center gap-2"
-              style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', padding: '11px 4px' }}
-            >
-              <TelegramGlyph />
-              Community
-            </a>
+            <MobileAccordion label="Products" items={PRODUCTS_LINKS} onNavigate={() => setDrawerOpen(false)} />
+            <MobileAccordion label="Socials" items={SOCIAL_LINKS} onNavigate={() => setDrawerOpen(false)} />
 
             <div style={{ height: 1, background: 'var(--hairline)', margin: '8px 0' }} />
 
@@ -276,6 +308,16 @@ export default function Navbar() {
                     <GoogleGlyph />
                     Continue with Google
                   </button>
+                  <button
+                    role="menuitem"
+                    onClick={signInWithSolanaWallet}
+                    disabled={signingIn}
+                    className="flex items-center gap-2.5 text-left"
+                    style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', padding: '11px 4px' }}
+                  >
+                    <SolanaGlyph />
+                    Connect Solana Wallet
+                  </button>
                   <AppStoreButton
                     variant="full"
                     label="Download on the App Store"
@@ -307,11 +349,140 @@ function CloseGlyph() {
   )
 }
 
-function TelegramGlyph() {
+function SolanaGlyph() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden style={{ flexShrink: 0 }}>
-      <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.009-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden style={{ flexShrink: 0 }}>
+      <defs>
+        <linearGradient id="solana-glyph-gradient" x1="0" y1="0" x2="24" y2="24">
+          <stop offset="0" stopColor="#9945FF" />
+          <stop offset="1" stopColor="#14F195" />
+        </linearGradient>
+      </defs>
+      <path
+        fill="url(#solana-glyph-gradient)"
+        d="M4.5 16.6c.2-.2.5-.3.8-.3h14.4c.5 0 .7.6.4.9l-3 3c-.2.2-.5.3-.8.3H1.9c-.5 0-.7-.6-.4-.9l3-3zm0-9.2c.2-.2.5-.3.8-.3h14.4c.5 0 .7.6.4.9l-3 3c-.2.2-.5.3-.8.3H1.9c-.5 0-.7-.6-.4-.9l3-3zM19.7 12c.2.2.3.5.3.8v0c0 .5-.6.7-.9.4l-3-3a1.1 1.1 0 0 1-.3-.8v0c0-.5.6-.7.9-.4l3 3z"
+      />
     </svg>
+  )
+}
+
+function ChevronGlyph({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden
+      style={{ transition: 'transform .15s', transform: open ? 'rotate(180deg)' : 'none', flexShrink: 0 }}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  )
+}
+
+/* Desktop "Products" / "Socials" dropdown: a nav-link trigger that opens a
+ * floating menu of the given links, closing on outside click or Escape. */
+function NavDropdown({ label, items }: { label: string; items: LinkItem[] }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const close = useCallback(() => setOpen(false), [])
+  useOutsideClose(open, ref, close)
+
+  return (
+    <div ref={ref} className="relative hidden md:block">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="nav-link inline-flex items-center gap-1"
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        {label}
+        <ChevronGlyph open={open} />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute left-0 mt-2 flex w-52 flex-col gap-0.5 rounded-2xl p-1.5"
+          style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', boxShadow: 'var(--shadowHover)' }}
+        >
+          {items.map((item) =>
+            item.external ? (
+              <a
+                key={item.label}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                role="menuitem"
+                onClick={close}
+                className="rounded-xl px-3 py-2 text-sm font-medium"
+                style={{ color: 'var(--text)' }}
+              >
+                {item.label}
+              </a>
+            ) : (
+              <Link
+                key={item.label}
+                href={item.href}
+                role="menuitem"
+                onClick={close}
+                className="rounded-xl px-3 py-2 text-sm font-medium"
+                style={{ color: 'var(--text)' }}
+              >
+                {item.label}
+              </Link>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* Mobile drawer's expandable "Products" / "Socials" section: a tap-to-expand
+ * disclosure listing the same links indented beneath it. */
+function MobileAccordion({ label, items, onNavigate }: { label: string; items: LinkItem[]; onNavigate: () => void }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        role="menuitem"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between text-left"
+        style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', padding: '11px 4px' }}
+      >
+        {label}
+        <ChevronGlyph open={open} />
+      </button>
+      {open && (
+        <div style={{ display: 'flex', flexDirection: 'column', paddingLeft: 14 }}>
+          {items.map((item) =>
+            item.external ? (
+              <a
+                key={item.label}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                role="menuitem"
+                onClick={onNavigate}
+                style={{ fontSize: 15, fontWeight: 500, color: 'var(--text2)', padding: '9px 4px' }}
+              >
+                {item.label}
+              </a>
+            ) : (
+              <Link
+                key={item.label}
+                href={item.href}
+                role="menuitem"
+                onClick={onNavigate}
+                style={{ fontSize: 15, fontWeight: 500, color: 'var(--text2)', padding: '9px 4px' }}
+              >
+                {item.label}
+              </Link>
+            )
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 

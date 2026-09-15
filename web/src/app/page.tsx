@@ -795,7 +795,7 @@ export default function Home() {
               <p className="serif" style={{ fontStyle: 'italic', fontSize: 16, color: 'var(--text2)', marginTop: 14, maxWidth: 280 }}>Record, reflect, and grow with your private AI journaling app.</p>
             </div>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', paddingTop: 6 }}>
-              {[['Events', '/events'], ['Blog', '/blog'], ['Privacy Policy', '/privacy'], ['Terms', '/terms'], ['Support', 'mailto:konradmgnat@gmail.com']].map(([label, href]) => (
+              {[['Events', '/events'], ['Blog', '/blog'], ['Card Game', '/card-game'], ['Privacy Policy', '/privacy'], ['Terms', '/terms'], ['Support', 'mailto:konradmgnat@gmail.com']].map(([label, href]) => (
                 <a key={label} href={href} style={{ fontSize: 14, color: 'var(--text2)', transition: 'color .15s' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--accentDeep)')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--text2)')}>

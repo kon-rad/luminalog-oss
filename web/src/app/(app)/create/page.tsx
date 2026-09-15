@@ -17,6 +17,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { FirebaseError } from 'firebase/app'
 import { AudioLines, Camera, Loader2, Mic, Video as VideoIcon, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
@@ -32,6 +33,22 @@ import { wordCount } from '@/lib/wordCount'
 import { deriveEntryTitle } from '@/lib/entryTitle'
 
 const AUTOSAVE_DEBOUNCE_MS = 700
+
+/**
+ * `permission-denied` from a save the user is clearly signed in for (this
+ * screen is behind the auth/key gates) almost always means the local auth
+ * session went stale rather than a real rules rejection: the most common
+ * cause seen in the wild is the browser's local storage silently failing to
+ * write (a full IndexedDB quota) partway through, which corrupts Firebase
+ * Auth's ability to attach a valid token to the request. Name that
+ * possibility instead of the generic message so it's actionable.
+ */
+function describeSaveError(err: unknown): string {
+  if (err instanceof FirebaseError && err.code === 'permission-denied') {
+    return "Couldn't verify your sign-in to save this. Your browser's local storage may be full, or your session may have expired. Try freeing up disk space, then refresh the page and try again."
+  }
+  return 'Could not save your entry. Please try again.'
+}
 
 const MEDIA_ACTIONS: { label: string; Icon: LucideIcon }[] = [
   { label: 'Record', Icon: Mic },
@@ -169,7 +186,7 @@ function CreateEntryScreen() {
       router.push('/home')
     } catch (err) {
       console.error('[create] save failed:', err)
-      setError('Could not save your entry. Please try again.')
+      setError(describeSaveError(err))
       setSaving(false)
     }
   }

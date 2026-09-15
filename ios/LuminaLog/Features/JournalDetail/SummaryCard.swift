@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Expandable AI summary card on the Main tab (design §4): collapsed to
 /// three lines, tap to expand. Shows a "Regenerate" affordance only when the
@@ -51,6 +52,9 @@ struct SummaryCard: View {
         .accessibilityLabel("AI summary: \(text)")
         .accessibilityHint(isExpanded ? "Tap to collapse" : "Tap to expand")
         .accessibilityActions {
+            Button("Copy summary") {
+                UIPasteboard.general.string = text
+            }
             if showsRegenerate, !isRegenerating {
                 Button("Regenerate", action: onRegenerate)
             }
@@ -66,6 +70,8 @@ struct SummaryCard: View {
                 .kerning(0.8)
 
             Spacer()
+
+            CopyButton(text: text, accessibilityText: "Copy summary")
 
             Image(systemName: "chevron.down")
                 .font(.system(size: 11, weight: .semibold))
