@@ -11,9 +11,9 @@ import {
   ONLINE_CLASS_AGENDA,
   ONLINE_PORTAL_OUTPUT,
   ONLINE_PORTAL_NOTE,
-  ONLINE_TIME_SLOTS,
-  ONLINE_TIMEZONE_NOTE,
+  ONLINE_SCHEDULE_NOTE,
 } from '@/lib/kids-stem/course'
+import KidsStemInterestForm from '@/components/KidsStemInterestForm'
 
 export const metadata: Metadata = {
   title: 'Kids Wholistic Creativity & STEM, Argo',
@@ -74,7 +74,7 @@ export default function KidsStemPage() {
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3" style={{ marginTop: 28 }}>
             <Link href="#schedule" className="btn-amber">
-              See class times
+              Register interest
               <ArrowRight style={{ width: 16, height: 16 }} />
             </Link>
             <Link
@@ -188,80 +188,15 @@ export default function KidsStemPage() {
         </div>
       </section>
 
-      {/* Class times */}
+      {/* Class times: schedule not set yet, so collect interest instead */}
       <section id="schedule">
         <div className="wrap" style={{ padding: '48px 0 8px', maxWidth: 760 }}>
           <SectionHeading>Class times</SectionHeading>
           <p style={{ fontSize: 16.5, lineHeight: 1.6, color: 'var(--text2)', margin: '12px 0 22px' }}>
             Every class is capped at 5 children and 1 teacher, so every child gets real time to speak,
-            share and be heard. Each slot below is its own fixed group, meeting every two weeks at that
-            same day and time.
+            share and be heard. {ONLINE_SCHEDULE_NOTE}
           </p>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 15 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--hairline2)' }}>
-                  <th
-                    style={{
-                      textAlign: 'left',
-                      padding: '8px 12px 8px 0',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                      color: 'var(--text3)',
-                    }}
-                  >
-                    Day (Chicago)
-                  </th>
-                  <th
-                    style={{
-                      textAlign: 'left',
-                      padding: '8px 12px',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                      color: 'var(--text3)',
-                    }}
-                  >
-                    Time (Chicago)
-                  </th>
-                  <th
-                    style={{
-                      textAlign: 'left',
-                      padding: '8px 0 8px 12px',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                      color: 'var(--text3)',
-                    }}
-                  >
-                    Day and time (Singapore)
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {ONLINE_TIME_SLOTS.map((slot, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--hairline)' }}>
-                    <td style={{ padding: '10px 12px 10px 0', color: 'var(--text)', fontWeight: 600 }}>
-                      {slot.dayChicago}
-                    </td>
-                    <td style={{ padding: '10px 12px', color: 'var(--text2)', fontVariantNumeric: 'tabular-nums' }}>
-                      {slot.timeChicago}
-                    </td>
-                    <td style={{ padding: '10px 0 10px 12px', color: 'var(--text2)', fontVariantNumeric: 'tabular-nums' }}>
-                      {slot.dayTimeSingapore}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p style={{ fontSize: 13.5, lineHeight: 1.6, color: 'var(--text3)', marginTop: 16 }}>
-            {ONLINE_TIMEZONE_NOTE}
-          </p>
+          <KidsStemInterestForm />
         </div>
       </section>
 

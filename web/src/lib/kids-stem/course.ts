@@ -136,28 +136,10 @@ export const ONLINE_PORTAL_OUTPUT: string[] = [
 export const ONLINE_PORTAL_NOTE =
   'Every video is downloadable, and parents can leave notes or messages for the teacher directly in the portal.'
 
-export interface TimeSlot {
-  dayChicago: string
-  timeChicago: string
-  dayTimeSingapore: string
-}
-
-/** Nine weekly slots (3 days x 3 times). Each slot is its own fixed group,
- * meeting every two weeks at that same day and time. */
-export const ONLINE_TIME_SLOTS: TimeSlot[] = [
-  { dayChicago: 'Wednesday', timeChicago: '7:00 PM', dayTimeSingapore: 'Thursday, 8:00 AM' },
-  { dayChicago: 'Wednesday', timeChicago: '8:00 PM', dayTimeSingapore: 'Thursday, 9:00 AM' },
-  { dayChicago: 'Wednesday', timeChicago: '9:00 PM', dayTimeSingapore: 'Thursday, 10:00 AM' },
-  { dayChicago: 'Thursday', timeChicago: '7:00 PM', dayTimeSingapore: 'Friday, 8:00 AM' },
-  { dayChicago: 'Thursday', timeChicago: '8:00 PM', dayTimeSingapore: 'Friday, 9:00 AM' },
-  { dayChicago: 'Thursday', timeChicago: '9:00 PM', dayTimeSingapore: 'Friday, 10:00 AM' },
-  { dayChicago: 'Friday', timeChicago: '7:00 PM', dayTimeSingapore: 'Saturday, 8:00 AM' },
-  { dayChicago: 'Friday', timeChicago: '8:00 PM', dayTimeSingapore: 'Saturday, 9:00 AM' },
-  { dayChicago: 'Friday', timeChicago: '9:00 PM', dayTimeSingapore: 'Saturday, 10:00 AM' },
-]
-
-export const ONLINE_TIMEZONE_NOTE =
-  'Singapore does not observe daylight saving time. These times use US Central Daylight Time, in effect through 1 November 2026. After the US clocks change to Central Standard Time, every Singapore time above moves one hour later until US daylight saving resumes in March 2027.'
+/** No fixed slots yet. The schedule is being set; classes are likely to start
+ * late September or early October 2026. Parents register interest instead. */
+export const ONLINE_SCHEDULE_NOTE =
+  'The class schedule is coming soon. Classes are likely to start in late September or early October. Leave your details below and we will send you the times as soon as they are set.'
 
 /* ── Module 0: the class structure (from the Luma description) ───────────── */
 

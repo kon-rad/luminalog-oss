@@ -108,6 +108,30 @@ service cloud.firestore {
         && request.resource.data.agreedToTerms == true;
     }
 
+    // Public website forms. Each form gets its own submissions subcollection
+    // under forms/{formId}. Anyone may create a submission (auto id), but none
+    // are publicly readable/updatable/deletable — they hold PII.
+    //
+    // Kids STEM class interest form (/courses/kids-stem#schedule).
+    match /forms/kidsStemInterest/submissions/{id} {
+      allow read, update, delete: if false;
+      allow create: if request.resource.data.keys().hasOnly(
+          ['parentName', 'email', 'childAges', 'location', 'notes', 'source', 'createdAt', 'userAgent'])
+        && request.resource.data.parentName is string
+        && request.resource.data.parentName.size() > 0
+        && request.resource.data.parentName.size() < 200
+        && request.resource.data.email is string
+        && request.resource.data.email.size() < 320
+        && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$')
+        && request.resource.data.childAges is string
+        && request.resource.data.childAges.size() <= 200
+        && request.resource.data.location is string
+        && request.resource.data.location.size() <= 200
+        && request.resource.data.notes is string
+        && request.resource.data.notes.size() <= 2000
+        && request.resource.data.createdAt == request.time;
+    }
+
     // Chats: top-level collection keyed by a userId field.
     match /chats/{chatId} {
       allow read, update, delete: if request.auth != null
