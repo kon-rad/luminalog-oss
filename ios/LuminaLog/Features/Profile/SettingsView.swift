@@ -28,6 +28,7 @@ struct SettingsView: View {
     @State private var showNotManageableAlert = false
     @State private var showCredits = false
     @State private var showConfig = false
+    @State private var showUsernameEditor = false
     @State private var showRecordings = false
     @State private var showMessageHistory = false
     @State private var showSignOutDialog = false
@@ -737,6 +738,8 @@ struct SettingsView: View {
                 .padding(.bottom, Spacing.s)
 
             VStack(spacing: 0) {
+                usernameRow
+                rowDivider
                 recordingsRow
                 rowDivider
                 subscriptionRow
@@ -1255,6 +1258,45 @@ struct SettingsView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Subscription, \(viewModel.subscriptionLabel)")
+    }
+
+    /// Public `@username` that outside agents use to address info requests.
+    /// The sheet is attached here, not on `body`, to keep `body`'s modifier
+    /// chain under the type checker's limit.
+    private var usernameRow: some View {
+        Button {
+            showUsernameEditor = true
+        } label: {
+            HStack(spacing: Spacing.m) {
+                settingsIcon("at", tint: .accentWarm)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Username")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text(viewModel.profile?.username.map { "@\($0)" } ?? "Choose how agents can reach you")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+            }
+            .padding(Spacing.m)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Username, \(viewModel.profile?.username ?? "not set")")
+        .sheet(isPresented: $showUsernameEditor) {
+            // The saved name reaches the row through the live `users/{uid}`
+            // listener, so `onSaved` has nothing extra to do.
+            UsernameEditView(
+                service: services.inboxService,
+                current: viewModel.profile?.username,
+                changedAt: viewModel.profile?.usernameChangedAt,
+                onSaved: { _ in }
+            )
+        }
     }
 
     private var aiConfigRow: some View {

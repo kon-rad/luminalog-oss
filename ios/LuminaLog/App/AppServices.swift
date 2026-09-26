@@ -88,6 +88,13 @@ final class AppServices: ObservableObject {
     /// Nil when `api` is nil (`mocks()`), like other network-backed helpers.
     let voiceRecordingImporter: VoiceRecordingImporter?
 
+    // MARK: - Agent Info Requests
+
+    let inboxService: InboxService
+    /// Drafts answers from on-device journal context. Nil in `mocks()` builds
+    /// that don't wire one, which hides the "Draft with AI" button.
+    let infoAnswerDrafter: InfoAnswerDrafting?
+
     init(
         auth: AuthService,
         keys: UserKeyStore,
@@ -119,7 +126,9 @@ final class AppServices: ObservableObject {
         entryAIGenerator: EntryAIGenerator,
         wallet: WalletConnectService? = nil,
         eoaWrapTransport: EOAWrapTransport? = nil,
-        eoaKeyEnroller: EOAKeyEnroller? = nil
+        eoaKeyEnroller: EOAKeyEnroller? = nil,
+        inboxService: InboxService,
+        infoAnswerDrafter: InfoAnswerDrafting? = nil
     ) {
         self.auth = auth
         self.keys = keys
@@ -152,6 +161,8 @@ final class AppServices: ObservableObject {
         self.wallet = wallet
         self.eoaWrapTransport = eoaWrapTransport
         self.eoaKeyEnroller = eoaKeyEnroller
+        self.inboxService = inboxService
+        self.infoAnswerDrafter = infoAnswerDrafter
         self.dailyGoalReconciler = DailyGoalReconciler(journals: journals, profiles: profiles)
         // Built here (not in the factories) from the injected repositories, mirroring
         // `dailyGoalReconciler`. The recoverer is the same fetch→decrypt→transcribe
@@ -373,7 +384,11 @@ final class AppServices: ObservableObject {
             entryAIGenerator: entryAIGenerator,
             wallet: wallet,
             eoaWrapTransport: eoaWrapTransport,
-            eoaKeyEnroller: eoaKeyEnroller
+            eoaKeyEnroller: eoaKeyEnroller,
+            inboxService: ProxyInboxService(api: api),
+            infoAnswerDrafter: InfoAnswerDrafter(
+                api: api, journals: journals, profiles: profiles, searcher: coordinator
+            )
         )
     }
 
@@ -460,7 +475,9 @@ final class AppServices: ObservableObject {
                 ),
                 transport: MockKeyMigrationTransport()
             ),
-            entryAIGenerator: entryAIGenerator
+            entryAIGenerator: entryAIGenerator,
+            inboxService: MockInboxService(),
+            infoAnswerDrafter: MockInfoAnswerDrafter()
         )
     }
 }

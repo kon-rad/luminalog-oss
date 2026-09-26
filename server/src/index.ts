@@ -19,15 +19,21 @@ import { eventsRouter } from './routes/events'
 import { vectorsRouter } from './routes/vectors'
 import { ragRouter } from './routes/rag'
 import { consentRouter } from './routes/consent'
+import { profileRouter } from './routes/profile'
 import { analyticsRouter } from './routes/analytics'
 import { cardGameRouter } from './routes/cardGame'
+import { inboxRouter } from './routes/inbox'
+import { infoAnswerRouter } from './routes/infoAnswer'
 
 const app = express()
+
+app.set('trust proxy', 1) // nginx is the single proxy hop; needed so req.ip is the client, not 127.0.0.1 (info-request IP rate limit)
 
 app.use(express.json({ limit: '10mb' }))
 
 app.use('/health', healthRouter)
 app.use('/v1/ai/chat', chatRouter)
+app.use('/v1/ai/info-answer', infoAnswerRouter) // stateless: drafts agent info-request answers from client context
 app.use('/v1/ai', aiRouter)
 app.use('/v1/vapi', vapiRouter)
 app.use('/v1/revenuecat', revenueCatRouter)
@@ -46,9 +52,11 @@ app.use('/v1/course-badge', courseBadgeRouter) // public (no auth): ERC-721 meta
 app.use('/v1/events', eventsRouter) // public (no auth): past-events archive for the website
 app.use('/v1/ph', analyticsRouter) // public (no auth): PostHog ingestion reverse proxy, keeps tracking domains out of the iOS privacy manifest
 app.use('/v1/consent', consentRouter) // ZK AI-data-sharing consent record (1b)
+app.use('/v1/profile', profileRouter) // authed: public username claim/check (agent info requests)
 // Card game: authed room/answer writes, public playback. Deliberately NOT
 // zero-knowledge; audio lives under the public/cardgame/ S3 prefix (ADR-0129).
 app.use('/v1/cardgame', cardGameRouter)
+app.use('/v1/inbox', inboxRouter) // agent info requests: POST /requests + GET /signer public, rest authed
 
 // Backstop error middleware: catches anything routes forward via next(err).
 // (Express 4 does not auto-forward async-handler rejections; that's handled
