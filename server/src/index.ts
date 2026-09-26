@@ -22,8 +22,11 @@ import { consentRouter } from './routes/consent'
 import { profileRouter } from './routes/profile'
 import { analyticsRouter } from './routes/analytics'
 import { cardGameRouter } from './routes/cardGame'
+import { inboxRouter } from './routes/inbox'
 
 const app = express()
+
+app.set('trust proxy', 1) // nginx is the single proxy hop; needed so req.ip is the client, not 127.0.0.1 (info-request IP rate limit)
 
 app.use(express.json({ limit: '10mb' }))
 
@@ -51,6 +54,7 @@ app.use('/v1/profile', profileRouter) // authed: public username claim/check (ag
 // Card game: authed room/answer writes, public playback. Deliberately NOT
 // zero-knowledge; audio lives under the public/cardgame/ S3 prefix (ADR-0129).
 app.use('/v1/cardgame', cardGameRouter)
+app.use('/v1/inbox', inboxRouter) // agent info requests: POST /requests + GET /signer public, rest authed
 
 // Backstop error middleware: catches anything routes forward via next(err).
 // (Express 4 does not auto-forward async-handler rejections; that's handled
