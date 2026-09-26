@@ -242,7 +242,9 @@ extension UserProfile {
                 return UserProfile.SummaryConfig(wordLength: wordLength, systemPrompt: systemPrompt)
             }(),
             details: UserProfile.ProfileDetails(data: data["profileDetails"] as? [String: Any] ?? [:], cipher: cipher),
-            walletAddress: data["walletAddress"] as? String
+            walletAddress: data["walletAddress"] as? String,
+            username: data["username"] as? String,
+            usernameChangedAt: timestamp(data["usernameChangedAt"])
         )
     }
 

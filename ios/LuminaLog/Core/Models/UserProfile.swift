@@ -170,6 +170,10 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
     /// server-side by `POST /v1/auth/siwe/link`. Unrelated to `walletCard`'s
     /// server-minted LuminaSoul custodial wallet.
     var walletAddress: String?
+    /// Public-facing username for agent info request identity.
+    var username: String?
+    /// When `username` was last changed; server-written.
+    var usernameChangedAt: Date?
 
     init(
         id: String,
@@ -185,7 +189,9 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         dailyPrompt: DailyPrompt? = nil,
         summaryConfig: SummaryConfig? = nil,
         details: ProfileDetails = ProfileDetails(),
-        walletAddress: String? = nil
+        walletAddress: String? = nil,
+        username: String? = nil,
+        usernameChangedAt: Date? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -201,5 +207,7 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         self.summaryConfig = summaryConfig
         self.details = details
         self.walletAddress = walletAddress
+        self.username = username
+        self.usernameChangedAt = usernameChangedAt
     }
 }

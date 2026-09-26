@@ -82,6 +82,13 @@ struct RootView: View {
                     onStartJournalChat: onStartJournalChat
                 )
             }
+            tabContent(for: .inbox) {
+                InboxListView(
+                    viewModel: InboxViewModel(
+                        inboxService: services.inboxService
+                    )
+                )
+            }
             tabContent(for: .chats) {
                 ChatListView(
                     chats: services.chats,
