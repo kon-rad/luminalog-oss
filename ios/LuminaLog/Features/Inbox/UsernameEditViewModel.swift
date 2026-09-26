@@ -28,7 +28,8 @@ final class UsernameEditViewModel: ObservableObject {
     // MARK: Published state
 
     @Published var text: String = ""
-    @Published private(set) var status: Status = .idle
+    /// Settable in-module so tests can seed a state; views only read it.
+    @Published var status: Status = .idle
 
     // MARK: Dependencies
 

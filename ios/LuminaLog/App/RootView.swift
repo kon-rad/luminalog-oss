@@ -85,7 +85,8 @@ struct RootView: View {
             tabContent(for: .inbox) {
                 InboxListView(
                     viewModel: InboxViewModel(
-                        inboxService: services.inboxService
+                        inboxService: services.inboxService,
+                        drafter: services.infoAnswerDrafter
                     )
                 )
             }

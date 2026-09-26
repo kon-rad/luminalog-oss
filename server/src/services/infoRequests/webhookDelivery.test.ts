@@ -15,6 +15,7 @@ describe('isPrivateAddress', () => {
 
 describe('isAcceptableWebhookUrl', () => {
   it('accepts a public https url', () => expect(isAcceptableWebhookUrl('https://agent.example.com/reply')).toBe(true))
+  it('accepts a public IPv6 literal', () => expect(isAcceptableWebhookUrl('https://[2606:4700:4700::1111]/reply')).toBe(true))
   it.each([
     'http://agent.example.com/reply',
     'https://localhost/reply',
@@ -22,6 +23,9 @@ describe('isAcceptableWebhookUrl', () => {
     'https://[::1]/reply',
     'https://[::ffff:127.0.0.1]/reply',
     'https://10.0.0.5/reply',
+    'https://[::127.0.0.1]/reply',
+    'https://[64:ff9b::7f00:1]/reply',
+    'https://[2002:7f00:1::]/reply',
     'https://user:pw@agent.example.com/reply',
     'not a url',
     `https://agent.example.com/${'a'.repeat(2050)}`,

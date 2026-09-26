@@ -13,20 +13,20 @@ protocol InfoAnswerDrafting: AnyObject {
 
 // MARK: - Draft body
 
-/// JSON body sent to the AI endpoint for answer drafting.
+/// JSON body for `POST /v1/ai/info-answer`. Must match the server's
+/// `BODY_SCHEMA` in `server/src/routes/infoAnswer.ts`: the route has no access
+/// to the journal, so each item carries its own on-device retrieved context.
 struct InfoAnswerDraftBody: Encodable {
-    /// The sender of the info request.
+    /// The sender of the info request, as the model sees it.
     struct Sender: Encodable {
-        let address: String
-        let ens: String?
         let name: String
         let description: String
     }
 
-    /// One question-and-answer slot.
+    /// One question plus the journal excerpts retrieved for it.
     struct Item: Encodable {
-        let index: Int
         let question: String
+        let journalContext: String
     }
 
     let name: String
@@ -35,7 +35,6 @@ struct InfoAnswerDraftBody: Encodable {
     let sender: Sender
     let reason: String
     let items: [Item]
-    let contexts: [String]
 }
 
 // MARK: - InfoAnswerDrafter
@@ -66,29 +65,22 @@ final class InfoAnswerDrafter: InfoAnswerDrafting {
     }
 
     func draftAnswers(for request: InfoRequest) async throws -> [String] {
-        // Gather context
         let entries = try await journals.fetchAllEntries()
         let profile = try await fetchProfile()
-        let query = request.questions.joined(separator: " ")
-        let context = await Model1Requests.journalContext(
-            from: entries,
-            query: query,
-            now: now(),
-            searcher: searcher
-        )
-        let contexts = context.isEmpty ? [] : [context]
+        // Retrieve per question, so each answer is drafted from the excerpts
+        // that match it rather than one blended context for every question.
+        var contexts: [String] = []
+        for question in request.questions {
+            contexts.append(await Model1Requests.journalContext(
+                from: entries,
+                query: question,
+                now: now(),
+                searcher: searcher
+            ))
+        }
 
-        let body = Self.makeBody(
-            request: request,
-            profile: profile,
-            contexts: contexts
-        )
-
-        // POST to the AI drafting endpoint and decode responses
-        let response: DraftResponse = try await api.post(
-            path: "/v1/inbox/draft",
-            body: body
-        )
+        let body = Self.makeBody(request: request, profile: profile, contexts: contexts)
+        let response: DraftResponse = try await api.post(path: "/v1/ai/info-answer", body: body)
         return response.answers
     }
 
@@ -108,7 +100,8 @@ final class InfoAnswerDrafter: InfoAnswerDrafting {
     // MARK: - Body assembly
 
     /// Pure factory: builds the request body from the available data.
-    /// No I/O, no state, testable independently.
+    /// `contexts[i]` is the journal context for `request.questions[i]`; a
+    /// missing entry is sent as empty, which the server treats as "no entries".
     static func makeBody(
         request: InfoRequest,
         profile: UserProfile,
@@ -119,16 +112,16 @@ final class InfoAnswerDrafter: InfoAnswerDrafting {
             bio: profile.biography,
             profile: Model1Requests.profileFields(from: profile.details),
             sender: InfoAnswerDraftBody.Sender(
-                address: request.sender.address,
-                ens: request.sender.ens,
                 name: request.sender.name,
                 description: request.sender.description
             ),
             reason: request.reason,
             items: request.questions.enumerated().map { index, question in
-                InfoAnswerDraftBody.Item(index: index, question: question)
-            },
-            contexts: contexts
+                InfoAnswerDraftBody.Item(
+                    question: question,
+                    journalContext: index < contexts.count ? contexts[index] : ""
+                )
+            }
         )
     }
 }

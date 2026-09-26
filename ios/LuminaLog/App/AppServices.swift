@@ -91,6 +91,9 @@ final class AppServices: ObservableObject {
     // MARK: - Agent Info Requests
 
     let inboxService: InboxService
+    /// Drafts answers from on-device journal context. Nil in `mocks()` builds
+    /// that don't wire one, which hides the "Draft with AI" button.
+    let infoAnswerDrafter: InfoAnswerDrafting?
 
     init(
         auth: AuthService,
@@ -124,7 +127,8 @@ final class AppServices: ObservableObject {
         wallet: WalletConnectService? = nil,
         eoaWrapTransport: EOAWrapTransport? = nil,
         eoaKeyEnroller: EOAKeyEnroller? = nil,
-        inboxService: InboxService
+        inboxService: InboxService,
+        infoAnswerDrafter: InfoAnswerDrafting? = nil
     ) {
         self.auth = auth
         self.keys = keys
@@ -158,6 +162,7 @@ final class AppServices: ObservableObject {
         self.eoaWrapTransport = eoaWrapTransport
         self.eoaKeyEnroller = eoaKeyEnroller
         self.inboxService = inboxService
+        self.infoAnswerDrafter = infoAnswerDrafter
         self.dailyGoalReconciler = DailyGoalReconciler(journals: journals, profiles: profiles)
         // Built here (not in the factories) from the injected repositories, mirroring
         // `dailyGoalReconciler`. The recoverer is the same fetch→decrypt→transcribe
@@ -380,7 +385,10 @@ final class AppServices: ObservableObject {
             wallet: wallet,
             eoaWrapTransport: eoaWrapTransport,
             eoaKeyEnroller: eoaKeyEnroller,
-            inboxService: ProxyInboxService(api: api)
+            inboxService: ProxyInboxService(api: api),
+            infoAnswerDrafter: InfoAnswerDrafter(
+                api: api, journals: journals, profiles: profiles, searcher: coordinator
+            )
         )
     }
 
@@ -468,7 +476,8 @@ final class AppServices: ObservableObject {
                 transport: MockKeyMigrationTransport()
             ),
             entryAIGenerator: entryAIGenerator,
-            inboxService: MockInboxService()
+            inboxService: MockInboxService(),
+            infoAnswerDrafter: MockInfoAnswerDrafter()
         )
     }
 }

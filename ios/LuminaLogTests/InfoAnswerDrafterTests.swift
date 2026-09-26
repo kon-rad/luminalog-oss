@@ -1,25 +1,8 @@
 import XCTest
 @testable import LuminaLog
 
-// MARK: - Mocks
-
-private final class MockSearcher: SemanticIndexCoordinating {
-    var chunks: [ChunkRef] = []
-    var searchResults: [String] = []
-
-    func searchChunks(query: String, k: Int) async throws -> [ChunkRef] { chunks }
-    func search(query: String, k: Int) async throws -> [String] { searchResults }
-}
-
+@MainActor
 final class InfoAnswerDrafterTests: XCTestCase {
-
-    private let api = ProxyAPIClient(
-        baseURL: URL(string: "https://api.example.com")!,
-        tokenProvider: InboxTokenProvider()
-    )
-    private let journals = MockJournalRepository()
-    private let profiles = MockProfileRepository()
-    private let searcher = MockSearcher()
 
     // MARK: - makeBody JSON structure
 
@@ -77,39 +60,51 @@ final class InfoAnswerDrafterTests: XCTestCase {
         let data = try encoder.encode(body)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
 
-        // Verify sender
+        // Top-level keys match the server's BODY_SCHEMA exactly.
+        XCTAssertEqual(Set(json.keys), ["name", "bio", "profile", "sender", "reason", "items"])
+
+        // Sender carries only what the model sees: name + description.
         let jsonSender = try XCTUnwrap(json["sender"] as? [String: Any])
-        XCTAssertEqual(jsonSender["address"] as? String, "0xabc")
-        XCTAssertEqual(jsonSender["ens"] as? String, "alice.eth")
+        XCTAssertEqual(Set(jsonSender.keys), ["name", "description"])
         XCTAssertEqual(jsonSender["name"] as? String, "Alice")
         XCTAssertEqual(jsonSender["description"] as? String, "A friendly request")
 
-        // Verify name / bio / reason
         XCTAssertEqual(json["name"] as? String, "Alice")
         XCTAssertEqual(json["bio"] as? String, "A curious journaler")
         XCTAssertEqual(json["reason"] as? String, "Research")
 
-        // Verify profile fields
         let jsonProfile = try XCTUnwrap(json["profile"] as? [String: String])
         XCTAssertEqual(jsonProfile["goals"], "Write daily")
         XCTAssertEqual(jsonProfile["hobbies"], "Reading")
         XCTAssertEqual(jsonProfile["age"], "30")
         XCTAssertEqual(jsonProfile["location"], "NYC")
-        // nil fields should be absent
         XCTAssertNil(jsonProfile["gender"])
         XCTAssertNil(jsonProfile["challenges"])
 
-        // Verify items (questions -> items mapping)
-        let jsonItems = try XCTUnwrap(json["items"] as? [[String: Any]])
-        XCTAssertEqual(jsonItems.count, 2)
-        XCTAssertEqual(jsonItems[0]["index"] as? Int, 0)
-        XCTAssertEqual(jsonItems[0]["question"] as? String, "What is your favorite color?")
-        XCTAssertEqual(jsonItems[1]["index"] as? Int, 1)
-        XCTAssertEqual(jsonItems[1]["question"] as? String, "How old are you?")
+        // One item per question, each with its own journal context.
+        let jsonItems = try XCTUnwrap(json["items"] as? [[String: String]])
+        XCTAssertEqual(jsonItems, [
+            ["question": "What is your favorite color?", "journalContext": "I wrote about my day yesterday."],
+            ["question": "How old are you?", "journalContext": "I had coffee with a friend."],
+        ])
+    }
 
-        // Verify contexts are included
-        let jsonContexts = try XCTUnwrap(json["contexts"] as? [String])
-        XCTAssertEqual(jsonContexts, contexts)
+    func testMakeBodyPadsMissingContextsWithEmptyString() throws {
+        let request = InfoRequest(
+            id: "req-2",
+            sender: InfoRequestSender(address: "0xabc", ens: nil, name: "Bob", description: "Agent"),
+            reason: "Survey",
+            questions: ["Q1?", "Q2?"],
+            webhookHost: "hook.example.com",
+            createdAt: Date(),
+            expiresAt: Date().addingTimeInterval(86400)
+        )
+        let body = InfoAnswerDrafter.makeBody(
+            request: request,
+            profile: UserProfile(id: "uid", displayName: "Bob", biography: ""),
+            contexts: ["only one"]
+        )
+        XCTAssertEqual(body.items.map(\.journalContext), ["only one", ""])
     }
 
     // MARK: - MockInfoAnswerDrafter
@@ -158,10 +153,4 @@ final class InfoAnswerDrafterTests: XCTestCase {
             XCTAssertEqual(error as? TestError, TestError())
         }
     }
-}
-
-// MARK: - Token provider (shared with InboxServiceTests)
-
-private final class InboxTokenProvider: TokenProvider {
-    func idToken(forceRefresh: Bool) async throws -> String { "test-token" }
 }

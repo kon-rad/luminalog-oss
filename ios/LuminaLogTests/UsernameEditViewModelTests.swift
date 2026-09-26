@@ -6,18 +6,15 @@ final class UsernameEditViewModelTests: XCTestCase {
 
     private var service: MockInboxService!
     private var now: Date!
-    private var onSaved: ((UsernameUpdate) -> Void)!
 
     override func setUp() async throws {
         service = MockInboxService()
         now = Date()
-        onSaved = { _ in }
     }
 
     override func tearDown() async throws {
         service = nil
         now = nil
-        onSaved = nil
     }
 
     // MARK: - Local validation skips network for invalid chars
@@ -92,9 +89,10 @@ final class UsernameEditViewModelTests: XCTestCase {
         XCTAssertNil(vm.lockedUntil, "Should not be locked when 30+ days have passed")
     }
 
-    // MARK: - Save calls setUsername and fires onSaved
+    // MARK: - Save calls setUsername and reports .saved
 
-    func testSaveCallsSetUsernameAndFiresOnSaved() async {
+    /// The view dismisses and calls its own `onSaved` when `status` becomes `.saved`.
+    func testSaveCallsSetUsernameAndReportsSaved() async {
         let update = UsernameUpdate(
             username: "newuser",
             usernameChangedAt: now,
@@ -102,10 +100,7 @@ final class UsernameEditViewModelTests: XCTestCase {
         )
         service.setResult = .success(update)
 
-        var savedUpdate: UsernameUpdate?
-        let vm = makeVM(current: "olduser", changedAt: now.addingTimeInterval(-86400 * 31)) { update in
-            savedUpdate = update
-        }
+        let vm = makeVM(current: "olduser", changedAt: now.addingTimeInterval(-86400 * 31))
 
         vm.text = "newuser"
         vm.status = .available // Pretend check passed
@@ -114,7 +109,7 @@ final class UsernameEditViewModelTests: XCTestCase {
 
         XCTAssertTrue(success)
         XCTAssertEqual(service.checkedNames.last, "newuser")
-        XCTAssertEqual(savedUpdate, update)
+        XCTAssertEqual(vm.status, .saved(update))
     }
 
     func testSaveFailure() async {
@@ -162,8 +157,7 @@ final class UsernameEditViewModelTests: XCTestCase {
     private func makeVM(
         current: String?,
         changedAt: Date?,
-        debounceNanoseconds: UInt64 = 1, // no real debounce in tests
-        onSaved: @escaping (UsernameUpdate) -> Void = { _ in }
+        debounceNanoseconds: UInt64 = 1 // no real debounce in tests
     ) -> UsernameEditViewModel {
         UsernameEditViewModel(
             service: service,

@@ -17,6 +17,9 @@ for (const [addr, prefix] of [
 ] as const) blockList.addSubnet(addr, prefix, 'ipv4')
 for (const [addr, prefix] of [
   ['::', 128], ['::1', 128], ['fc00::', 7], ['fe80::', 10], ['ff00::', 8],
+  // Prefixes that embed an IPv4 address (IPv4-compatible, NAT64, 6to4), so a
+  // private v4 target can't be smuggled in as an IPv6 literal.
+  ['::', 96], ['64:ff9b::', 96], ['64:ff9b:1::', 48], ['2002::', 16],
 ] as const) blockList.addSubnet(addr, prefix, 'ipv6')
 
 export function isPrivateAddress(ip: string): boolean {

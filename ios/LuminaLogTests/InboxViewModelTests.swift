@@ -6,19 +6,19 @@ final class InboxViewModelTests: XCTestCase {
 
     private var inboxService: MockInboxService!
     private var viewModel: InboxViewModel!
+    private var drafter: MockInfoAnswerDrafter!
     private var now: Date!
 
     override func setUp() async throws {
         inboxService = MockInboxService()
         now = Date()
-        viewModel = InboxViewModel(
-            inboxService: inboxService,
-            now: { self.now }
-        )
+        drafter = MockInfoAnswerDrafter()
+        viewModel = InboxViewModel(inboxService: inboxService, drafter: drafter)
     }
 
     override func tearDown() async throws {
         viewModel = nil
+        drafter = nil
         inboxService = nil
         now = nil
     }
@@ -45,7 +45,7 @@ final class InboxViewModelTests: XCTestCase {
 
         // Inject a throwing service
         let throwingService = ThrowingInboxService()
-        viewModel = InboxViewModel(inboxService: throwingService, now: { self.now })
+        viewModel = InboxViewModel(inboxService: throwingService)
 
         await viewModel.load()
 
@@ -101,6 +101,54 @@ final class InboxViewModelTests: XCTestCase {
         XCTAssertFalse(result)
         // Request should still be in the list
         XCTAssertEqual(viewModel.requests.count, 1)
+    }
+
+    // MARK: - Payloads
+
+    func testPayloadsSendBlankAndDeclinedQuestionsAsNil() {
+        let payloads = InboxViewModel.payloads(
+            questionCount: 3,
+            answers: [0: "  Answer  ", 1: "   "],
+            declined: [2]
+        )
+        XCTAssertEqual(payloads, [
+            InfoAnswerPayload(index: 0, answer: "Answer"),
+            InfoAnswerPayload(index: 1, answer: nil),
+            InfoAnswerPayload(index: 2, answer: nil),
+        ])
+    }
+
+    func testPayloadsDeclinedWinsOverTypedText() {
+        let payloads = InboxViewModel.payloads(questionCount: 1, answers: [0: "typed"], declined: [0])
+        XCTAssertEqual(payloads, [InfoAnswerPayload(index: 0, answer: nil)])
+    }
+
+    // MARK: - Drafting
+
+    func testDraftReturnsOneAnswerPerQuestion() async {
+        drafter.answers = ["A1", "A2"]
+        let answers = await viewModel.draft(for: makeRequest(id: "r1"))
+        XCTAssertEqual(answers, ["A1", "A2"])
+        XCTAssertNil(viewModel.error)
+    }
+
+    func testDraftRejectsCountMismatch() async {
+        drafter.answers = ["only one"]
+        let answers = await viewModel.draft(for: makeRequest(id: "r1"))
+        XCTAssertNil(answers)
+        XCTAssertNotNil(viewModel.error)
+    }
+
+    func testDraftSurfacesError() async {
+        drafter.error = NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "AI down"])
+        let answers = await viewModel.draft(for: makeRequest(id: "r1"))
+        XCTAssertNil(answers)
+        XCTAssertEqual(viewModel.error, "AI down")
+    }
+
+    func testCanDraftFalseWithoutDrafter() {
+        XCTAssertFalse(InboxViewModel(inboxService: inboxService).canDraft)
+        XCTAssertTrue(viewModel.canDraft)
     }
 
     // MARK: - Helpers
