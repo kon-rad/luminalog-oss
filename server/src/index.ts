@@ -23,6 +23,7 @@ import { profileRouter } from './routes/profile'
 import { analyticsRouter } from './routes/analytics'
 import { cardGameRouter } from './routes/cardGame'
 import { inboxRouter } from './routes/inbox'
+import { infoAnswerRouter } from './routes/infoAnswer'
 
 const app = express()
 
@@ -32,6 +33,7 @@ app.use(express.json({ limit: '10mb' }))
 
 app.use('/health', healthRouter)
 app.use('/v1/ai/chat', chatRouter)
+app.use('/v1/ai/info-answer', infoAnswerRouter) // stateless: drafts agent info-request answers from client context
 app.use('/v1/ai', aiRouter)
 app.use('/v1/vapi', vapiRouter)
 app.use('/v1/revenuecat', revenueCatRouter)
