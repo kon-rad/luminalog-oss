@@ -173,6 +173,13 @@ export const schema = z.object({
   // of tracking domains.
   POSTHOG_API_HOST: z.string().optional(),
   POSTHOG_PROJECT_API_KEY: z.string().optional(),
+  // Agent info requests (spec 2026-09-27). Dedicated attestation key that signs
+  // webhook replies. Optional and unrefined on purpose: a missing/bad value must
+  // disable /v1/inbox/:id/respond (503), never crash-loop the server.
+  INFO_RESPONSE_SIGNER_PRIVATE_KEY: z.string().optional(),
+  // Ethereum mainnet RPC for ENS verification of request senders. Falls back to
+  // viem's default public transport when unset.
+  ETH_MAINNET_RPC_URL: z.string().optional(),
 })
 
 const parsed = schema.safeParse(process.env)
