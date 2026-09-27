@@ -1,5 +1,30 @@
 import { getJournalsCollection } from '../../db/chroma'
 
+// Chroma (1.5.x, local) can briefly fail an embeddings read with
+// "Error finding id" right after `indexEntryChunks` deletes and re-adds the same
+// chunk ids: the metadata segment already lists them before the vector index has
+// caught up. The identical read succeeds moments later, so retry briefly instead
+// of dropping the day's constellation update.
+const FINDING_ID_RETRY_DELAYS_MS = [150, 400, 1000]
+
+function isFindingIdError(e: unknown): boolean {
+  return e instanceof Error && e.message.includes('Error finding id')
+}
+
+export async function getWithFindingIdRetry<T>(
+  read: () => Promise<T>,
+  delaysMs: number[] = FINDING_ID_RETRY_DELAYS_MS,
+): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await read()
+    } catch (e) {
+      if (!isFindingIdError(e) || attempt >= delaysMs.length) throw e
+      await new Promise(r => setTimeout(r, delaysMs[attempt]))
+    }
+  }
+}
+
 /**
  * Mean of a user's journal-text chunk embeddings for one calendar day, plus the
  * day's total word count (summed over DISTINCT entries — every chunk of an entry
@@ -10,10 +35,10 @@ export async function computeDayCentroid(
   dayIndex: number,
 ): Promise<{ centroid: number[]; wordTotal: number } | null> {
   const col = await getJournalsCollection()
-  const res = await col.get({
+  const res = await getWithFindingIdRetry(() => col.get({
     where: { $and: [{ userId: { $eq: userId } }, { dayIndex: { $eq: dayIndex } }] },
     include: ['embeddings', 'metadatas'] as any,
-  })
+  }))
   const embs = (res.embeddings ?? []) as number[][]
   if (embs.length === 0) return null
 
