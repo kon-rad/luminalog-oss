@@ -729,7 +729,9 @@ export async function webhookHandler(req: Request, res: Response, database = db)
       if (!uid) {
         console.error('[vapi/webhook] no chat/uid for recording', { chatId: parsed.chatId })
       } else {
-        const key = await stageRecording(uid, parsed.callId, parsed.recordingUrl)
+        // recordingUrl only signals that a recording exists; it is not fetchable
+        // (private storage), so staging downloads by callId instead.
+        const key = await stageRecording(uid, parsed.callId)
         if (key) {
           const update: Record<string, unknown> = { pendingRecordingKey: key }
           if (parsed.durationSeconds != null) update.recordingDurationSeconds = parsed.durationSeconds

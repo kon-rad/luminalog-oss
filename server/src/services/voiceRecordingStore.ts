@@ -14,15 +14,34 @@ export function finalRecordingKey(uid: string, callId: string): string {
 }
 
 /**
- * Download Vapi's recording from its (public) URL and stage it PLAINTEXT in our
- * bucket, promptly — Vapi retains call recordings only ~14 days. Returns the
- * staging S3 key, or null on a non-OK fetch (e.g. expired/gated URL — logged so
- * we can detect Vapi gating). Never encrypts: the server holds no DEK.
+ * Vapi's recording storage is private: the end-of-call `recordingUrl` returns 400
+ * when fetched directly (every staging attempt in production failed this way).
+ * The authenticated endpoint 302-redirects to a short-lived signed URL; `fetch`
+ * follows it and drops the Authorization header on the cross-origin hop.
+ * https://docs.vapi.ai/assistants/retrieve-call-artifacts
  */
-export async function stageRecording(uid: string, callId: string, sourceUrl: string): Promise<string | null> {
-  const res = await fetch(sourceUrl)
+export function vapiRecordingEndpoint(callId: string): string {
+  return `https://api.vapi.ai/call/${encodeURIComponent(callId)}/mono-recording`
+}
+
+/**
+ * Download the call's recording from Vapi and stage it PLAINTEXT in our bucket,
+ * promptly: Vapi retains call recordings only ~14 days. Returns the staging S3
+ * key, or null when there is no private key or the download fails (logged with
+ * the start of the body so Vapi-side causes are diagnosable). Never encrypts:
+ * the server holds no DEK.
+ */
+export async function stageRecording(uid: string, callId: string): Promise<string | null> {
+  if (!config.VAPI_PRIVATE_KEY) {
+    console.error('[voiceRecordingStore] VAPI_PRIVATE_KEY unset; recording not staged', { callId })
+    return null
+  }
+  const res = await fetch(vapiRecordingEndpoint(callId), {
+    headers: { Authorization: `Bearer ${config.VAPI_PRIVATE_KEY}` },
+  })
   if (!res.ok) {
-    console.error('[voiceRecordingStore] recording fetch failed', { callId, status: res.status })
+    const body = (await res.text().catch(() => '')).slice(0, 200)
+    console.error('[voiceRecordingStore] recording fetch failed', { callId, status: res.status, body })
     return null
   }
   const body = Buffer.from(await res.arrayBuffer())

@@ -279,7 +279,7 @@ describe('vapi webhook — recording staging', () => {
     }
     const res = mockRes()
     await webhookHandler(req, res, db)
-    expect(stageRecording).toHaveBeenCalledWith('user-1', 'call_1', 'https://storage.vapi.ai/x.wav')
+    expect(stageRecording).toHaveBeenCalledWith('user-1', 'call_1')
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({ pendingRecordingKey: 'users/user-1/voice-staging/call_1.wav', recordingDurationSeconds: 42 }),
     )

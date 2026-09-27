@@ -21,6 +21,8 @@ enum DraftMediaHydrator {
         var attachments = AttachmentSet()
         var hydrated: Set<UUID> = []
         var photos: [PhotoAttachment] = []
+        var audios: [AudioAttachment] = []
+        var video: VideoAttachment?
 
         for desc in draft.attachments.sorted(by: { $0.order < $1.order }) {
             guard let durable = store.mediaURL(draftId: draft.draftId, fileName: desc.fileName) else { continue }
@@ -35,16 +37,24 @@ enum DraftMediaHydrator {
                 }
             case .audio:
                 if let temp = try? copyToTemp(durable, ext: "m4a") {
-                    _ = attachments.setAudio(AudioAttachment(url: temp, durationSec: desc.durationSec ?? 0))
+                    audios.append(AudioAttachment(url: temp, durationSec: desc.durationSec ?? 0))
                     hydrated.insert(desc.id)
                 }
             case .video:
                 if let temp = try? copyToTemp(durable, ext: durable.pathExtension) {
-                    attachments.setVideo(VideoAttachment(url: temp, thumbnail: nil, durationSec: desc.durationSec))
+                    video = VideoAttachment(url: temp, thumbnail: nil, durationSec: desc.durationSec)
                     hydrated.insert(desc.id)
                 }
             }
         }
+        // Recordings go in first and every one of them is kept: a draft can hold
+        // several (the compose flow appends, and the launch recovery sweep appends
+        // a merged clip to whatever the draft already had). If a draft somehow
+        // holds both recordings and photos/video, the set's rules keep the
+        // recordings and refuse the visual media, since only the recordings have
+        // no second copy anywhere.
+        for audio in audios { attachments.addAudio(audio) }
+        if let video { attachments.setVideo(video) }
         if !photos.isEmpty { _ = attachments.addPhotos(photos) }
         return (attachments, hydrated)
     }

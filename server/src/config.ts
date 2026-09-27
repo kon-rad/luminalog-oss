@@ -94,6 +94,11 @@ export const schema = z.object({
   VAPI_PUBLIC_KEY: z.string(),
   VAPI_ASSISTANT_ID: z.string(),
   VAPI_WEBHOOK_SECRET: z.string(),
+  // Private (server-side) Vapi API key. Vapi's recording storage is private, so
+  // the end-of-call `recordingUrl` 400s; recordings must be downloaded through
+  // the authenticated `/call/{id}/mono-recording` endpoint. Optional so a missing
+  // key disables recording staging instead of crash-looping the server.
+  VAPI_PRIVATE_KEY: z.string().optional(),
   REVENUECAT_WEBHOOK_SECRET: z.string(),
   // RAG tuning knobs
   RAG_CHUNK_SIZE: z.coerce.number().int().positive().default(1000),

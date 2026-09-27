@@ -137,38 +137,49 @@ struct AudioAttachment: Identifiable, Equatable {
 
 /// The staged attachments of a draft entry, with the entry-type rules.
 ///
-/// Type rules (kept deliberately simple — the design doesn't spec mixing):
+/// Type rules (kept deliberately simple, the design doesn't spec mixing):
 /// - video attached            → `.video` (one video max; adding it clears
-///   photos/audio, the view confirms first)
+///   photos, the view confirms first; blocked while recordings exist)
 /// - photos attached, no video → `.image` (up to 10 photos)
-/// - audio, no video/photos    → `.voice` (one recording max)
+/// - audio, no video/photos    → `.voice` (any number of recordings, kept in
+///   the order they were made)
 /// - nothing attached          → `.text`
-/// - photos + audio            → photos win: `.image`; the audio is dropped
-///   (or recording is blocked) with an inline notice.
+/// - photos + audio            → never both. Recordings are irreplaceable, so
+///   no rule ever drops one: photos/video are refused while recordings exist,
+///   and recording is refused while photos/video exist. The only way a
+///   recording leaves the set is `removeAudio(id:)`, which the view gates
+///   behind a delete confirmation.
 struct AttachmentSet: Equatable {
 
     static let maxPhotos = 10
 
     private(set) var photos: [PhotoAttachment] = []
     private(set) var video: VideoAttachment?
-    private(set) var audio: AudioAttachment?
+    private(set) var audios: [AudioAttachment] = []
 
-    var isEmpty: Bool { photos.isEmpty && video == nil && audio == nil }
+    var isEmpty: Bool { photos.isEmpty && video == nil && audios.isEmpty }
 
     /// The journal type this attachment set produces (rules above).
     var entryType: JournalType {
         if video != nil { return .video }
         if !photos.isEmpty { return .image }
-        if audio != nil { return .voice }
+        if !audios.isEmpty { return .voice }
         return .text
     }
 
     /// Recording is blocked while photos or a video are attached.
     var canRecordAudio: Bool { photos.isEmpty && video == nil }
 
+    /// Photos and video are blocked while recordings exist, so attaching one
+    /// can never silently delete a recording.
+    var canAttachVisualMedia: Bool { audios.isEmpty }
+
     /// Whether attaching a video must be confirmed first (it would replace
-    /// existing photos/audio).
-    var videoNeedsReplacementConfirm: Bool { !photos.isEmpty || audio != nil }
+    /// existing photos).
+    var videoNeedsReplacementConfirm: Bool { !photos.isEmpty }
+
+    static let visualMediaBlockedNotice =
+        "Photo and video entries can't include voice recordings. Delete the recordings first."
 
     // MARK: Mutations (each returns an optional inline-notice message)
 
@@ -177,11 +188,10 @@ struct AttachmentSet: Equatable {
         guard video == nil else {
             return "Remove the video to attach photos."
         }
-        var notice: String?
-        if audio != nil {
-            audio = nil
-            notice = "Voice recording removed, photo entries keep photos only."
+        guard canAttachVisualMedia else {
+            return Self.visualMediaBlockedNotice
         }
+        var notice: String?
         photos.append(contentsOf: newPhotos)
         if photos.count > Self.maxPhotos {
             photos = Array(photos.prefix(Self.maxPhotos))
@@ -194,30 +204,36 @@ struct AttachmentSet: Equatable {
         photos.removeAll { $0.id == id }
     }
 
-    /// Attach the (single) video, clearing photos/audio. The view is
-    /// responsible for confirming when `videoNeedsReplacementConfirm`.
-    mutating func setVideo(_ newVideo: VideoAttachment) {
+    /// Attach the (single) video, clearing photos. Refused (returns a notice)
+    /// while recordings exist. The view is responsible for confirming when
+    /// `videoNeedsReplacementConfirm`.
+    @discardableResult
+    mutating func setVideo(_ newVideo: VideoAttachment) -> String? {
+        guard canAttachVisualMedia else {
+            return Self.visualMediaBlockedNotice
+        }
         photos = []
-        audio = nil
         video = newVideo
+        return nil
     }
 
     mutating func removeVideo() {
         video = nil
     }
 
-    /// Attach the (single) voice recording. Returns a notice and drops the
-    /// recording when photos/video take priority (rules above).
+    /// Appends a voice recording after any existing ones. Returns a notice and
+    /// drops the recording when photos/video take priority (rules above).
     @discardableResult
-    mutating func setAudio(_ newAudio: AudioAttachment) -> String? {
+    mutating func addAudio(_ newAudio: AudioAttachment) -> String? {
         guard canRecordAudio else {
             return "Recording wasn't kept, photo and video entries don't include voice memos."
         }
-        audio = newAudio
+        guard !audios.contains(where: { $0.id == newAudio.id }) else { return nil }
+        audios.append(newAudio)
         return nil
     }
 
-    mutating func removeAudio() {
-        audio = nil
+    mutating func removeAudio(id: UUID) {
+        audios.removeAll { $0.id == id }
     }
 }
