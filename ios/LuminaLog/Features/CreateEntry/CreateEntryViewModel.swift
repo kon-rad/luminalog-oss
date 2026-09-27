@@ -238,28 +238,32 @@ final class CreateEntryViewModel: ObservableObject {
 
     func endLoadingVideo() { isLoadingVideo = false }
 
+    /// Photos/video can't join an entry that holds recordings, or one with a
+    /// recording still in flight (the view passes `recorderActive`), because
+    /// either would force a recording out of the entry.
+    func canAttachVisualMedia(recorderActive: Bool) -> Bool {
+        attachments.canAttachVisualMedia && !recorderActive && pendingRecordingDuration == nil
+    }
+
     func addPhotos(_ photos: [PhotoAttachment]) {
         guard !photos.isEmpty else { return }
-        let displacedAudioURL = attachments.audio?.url
         if let notice = attachments.addPhotos(photos) {
             attachmentNotice = notice
-        }
-        // Photos win over audio: when the rule dropped the recording, delete
-        // its backing file too.
-        if attachments.audio == nil, let displacedAudioURL {
-            deleteTempFile(at: displacedAudioURL)
         }
         persistDraftNow()
     }
 
     func attachVideo(_ video: VideoAttachment) {
-        if let old = attachments.video?.url, old != video.url {
+        let old = attachments.video?.url
+        if let notice = attachments.setVideo(video) {
+            // Refused: recordings are attached. Drop the unattached video copy.
+            attachmentNotice = notice
+            if old != video.url { deleteTempFile(at: video.url) }
+            return
+        }
+        if let old, old != video.url {
             deleteTempFile(at: old)
         }
-        if let oldAudio = attachments.audio?.url {
-            deleteTempFile(at: oldAudio)
-        }
-        attachments.setVideo(video)
         persistDraftNow()
     }
 
@@ -275,16 +279,17 @@ final class CreateEntryViewModel: ObservableObject {
         pendingRecordingDuration = nil
     }
 
+    /// Appends a recording (or uploaded audio file) after the existing ones.
+    /// Earlier recordings are never replaced.
     func attachAudio(_ audio: AudioAttachment) {
         pendingRecordingDuration = nil
-        let previousURL = attachments.audio?.url
-        let notice = attachments.setAudio(audio)
+        let notice = attachments.addAudio(audio)
         attachmentNotice = notice
         if notice != nil {
-            // The recording wasn't kept (photos/video take priority).
+            // Not kept (photos/video take priority). Only reachable for an
+            // uploaded file copy: the view blocks photos/video while a
+            // recording is in flight.
             deleteTempFile(at: audio.url)
-        } else if let previousURL, previousURL != audio.url {
-            deleteTempFile(at: previousURL)
         }
         persistDraftNow()
     }
@@ -295,7 +300,7 @@ final class CreateEntryViewModel: ObservableObject {
     /// occupy the entry, in which case `attachAudio` surfaces the priority notice).
     func attachInterruptedAudio(_ audio: AudioAttachment) {
         attachAudio(audio)
-        if attachments.audio?.url == audio.url {
+        if attachments.audios.contains(where: { $0.id == audio.id }) {
             attachmentNotice = "Recording saved to your entry."
         }
     }
@@ -315,12 +320,14 @@ final class CreateEntryViewModel: ObservableObject {
         persistDraftNow()
     }
 
-    func removeAudio() {
-        if let audio = attachments.audio {
+    /// Permanently deletes one recording. Only called after the user confirms
+    /// the delete prompt.
+    func removeAudio(id: UUID) {
+        if let audio = attachments.audios.first(where: { $0.id == id }) {
             deleteTempFile(at: audio.url)
             forgetPersistedMedia(audio.id)
         }
-        attachments.removeAudio()
+        attachments.removeAudio(id: id)
         persistDraftNow()
     }
 
@@ -339,13 +346,21 @@ final class CreateEntryViewModel: ObservableObject {
 
     // MARK: - Temp file lifecycle
 
+    /// Recordings a discard would delete: every attached clip, plus the one
+    /// still merging or in progress (its segments live on disk until the merge
+    /// lands). Non-zero triggers the extra confirmation on Discard.
+    var recordingCount: Int {
+        let inFlight = pendingRecordingDuration != nil || hasInProgressRecording
+        return attachments.audios.count + (inFlight ? 1 : 0)
+    }
+
     /// Deletes the backing files of still-attached video/audio. Called on
     /// cancel/discard only. On save the `EntryProcessor` takes ownership of
     /// the attachments and cleans their temp files up once uploaded.
     func cleanupTempFiles() {
         var urls: Set<URL> = []
         if let video = attachments.video { urls.insert(video.url) }
-        if let audio = attachments.audio { urls.insert(audio.url) }
+        for audio in attachments.audios { urls.insert(audio.url) }
         for url in urls {
             try? FileManager.default.removeItem(at: url)
         }
@@ -413,7 +428,7 @@ final class CreateEntryViewModel: ObservableObject {
                                                pixelHeight: nil, order: order))
             order += 1
         }
-        if let audio = attachments.audio {
+        for audio in attachments.audios {
             let fileName = "\(audio.id.uuidString).m4a"
             if !persistedAttachmentIDs.contains(audio.id) {
                 _ = try? deps.drafts.importMedia(draftId: draftId, fileName: fileName, from: audio.url)

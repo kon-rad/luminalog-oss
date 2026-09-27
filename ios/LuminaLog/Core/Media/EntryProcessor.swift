@@ -358,7 +358,7 @@ final class BackgroundEntryProcessor: EntryProcessor {
                 try? await deps.profiles.recordMediaUploaded(kind: .video, bytes: bytes)
             }
 
-            if let audio = job.attachments.audio {
+            for audio in job.attachments.audios {
                 let prepared = try await deps.media.prepareUpload(
                     fileURL: audio.url, kind: .audio, journalId: job.draftId)
                 // Ciphertext owned by UploadManager (see video branch above).
@@ -571,24 +571,35 @@ final class BackgroundEntryProcessor: EntryProcessor {
             // "you choose what your AI sees" trade-off as chat/summary — see the privacy
             // audit. Non-ZK builds let server-side Whisper transcribe from S3 after save.
             if DevFlags.aiModel1 {
-                guard let audioURL = job.attachments.audio?.url,
-                      let audioData = try? Data(contentsOf: audioURL) else {
-                    // Video-only or unreadable audio — don't leave the entry stuck "transcribing".
+                // Every recording is transcribed in order and the pieces joined, so
+                // an entry made of several recordings reads as one transcript.
+                let clips = job.attachments.audios.compactMap { audio -> (AudioAttachment, Data)? in
+                    guard let data = try? Data(contentsOf: audio.url) else { return nil }
+                    return (audio, data)
+                }
+                guard !clips.isEmpty else {
+                    // Video-only or unreadable audio: don't leave the entry stuck "transcribing".
                     return (typed, typed.isEmpty ? .failed : .ready)
                 }
                 do {
-                    let contentType = AudioContentType.mime(forPathExtension: audioURL.pathExtension)
-                    let spoken = try await deps.ai.transcribeClip(audio: audioData, contentType: contentType)
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-                    let joined = ([typed, spoken].filter { !$0.isEmpty }).joined(separator: "\n\n")
+                    var spokenPieces: [String] = []
+                    var plausible = true
+                    for (audio, audioData) in clips {
+                        let contentType = AudioContentType.mime(forPathExtension: audio.url.pathExtension)
+                        let spoken = try await deps.ai.transcribeClip(audio: audioData, contentType: contentType)
+                            .trimmingCharacters(in: .whitespacesAndNewlines)
+                        // A transcript too short to be plausible for this much audio (a
+                        // word or two for a multi-minute clip) is a provider failure, not
+                        // a result. Keep the text we got, but mark `.failed` so the
+                        // finalizer's auto-recovery and the Retry affordance engage
+                        // instead of the entry looking like a successful one-word note.
+                        if !TranscriptPlausibility.isPlausible(spoken, forDurationSec: audio.durationSec) {
+                            plausible = false
+                        }
+                        if !spoken.isEmpty { spokenPieces.append(spoken) }
+                    }
+                    let joined = ([typed] + spokenPieces).filter { !$0.isEmpty }.joined(separator: "\n\n")
                     if joined.isEmpty { return (joined, .failed) }
-                    // A transcript too short to be plausible for this much audio (a
-                    // word or two for a multi-minute clip) is a provider failure, not
-                    // a result. Keep the text we got, but mark `.failed` so the
-                    // finalizer's auto-recovery and the Retry affordance engage
-                    // instead of the entry looking like a successful one-word note.
-                    let plausible = TranscriptPlausibility.isPlausible(
-                        spoken, forDurationSec: job.attachments.audio?.durationSec)
                     return (joined, plausible ? .ready : .failed)
                 } catch {
                     // A payload-too-large (413) is deterministic — mark it terminal
@@ -655,7 +666,7 @@ final class BackgroundEntryProcessor: EntryProcessor {
             }
         }
 
-        if let audio = job.attachments.audio {
+        for audio in job.attachments.audios {
             if let cached = cache[audio.id] {
                 items.append(cached)
             } else {
@@ -687,7 +698,7 @@ final class BackgroundEntryProcessor: EntryProcessor {
         if cleanup {
             var urls = stagedTempURLs[job.draftId] ?? []
             if let video = job.attachments.video { urls.insert(video.url) }
-            if let audio = job.attachments.audio { urls.insert(audio.url) }
+            for audio in job.attachments.audios { urls.insert(audio.url) }
             for url in urls { try? FileManager.default.removeItem(at: url) }
         }
         jobs[job.draftId] = nil

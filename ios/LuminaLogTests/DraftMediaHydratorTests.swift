@@ -37,14 +37,39 @@ final class DraftMediaHydratorTests: XCTestCase {
 
         let result = DraftMediaHydrator.hydrate(draft: draft, store: store)
 
-        XCTAssertNotNil(result.attachments.audio, "audio attachment must be materialized")
+        XCTAssertEqual(result.attachments.audios.count, 1, "audio attachment must be materialized")
         XCTAssertTrue(result.hydratedDescriptorIds.contains(audioId))
         // Must point at a temp copy, NOT the durable draft media (so pipeline
         // cleanup never deletes the retry source).
-        let audioURL = try XCTUnwrap(result.attachments.audio?.url)
+        let audioURL = try XCTUnwrap(result.attachments.audios.first?.url)
         XCTAssertFalse(audioURL.path.contains("/Drafts/"), "hydrated audio must be a temp copy")
         XCTAssertTrue(FileManager.default.fileExists(atPath: audioURL.path))
         // The durable draft media still exists after hydration.
         XCTAssertNotNil(store.mediaURL(draftId: draftId, fileName: fileName))
+    }
+
+    /// A draft with several recordings (the compose flow appends, and the launch
+    /// recovery sweep appends a merged clip) must hydrate every one of them.
+    func testHydrateKeepsEveryRecordingInOrder() throws {
+        let store = DraftStore(directory: tempDir())
+        let draftId = "d3"
+        var descs: [DraftAttachment] = []
+        for (order, seconds) in [4.0, 7.0, 11.0].enumerated() {
+            let src = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).m4a")
+            try Data([UInt8(order)]).write(to: src)
+            let id = UUID()
+            let fileName = "\(id.uuidString).m4a"
+            _ = try store.importMedia(draftId: draftId, fileName: fileName, from: src)
+            descs.append(DraftAttachment(id: id, kind: .audio, fileName: fileName,
+                                         durationSec: seconds, pixelWidth: nil, pixelHeight: nil, order: order))
+        }
+        let draft = DraftEntry(draftId: draftId, text: "", promptText: nil,
+                               createdAtEpoch: 1, updatedAtEpoch: 1, attachments: descs)
+        store.upsert(draft)
+
+        let result = DraftMediaHydrator.hydrate(draft: draft, store: store)
+
+        XCTAssertEqual(result.attachments.audios.map(\.durationSec), [4, 7, 11])
+        XCTAssertEqual(result.hydratedDescriptorIds, Set(descs.map(\.id)))
     }
 }

@@ -47,21 +47,30 @@ struct TranscriptRecoverer {
     @discardableResult
     func recover(_ entry: JournalEntry) async -> JournalEntry? {
         guard entry.type == .voice || entry.type == .video else { return nil }
-        // Prefer the audio attachment; fall back to a video file's audio track.
-        guard let clip = entry.media.first(where: { $0.kind == .audio })
-            ?? entry.media.first(where: { $0.kind == .video }) else { return nil }
+        // Prefer the audio attachments (a voice entry can hold several, transcribed
+        // in order and joined); fall back to a video file's audio track.
+        var clips = entry.media.filter { $0.kind == .audio }
+        if clips.isEmpty, let video = entry.media.first(where: { $0.kind == .video }) {
+            clips = [video]
+        }
+        guard !clips.isEmpty else { return nil }
 
         do {
-            let fileURL = try await media.localFileURL(for: clip.s3Key)
-            let data = try Data(contentsOf: fileURL)
-            let contentType = AudioContentType.mime(forPathExtension: (clip.s3Key as NSString).pathExtension)
-            let transcript = try await ai.transcribeClip(audio: data, contentType: contentType)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            // Reject a result too short to be a plausible transcript of this clip
-            // (a lone word for a multi-minute recording is a provider failure, not
-            // a transcript). Leaving the entry untouched keeps its `.failed` state
-            // + Retry affordance rather than saving the garbage as `.ready`.
-            guard TranscriptPlausibility.isPlausible(transcript, forDurationSec: clip.durationSec) else { return nil }
+            var pieces: [String] = []
+            for clip in clips {
+                let fileURL = try await media.localFileURL(for: clip.s3Key)
+                let data = try Data(contentsOf: fileURL)
+                let contentType = AudioContentType.mime(forPathExtension: (clip.s3Key as NSString).pathExtension)
+                let piece = try await ai.transcribeClip(audio: data, contentType: contentType)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                // Reject a result too short to be a plausible transcript of this clip
+                // (a lone word for a multi-minute recording is a provider failure, not
+                // a transcript). Leaving the entry untouched keeps its `.failed` state
+                // + Retry affordance rather than saving the garbage as `.ready`.
+                guard TranscriptPlausibility.isPlausible(piece, forDurationSec: clip.durationSec) else { return nil }
+                if !piece.isEmpty { pieces.append(piece) }
+            }
+            let transcript = pieces.joined(separator: "\n\n")
             // Non-destructive: never overwrite existing content with a SHORTER
             // result (a re-transcription that came back worse than what we have).
             let existing = entry.content.trimmingCharacters(in: .whitespacesAndNewlines)

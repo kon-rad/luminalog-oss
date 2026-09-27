@@ -31,9 +31,9 @@ struct CreateEntryView: View {
     @State private var photoPickerItems: [PhotosPickerItem] = []
     @State private var videoPickerItem: PhotosPickerItem?
     @State private var pendingVideo: VideoAttachment?
-    @State private var confirmReplaceRecording = false
-    /// Set when the user taps the X on the audio or video chip. Non-nil presents
-    /// the delete confirmation; the removal only runs on confirm.
+    /// Set when the user taps the X on an audio or video chip, or Discard on a
+    /// draft holding recordings. Non-nil presents the delete confirmation; the
+    /// removal only runs on confirm.
     @State private var pendingDeletion: RecordingDeletionPrompt?
     @State private var showUploadPicker = false
     @FocusState private var editorFocused: Bool
@@ -132,9 +132,14 @@ struct CreateEntryView: View {
                 dismiss()
             }
             Button("Discard", role: .destructive) {
-                isDiscarding = true
-                viewModel.discardDraft()
-                dismiss()
+                let recordings = viewModel.recordingCount
+                if recordings > 0 {
+                    // Recordings have no other copy: make the user confirm again,
+                    // naming what will be lost.
+                    pendingDeletion = .discardDraft(recordingCount: recordings)
+                } else {
+                    discardAndDismiss()
+                }
             }
             Button("Keep Editing", role: .cancel) {}
         } message: {
@@ -172,16 +177,7 @@ struct CreateEntryView: View {
                 pendingVideo = nil
             }
         } message: {
-            Text("A video entry replaces attached photos and voice recordings.")
-        }
-        .alert("Replace the recording?", isPresented: $confirmReplaceRecording) {
-            Button("Re-record", role: .destructive) {
-                viewModel.removeAudio()
-                startRecording()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Your current voice recording will be replaced.")
+            Text("A video entry replaces attached photos.")
         }
         .alert("Microphone & Speech Access Needed", isPresented: dictationDeniedBinding) {
             Button("Open Settings") { openSettings() }
@@ -199,7 +195,7 @@ struct CreateEntryView: View {
             Alert(
                 title: Text(prompt.title),
                 message: Text(prompt.message),
-                primaryButton: .destructive(Text("Delete")) {
+                primaryButton: .destructive(Text(prompt.confirmLabel)) {
                     performPendingDeletion(prompt)
                 },
                 secondaryButton: .cancel(Text("Cancel"))
@@ -363,7 +359,7 @@ struct CreateEntryView: View {
                     isDisabled: false,
                     onRemovePhoto: { viewModel.removePhoto(id: $0) },
                     onRemoveVideo: { pendingDeletion = .video },
-                    onRemoveAudio: { pendingDeletion = .audio }
+                    onRemoveAudio: { pendingDeletion = .audio(id: $0) }
                 )
                 .padding(.bottom, Spacing.s)
             }
@@ -374,8 +370,8 @@ struct CreateEntryView: View {
                 isDisabled: false,
                 dictationState: viewModel.dictationState,
                 onMic: handleMicTap,
-                onPhoto: { showPhotoSourceDialog = true },
-                onVideo: { showVideoSourceDialog = true },
+                onPhoto: { if allowVisualMedia() { showPhotoSourceDialog = true } },
+                onVideo: { if allowVisualMedia() { showVideoSourceDialog = true } },
                 onDictate: { Task { await viewModel.toggleDictation() } },
                 onUpload: { showUploadPicker = true }
             )
@@ -393,15 +389,31 @@ struct CreateEntryView: View {
         switch prompt {
         case .video:
             viewModel.removeVideo()
-        case .audio:
-            if viewModel.pendingRecordingDuration != nil {
-                recorder.cancel()
-                viewModel.clearPendingRecording()
-            } else {
-                viewModel.removeAudio()
-            }
+        case .audio(let id?):
+            viewModel.removeAudio(id: id)
+        case .audio(nil):
+            recorder.cancel()
+            viewModel.clearPendingRecording()
+        case .discardDraft:
+            discardAndDismiss()
         }
         pendingDeletion = nil
+    }
+
+    private func discardAndDismiss() {
+        isDiscarding = true
+        viewModel.discardDraft()
+        dismiss()
+    }
+
+    /// Photos/video are refused while recordings are attached or in flight, so
+    /// adding one can never push a recording out of the entry. Shows why.
+    private func allowVisualMedia() -> Bool {
+        guard viewModel.canAttachVisualMedia(recorderActive: recorder.isActive) else {
+            viewModel.attachmentNotice = AttachmentSet.visualMediaBlockedNotice
+            return false
+        }
+        return true
     }
 
     private func handleMicTap() {
@@ -414,10 +426,7 @@ struct CreateEntryView: View {
                 "Remove photos or video to record a voice entry."
             return
         }
-        if viewModel.attachments.audio != nil {
-            confirmReplaceRecording = true
-            return
-        }
+        // A new recording is added next to any existing ones, never replacing them.
         viewModel.stopDictation()
         startRecording()
     }
@@ -426,6 +435,11 @@ struct CreateEntryView: View {
     /// the inline notice (permission denials show the Settings alert).
     private func startRecording() {
         Task {
+            // A just-stopped recording may still be merging. Its segment files and
+            // draft manifest are reused by the next recording, so the merge must
+            // land (and attach) before a new one starts, or the earlier recording
+            // would be overwritten.
+            guard await attachPendingRecording() else { return }
             let started = await recorder.start()
             if started {
                 isRecorderPresented = true
@@ -557,6 +571,7 @@ struct CreateEntryView: View {
 
         switch kind {
         case .image:
+            guard allowVisualMedia() else { return }
             guard let data = try? Data(contentsOf: url) else {
                 viewModel.attachmentNotice = "Couldn't read that image."
                 return
@@ -564,6 +579,7 @@ struct CreateEntryView: View {
             addPickedPhotos([data])
 
         case .audio, .video:
+            if kind == .video { guard allowVisualMedia() else { return } }
             let ext = url.pathExtension.isEmpty ? (kind == .audio ? "m4a" : "mov") : url.pathExtension
             let dest = FileManager.default.temporaryDirectory
                 .appendingPathComponent("upload-\(UUID().uuidString).\(ext)")

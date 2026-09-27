@@ -265,7 +265,7 @@ final class EntryProcessorTests: XCTestCase {
     @MainActor
     private func voiceJob(durationSec: Double) -> EntryProcessingJob {
         var set = AttachmentSet()
-        set.setAudio(AudioAttachment(
+        set.addAudio(AudioAttachment(
             url: FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).m4a"),
             durationSec: durationSec
         ))
@@ -555,7 +555,7 @@ final class EntryProcessorTests: XCTestCase {
         try Data([0x00, 0x01, 0x02, 0x03]).write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
         var set = AttachmentSet()
-        _ = set.setAudio(AudioAttachment(url: url, durationSec: 200))
+        _ = set.addAudio(AudioAttachment(url: url, durationSec: 200))
         let job = EntryProcessingJob(
             draftId: UUID().uuidString, userId: "user-1", promptText: nil,
             attachments: set, text: "", createdAt: Date())

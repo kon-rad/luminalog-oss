@@ -401,7 +401,7 @@ struct JournalDetailView: View {
 
     private func voiceContent(_ entry: JournalEntry) -> some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
-            if let item = entry.media.first(where: { $0.kind == .audio }) {
+            ForEach(entry.media.filter { $0.kind == .audio }, id: \.s3Key) { item in
                 AudioPlayerCard(item: item, media: media)
             }
 

@@ -23,18 +23,20 @@ final class CreateEntryViewModelTests: XCTestCase {
         let viewModel: CreateEntryViewModel
         let processor: SpyEntryProcessor
         let speech: MockSpeechTranscriber
+        let drafts: DraftStore
 
         init(promptText: String? = nil, signedIn: Bool = true) {
             processor = SpyEntryProcessor()
             speech = MockSpeechTranscriber()
+            drafts = DraftStore(directory: FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString, isDirectory: true))
             viewModel = CreateEntryViewModel(
                 request: CreateEntryRequest(promptText: promptText),
                 dependencies: CreateEntryDependencies(
                     auth: MockAuthService(signedIn: signedIn),
                     speech: speech,
                     entryProcessor: processor,
-                    drafts: DraftStore(directory: FileManager.default.temporaryDirectory
-                        .appendingPathComponent(UUID().uuidString, isDirectory: true))
+                    drafts: drafts
                 )
             )
         }
@@ -70,7 +72,7 @@ final class CreateEntryViewModelTests: XCTestCase {
         try? Data([0, 1, 2]).write(to: url)
         h.viewModel.attachAudio(AudioAttachment(url: url, durationSec: 42))
         XCTAssertNil(h.viewModel.pendingRecordingDuration, "attaching the clip clears the instant chip")
-        XCTAssertNotNil(h.viewModel.attachments.audio)
+        XCTAssertEqual(h.viewModel.attachments.audios.count, 1)
     }
 
     /// A failed/cancelled merge clears the instant chip so nothing lingers.
@@ -139,8 +141,8 @@ final class CreateEntryViewModelTests: XCTestCase {
 
         let job = try harness.enqueuedJob()
         XCTAssertEqual(job.type, .voice)
-        XCTAssertNotNil(job.attachments.audio)
-        XCTAssertEqual(job.attachments.audio?.durationSec, 9)
+        XCTAssertEqual(job.attachments.audios.count, 1)
+        XCTAssertEqual(job.attachments.audios.first?.durationSec, 9)
     }
 
     @MainActor
@@ -192,12 +194,115 @@ final class CreateEntryViewModelTests: XCTestCase {
         let harness = Harness()
         let url = tempAudioURL()
         try Data([0x01]).write(to: url)
-        harness.viewModel.attachAudio(AudioAttachment(url: url, durationSec: 3))
+        let audio = AudioAttachment(url: url, durationSec: 3)
+        harness.viewModel.attachAudio(audio)
 
-        harness.viewModel.removeAudio()
+        harness.viewModel.removeAudio(id: audio.id)
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
         XCTAssertTrue(harness.viewModel.attachments.isEmpty)
+    }
+
+    // MARK: - Multiple recordings
+
+    /// Recording again appends: earlier recordings are never replaced.
+    @MainActor
+    func testSecondRecordingIsAddedNextToTheFirst() throws {
+        let harness = Harness()
+        var clips: [AudioAttachment] = []
+        for seconds in [3.0, 5.0, 8.0, 13.0, 21.0] {
+            let url = tempAudioURL()
+            try Data([0x01]).write(to: url)
+            let clip = AudioAttachment(url: url, durationSec: seconds)
+            clips.append(clip)
+            harness.viewModel.attachAudio(clip)
+        }
+
+        XCTAssertEqual(harness.viewModel.attachments.audios.map(\.id), clips.map(\.id),
+                       "All five recordings are kept, in the order they were made")
+        XCTAssertEqual(harness.viewModel.entryType, .voice)
+        for clip in clips {
+            XCTAssertTrue(FileManager.default.fileExists(atPath: clip.url.path),
+                          "No earlier recording's file is deleted")
+        }
+        harness.viewModel.cleanupTempFiles()
+    }
+
+    /// Deleting one recording leaves the others (and their files) untouched.
+    @MainActor
+    func testRemovingOneRecordingKeepsTheOthers() throws {
+        let harness = Harness()
+        let firstURL = tempAudioURL(), secondURL = tempAudioURL()
+        try Data([0x01]).write(to: firstURL)
+        try Data([0x02]).write(to: secondURL)
+        let first = AudioAttachment(url: firstURL, durationSec: 3)
+        let second = AudioAttachment(url: secondURL, durationSec: 4)
+        harness.viewModel.attachAudio(first)
+        harness.viewModel.attachAudio(second)
+
+        harness.viewModel.removeAudio(id: first.id)
+
+        XCTAssertEqual(harness.viewModel.attachments.audios.map(\.id), [second.id])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: firstURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: secondURL.path))
+        harness.viewModel.cleanupTempFiles()
+    }
+
+    /// Every recording is written to the durable draft so none is lost to a
+    /// crash, a force quit, or closing the sheet.
+    @MainActor
+    func testEveryRecordingIsPersistedToTheDraft() throws {
+        let harness = Harness()
+        for seconds in [2.0, 6.0, 9.0] {
+            let url = tempAudioURL()
+            try Data([0x01]).write(to: url)
+            harness.viewModel.attachAudio(AudioAttachment(url: url, durationSec: seconds))
+        }
+
+        let draft = try XCTUnwrap(harness.drafts.load(harness.viewModel.draftId))
+        XCTAssertEqual(draft.attachments.filter { $0.kind == .audio }.map(\.durationSec), [2, 6, 9])
+        harness.viewModel.cleanupTempFiles()
+    }
+
+    /// Photos can't silently push a recording out of the entry.
+    @MainActor
+    func testPhotosAreRefusedWhileRecordingsExist() throws {
+        let harness = Harness()
+        let url = tempAudioURL()
+        try Data([0x01]).write(to: url)
+        harness.viewModel.attachAudio(AudioAttachment(url: url, durationSec: 3))
+
+        harness.viewModel.addPhotos([PhotoAttachment(imageData: Data([0x02]))])
+
+        XCTAssertEqual(harness.viewModel.attachments.audios.count, 1, "The recording is kept")
+        XCTAssertTrue(harness.viewModel.attachments.photos.isEmpty)
+        XCTAssertEqual(harness.viewModel.attachmentNotice, AttachmentSet.visualMediaBlockedNotice)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        XCTAssertFalse(harness.viewModel.canAttachVisualMedia(recorderActive: false))
+        harness.viewModel.cleanupTempFiles()
+    }
+
+    @MainActor
+    func testVisualMediaBlockedWhileARecordingIsInFlight() {
+        let harness = Harness()
+        XCTAssertTrue(harness.viewModel.canAttachVisualMedia(recorderActive: false))
+        XCTAssertFalse(harness.viewModel.canAttachVisualMedia(recorderActive: true))
+        harness.viewModel.beginPendingRecording(durationSec: 4)
+        XCTAssertFalse(harness.viewModel.canAttachVisualMedia(recorderActive: false),
+                       "A recording still merging blocks photos/video too")
+    }
+
+    @MainActor
+    func testRecordingCountCoversAttachedAndMergingClips() throws {
+        let harness = Harness()
+        XCTAssertEqual(harness.viewModel.recordingCount, 0)
+        let url = tempAudioURL()
+        try Data([0x01]).write(to: url)
+        harness.viewModel.attachAudio(AudioAttachment(url: url, durationSec: 3))
+        XCTAssertEqual(harness.viewModel.recordingCount, 1)
+        harness.viewModel.beginPendingRecording(durationSec: 7)
+        XCTAssertEqual(harness.viewModel.recordingCount, 2)
+        harness.viewModel.cleanupTempFiles()
     }
 
     @MainActor
@@ -225,7 +330,7 @@ final class CreateEntryViewModelTests: XCTestCase {
 
         harness.viewModel.attachInterruptedAudio(AudioAttachment(url: url, durationSec: 5))
 
-        XCTAssertEqual(harness.viewModel.attachments.audio?.durationSec, 5,
+        XCTAssertEqual(harness.viewModel.attachments.audios.first?.durationSec, 5,
                        "The partial recording is attached to the entry")
         XCTAssertEqual(harness.viewModel.attachmentNotice, "Recording saved to your entry.")
         try? FileManager.default.removeItem(at: url)
@@ -240,7 +345,7 @@ final class CreateEntryViewModelTests: XCTestCase {
 
         harness.viewModel.attachInterruptedAudio(AudioAttachment(url: url, durationSec: 5))
 
-        XCTAssertNil(harness.viewModel.attachments.audio, "Photos take priority; audio isn't kept")
+        XCTAssertTrue(harness.viewModel.attachments.audios.isEmpty, "Photos take priority; audio isn't kept")
         XCTAssertNotEqual(harness.viewModel.attachmentNotice, "Recording saved to your entry.",
                           "The saved-confirmation notice is not shown when the clip was dropped")
         XCTAssertNotNil(harness.viewModel.attachmentNotice,
@@ -327,26 +432,38 @@ final class CreateEntryViewModelTests: XCTestCase {
         var set = AttachmentSet()
         XCTAssertEqual(set.entryType, .text)
 
-        set.setAudio(AudioAttachment(url: URL(fileURLWithPath: "/tmp/a.m4a"), durationSec: 3))
+        let first = AudioAttachment(url: URL(fileURLWithPath: "/tmp/a.m4a"), durationSec: 3)
+        set.addAudio(first)
+        set.addAudio(AudioAttachment(url: URL(fileURLWithPath: "/tmp/a2.m4a"), durationSec: 4))
         XCTAssertEqual(set.entryType, .voice)
+        XCTAssertEqual(set.audios.count, 2, "A second recording is appended, not a replacement")
+
+        // Recordings are never dropped by a rule: photos/video are refused instead.
+        XCTAssertNotNil(set.addPhotos([PhotoAttachment(imageData: Data())]))
+        XCTAssertNotNil(set.setVideo(VideoAttachment(url: URL(fileURLWithPath: "/tmp/v0.mov"))))
+        XCTAssertEqual(set.entryType, .voice)
+        XCTAssertEqual(set.audios.count, 2)
+
+        set.removeAudio(id: first.id)
+        XCTAssertEqual(set.audios.count, 1)
+        set.removeAudio(id: set.audios[0].id)
+        XCTAssertEqual(set.entryType, .text)
 
         let notice = set.addPhotos([PhotoAttachment(imageData: Data())])
         XCTAssertEqual(set.entryType, .image)
-        XCTAssertNil(set.audio)
-        XCTAssertNotNil(notice)
+        XCTAssertNil(notice)
 
         XCTAssertFalse(set.canRecordAudio)
-        let audioNotice = set.setAudio(
+        let audioNotice = set.addAudio(
             AudioAttachment(url: URL(fileURLWithPath: "/tmp/b.m4a"), durationSec: 2)
         )
-        XCTAssertNil(set.audio)
+        XCTAssertTrue(set.audios.isEmpty)
         XCTAssertNotNil(audioNotice)
 
         XCTAssertTrue(set.videoNeedsReplacementConfirm)
         set.setVideo(VideoAttachment(url: URL(fileURLWithPath: "/tmp/v.mov")))
         XCTAssertEqual(set.entryType, .video)
         XCTAssertTrue(set.photos.isEmpty)
-        XCTAssertNil(set.audio)
 
         set.removeVideo()
         XCTAssertEqual(set.entryType, .text)

@@ -3,13 +3,13 @@ import SwiftUI
 // MARK: - Attachment strip
 
 /// Horizontal strip of staged attachments with remove (×) controls:
-/// photo thumbnails, the video poster, and the voice-memo chip.
+/// photo thumbnails, the video poster, and one chip per voice recording.
 struct AttachmentStrip: View {
 
     let attachments: AttachmentSet
     /// Non-nil while a just-stopped recording is still merging in the background:
-    /// render the chip with this duration IMMEDIATELY, before the merged file is
-    /// ready, so Stop feels instant. Ignored once a real `attachments.audio` exists.
+    /// render an extra chip after the attached recordings with this duration
+    /// IMMEDIATELY, before the merged file is ready, so Stop feels instant.
     let pendingAudioDuration: TimeInterval?
     /// One id per photo still being fetched/decoded — rendered as a spinner.
     let loadingPhotoIDs: [UUID]
@@ -18,7 +18,8 @@ struct AttachmentStrip: View {
     let isDisabled: Bool
     let onRemovePhoto: (UUID) -> Void
     let onRemoveVideo: () -> Void
-    let onRemoveAudio: () -> Void
+    /// The recording's attachment id, or nil for the still-merging chip.
+    let onRemoveAudio: (UUID?) -> Void
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -52,12 +53,17 @@ struct AttachmentStrip: View {
                         .accessibilityLabel("Loading video")
                 }
 
-                if let audio = attachments.audio {
-                    audioChip(durationSec: audio.durationSec)
-                } else if let pending = pendingAudioDuration {
+                ForEach(Array(attachments.audios.enumerated()), id: \.element.id) { index, audio in
+                    audioChip(durationSec: audio.durationSec, number: index + 1) {
+                        onRemoveAudio(audio.id)
+                    }
+                }
+                if let pending = pendingAudioDuration {
                     // Instant chip: shown the moment recording stops, before the
                     // background merge produces the playable file.
-                    audioChip(durationSec: pending)
+                    audioChip(durationSec: pending, number: attachments.audios.count + 1) {
+                        onRemoveAudio(nil)
+                    }
                 }
             }
             .padding(.horizontal, Spacing.m)
@@ -123,7 +129,11 @@ struct AttachmentStrip: View {
         }
     }
 
-    private func audioChip(durationSec: Double) -> some View {
+    private func audioChip(
+        durationSec: Double,
+        number: Int,
+        onRemove: @escaping () -> Void
+    ) -> some View {
         ZStack(alignment: .topTrailing) {
             HStack(spacing: Spacing.s) {
                 Image(systemName: "waveform")
@@ -139,9 +149,9 @@ struct AttachmentStrip: View {
                     .fill(Color.tintVoice.opacity(0.12))
             )
 
-            removeButton(action: onRemoveAudio)
+            removeButton(action: onRemove)
         }
-        .accessibilityLabel("Voice recording, \(Self.durationLabel(durationSec))")
+        .accessibilityLabel("Voice recording \(number), \(Self.durationLabel(durationSec))")
     }
 
     private func removeButton(action: @escaping () -> Void) -> some View {
