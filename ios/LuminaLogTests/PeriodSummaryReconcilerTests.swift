@@ -137,6 +137,20 @@ final class PeriodSummaryReconcilerTests: XCTestCase {
         XCTAssertEqual(second.skipped, .notEntitled)
     }
 
+    func testNonEntitlementHttpErrorIsANormalFailure() async {
+        generator.outcomes = [ProxyAPIError.httpError(statusCode: 500, body: "")]
+        let reconciler = makeReconciler()
+        let first = await reconciler.run(budget: 20, includeOpen: false)
+        XCTAssertEqual(first.failed, 1)
+        XCTAssertFalse(first.aborted)
+        // The failed period was excluded so the run continued past it.
+        XCTAssertEqual(generator.requests.map(\.periodLabel), ["Tue 15 Sep 2026", "Mon 14 Sep 2026"])
+        XCTAssertNil(repo.store[PeriodKey(.week, 202638)])
+        // No 6-hour not-entitled backoff: an open run right after is not skipped.
+        let second = await reconciler.run(budget: 20, includeOpen: true)
+        XCTAssertNotEqual(second.skipped, .notEntitled)
+    }
+
     func testDisabledOrNoConsentDoesNothing() async {
         enabled = false
         let off = await makeReconciler().run(budget: 20, includeOpen: true)
@@ -158,6 +172,19 @@ final class PeriodSummaryReconcilerTests: XCTestCase {
         XCTAssertEqual(result.deleted, 1)
         XCTAssertEqual(repo.deleted, [PeriodKey(.day, 20_711)]) // 15 Sep 2026
         XCTAssertEqual(generator.requests.map(\.periodLabel), ["Week of Mon 14 Sep 2026"])
+    }
+
+    func testEmptyLoaderWithExistingSummariesSkipsOrphanDeletionAndGeneration() async {
+        let reconciler = makeReconciler()
+        await reconciler.run(budget: 20, includeOpen: false)
+        entries = [] // cold cache / offline read, not a real "all deleted"
+        clock = clock.addingTimeInterval(PeriodSummaryReconciler.throttleInterval + 1)
+        generator.requests = []
+        let result = await reconciler.run(budget: 20, includeOpen: false)
+        XCTAssertEqual(result, .init())
+        XCTAssertTrue(repo.deleted.isEmpty)
+        XCTAssertEqual(repo.store.count, 3)
+        XCTAssertTrue(generator.requests.isEmpty)
     }
 
     func testConcurrentRunsJoinInsteadOfDoubling() async {

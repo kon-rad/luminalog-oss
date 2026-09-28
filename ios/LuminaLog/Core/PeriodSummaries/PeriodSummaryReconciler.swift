@@ -97,6 +97,12 @@ final class PeriodSummaryReconciler {
             return result
         }
 
+        // A loader that comes back empty without throwing (cold cache, offline) would
+        // otherwise make every stored summary look orphaned and delete it, only for it
+        // to be regenerated (at AI cost) once entries reload. Treat that as "nothing to
+        // do this run" instead of trusting an empty read against existing data.
+        guard !(entries.isEmpty && !existing.isEmpty) else { return result }
+
         let tree = PeriodSummaryPlanner.tree(entries: entries, timeZone: tz)
         for key in PeriodSummaryPlanner.orphans(tree: tree, existing: existing) {
             do {
@@ -134,20 +140,10 @@ final class PeriodSummaryReconciler {
                 existing[item.key] = summary
                 result.generated += 1
                 consecutiveFailures = 0
-            } catch let error as ProxyAPIError {
-                if case .httpError(let statusCode, _) = error, statusCode == 402 || statusCode == 403 {
-                    notEntitledUntil = now().addingTimeInterval(Self.notEntitledBackoff)
-                    result.aborted = true
-                    break
-                }
-                Self.logger.error("period summaries: \(item.key.docId, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
-                result.failed += 1
-                consecutiveFailures += 1
-                failedKeys.insert(item.key)
-                if consecutiveFailures >= Self.maxConsecutiveFailures {
-                    result.aborted = true
-                    break
-                }
+            } catch let ProxyAPIError.httpError(statusCode, _) where statusCode == 402 || statusCode == 403 {
+                notEntitledUntil = now().addingTimeInterval(Self.notEntitledBackoff)
+                result.aborted = true
+                break
             } catch {
                 Self.logger.error("period summaries: \(item.key.docId, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
                 result.failed += 1
