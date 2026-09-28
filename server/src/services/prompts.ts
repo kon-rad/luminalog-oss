@@ -4,6 +4,7 @@
 
 import type { ProfileFields } from './profileContext'
 import type { PeriodType } from './periodCentroid/periodIndex'
+import type { PeriodSummaryType } from './periodSummary'
 
 /** Default system prompt for per-entry summary generation ({type} → entry kind). */
 export const DEFAULT_SUMMARY_SYSTEM_PROMPT =
@@ -315,6 +316,47 @@ ${ctx.journalContext || 'No entries this week.'}
 ### Output
 Return STRICT JSON ONLY (no markdown, no preamble), exactly this shape:
 {"morning":"…","afternoon":"…","evening":"…"}`,
+
+  /**
+   * SYSTEM prompt for `/v1/ai/period-summary`: one period of the user's life as a
+   * short title, two lengths of summary, and grounding details (salience, verbatim
+   * anchor quotes, key scenes, thread labels). Inputs are entries (day) or
+   * child-period summaries (every higher tier), sent as plaintext by the client.
+   * The output is stored as long-term memory that an AI companion reads and that
+   * the Story screens show, so it favors concrete nouns and the user's own words.
+   */
+  periodSummary: (ctx: {
+    periodType: PeriodSummaryType
+    periodLabel: string
+    isOpen: boolean
+    childrenBlock: string
+  }): string => `You are writing the memory of one period of a person's life, for their private journaling app.
+
+PERIOD: ${ctx.periodLabel} (${ctx.periodType})${ctx.isOpen ? '\nThis period is still in progress. Summarize it SO FAR, never as if it has ended.' : ''}
+
+The inputs below are ${ctx.periodType === 'day' ? 'summaries of the journal entries they wrote that day, each with the start of the entry in their own words' : 'summaries of the shorter periods inside this one, each with its salience, quotes from their entries, and threads'}, in chronological order.
+
+Rules:
+1. Write in second person ("you"). Warm but factual. No advice, no cheerleading, no therapy language.
+2. Use only what the inputs say. Never invent events, people, feelings, or outcomes.
+3. Name specifics: projects, people, places, recurring themes, the emotional arc, and what changed from the start of the period to the end. Lead with the parts that matter most (highest salience).
+4. Describe the arc as the inputs show it. Do not resolve what the person has not resolved, and do not add a silver lining.
+5. "title": 2 to 6 words naming this period like a chapter title ("The Forest City move", "Shipping the voice call"). No dates, no period type words ("week", "month"), no ending punctuation.
+6. "sentence": exactly one sentence, at most 25 words, the single most important thing about this period.
+7. "summary": one paragraph of 80 to 120 words covering the main threads and how they moved.
+8. "salience": a whole number from 1 to 10 for how much this period matters in the person's life: 1 is routine, 10 is a life event (a loss, a move, a birth, a breakup, a launch).
+9. "anchors": 1 to 3 short quotes (at most 25 words each) that best carry this period, copied word for word from the "In their own words" or "Quote" lines, each with the entry id shown on that line. Never change a word inside a quote. Use [] if nothing fits.
+10. "keyScenes": the entry id of the high point, the low point, and the turning point of this period, using only entry ids shown in the inputs. Use null when no entry clearly is one. A turning point needs a visible change of direction.
+11. "threads": 0 to 5 labels of 1 to 4 words for the recurring people, projects, places, or struggles in this period. When an input already lists a thread for the same topic, reuse that label exactly.
+12. An AI companion will read this as memory, so prefer concrete nouns over adjectives.
+
+INPUTS:
+"""
+${ctx.childrenBlock}
+"""
+
+Return STRICT JSON ONLY (no markdown, no preamble), exactly this shape:
+{"title":"…","sentence":"…","summary":"…","salience":5,"anchors":[{"entryId":"…","quote":"…"}],"keyScenes":{"high":null,"low":null,"turning":null},"threads":["…"]}`,
 
   /**
    * SYSTEM prompt for the daily shareable-card LLM call (`/v1/ai/daily-report`).
