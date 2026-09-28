@@ -71,6 +71,19 @@ final class PeriodSummaryReconciler {
         return result
     }
 
+    /// The voice ladder from CACHED summaries only, so a call never waits on
+    /// generation. Also starts a refresh that includes open periods, so the next
+    /// call's ladder reflects today.
+    func voiceMemoryContext() async -> String? {
+        guard isEnabled(), hasConsent() else { return nil }
+        let tz = await timeZone()
+        let today = PeriodSummaryIndex.localDayIndex(for: now(), in: tz)
+        let rungs = MemoryLadder.rungs(today: today)
+        let cached = (try? await repository.summaries(for: rungs.map(\.key))) ?? []
+        backgroundRefresh = Task { await self.run(budget: Self.voiceRefreshBudget, includeOpen: true) }
+        return MemoryLadder.format(cached, rungs: rungs, timeZone: tz)
+    }
+
     private func perform(budget: Int, includeOpen: Bool) async -> RunResult {
         var result = RunResult()
         guard isEnabled() else { result.skipped = .disabled; return result }
