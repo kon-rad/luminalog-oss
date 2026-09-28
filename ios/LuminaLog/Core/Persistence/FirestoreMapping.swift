@@ -694,3 +694,55 @@ extension CognitiveMapGeneration {
         ]
     }
 }
+
+// MARK: - PeriodSummary
+
+extension PeriodSummary {
+
+    /// Decrypt `title`/`sentence`/`summary` (AAD `periodSummaries.<field>`) and the
+    /// `details` JSON (AAD `periodSummaries.details`; absent decodes as `.empty`);
+    /// everything else is plaintext metadata. `id` is the doc id `{type}_{index}`,
+    /// which carries the key.
+    init(firestore data: [String: Any], id: String, cipher: FieldCipher) throws {
+        guard let key = PeriodKey(docId: id) else {
+            throw MappingDecryptionError.missingField("periodSummaries.id")
+        }
+        self.init(
+            key: key,
+            title: try cipher.opened(data["title"], "periodSummaries.title"),
+            sentence: try cipher.opened(data["sentence"], "periodSummaries.sentence"),
+            summary: try cipher.opened(data["summary"], "periodSummaries.summary"),
+            generatedAt: timestamp(data["generatedAt"]) ?? .distantPast,
+            sourceCount: data["sourceCount"] as? Int ?? 0,
+            sourceFingerprint: data["sourceFingerprint"] as? String ?? "",
+            isOpen: data["isOpen"] as? Bool ?? false,
+            model: data["model"] as? String ?? "",
+            promptVersion: data["promptVersion"] as? Int ?? 0,
+            details: try Self.openedDetails(data["details"], cipher: cipher)
+        )
+    }
+
+    private static func openedDetails(_ value: Any?, cipher: FieldCipher) throws -> PeriodSummaryDetails {
+        guard let json = try cipher.openedIfPresent(value, "periodSummaries.details") else { return .empty }
+        return try JSONDecoder().decode(PeriodSummaryDetails.self, from: Data(json.utf8))
+    }
+
+    /// The document body for `periodSummaries/{uid}/tiers/{key.docId}`. Mirrors `init(firestore:)`.
+    func firestoreData(cipher: FieldCipher) throws -> [String: Any] {
+        let detailsJSON = String(decoding: try JSONEncoder().encode(details), as: UTF8.self)
+        return [
+            "periodType": key.type.rawValue,
+            "periodIndex": key.index,
+            "title": try cipher.sealed(title, "periodSummaries.title"),
+            "sentence": try cipher.sealed(sentence, "periodSummaries.sentence"),
+            "summary": try cipher.sealed(summary, "periodSummaries.summary"),
+            "details": try cipher.sealed(detailsJSON, "periodSummaries.details"),
+            "generatedAt": Timestamp(date: generatedAt),
+            "sourceCount": sourceCount,
+            "sourceFingerprint": sourceFingerprint,
+            "isOpen": isOpen,
+            "model": model,
+            "promptVersion": promptVersion,
+        ]
+    }
+}
