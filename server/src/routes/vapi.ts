@@ -13,6 +13,9 @@ import { chatCompletion, resolveVoiceProvider } from '../services/aiClient'
 
 export const vapiRouter = Router()
 
+/** Longest period-summary memory ladder accepted from the client; longer is truncated. */
+const MEMORY_CONTEXT_MAX_CHARS = 8000
+
 // ── call-config ──────────────────────────────────────────────────────────────
 
 // Instant, LLM-free opening line. Deliberately generic (no journal-entry hook):
@@ -57,7 +60,10 @@ export async function callConfigHandler(req: Request, res: Response) {
   const todayContext = (req.body?.todayContext as string | undefined) ?? ''
   // Period-summary memory ladder (this week, last week, this month, ... all time),
   // built on device from cached summaries. Optional: v1.0 clients never send it.
-  const memoryContext = (req.body?.memoryContext as string | undefined) || undefined
+  // Capped so an oversized ladder cannot crowd the rest of the system prompt; the
+  // cap covers both the DEK session and the legacy baked prompt.
+  const rawMemory = req.body?.memoryContext
+  const memoryContext = (typeof rawMemory === 'string' ? rawMemory.slice(0, MEMORY_CONTEXT_MAX_CHARS) : '') || undefined
   // Device-local wall clock at call start; anchors the assistant's "today"/"now" against
   // the local timestamps the client stamped onto each entry block.
   const currentDateTime = (req.body?.now as string | undefined) || undefined

@@ -45,7 +45,7 @@ import { config } from '../config'
 import { PROMPTS } from '../services/prompts'
 import { searchChunks } from '../services/ragStore'
 import { chatCompletion } from '../services/aiClient'
-import { createSession, _clearAllSessions } from '../services/voiceCallSessions'
+import { createSession, getSession, _clearAllSessions } from '../services/voiceCallSessions'
 import { encryptField } from '../crypto/fieldCipher'
 
 function mockRes() {
@@ -122,6 +122,22 @@ describe('vapi call-config → dashboard model + injected system prompt', () => 
     const res = mockRes()
     await callConfigHandler(req, res)
     expect((PROMPTS.voiceChat as any).mock.calls[0][7]).toBe('This week so far: You shipped.')
+  })
+
+  it('caps memoryContext at 8000 characters on the legacy path', async () => {
+    ;(PROMPTS.voiceChat as any).mockClear()
+    const req: any = { uid: 'user-123', body: { memoryContext: 'x'.repeat(9000) } }
+    await callConfigHandler(req, mockRes())
+    expect((PROMPTS.voiceChat as any).mock.calls[0][7]).toBe('x'.repeat(8000))
+  })
+
+  it('caps memoryContext at 8000 characters on the DEK path', async () => {
+    const req: any = { uid: 'user-123', body: { dek: Buffer.alloc(32).toString('base64'), memoryContext: 'y'.repeat(9000) } }
+    const res = mockRes()
+    await callConfigHandler(req, res)
+    const url: string = res.json.mock.calls[0][0].assistantOverrides.model.url
+    const token = url.split('/llm/')[1].split('/')[0]
+    expect(getSession(token)?.memoryContext).toBe('y'.repeat(8000))
   })
 })
 

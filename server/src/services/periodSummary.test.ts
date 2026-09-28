@@ -154,8 +154,30 @@ describe('parsePeriodSummary', () => {
     const r = parsePeriodSummary(reply({
       anchors: [{ entryId: 'e2', quote: 'Mira said the sea looks like it’s breathing' }, { entryId: 'e1', quote: 'could  NOT stop thinking' }],
     }), dayReq)
-    // The first quote swaps "it is" for "it's": a paraphrase, dropped. The second matches after normalization.
-    expect(r?.anchors).toEqual([{ entryId: 'e1', quote: 'could  NOT stop thinking' }])
+    // The first quote swaps "it is" for "it's": a paraphrase, dropped. The second matches after normalization
+    // and is stored as the source's own text, not the model's casing and spacing.
+    expect(r?.anchors).toEqual([{ entryId: 'e1', quote: 'could not stop thinking' }])
+  })
+
+  it('stores the matching substring of the day excerpt, preserving the user\'s casing, spacing, and quotes', () => {
+    const req: PeriodSummaryRequest = {
+      ...dayReq,
+      children: [child('08:05 · text', 'You wrote.', { id: 'e1', excerpt: 'Then I said “GO   now,” and Left.' })],
+    }
+    const r = parsePeriodSummary(reply({ anchors: [{ entryId: 'e1', quote: 'i said "go now," and left' }] }), req)
+    expect(r?.anchors).toEqual([{ entryId: 'e1', quote: 'I said “GO   now,” and Left' }])
+  })
+
+  it('stores the matching substring of the child anchor quote on higher tiers', () => {
+    const r = parsePeriodSummary(reply({ anchors: [{ entryId: 'e9', quote: 'JUST  sat THERE' }] }), weekReq)
+    expect(r?.anchors).toEqual([{ entryId: 'e9', quote: 'just sat there' }])
+  })
+
+  it('drops an anchor under three words even when it is verbatim', () => {
+    const r = parsePeriodSummary(reply({
+      anchors: [{ entryId: 'e1', quote: 'Woke' }, { entryId: 'e1', quote: 'the launch' }, { entryId: 'e1', quote: 'Woke at 6' }],
+    }), dayReq)
+    expect(r?.anchors).toEqual([{ entryId: 'e1', quote: 'Woke at 6' }])
   })
 
   it('drops an anchor whose quote is not in the cited input', () => {
@@ -175,7 +197,7 @@ describe('parsePeriodSummary', () => {
   })
 
   it('keeps at most three anchors', () => {
-    const quotes = ['Woke at 6', 'could not stop', 'thinking about', 'the launch'].map(q => ({ entryId: 'e1', quote: q }))
+    const quotes = ['Woke at 6', 'could not stop', 'stop thinking about', 'about the launch'].map(q => ({ entryId: 'e1', quote: q }))
     expect(parsePeriodSummary(reply({ anchors: quotes }), dayReq)?.anchors).toHaveLength(3)
   })
 

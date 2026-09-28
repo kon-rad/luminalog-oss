@@ -15,6 +15,8 @@ export const PERIOD_SUMMARY_EXCERPT_MAX_CHARS = 600
 /** Anchors kept per child in the request and per summary in the reply. */
 export const PERIOD_SUMMARY_MAX_ANCHORS = 3
 export const PERIOD_SUMMARY_QUOTE_MAX_CHARS = 200
+/** Shortest anchor kept: one or two words carry no memory worth quoting back. */
+export const PERIOD_SUMMARY_QUOTE_MIN_WORDS = 3
 /** Threads kept per child in the request and per summary in the reply. */
 export const PERIOD_SUMMARY_MAX_THREADS = 5
 export const PERIOD_SUMMARY_THREAD_MAX_CHARS = 40
@@ -144,7 +146,42 @@ function cleanTitle(raw: string): string {
 
 /** Case, whitespace, and curly-quote insensitive form used only for matching quotes to sources. */
 function norm(s: string): string {
-  return s.toLowerCase().replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim()
+  return normWithMap(s).text
+}
+
+/**
+ * `norm` plus, for each character of the normalized text, the index in `s` it came
+ * from, so a match found in normalized space can be cut back out of the original.
+ */
+function normWithMap(s: string): { text: string; map: number[] } {
+  let text = ''
+  const map: number[] = []
+  let pendingSpace = -1
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]
+    if (/\s/.test(ch)) {
+      if (pendingSpace < 0) pendingSpace = i
+      continue
+    }
+    if (pendingSpace >= 0 && text.length > 0) { text += ' '; map.push(pendingSpace) }
+    pendingSpace = -1
+    const folded = ch.replace(/[“”]/g, '"').replace(/[‘’]/g, "'").toLowerCase()
+    for (const f of folded) { text += f; map.push(i) }
+  }
+  return { text, map }
+}
+
+/**
+ * The part of `source` that `quote` matches after normalization, in the source's
+ * own casing, spacing, and quote marks. null when the quote is not in the source.
+ */
+function sourceMatch(source: string, quote: string): string | null {
+  const q = norm(quote)
+  if (!q) return null
+  const { text, map } = normWithMap(source)
+  const at = text.indexOf(q)
+  if (at < 0) return null
+  return source.slice(map[at], map[at + q.length - 1] + 1)
 }
 
 /**
@@ -155,7 +192,7 @@ function norm(s: string): string {
  */
 function quotableSources(req: PeriodSummaryRequest): Map<string, string[]> {
   const sources = new Map<string, string[]>()
-  const add = (id: string, text: string) => sources.set(id, [...(sources.get(id) ?? []), norm(text)])
+  const add = (id: string, text: string) => sources.set(id, [...(sources.get(id) ?? []), text])
   for (const c of req.children) {
     if (req.periodType === 'day') { if (c.excerpt) add(c.id, c.excerpt) }
     else for (const a of c.anchors) add(a.entryId, a.quote)
@@ -173,7 +210,8 @@ function sceneCandidates(req: PeriodSummaryRequest): Set<string> {
 /**
  * Parses the model's JSON reply and grounds it against the request. Returns null
  * when title, sentence, summary, or salience is missing so the caller can retry
- * once. Anchors whose quote is not verbatim in the cited source, and key scenes
+ * once. Anchors whose quote is not verbatim in the cited source (or is under three
+ * words), and key scenes
  * naming an entry the model was never shown, are dropped (not a failure). There is
  * deliberately no fallback text: a canned summary stored as memory is worse than none.
  */
@@ -193,8 +231,19 @@ export function parsePeriodSummary(raw: string, req: PeriodSummaryRequest): Peri
   if (!title || !sentence || !summary || salience === undefined) return null
 
   const sources = quotableSources(req)
+  // A kept anchor stores the source's own text (the user's casing and spacing), not
+  // the model's rendering of it, and must be long enough to mean something.
   const anchors = cleanAnchors(parsed?.anchors)
-    .filter(a => (sources.get(a.entryId) ?? []).some(src => src.includes(norm(a.quote))))
+    .flatMap((a): PeriodSummaryAnchor[] => {
+      for (const src of sources.get(a.entryId) ?? []) {
+        const quote = sourceMatch(src, a.quote)
+        if (quote === null) continue
+        return quote.split(/\s+/).filter(Boolean).length >= PERIOD_SUMMARY_QUOTE_MIN_WORDS
+          ? [{ entryId: a.entryId, quote }]
+          : []
+      }
+      return []
+    })
     .slice(0, PERIOD_SUMMARY_MAX_ANCHORS)
 
   const candidates = sceneCandidates(req)
