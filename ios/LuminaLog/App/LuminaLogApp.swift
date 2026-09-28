@@ -34,6 +34,7 @@ struct LuminaLogApp: App {
         // Phase-3 cutover — see ADR-0073). So the Model-1 (ZK) path is the default for
         // EVERY build; the non-ZK path no longer exists on the server.
         UserDefaults.standard.register(defaults: [DevFlags.aiModel1Key: true])
+        UserDefaults.standard.register(defaults: [DevFlags.periodSummariesKey: true])
 
         #if DEBUG
         // Dev mode ON in DEBUG so the SettingsView developer tools (onboarding replay,

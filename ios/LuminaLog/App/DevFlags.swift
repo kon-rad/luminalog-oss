@@ -14,6 +14,7 @@ enum DevFlags {
     static let forceOnboardingKey = "ll-force-onboarding"
     static let aiModel1Key = "ll-ai-model1"
     static let zkMigrationKey = "ll-zk-migration"
+    static let periodSummariesKey = "ll-period-summaries"
 
     /// Selects the zero-knowledge AI path. When ON the client decrypts context
     /// locally and sends it as PLAINTEXT to the AI endpoints, and — because the
@@ -51,6 +52,14 @@ enum DevFlags {
     static var forceOnboarding: Bool {
         get { UserDefaults.standard.bool(forKey: forceOnboardingKey) }
         set { UserDefaults.standard.set(newValue, forKey: forceOnboardingKey) }
+    }
+
+    /// Gates period summaries: the catch-up reconciler and the voice memory ladder.
+    /// Registered ON for every build (see LuminaLogApp.init); set false in
+    /// UserDefaults to stop generation on one device.
+    static var periodSummaries: Bool {
+        get { UserDefaults.standard.bool(forKey: periodSummariesKey) }
+        set { UserDefaults.standard.set(newValue, forKey: periodSummariesKey) }
     }
 }
 
