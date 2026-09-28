@@ -35,6 +35,9 @@ struct VoiceCallContext: Sendable {
     let todayContext: String
     let ragContext: String
     let focalEntry: String?
+    /// Period-summary memory ladder (this week out to all time), from cached summaries.
+    /// Defaulted so existing memberwise call sites keep compiling.
+    var memoryContext: String? = nil
 }
 
 /// Today's three Mirror Echoes as returned by the server, one per time-of-day

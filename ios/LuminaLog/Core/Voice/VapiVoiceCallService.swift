@@ -71,6 +71,9 @@ final class VapiVoiceCallService: VoiceCallService {
         var todayContext: String?
         var ragContext: String?
         var focalEntry: String?
+        /// Period-summary memory ladder, built on device from cached summaries. Sent on
+        /// both the legacy and DEK paths; the server bakes it into the system prompt.
+        var memoryContext: String?
         /// Device-local wall clock at call start (`yyyy-MM-dd HH:mm zzz`) so the server
         /// can anchor the assistant's sense of "today"/"now" — the RAG blocks carry
         /// local timestamps, but the model needs a reference point to resolve them.
@@ -171,6 +174,7 @@ final class VapiVoiceCallService: VoiceCallService {
             request.todayContext = context.todayContext
             request.ragContext = context.ragContext
             request.focalEntry = context.focalEntry
+            request.memoryContext = context.memoryContext
         }
 
         // Model-1/ZK path: hand the server the DEK so it can run per-turn RAG over PAST
