@@ -49,6 +49,16 @@ describe('PROMPTS.voiceChat', () => {
     expect(p).toContain('USER PROFILE:')
     expect(p).toContain('- Lives in: Berlin')
   })
+
+  it('includes the memory block when memory is provided', () => {
+    const p = PROMPTS.voiceChat('Ada', 'bio', {}, '', undefined, undefined, undefined, 'This week so far: You shipped.')
+    expect(p).toContain('WHAT YOU REMEMBER ABOUT THEIR LIFE')
+    expect(p).toContain('This week so far: You shipped.')
+  })
+
+  it('omits the memory block when memory is absent', () => {
+    expect(PROMPTS.voiceChat('Ada', 'bio', {}, '')).not.toContain('WHAT YOU REMEMBER')
+  })
 })
 
 describe('DEFAULT_SUMMARY_SYSTEM_PROMPT', () => {

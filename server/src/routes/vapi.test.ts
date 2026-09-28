@@ -109,11 +109,19 @@ describe('vapi call-config → dashboard model + injected system prompt', () => 
     const res = mockRes()
     await callConfigHandler(req, res)
 
-    // voiceChat(name, bio, profile, ragContext, focalEntry, currentDateTime, todayEntries)
+    // voiceChat(name, bio, profile, ragContext, focalEntry, currentDateTime, todayEntries, memory)
     expect(PROMPTS.voiceChat).toHaveBeenCalledWith(
       expect.anything(), expect.anything(), expect.anything(),
-      'ctx', undefined, '2026-07-13 14:29 PDT', 'today-block',
+      'ctx', undefined, '2026-07-13 14:29 PDT', 'today-block', undefined,
     )
+  })
+
+  it('forwards the client-sent memoryContext to voiceChat on the legacy path', async () => {
+    ;(PROMPTS.voiceChat as any).mockClear()
+    const req: any = { uid: 'user-123', body: { ragContext: 'ctx', memoryContext: 'This week so far: You shipped.' } }
+    const res = mockRes()
+    await callConfigHandler(req, res)
+    expect((PROMPTS.voiceChat as any).mock.calls[0][7]).toBe('This week so far: You shipped.')
   })
 })
 
@@ -432,6 +440,13 @@ describe('vapi /llm/:token proxy', () => {
     expect(out).toContain('"delta":{"content":"Hello there"}')
     expect(out).toContain('data: [DONE]')
     expect(res.ended).toBe(true)
+  })
+
+  it('passes the session memoryContext to voiceChat on every turn', async () => {
+    const token = makeSession({ memoryContext: 'Last month (August 2026): You moved.' })
+    const req: any = { params: { token }, body: { messages: [{ role: 'user', content: 'hi' }] } }
+    await llmProxyHandler(req, mockSseRes(), journalsDbMock({}))
+    expect((PROMPTS.voiceChat as any).mock.calls[0][7]).toBe('Last month (August 2026): You moved.')
   })
 
   it('assembles whole-entry RAG context, deduped by entryId, and enforces userId isolation', async () => {

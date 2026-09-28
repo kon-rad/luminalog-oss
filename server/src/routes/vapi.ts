@@ -55,6 +55,9 @@ export async function callConfigHandler(req: Request, res: Response) {
   // Today's entries, fetched client-side straight from the local DB (not RAG) so they are
   // always complete and current.
   const todayContext = (req.body?.todayContext as string | undefined) ?? ''
+  // Period-summary memory ladder (this week, last week, this month, ... all time),
+  // built on device from cached summaries. Optional: v1.0 clients never send it.
+  const memoryContext = (req.body?.memoryContext as string | undefined) || undefined
   // Device-local wall clock at call start; anchors the assistant's "today"/"now" against
   // the local timestamps the client stamped onto each entry block.
   const currentDateTime = (req.body?.now as string | undefined) || undefined
@@ -106,6 +109,7 @@ export async function callConfigHandler(req: Request, res: Response) {
       bio,
       profile,
       todayContext,
+      memoryContext,
       focalEntry,
       now: currentDateTime,
     })
@@ -126,7 +130,7 @@ export async function callConfigHandler(req: Request, res: Response) {
   // dashboard prompt's `{{systemPrompt}}` placeholder via a Vapi template variable.
   // We must NOT send `model` here — Vapi validates any `assistantOverrides.model`
   // as a COMPLETE model object (ADR-0077).
-  const systemPrompt = PROMPTS.voiceChat(name, bio, profile, ragContext, focalEntry, currentDateTime, todayContext)
+  const systemPrompt = PROMPTS.voiceChat(name, bio, profile, ragContext, focalEntry, currentDateTime, todayContext, memoryContext)
   assistantOverrides.variableValues = { systemPrompt }
   res.json({
     publicKey: config.VAPI_PUBLIC_KEY,
@@ -481,6 +485,7 @@ export async function llmProxyHandler(req: Request, res: Response, database = db
       session.focalEntry,
       session.now,
       session.todayContext,
+      session.memoryContext,
     )
     // Keep the user/assistant turns Vapi sends; drop any inbound system message
     // (we own the system prompt).
