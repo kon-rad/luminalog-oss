@@ -935,6 +935,16 @@ final class ProxyAIService: AIService {
     }
 }
 
+// MARK: - Period summaries
+
+extension ProxyAIService: PeriodSummaryGenerating {
+    /// Zero-knowledge: `request` is PLAINTEXT built on device by `PeriodSummaryPlanner`;
+    /// the server generates and forgets. The caller encrypts and stores the result.
+    func generatePeriodSummary(_ request: PeriodSummaryRequest) async throws -> GeneratedPeriodSummary {
+        try await api.post(path: "/v1/ai/period-summary", body: request)
+    }
+}
+
 private extension Calendar {
     /// True when `a` and `b` fall on the same calendar day in `timeZone`.
     static func dayMatches(_ a: Date, _ b: Date, in timeZone: TimeZone) -> Bool {
