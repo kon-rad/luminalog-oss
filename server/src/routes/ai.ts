@@ -5,7 +5,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
 import { firebaseAuth, db } from '../middleware/firebaseAuth'
 import { requireAiConsent } from '../middleware/requireAiConsent'
 import { requirePro } from '../middleware/requirePro'
-import { chatCompletion, transcribeAudio, streamToBuffer } from '../services/aiClient'
+import { chatCompletion, transcribeAudio, streamToBuffer, activeChatModel } from '../services/aiClient'
 import { extractAudio } from '../services/audioExtractor'
 import { PROMPTS } from '../services/prompts'
 import { generateSummaryText, generateEntryAI } from '../services/summaryGenerator'
@@ -24,6 +24,7 @@ import {
   ENCOURAGEMENT_COUNT, ENCOURAGEMENT_TITLE_MAX, ENCOURAGEMENT_BODY_MAX,
 } from '../services/dailyEncouragements'
 import { parseMirrorEchoes, fallbackMirrorEchoes } from '../services/dailyMirror'
+import { parsePeriodSummaryRequest, buildChildrenBlock, parsePeriodSummary } from '../services/periodSummary'
 import { dailyReportHandler } from './dailyReport'
 
 export const aiRouter = Router()
@@ -463,3 +464,45 @@ export async function dailyMirrorHandler(req: Request, res: Response): Promise<v
 }
 
 aiRouter.post('/daily-mirror', firebaseAuth, requirePro, requireAiConsent, dailyMirrorHandler)
+
+/**
+ * One period summary (day, week, month, quarter, year, or all-time): a short title,
+ * a sentence, a ~100-word paragraph, and grounding details (salience, anchors, key
+ * scenes, threads). Anchors and key scenes are checked against the request by
+ * `parsePeriodSummary`; ungrounded ones are dropped before the reply leaves.
+ * Spec: docs/superpowers/specs/2026-09-26-period-summaries-design.md.
+ *
+ * Zero-knowledge: the client sends the period's children (entry summaries for a
+ * day, child-period summaries above that) as PLAINTEXT and owns encryption and
+ * storage. No DEK, no Firestore read or write. Synchronous, not a job: input is
+ * bounded (at most 40 children, each at most 1,000 chars of text, 600 of excerpt,
+ * and 3 short quotes), so it is one model call on the active provider (Venice in
+ * production).
+ * No fallback text on failure: a canned summary stored as memory is worse than none.
+ */
+export async function periodSummaryHandler(req: Request, res: Response): Promise<void> {
+  const parsed = parsePeriodSummaryRequest(req.body)
+  if ('error' in parsed) {
+    res.status(400).json({ error: parsed.error }); return
+  }
+  try {
+    const systemPrompt = PROMPTS.periodSummary({
+      periodType: parsed.periodType,
+      periodLabel: parsed.periodLabel,
+      isOpen: parsed.isOpen,
+      childrenBlock: buildChildrenBlock(parsed.children),
+    })
+    const trigger = 'Write the period summary now as strict JSON.'
+    let result = parsePeriodSummary(await generate(systemPrompt, trigger), parsed)
+    if (!result) result = parsePeriodSummary(await generate(systemPrompt, trigger), parsed)
+    if (!result) {
+      res.status(502).json({ error: 'Period summary generation failed' }); return
+    }
+    res.json({ ...result, model: activeChatModel() })
+  } catch (err: any) {
+    console.error('[ai/period-summary]', err)
+    res.status(502).json({ error: 'Period summary generation failed' })
+  }
+}
+
+aiRouter.post('/period-summary', firebaseAuth, requirePro, requireAiConsent, periodSummaryHandler)
