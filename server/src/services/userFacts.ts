@@ -77,10 +77,10 @@ export function parseUserFactsRequest(body: unknown): UserFactsRequest | { error
     const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
     const id = text(r.id, 200)
     const date = text(r.date, 10)
-    const body = text(r.text, USER_FACTS_ENTRY_MAX_CHARS)
-    if (!id || !DAY.test(date) || !body || ids.has(id)) return { error: 'Invalid entry' }
+    const entryText = text(r.text, USER_FACTS_ENTRY_MAX_CHARS)
+    if (!id || !DAY.test(date) || !entryText || ids.has(id)) return { error: 'Invalid entry' }
     ids.add(id)
-    entries.push({ id, date, title: text(r.title, 120), text: body })
+    entries.push({ id, date, title: text(r.title, 120), text: entryText })
   }
 
   const facts: KnownFact[] = []

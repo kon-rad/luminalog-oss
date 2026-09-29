@@ -135,6 +135,6 @@ describe('PROMPTS.userFacts', () => {
   })
 
   it('contains no em dash', () => {
-    expect(p).not.toContain('—')
+    expect(p).not.toContain('\u2014')
   })
 })
