@@ -324,4 +324,145 @@ final class StoryOutlineTests: XCTestCase {
         XCTAssertTrue(StoryOutline.expanded(for: june, in: root).isEmpty)
         XCTAssertNil(StoryOutline.nodeId(for: june, in: root))
     }
+
+    // MARK: - Final-review fixes
+
+    func testTimeLabelUsesTheGivenZone() {
+        let date = at("2026-10-01T03:05:00Z")
+        XCTAssertEqual(StoryOutline.timeLabel(date, utc), "03:05")
+        XCTAssertEqual(StoryOutline.timeLabel(date, TimeZone(identifier: "America/New_York")!), "23:05")
+        XCTAssertEqual(StoryOutline.timeLabel(date, TimeZone(identifier: "Asia/Kolkata")!), "08:35")
+    }
+
+    func testWeekStraddlingTheYearBoundaryAppearsUnderDecemberAndJanuary() throws {
+        // ISO 2026-W53 runs Mon 28 Dec 2026 to Sun 3 Jan 2027; its Thursday is 31 Dec.
+        let entries = [entry("d1", "2026-12-29T09:00:00Z"), entry("j1", "2027-01-02T09:00:00Z")]
+        let today = day(2027, 1, 2)
+        let root = try XCTUnwrap(build(entries, today: today))
+        let week53 = PeriodSummaryIndex.key(.week, forDay: day(2026, 12, 31))
+        XCTAssertEqual(week53, PeriodKey(.week, 202653))
+        XCTAssertEqual(PeriodSummaryIndex.key(.week, forDay: day(2027, 1, 2)), week53)
+        let december = PeriodKey(.month, 2026 * 12 + 11)
+        let january = PeriodKey(.month, 2027 * 12)
+        let inDec = try XCTUnwrap(node(root, "\(week53.docId)@\(december.docId)"))
+        let inJan = try XCTUnwrap(node(root, "\(week53.docId)@\(january.docId)"))
+        XCTAssertEqual(inDec.children.map(\.id), ["day_\(day(2026, 12, 29))"])
+        XCTAssertEqual(inJan.children.map(\.id), ["day_\(day(2027, 1, 2))"])
+        XCTAssertEqual(inDec.continuation, .continuesInto("January 2027"))
+        XCTAssertEqual(inJan.continuation, .continuedFrom("December 2026"))
+        XCTAssertEqual(inDec.label, "Week of Mon 28 Dec 2026")
+        XCTAssertEqual(inJan.label, "Week of Mon 28 Dec 2026")
+        // Focus opens the December listing, the month holding Thursday 31 Dec.
+        XCTAssertEqual(StoryOutline.expanded(for: week53, in: root), [
+            "all_0", "year_2026", "quarter_\(2026 * 4 + 3)", december.docId, inDec.id,
+        ])
+        XCTAssertEqual(StoryOutline.nodeId(for: week53, in: root), inDec.id)
+    }
+
+    func testQuotesAreCappedAtThree() throws {
+        let anchors = ["e2", "e3", "e4", "e5"].map { PeriodSummaryAnchor(entryId: $0, quote: "Quote \($0)") }
+        let details = PeriodSummaryDetails(salience: nil, anchors: anchors, keyScenes: .none, threads: [])
+        let root = try XCTUnwrap(build(fixture, summaries: [summary(PeriodKey(.all, 0), isOpen: true, details: details)]))
+        XCTAssertEqual(root.quotes.map(\.entryId), ["e2", "e3", "e4"])
+    }
+
+    func testHomeRowsDoNotSayAsOfWhenWrittenAfterToday() {
+        // Written Sat 3 Oct (a clock or zone change), read Fri 2 Oct: not "as of".
+        XCTAssertEqual(homeRows([summary(week40, isOpen: true, generatedAt: "2026-10-03T12:00:00Z")]).map(\.label),
+                       ["This week so far · 3 entries"])
+    }
+
+    func testHomeRowsWithoutCompleteCountsDropTheEntryCount() {
+        let rows = StoryOutline.homeRows(
+            summaries: [summary(week40, isOpen: true, generatedAt: "2026-10-01T12:00:00Z"), summary(sept), summary(q3)],
+            entries: fixture, today: day(2026, 10, 2), timeZone: utc, countsComplete: false)
+        XCTAssertEqual(rows.map(\.label), ["This week so far · as of Thu", "September 2026", "Q3 2026"])
+        XCTAssertEqual(StoryOutline.homeRows(summaries: [summary(week39)], entries: [], today: day(2026, 10, 2),
+                                             timeZone: utc, countsComplete: false).map(\.label), ["Last week"])
+    }
+
+    func testHomeCacheKeyChangesOnlyWithTodaySummariesOrTheNewestEntry() {
+        let today = day(2026, 10, 2)
+        let week = summary(week40, isOpen: true, generatedAt: "2026-10-01T12:00:00Z")
+        let month = summary(sept)
+        let newest = fixture[4]
+        let key = StoryOutline.homeCacheKey(today: today, summaries: [week, month], newestEntry: newest)
+        // Same inputs, any summary order: no recount.
+        XCTAssertFalse(StoryOutline.homeNeedsRecount(
+            cached: key, current: StoryOutline.homeCacheKey(today: today, summaries: [month, week], newestEntry: newest)))
+        XCTAssertTrue(StoryOutline.homeNeedsRecount(cached: nil, current: key))
+        XCTAssertTrue(StoryOutline.homeNeedsRecount(
+            cached: key, current: StoryOutline.homeCacheKey(today: today + 1, summaries: [week, month], newestEntry: newest)))
+        let rewritten = summary(week40, isOpen: true, generatedAt: "2026-10-02T08:00:00Z")
+        XCTAssertTrue(StoryOutline.homeNeedsRecount(
+            cached: key, current: StoryOutline.homeCacheKey(today: today, summaries: [rewritten, month], newestEntry: newest)))
+        XCTAssertTrue(StoryOutline.homeNeedsRecount(
+            cached: key, current: StoryOutline.homeCacheKey(today: today, summaries: [week], newestEntry: newest)))
+        XCTAssertTrue(StoryOutline.homeNeedsRecount(
+            cached: key, current: StoryOutline.homeCacheKey(today: today, summaries: [week, month],
+                                                             newestEntry: entry("e6", "2026-10-02T07:00:00Z"))))
+        XCTAssertTrue(StoryOutline.homeNeedsRecount(
+            cached: key, current: StoryOutline.homeCacheKey(today: today, summaries: [week, month], newestEntry: nil)))
+    }
+
+    // MARK: - Home entry paging
+
+    /// Pages of `entries` (newest first) the way `entries(after:limit:)` serves them,
+    /// minus `undecodable` ids, which the repository drops from a page.
+    private func pager(_ entries: [JournalEntry], undecodable: Set<String> = [])
+        -> (Date?, Int) async throws -> [JournalEntry] {
+        let sorted = entries.sorted { $0.createdAt > $1.createdAt }
+        return { after, limit in
+            Array(sorted.filter { after == nil || $0.createdAt < after! }.prefix(limit))
+                .filter { !undecodable.contains($0.id) }
+        }
+    }
+
+    private func dailyEntries(from start: Int, count: Int) -> [JournalEntry] {
+        (0..<count).map { i in
+            let date = Date(timeIntervalSince1970: TimeInterval(start + i) * 86_400 + 9 * 3_600)
+            return JournalEntry(id: "p\(i)", userId: "u", type: .text, title: "p\(i)", createdAt: date,
+                                updatedAt: date, content: "Body",
+                                summary: AIGeneration(text: "Entry p\(i)", generatedAt: date))
+        }
+    }
+
+    func testHomeEntryPagingKeepsGoingPastAShortPage() async throws {
+        // Page 1 has an undecodable doc, so it comes back short; paging must not stop there.
+        let all = dailyEntries(from: day(2026, 9, 1), count: 5)
+        let result = await StoryOutline.homeEntries(
+            since: day(2026, 7, 1), timeZone: utc, pageSize: 2, maxPages: 10,
+            fetch: pager(all, undecodable: ["p4"]))
+        let loaded = try XCTUnwrap(result)
+        XCTAssertEqual(loaded.entries.map(\.id), ["p3", "p2", "p1", "p0"])
+        XCTAssertTrue(loaded.countsComplete)
+    }
+
+    func testHomeEntryPagingStopsOnceAPageReachesTheStartDay() async throws {
+        let all = dailyEntries(from: day(2026, 6, 20), count: 20)   // 20 Jun to 9 Jul
+        var calls = 0
+        let fetch = pager(all)
+        let result = await StoryOutline.homeEntries(
+            since: day(2026, 7, 1), timeZone: utc, pageSize: 4, maxPages: 10,
+            fetch: { after, limit in calls += 1; return try await fetch(after, limit) })
+        let loaded = try XCTUnwrap(result)
+        XCTAssertTrue(loaded.countsComplete)
+        XCTAssertEqual(calls, 3)   // 9..6 Jul, 5..2 Jul, 1 Jul..28 Jun: that page reaches June
+    }
+
+    func testHomeEntryPagingAtThePageCapReportsIncompleteCounts() async throws {
+        let all = dailyEntries(from: day(2026, 8, 1), count: 30)
+        let result = await StoryOutline.homeEntries(
+            since: day(2026, 7, 1), timeZone: utc, pageSize: 5, maxPages: 2, fetch: pager(all))
+        let loaded = try XCTUnwrap(result)
+        XCTAssertEqual(loaded.entries.count, 10)
+        XCTAssertFalse(loaded.countsComplete)
+    }
+
+    func testHomeEntryPagingReturnsNilWhenAReadFails() async {
+        struct Boom: Error {}
+        let result = await StoryOutline.homeEntries(
+            since: day(2026, 7, 1), timeZone: utc, pageSize: 5, maxPages: 2, fetch: { _, _ in throw Boom() })
+        XCTAssertNil(result)
+    }
 }

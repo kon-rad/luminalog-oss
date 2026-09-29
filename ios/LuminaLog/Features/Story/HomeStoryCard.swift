@@ -10,6 +10,8 @@ struct HomeStoryCard: View {
     @EnvironmentObject private var services: AppServices
     /// Nil until the first load finishes.
     @State private var rows: [StoryHomeRow]?
+    /// What `rows` was computed from; an unchanged key skips re-reading entries.
+    @State private var cacheKey: StoryHomeCacheKey?
 
     private static let pageSize = 100
     /// Runaway guard: 3,000 entries in one quarter and a bit.
@@ -43,7 +45,8 @@ struct HomeStoryCard: View {
             .clipShape(RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous))
         }
         // `.task` re-runs when Home reappears (e.g. back from the Story screen), so
-        // the card picks up summaries written there and new entries' counts.
+        // the card picks up summaries written there and new entries' counts. It
+        // re-reads entries only when the cache key moved.
         .task { await load() }
     }
 
@@ -115,33 +118,37 @@ struct HomeStoryCard: View {
         let timeZone = await services.profileTimeZone()
         let today = PeriodSummaryIndex.localDayIndex(for: Date(), in: timeZone)
         // Four documents by key: this week, last week, last month, last quarter.
-        let summaries = (try? await services.periodSummaries.summaries(for: StoryOutline.homeKeys(today: today))) ?? []
-        guard !summaries.isEmpty else {
-            rows = []
+        // A failed read keeps what was showing, like a failed entry read below.
+        guard let summaries = try? await services.periodSummaries.summaries(for: StoryOutline.homeKeys(today: today))
+        else {
+            if rows == nil { rows = [] }
             return
         }
+        guard !summaries.isEmpty else {
+            rows = []
+            cacheKey = nil
+            return
+        }
+        // One cheap read decides whether the counts can have changed since last time.
+        guard let newest = try? await services.journals.entries(after: nil, limit: 1) else {
+            if rows == nil { rows = [] }
+            return
+        }
+        let key = StoryOutline.homeCacheKey(today: today, summaries: summaries, newestEntry: newest.first)
+        guard StoryOutline.homeNeedsRecount(cached: cacheKey, current: key) else { return }
         // Counts need entries; see "Where the card's entry counts come from".
-        guard let entries = await entries(since: StoryOutline.homeEntriesStartDay(today: today), timeZone: timeZone)
-        else {
+        guard let loaded = await StoryOutline.homeEntries(
+            since: StoryOutline.homeEntriesStartDay(today: today),
+            timeZone: timeZone,
+            pageSize: Self.pageSize,
+            maxPages: Self.maxPages,
+            fetch: { try await services.journals.entries(after: $0, limit: $1) }
+        ) else {
             if rows == nil { rows = [] }   // keep what was showing rather than show wrong counts
             return
         }
-        rows = StoryOutline.homeRows(summaries: summaries, entries: entries, today: today, timeZone: timeZone)
-    }
-
-    /// Entries newest first, a page at a time, until one is older than `startDay`
-    /// (a local day). Nil when a read fails.
-    private func entries(since startDay: Int, timeZone: TimeZone) async -> [JournalEntry]? {
-        var all: [JournalEntry] = []
-        var cursor: Date?
-        for _ in 0..<Self.maxPages {
-            guard let page = try? await services.journals.entries(after: cursor, limit: Self.pageSize) else { return nil }
-            all += page
-            guard let last = page.last, page.count == Self.pageSize,
-                  PeriodSummaryIndex.localDayIndex(for: last.createdAt, in: timeZone) >= startDay
-            else { break }
-            cursor = last.createdAt
-        }
-        return all
+        rows = StoryOutline.homeRows(summaries: summaries, entries: loaded.entries, today: today,
+                                     timeZone: timeZone, countsComplete: loaded.countsComplete)
+        cacheKey = key
     }
 }

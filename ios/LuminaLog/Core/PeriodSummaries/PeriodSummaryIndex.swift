@@ -124,11 +124,21 @@ enum PeriodSummaryIndex {
         Date(timeIntervalSince1970: TimeInterval(dayIndex) * 86_400)
     }
 
-    private static func format(_ dayIndex: Int, _ pattern: String) -> String {
+    /// One formatter per pattern, built once: the Story outline formats a label for
+    /// every node. Formatting with a shared DateFormatter is thread safe.
+    private static let formatters: [String: DateFormatter] = Dictionary(
+        uniqueKeysWithValues: ["EEE d MMM yyyy", "MMMM yyyy"].map { ($0, makeFormatter($0)) }
+    )
+
+    private static func makeFormatter(_ pattern: String) -> DateFormatter {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.dateFormat = pattern
-        return formatter.string(from: date(forDay: dayIndex))
+        return formatter
+    }
+
+    private static func format(_ dayIndex: Int, _ pattern: String) -> String {
+        (formatters[pattern] ?? makeFormatter(pattern)).string(from: date(forDay: dayIndex))
     }
 }

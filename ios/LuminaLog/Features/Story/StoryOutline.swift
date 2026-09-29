@@ -44,7 +44,7 @@ struct StoryNode: Identifiable, Equatable, Sendable {
     let entryType: JournalType?
     /// 1 to 10 from the summary's details; nil for entries and unsummarized periods.
     let salience: Int?
-    /// The summary's anchors whose entries still exist, in the summary's order.
+    /// The summary's anchors whose entries still exist, in the summary's order, at most 3.
     let quotes: [StoryQuote]
     /// High, low, turning, in that order, skipping any whose entry no longer exists.
     let keyMoments: [StoryKeyMoment]
@@ -110,6 +110,22 @@ struct StoryHomeRow: Identifiable, Equatable, Sendable {
     var accessibilityLabel: String {
         "\(label), \(title)\(isStandout ? ", a standout period" : ""). \(sentence)"
     }
+}
+
+/// What Home's card rows depend on, so a reappearance can skip re-reading entries
+/// when nothing changed: the local day, each summary's key and write time, and the
+/// newest entry. Spec: Entry points, "The Home card".
+struct StoryHomeCacheKey: Equatable, Sendable {
+    struct Stamp: Equatable, Sendable {
+        let key: PeriodKey
+        let generatedAt: Date
+    }
+
+    let today: Int
+    /// Sorted by doc id, so the read order doesn't matter.
+    let summaries: [Stamp]
+    let newestEntryId: String?
+    let newestEntryCreatedAt: Date?
 }
 
 enum StoryOutline {
@@ -219,11 +235,14 @@ enum StoryOutline {
     /// A period without a summary is hidden; nothing else fills the gap. Home never
     /// regenerates, so these are whatever is stored. `entries` only supplies counts
     /// and may include older entries, which are ignored.
+    /// `countsComplete` false (the entry read stopped at its page cap) drops the
+    /// " · N entries" part rather than show a low count.
     static func homeRows(
         summaries: [PeriodSummary],
         entries: [JournalEntry],
         today: Int,
-        timeZone: TimeZone
+        timeZone: TimeZone,
+        countsComplete: Bool = true
     ) -> [StoryHomeRow] {
         let byKey = Dictionary(summaries.map { ($0.key, $0) }, uniquingKeysWith: { a, _ in a })
         let keys = homeKeys(today: today)
@@ -232,6 +251,7 @@ enum StoryOutline {
             .map { PeriodSummaryIndex.localDayIndex(for: $0.createdAt, in: timeZone) }
 
         func counted(_ label: String, _ key: PeriodKey) -> String {
+            guard countsComplete else { return label }
             let count = days.filter { PeriodSummaryIndex.key(key.type, forDay: $0) == key }.count
             return "\(label) · \(count == 1 ? "1 entry" : "\(count) entries")"
         }
@@ -244,7 +264,7 @@ enum StoryOutline {
         if let week = byKey[keys[0]] {
             var label = counted("This week so far", week.key)
             let writtenDay = PeriodSummaryIndex.localDayIndex(for: week.generatedAt, in: timeZone)
-            if writtenDay != today { label += " · as of \(weekdayLabel(writtenDay))" }
+            if writtenDay < today { label += " · as of \(weekdayLabel(writtenDay))" }
             rows.append(row(week, label))
         } else if let lastWeek = byKey[keys[1]] {
             rows.append(row(lastWeek, counted("Last week", lastWeek.key)))
@@ -260,13 +280,54 @@ enum StoryOutline {
         return rows
     }
 
-    /// "07:40" in `timeZone`.
+    /// The Home card's cache key. See `StoryHomeCacheKey`.
+    static func homeCacheKey(today: Int, summaries: [PeriodSummary], newestEntry: JournalEntry?) -> StoryHomeCacheKey {
+        StoryHomeCacheKey(
+            today: today,
+            summaries: summaries
+                .map { StoryHomeCacheKey.Stamp(key: $0.key, generatedAt: $0.generatedAt) }
+                .sorted { $0.key.docId < $1.key.docId },
+            newestEntryId: newestEntry?.id,
+            newestEntryCreatedAt: newestEntry?.createdAt
+        )
+    }
+
+    /// Whether Home must re-read entries: nothing cached yet, or the key moved.
+    static func homeNeedsRecount(cached: StoryHomeCacheKey?, current: StoryHomeCacheKey) -> Bool {
+        cached != current
+    }
+
+    /// Entries newest first, a page at a time, until a page reaches back before
+    /// `startDay` (a local day) or comes back empty (the start of the journal). A
+    /// short page doesn't end paging: the repository drops undecodable docs, so a
+    /// short page may still have more behind it. Stopping at `maxPages` first means
+    /// the counts are incomplete. Nil when a read fails.
+    static func homeEntries(
+        since startDay: Int,
+        timeZone: TimeZone,
+        pageSize: Int,
+        maxPages: Int,
+        fetch: (Date?, Int) async throws -> [JournalEntry]
+    ) async -> (entries: [JournalEntry], countsComplete: Bool)? {
+        var all: [JournalEntry] = []
+        var cursor: Date?
+        for _ in 0..<maxPages {
+            guard let page = try? await fetch(cursor, pageSize) else { return nil }
+            guard let last = page.last else { return (all, true) }
+            all += page
+            if PeriodSummaryIndex.localDayIndex(for: last.createdAt, in: timeZone) < startDay { return (all, true) }
+            cursor = last.createdAt
+        }
+        return (all, false)
+    }
+
+    /// "07:40" in `timeZone`. Built from calendar components rather than a
+    /// DateFormatter, which is costly to create once per entry.
     static func timeLabel(_ date: Date, _ timeZone: TimeZone) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = timeZone
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: date)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let c = calendar.dateComponents([.hour, .minute], from: date)
+        return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
     }
 
     // MARK: - Building
@@ -349,12 +410,12 @@ enum StoryOutline {
             entryId: nil,
             entryType: nil,
             salience: summary?.details.salience,
-            quotes: (summary?.details.anchors ?? []).compactMap { anchor in
+            quotes: Array((summary?.details.anchors ?? []).compactMap { anchor in
                 ctx.entriesById[anchor.entryId].map {
                     StoryQuote(entryId: anchor.entryId, quote: anchor.quote,
                                attribution: "\(entryDayLabel($0, ctx)) · \(entryTitle($0))")
                 }
-            },
+            }.prefix(3)),
             keyMoments: keyMoments(summary?.details.keyScenes ?? .none, ctx),
             threads: summary?.details.threads ?? [],
             children: children

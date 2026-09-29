@@ -99,6 +99,7 @@ private struct StoryScreen: View {
                 media: services.media,
                 onPrompt: onPrompt
             )
+            .tracksInterruptionSurface(services.activity)
         }
     }
 
