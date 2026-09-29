@@ -203,7 +203,7 @@ final class AppServices: ObservableObject {
     /// seconds), so the reconciler skips the run instead of hanging or bucketing days
     /// by a guessed zone. The read-only voice ladder uses the device-timezone fallback
     /// on its own path (`ProxyAIService.voiceCallContext`).
-    private static func profileTimeZone(_ profiles: ProfileRepository) async -> TimeZone? {
+    static func profileTimeZone(_ profiles: ProfileRepository) async -> TimeZone? {
         let stream = profiles.profile()
         let resolved = await withTaskGroup(of: TimeZone?.self) { group -> TimeZone? in
             group.addTask {
@@ -221,6 +221,12 @@ final class AppServices: ObservableObject {
             return first
         }
         return resolved
+    }
+
+    /// The profile timezone, with the same 3-second device fallback the period
+    /// summaries reconciler uses, so views bucket days exactly like the summaries.
+    func profileTimeZone() async -> TimeZone {
+        await Self.profileTimeZone(profiles) ?? .current
     }
 
     /// Production service wiring: always uses Firebase and real backends.
