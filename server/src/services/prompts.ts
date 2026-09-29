@@ -318,6 +318,55 @@ Return STRICT JSON ONLY (no markdown, no preamble), exactly this shape:
 {"morning":"…","afternoon":"…","evening":"…"}`,
 
   /**
+   * "What Argo knows": reads a small batch of entries and returns operations on the
+   * user's known facts. Mem0-style add / update / confirm, plus Zep-style invalidate
+   * instead of delete, because a fact that stopped being true is part of the life
+   * story. The client applies the ops, dates them from the entries, and never lets
+   * them overwrite a fact the user wrote.
+   * Spec: docs/superpowers/specs/2026-09-28-user-facts-design.md (workspace root).
+   */
+  userFacts: (ctx: { entriesBlock: string; knownFactsBlock: string; rejectedBlock: string }): string =>
+    `You maintain a short list of durable facts about the person who wrote these journal entries, so a companion app can remember their life. Read the new entries and decide how the list should change.
+
+A durable fact is likely to stay true for weeks or longer and is worth remembering in a later conversation:
+- person: someone in their life and who they are to them ("Maya is your younger sister.")
+- place: where they live, work, or spend their time
+- work: their job, company, studies, or an ongoing project
+- goal: something they are working toward
+- value: something they say matters to them
+- preference: a stable like or dislike
+- struggle: a recurring difficulty they describe
+- commitment: a promise or routine they have taken on
+- lifeEvent: a significant event (a move, a new job, a loss, a birth, a diagnosis they name themselves)
+
+Do NOT record moods, one-day events, plans for a single day, or anything the entries do not state. Never guess feelings, motives, or diagnoses. Health, faith, sexuality and political views are facts like any other when the entries state them; record them, but never infer them. Write each statement in the second person ("You live in Forest City."), as one sentence of at most 25 words. The subject is the name of the person, place, or thing, 1 to 5 words.
+
+KNOWN FACTS (ref | category | subject | statement | since | author):
+${ctx.knownFactsBlock}
+
+FACTS THE USER DELETED (never add these, or anything that means the same):
+${ctx.rejectedBlock}
+
+NEW ENTRIES, oldest first ([entry id | date | title]):
+${ctx.entriesBlock}
+
+Return STRICT JSON ONLY (no markdown fences, no preamble) with exactly this shape:
+{"ops":[{"op":"add","category":"person","subject":"…","statement":"…","evidence":["<entry id>"]}]}
+
+Operations:
+- "add": a durable fact that is not already known. Needs category, subject, statement, evidence.
+- "confirm": an entry restates a known fact. Needs ref and evidence. Use this instead of adding a duplicate.
+- "update": an entry adds detail to a known fact that is still true in the same way. Needs ref, the full new statement, and evidence.
+- "invalidate": an entry shows a known fact has STOPPED being true (they moved, left the job, ended the relationship, dropped the goal). Needs ref, a short reason, and evidence. If something new replaced it, also "add" the new fact.
+
+Rules:
+1. Every operation cites at least one entry id from NEW ENTRIES in "evidence". Use no other ids.
+2. Never use "update" for a change over time. A change is "invalidate" on the old fact plus "add" for the new one, because the history matters.
+3. Only invalidate a fact when an entry dated after its "since" date clearly says it is no longer true. Doubt, a bad day, or silence is not enough.
+4. Facts marked "written by the user" are the user's own words. Confirm them freely. Only update or invalidate one when an entry directly contradicts it; the user will be asked to approve.
+5. At most 20 operations. If nothing durable is new, return {"ops":[]}.`,
+
+  /**
    * SYSTEM prompt for `/v1/ai/period-summary`: one period of the user's life as a
    * short title, two lengths of summary, and grounding details (salience, verbatim
    * anchor quotes, key scenes, thread labels). Inputs are entries (day) or

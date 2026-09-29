@@ -113,3 +113,28 @@ describe('PROMPTS.periodSummary', () => {
     expect(p).toContain('Do not resolve what the person has not resolved')
   })
 })
+
+describe('PROMPTS.userFacts', () => {
+  const p = PROMPTS.userFacts({
+    entriesBlock: '[e1 | 2026-09-21]\nI moved.',
+    knownFactsBlock: 'f1 | place | Kuching | You live in Kuching.',
+    rejectedBlock: '- person: Tom is your cousin.',
+  })
+
+  it('includes all three blocks and the JSON contract', () => {
+    expect(p).toContain('[e1 | 2026-09-21]\nI moved.')
+    expect(p).toContain('f1 | place | Kuching | You live in Kuching.')
+    expect(p).toContain('- person: Tom is your cousin.')
+    expect(p).toContain('{"ops":[')
+  })
+
+  it('keeps history: a change is invalidate plus add, never update or delete', () => {
+    expect(p).toContain('"invalidate"')
+    expect(p).toContain('Never use "update" for a change over time')
+    expect(p).not.toContain('"delete"')
+  })
+
+  it('contains no em dash', () => {
+    expect(p).not.toContain('—')
+  })
+})
