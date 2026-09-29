@@ -26,6 +26,7 @@ import {
 import { parseMirrorEchoes, fallbackMirrorEchoes } from '../services/dailyMirror'
 import { parsePeriodSummaryRequest, buildChildrenBlock, parsePeriodSummary } from '../services/periodSummary'
 import { dailyReportHandler } from './dailyReport'
+import { userFactsHandler } from './userFacts'
 
 export const aiRouter = Router()
 
@@ -337,6 +338,9 @@ aiRouter.post('/daily-prompt', firebaseAuth, requirePro, requireAiConsent, daily
 
 
 aiRouter.post('/daily-report', firebaseAuth, requirePro, requireAiConsent, dailyReportHandler)
+
+// "What Argo knows" (user facts). Handler lives in ./userFacts.ts; stateless ZK.
+aiRouter.post('/user-facts', firebaseAuth, requirePro, requireAiConsent, userFactsHandler)
 
 
 /** Shared entry shape both `/daily-encouragements` and `/daily-mirror` accept. */
