@@ -21,9 +21,15 @@ struct SettingsView: View {
     private let ai: AIService
     /// Reopens a draft in the Create flow from the recordings recovery screen.
     private let onResumeDraft: (String) -> Void
+    /// Opens the Create flow from the Story screen (empty state, entry prompt cards).
+    private let onPrompt: (CreateEntryRequest) -> Void
 
     @State private var showProfileDetail = false
     @State private var showLeaderboard = false
+    @State private var showStory = false
+    /// What the Story destination opens. The Story Map plan's "Story map" row sets
+    /// `StoryRoute(mode: .map)` before flipping `showStory`.
+    @State private var storyRoute = StoryRoute()
     @State private var showPaywall = false
     @State private var showNotManageableAlert = false
     @State private var showCredits = false
@@ -99,7 +105,8 @@ struct SettingsView: View {
         ai: AIService,
         soul: SoulService,
         encouragements: EncouragementCoordinator? = nil,
-        onResumeDraft: @escaping (String) -> Void = { _ in }
+        onResumeDraft: @escaping (String) -> Void = { _ in },
+        onPrompt: @escaping (CreateEntryRequest) -> Void = { _ in }
     ) {
         self.init(
             viewModel: ProfileViewModel(
@@ -119,7 +126,8 @@ struct SettingsView: View {
             soul: soul,
             currentUserId: auth.currentUserId,
             encouragements: encouragements,
-            onResumeDraft: onResumeDraft
+            onResumeDraft: onResumeDraft,
+            onPrompt: onPrompt
         )
     }
 
@@ -134,7 +142,8 @@ struct SettingsView: View {
         soul: SoulService = MockSoulService(),
         currentUserId: String? = nil,
         encouragements: EncouragementCoordinator? = nil,
-        onResumeDraft: @escaping (String) -> Void = { _ in }
+        onResumeDraft: @escaping (String) -> Void = { _ in },
+        onPrompt: @escaping (CreateEntryRequest) -> Void = { _ in }
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
         _soulViewModel = StateObject(wrappedValue: SoulViewModel(service: soul))
@@ -147,6 +156,7 @@ struct SettingsView: View {
         self.currentUserId = currentUserId
         self.encouragements = encouragements
         self.onResumeDraft = onResumeDraft
+        self.onPrompt = onPrompt
     }
 
     var body: some View {
@@ -155,6 +165,9 @@ struct SettingsView: View {
                 VStack(spacing: Spacing.l) {
                     profileCard
                     leaderboardRow
+                    if DevFlags.periodSummaries {
+                        storyRow
+                    }
                     if let message = viewModel.errorMessage {
                         errorBanner(message)
                     }
@@ -191,6 +204,9 @@ struct SettingsView: View {
             }
             .navigationDestination(isPresented: $showLeaderboard) {
                 LeaderboardView(service: leaderboard, currentUserId: currentUserId)
+            }
+            .navigationDestination(isPresented: $showStory) {
+                StoryView(mode: storyRoute.mode, focus: storyRoute.focus, onPrompt: onPrompt)
             }
             .navigationDestination(isPresented: $showRecordings) {
                 RecordingsRecoveryView(
@@ -357,6 +373,47 @@ struct SettingsView: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Leaderboard")
         .accessibilityHint("Opens the streaks and words leaderboard")
+    }
+
+    // MARK: - Story row
+
+    private var storyRow: some View {
+        Button {
+            storyRoute = StoryRoute()
+            showStory = true
+        } label: {
+            HStack(spacing: Spacing.m) {
+                Image(systemName: "book.pages")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.accentWarm)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.small, style: .continuous)
+                            .fill(Color.accentWarm.opacity(0.12))
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Your story")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Every day, week and month, summarized")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+            }
+            .padding(Spacing.m)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                    .fill(Color.cardBackground)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Your story")
+        .accessibilityHint("Opens your journal summarized by day, week, month and year")
     }
 
     @ViewBuilder

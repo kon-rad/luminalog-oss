@@ -81,6 +81,9 @@ struct HomeView: View {
                     promptCard
                     statsRow
                     reflectionsScroll
+                    if DevFlags.periodSummaries {
+                        HomeStoryCard()
+                    }
                     recentSection
                 }
                 .padding(.horizontal, Spacing.m)
@@ -124,6 +127,10 @@ struct HomeView: View {
                     onStartJournalChat: onStartJournalChat
                 )
                 .tracksInterruptionSurface(activity)
+            }
+            .navigationDestination(for: StoryRoute.self) { route in
+                StoryView(mode: route.mode, focus: route.focus, onPrompt: onPrompt)
+                    .tracksInterruptionSurface(activity)
             }
         }
         .task {
@@ -425,5 +432,6 @@ private struct HomePreview: View {
             onPrompt: { _ in },
             onResumeDraft: { _ in }
         )
+        .environmentObject(AppServices.mocks())
     }
 }

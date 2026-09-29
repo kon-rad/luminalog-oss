@@ -120,6 +120,9 @@ struct RootView: View {
                     onResumeDraft: { draftId in
                         selectedTab = .home
                         createRequest = CreateEntryRequest(resumeDraftId: draftId)
+                    },
+                    onPrompt: { request in
+                        createRequest = request
                     }
                 )
             }
