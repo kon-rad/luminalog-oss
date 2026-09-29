@@ -26,6 +26,8 @@ final class PeriodSummaryReconcilerTests: XCTestCase {
     private var enabled = true
     private var consent = true
     private var timeZoneCalls = 0
+    private var zone: TimeZone? = TimeZone(identifier: "UTC")!
+    private var fromServer = true
     private var generator: StubGenerator!
     private var repo: InMemoryPeriodSummaryRepository!
 
@@ -48,8 +50,8 @@ final class PeriodSummaryReconcilerTests: XCTestCase {
         PeriodSummaryReconciler(
             generator: generator,
             repository: repo,
-            loadEntries: { [unowned self] in self.entries },
-            timeZone: { [unowned self] in self.timeZoneCalls += 1; return self.utc },
+            loadEntries: { [unowned self] in (self.entries, self.fromServer) },
+            timeZone: { [unowned self] in self.timeZoneCalls += 1; return self.zone },
             hasConsent: { [unowned self] in self.consent },
             isEnabled: { [unowned self] in self.enabled },
             now: { [unowned self] in
@@ -174,10 +176,11 @@ final class PeriodSummaryReconcilerTests: XCTestCase {
         XCTAssertEqual(generator.requests.map(\.periodLabel), ["Week of Mon 14 Sep 2026"])
     }
 
-    func testEmptyLoaderWithExistingSummariesSkipsOrphanDeletionAndGeneration() async {
+    func testCacheSourcedEmptyListDeletesNothing() async {
         let reconciler = makeReconciler()
         await reconciler.run(budget: 20, includeOpen: false)
         entries = [] // cold cache / offline read, not a real "all deleted"
+        fromServer = false
         clock = clock.addingTimeInterval(PeriodSummaryReconciler.throttleInterval + 1)
         generator.requests = []
         let result = await reconciler.run(budget: 20, includeOpen: false)
@@ -185,6 +188,60 @@ final class PeriodSummaryReconcilerTests: XCTestCase {
         XCTAssertTrue(repo.deleted.isEmpty)
         XCTAssertEqual(repo.store.count, 3)
         XCTAssertTrue(generator.requests.isEmpty)
+    }
+
+    func testCacheSourcedPartialListDeletesNothingButStillGenerates() async {
+        let reconciler = makeReconciler()
+        await reconciler.run(budget: 20, includeOpen: false)
+        // A cache read that is missing 15 Sep but has a new 16 Sep entry.
+        entries = [entry("a", "2026-09-14T10:00:00Z"), entry("c", "2026-09-16T10:00:00Z")]
+        fromServer = false
+        clock = clock.addingTimeInterval(PeriodSummaryReconciler.throttleInterval + 1)
+        generator.requests = []
+        let result = await reconciler.run(budget: 20, includeOpen: false)
+        XCTAssertEqual(result.deleted, 0)
+        XCTAssertTrue(repo.deleted.isEmpty)
+        XCTAssertNotNil(repo.store[PeriodKey(.day, 20_711)]) // 15 Sep kept
+        XCTAssertEqual(generator.requests.first?.periodLabel, "Wed 16 Sep 2026")
+        XCTAssertGreaterThan(result.generated, 0)
+    }
+
+    func testServerConfirmedEmptyListDeletesAllSummaries() async {
+        let reconciler = makeReconciler()
+        await reconciler.run(budget: 20, includeOpen: false)
+        entries = [] // the user really deleted everything
+        clock = clock.addingTimeInterval(PeriodSummaryReconciler.throttleInterval + 1)
+        generator.requests = []
+        let result = await reconciler.run(budget: 20, includeOpen: false)
+        XCTAssertEqual(result.deleted, 3)
+        XCTAssertTrue(repo.store.isEmpty)
+        XCTAssertTrue(generator.requests.isEmpty)
+    }
+
+    func testNilTimeZoneSkipsTheRunAndDeletesNothing() async {
+        let reconciler = makeReconciler()
+        await reconciler.run(budget: 20, includeOpen: false)
+        entries.removeAll { $0.id == "b" }
+        zone = nil // profile unresolved
+        clock = clock.addingTimeInterval(PeriodSummaryReconciler.throttleInterval + 1)
+        generator.requests = []
+        let result = await reconciler.run(budget: 20, includeOpen: true)
+        XCTAssertEqual(result.skipped, .noTimeZone)
+        XCTAssertTrue(repo.deleted.isEmpty)
+        XCTAssertEqual(repo.store.count, 3)
+        XCTAssertTrue(generator.requests.isEmpty)
+    }
+
+    func testOpenCallerJoiningAClosedRunRunsAgainWithOpen() async {
+        let reconciler = makeReconciler()
+        let closed = Task { await reconciler.run(budget: 20, includeOpen: false) }
+        await Task.yield() // the closed run is now in flight
+        let open = await reconciler.run(budget: 20, includeOpen: true)
+        let closedResult = await closed.value
+        XCTAssertEqual(closedResult.generated, 3)
+        XCTAssertNil(open.skipped)
+        XCTAssertGreaterThan(open.generated, 0, "the open caller got its own open pass, not the closed result")
+        XCTAssertTrue(repo.store.values.contains { $0.isOpen })
     }
 
     func testConcurrentRunsJoinInsteadOfDoubling() async {

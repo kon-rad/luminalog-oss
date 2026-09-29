@@ -50,14 +50,22 @@ final class FirestorePeriodSummaryRepository: PeriodSummaryRepository {
         }
     }
 
+    /// One `in` query per 10 ids (Firestore's cap on `in`), not one read per key, so
+    /// the voice ladder fits its call-start budget.
     func summaries(for periods: [PeriodKey]) async throws -> [PeriodSummary] {
         guard let uid = auth.currentUserId, let cipher = keys.currentCipher else { return [] }
+        let ids = periods.map(\.docId)
         var found: [PeriodSummary] = []
-        for key in periods {
-            let doc = try await tiers(uid).document(key.docId).getDocument()
-            guard let data = doc.data(),
-                  let summary = try? PeriodSummary(firestore: data, id: doc.documentID, cipher: cipher) else { continue }
-            found.append(summary)
+        for start in stride(from: 0, to: ids.count, by: 10) {
+            let chunk = Array(ids[start..<min(start + 10, ids.count)])
+            let snap = try await tiers(uid).whereField(FieldPath.documentID(), in: chunk).getDocuments()
+            for doc in snap.documents {
+                do {
+                    found.append(try PeriodSummary(firestore: doc.data(), id: doc.documentID, cipher: cipher))
+                } catch {
+                    Self.logger.error("skipping undecodable period summary \(doc.documentID, privacy: .public)")
+                }
+            }
         }
         return found
     }

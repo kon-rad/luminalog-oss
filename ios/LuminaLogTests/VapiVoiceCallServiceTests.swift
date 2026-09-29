@@ -170,6 +170,16 @@ final class VapiVoiceCallServiceTests: XCTestCase {
         )
         XCTAssertEqual(object["dek"] as? String, "QUJDRA==")
     }
+
+    func testCallConfigRequestEncodesTheContextMemoryLadder() throws {
+        var request = VapiVoiceCallService.CallConfigRequest(chatId: "chat-1", journalId: nil)
+        request.apply(VoiceCallContext(name: "K", bio: "", profile: [:], todayContext: "", ragContext: "",
+                                       focalEntry: nil, memoryContext: "This week so far: You shipped."))
+        let data = try JSONEncoder().encode(request)
+        let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(object["memoryContext"] as? String, "This week so far: You shipped.")
+        XCTAssertEqual(object["name"] as? String, "K")
+    }
 }
 
 // MARK: - Microphone permission gate (ADR-0110)

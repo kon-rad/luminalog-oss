@@ -74,11 +74,11 @@ final class MemoryLadderTests: XCTestCase {
         let generator = LadderStubGenerator()
         let reconciler = PeriodSummaryReconciler(
             generator: generator, repository: repo,
-            loadEntries: { [] }, timeZone: { TimeZone(identifier: "UTC")! },
+            loadEntries: { ([], false) }, timeZone: { TimeZone(identifier: "UTC")! },
             hasConsent: { true }, isEnabled: { true },
             now: { Date(timeIntervalSince1970: TimeInterval(today) * 86_400 + 43_200) }
         )
-        let context = await reconciler.voiceMemoryContext()
+        let context = await reconciler.voiceMemoryContext(timeZone: TimeZone(identifier: "UTC")!)
         XCTAssertEqual(context, "This week so far (Week of Mon 21 Sep 2026, as of Sat 26 Sep 2026): Summary week_202639.")
         let refresh = await reconciler.backgroundRefresh?.value
         XCTAssertNotNil(refresh)
@@ -89,9 +89,9 @@ final class MemoryLadderTests: XCTestCase {
     func testVoiceMemoryContextIsNilWhenDisabled() async {
         let reconciler = PeriodSummaryReconciler(
             generator: LadderStubGenerator(), repository: InMemoryPeriodSummaryRepository(),
-            loadEntries: { [] }, timeZone: { .current }, hasConsent: { true }, isEnabled: { false }
+            loadEntries: { ([], false) }, timeZone: { .current }, hasConsent: { true }, isEnabled: { false }
         )
-        let context = await reconciler.voiceMemoryContext()
+        let context = await reconciler.voiceMemoryContext(timeZone: .current)
         XCTAssertNil(context)
         XCTAssertNil(reconciler.backgroundRefresh)
     }

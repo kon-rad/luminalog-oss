@@ -174,13 +174,13 @@ final class AppServices: ObservableObject {
             let reconciler = PeriodSummaryReconciler(
                 generator: generator,
                 repository: periodSummaries,
-                loadEntries: { [journals] in try await journals.fetchAllEntries() },
+                loadEntries: { [journals] in try await journals.fetchAllEntriesWithSource() },
                 timeZone: { [profiles] in await Self.profileTimeZone(profiles) },
                 hasConsent: { [consentStore] in consentStore.hasConsentedAI }
             )
             self.periodSummaryReconciler = reconciler
-            (ai as? ProxyAIService)?.memoryContextProvider = { [weak reconciler] in
-                await reconciler?.voiceMemoryContext()
+            (ai as? ProxyAIService)?.memoryContextProvider = { [weak reconciler] timeZone in
+                await reconciler?.voiceMemoryContext(timeZone: timeZone)
             }
         } else {
             self.periodSummaryReconciler = nil
@@ -198,15 +198,17 @@ final class AppServices: ObservableObject {
     }
 
     /// The profile's timezone (period summaries bucket days by it, so they don't
-    /// reshuffle when the device travels). Falls back to the device timezone if the
-    /// profile stream yields nothing within 3 seconds, so a reconciler run can never
-    /// hang waiting on it.
-    private static func profileTimeZone(_ profiles: ProfileRepository) async -> TimeZone {
+    /// reshuffle when the device travels): its identifier, else the device timezone.
+    /// Nil when the profile is unresolved (the stream yields nil or nothing within 3
+    /// seconds), so the reconciler skips the run instead of hanging or bucketing days
+    /// by a guessed zone. The read-only voice ladder uses the device-timezone fallback
+    /// on its own path (`ProxyAIService.voiceCallContext`).
+    private static func profileTimeZone(_ profiles: ProfileRepository) async -> TimeZone? {
         let stream = profiles.profile()
         let resolved = await withTaskGroup(of: TimeZone?.self) { group -> TimeZone? in
             group.addTask {
                 for await profile in stream {
-                    return profile.flatMap { TimeZone(identifier: $0.timezone) }
+                    return profile.map { TimeZone(identifier: $0.timezone) ?? .current }
                 }
                 return nil
             }
@@ -218,7 +220,7 @@ final class AppServices: ObservableObject {
             group.cancelAll()
             return first
         }
-        return resolved ?? .current
+        return resolved
     }
 
     /// Production service wiring: always uses Firebase and real backends.

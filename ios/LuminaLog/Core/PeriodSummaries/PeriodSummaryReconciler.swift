@@ -11,7 +11,7 @@ import OSLog
 final class PeriodSummaryReconciler {
 
     struct RunResult: Equatable {
-        enum Skip: Equatable { case disabled, noConsent, throttled, notEntitled }
+        enum Skip: Equatable { case disabled, noConsent, throttled, notEntitled, noTimeZone }
         var generated = 0
         var failed = 0
         var deleted = 0
@@ -28,13 +28,17 @@ final class PeriodSummaryReconciler {
 
     private let generator: PeriodSummaryGenerating
     private let repository: PeriodSummaryRepository
-    private let loadEntries: @MainActor () async throws -> [JournalEntry]
-    private let timeZone: @MainActor () async -> TimeZone
+    /// All entries, plus whether the read was confirmed by the server. Orphan
+    /// deletion trusts only a server-confirmed list; a cache read may be partial.
+    private let loadEntries: @MainActor () async throws -> (entries: [JournalEntry], isFromServer: Bool)
+    /// The profile's timezone, or nil while the profile is unresolved (the run is
+    /// then skipped rather than bucketing days by a guessed zone).
+    private let timeZone: @MainActor () async -> TimeZone?
     private let hasConsent: @MainActor () -> Bool
     private let isEnabled: @MainActor () -> Bool
     private let now: @MainActor () -> Date
 
-    private var inFlight: Task<RunResult, Never>?
+    private var inFlight: (task: Task<RunResult, Never>, includeOpen: Bool)?
     private var lastClosedRunAt: Date?
     private var notEntitledUntil: Date?
     /// The refresh started by `voiceMemoryContext()`, kept so tests can await it.
@@ -43,8 +47,8 @@ final class PeriodSummaryReconciler {
     init(
         generator: PeriodSummaryGenerating,
         repository: PeriodSummaryRepository,
-        loadEntries: @escaping @MainActor () async throws -> [JournalEntry],
-        timeZone: @escaping @MainActor () async -> TimeZone,
+        loadEntries: @escaping @MainActor () async throws -> (entries: [JournalEntry], isFromServer: Bool),
+        timeZone: @escaping @MainActor () async -> TimeZone?,
         hasConsent: @escaping @MainActor () -> Bool,
         isEnabled: @escaping @MainActor () -> Bool = { DevFlags.periodSummaries },
         now: @escaping @MainActor () -> Date = Date.init
@@ -60,23 +64,33 @@ final class PeriodSummaryReconciler {
 
     /// One catch-up pass. A call made while a pass is running joins it and returns
     /// its result instead of starting a second pass (so a voice call's open-period
-    /// refresh that lands during a foreground pass just waits for that pass).
+    /// refresh that lands during a foreground pass just waits for that pass). A
+    /// closed-only pass does not cover open periods, so a caller asking for them runs
+    /// again with its own arguments once the joined pass finishes.
     @discardableResult
     func run(budget: Int, includeOpen: Bool) async -> RunResult {
-        if let inFlight { return await inFlight.value }
-        let task = Task { await self.perform(budget: budget, includeOpen: includeOpen) }
-        inFlight = task
-        let result = await task.value
-        inFlight = nil
-        return result
+        if let joined = inFlight {
+            let result = await joined.task.value
+            guard includeOpen, !joined.includeOpen else { return result }
+            return await run(budget: budget, includeOpen: includeOpen)
+        }
+        // The task clears `inFlight` itself (on the main actor, before any awaiter
+        // resumes), so a joiner that re-runs never finds the finished task again.
+        let task = Task { () -> RunResult in
+            let result = await self.perform(budget: budget, includeOpen: includeOpen)
+            self.inFlight = nil
+            return result
+        }
+        inFlight = (task, includeOpen)
+        return await task.value
     }
 
     /// The voice ladder from CACHED summaries only, so a call never waits on
     /// generation. Also starts a refresh that includes open periods, so the next
-    /// call's ladder reflects today.
-    func voiceMemoryContext() async -> String? {
+    /// call's ladder reflects today. `timeZone` comes from the caller, which already
+    /// holds the profile, so the ladder never waits on a fresh profile listener.
+    func voiceMemoryContext(timeZone tz: TimeZone) async -> String? {
         guard isEnabled(), hasConsent() else { return nil }
-        let tz = await timeZone()
         let today = PeriodSummaryIndex.localDayIndex(for: now(), in: tz)
         let rungs = MemoryLadder.rungs(today: today)
         let cached = (try? await repository.summaries(for: rungs.map(\.key))) ?? []
@@ -90,19 +104,21 @@ final class PeriodSummaryReconciler {
         guard hasConsent() else { result.skipped = .noConsent; return result }
         let startedAt = now()
         if let until = notEntitledUntil, startedAt < until { result.skipped = .notEntitled; return result }
-        if !includeOpen {
-            if let last = lastClosedRunAt, startedAt.timeIntervalSince(last) < Self.throttleInterval {
-                result.skipped = .throttled; return result
-            }
-            lastClosedRunAt = startedAt
+        if !includeOpen, let last = lastClosedRunAt, startedAt.timeIntervalSince(last) < Self.throttleInterval {
+            result.skipped = .throttled; return result
         }
+        guard let tz = await timeZone() else {
+            Self.logger.info("period summaries: profile timezone unresolved, skipping run")
+            result.skipped = .noTimeZone; return result
+        }
+        if !includeOpen { lastClosedRunAt = startedAt }
 
-        let tz = await timeZone()
         let today = PeriodSummaryIndex.localDayIndex(for: startedAt, in: tz)
         let entries: [JournalEntry]
+        let isFromServer: Bool
         var existing: [PeriodKey: PeriodSummary]
         do {
-            entries = try await loadEntries()
+            (entries, isFromServer) = try await loadEntries()
             existing = Dictionary(try await repository.all().map { ($0.key, $0) }, uniquingKeysWith: { a, _ in a })
         } catch {
             Self.logger.error("period summaries: load failed: \(error.localizedDescription, privacy: .public)")
@@ -110,14 +126,14 @@ final class PeriodSummaryReconciler {
             return result
         }
 
-        // A loader that comes back empty without throwing (cold cache, offline) would
-        // otherwise make every stored summary look orphaned and delete it, only for it
-        // to be regenerated (at AI cost) once entries reload. Treat that as "nothing to
-        // do this run" instead of trusting an empty read against existing data.
-        guard !(entries.isEmpty && !existing.isEmpty) else { return result }
-
+        // Orphans are deleted only against a server-confirmed entry list. A cache read
+        // (cold cache, offline) can be partial or empty, which would make stored
+        // summaries look orphaned and delete them, only for them to be regenerated (at
+        // AI cost) once entries reload. Such a run still generates, but deletes nothing.
+        // A server-confirmed empty list is real: the user deleted everything.
         let tree = PeriodSummaryPlanner.tree(entries: entries, timeZone: tz)
-        for key in PeriodSummaryPlanner.orphans(tree: tree, existing: existing) {
+        let orphans = isFromServer ? PeriodSummaryPlanner.orphans(tree: tree, existing: existing) : []
+        for key in orphans {
             do {
                 try await repository.delete(key)
                 existing[key] = nil

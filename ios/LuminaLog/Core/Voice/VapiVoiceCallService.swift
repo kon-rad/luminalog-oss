@@ -85,6 +85,17 @@ final class VapiVoiceCallService: VoiceCallService {
         /// evicts it at end-of-call. Omitted (nil → not encoded) otherwise, keeping
         /// the legacy baked-prompt path unchanged. See the 2026-07-15 custom-LLM spec.
         var dek: String?
+
+        /// Copies the on-device call context into the request body.
+        mutating func apply(_ context: VoiceCallContext) {
+            name = context.name
+            bio = context.bio
+            profile = context.profile
+            todayContext = context.todayContext
+            ragContext = context.ragContext
+            focalEntry = context.focalEntry
+            memoryContext = context.memoryContext
+        }
     }
 
     struct CallConfigResponse: Decodable {
@@ -168,13 +179,7 @@ final class VapiVoiceCallService: VoiceCallService {
         var request = CallConfigRequest(chatId: chatId, journalId: journalId)
         request.now = Self.localNowStamp()
         if let context = try? await self.ai.voiceCallContext(journalId: journalId) {
-            request.name = context.name
-            request.bio = context.bio
-            request.profile = context.profile
-            request.todayContext = context.todayContext
-            request.ragContext = context.ragContext
-            request.focalEntry = context.focalEntry
-            request.memoryContext = context.memoryContext
+            request.apply(context)
         }
 
         // Model-1/ZK path: hand the server the DEK so it can run per-turn RAG over PAST

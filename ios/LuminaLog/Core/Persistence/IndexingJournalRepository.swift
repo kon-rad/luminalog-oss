@@ -46,6 +46,10 @@ final class IndexingJournalRepository: JournalRepository {
         try await base.fetchAllEntries()
     }
 
+    func fetchAllEntriesWithSource() async throws -> (entries: [JournalEntry], isFromServer: Bool) {
+        try await base.fetchAllEntriesWithSource()
+    }
+
     func entry(id: String) -> AsyncStream<JournalEntry?> {
         base.entry(id: id)
     }

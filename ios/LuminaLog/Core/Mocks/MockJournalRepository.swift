@@ -73,6 +73,11 @@ final class MockJournalRepository: JournalRepository {
         store
     }
 
+    /// The in-memory store is the source of truth, so its reads count as confirmed.
+    func fetchAllEntriesWithSource() async throws -> (entries: [JournalEntry], isFromServer: Bool) {
+        (store, true)
+    }
+
     func entry(id: String) -> AsyncStream<JournalEntry?> {
         AsyncStream { continuation in
             let key = UUID()
