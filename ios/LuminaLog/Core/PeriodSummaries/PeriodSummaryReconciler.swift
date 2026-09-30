@@ -129,8 +129,11 @@ final class PeriodSummaryReconciler {
         // Orphans are deleted only against a server-confirmed entry list. A cache read
         // (cold cache, offline) can be partial or empty, which would make stored
         // summaries look orphaned and delete them, only for them to be regenerated (at
-        // AI cost) once entries reload. Such a run still generates, but deletes nothing.
+        // AI cost) once entries reload. Such a run deletes nothing.
         // A server-confirmed empty list is real: the user deleted everything.
+        // The same read can also be partial, so it only fills periods that have no
+        // summary yet. Regenerating a stale one from it would pay for a summary of
+        // incomplete inputs, then pay again after the next server read.
         let tree = PeriodSummaryPlanner.tree(entries: entries, timeZone: tz)
         let orphans = isFromServer ? PeriodSummaryPlanner.orphans(tree: tree, existing: existing) : []
         for key in orphans {
@@ -148,7 +151,8 @@ final class PeriodSummaryReconciler {
         var failedKeys: Set<PeriodKey> = []
         while remaining > 0,
               let item = PeriodSummaryPlanner.next(tree: tree, existing: existing, today: today, timeZone: tz,
-                                                   includeOpen: includeOpen, excluding: failedKeys) {
+                                                   includeOpen: includeOpen, excluding: failedKeys,
+                                                   missingOnly: !isFromServer) {
             remaining -= 1
             do {
                 let generated = try await generator.generatePeriodSummary(item.request)

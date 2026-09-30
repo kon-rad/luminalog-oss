@@ -83,13 +83,16 @@ enum PeriodSummaryPlanner {
     /// reachable needs work. `includeOpen: false` skips periods containing today
     /// (every ancestor of an open period is open too). `excluding` skips periods
     /// that already failed this run; their ancestors are then never ready.
+    /// `missingOnly` makes only periods with no doc ready: a stale doc is left as it
+    /// is, and so are its ancestors, since it never becomes fresh this run.
     static func next(
         tree: Tree,
         existing: [PeriodKey: PeriodSummary],
         today: Int,
         timeZone: TimeZone,
         includeOpen: Bool,
-        excluding: Set<PeriodKey> = []
+        excluding: Set<PeriodKey> = [],
+        missingOnly: Bool = false
     ) -> PeriodSummaryWorkItem? {
         var memo: [PeriodKey: Bool] = [:]
 
@@ -110,6 +113,7 @@ enum PeriodSummaryPlanner {
 
         let ready = tree.keys.filter { key in
             !excluding.contains(key)
+                && (!missingOnly || existing[key] == nil)
                 && (includeOpen || !PeriodSummaryIndex.isOpen(key, today: today))
                 && !isFresh(key)
                 && (tree.children[key] ?? []).allSatisfy { isFresh($0) }
