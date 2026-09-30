@@ -216,17 +216,15 @@ final class AppServices: ObservableObject {
         // Voice memory: current facts first, then the period ladder (ADR-0164). Wraps
         // whatever provider the period-summaries wiring above installed, preserving its
         // `timeZone` parameter; falls back to the ladder alone if reading facts fails.
+        // Gated on DevFlags.userFacts only: "Learn from my journal" governs extraction,
+        // not use of facts already learned.
         if let proxy = ai as? ProxyAIService {
             let ladder = proxy.memoryContextProvider
             let facts = resolvedUserFacts
             proxy.memoryContextProvider = { timeZone in
-                var factsBlock: String?
-                if DevFlags.userFacts {
-                    let learning = (try? await facts.state().learning) ?? true
-                    if learning {
-                        factsBlock = UserFactsMemory.block(facts: (try? await facts.all()) ?? [])
-                    }
-                }
+                let factsBlock: String? = DevFlags.userFacts
+                    ? UserFactsMemory.block(facts: (try? await facts.all()) ?? [])
+                    : nil
                 let ladderText = await ladder?(timeZone)
                 let parts = [factsBlock, ladderText].compactMap { $0 }.filter { !$0.isEmpty }
                 return parts.isEmpty ? nil : parts.joined(separator: "\n\n")
