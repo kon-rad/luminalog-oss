@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// Which view the Story screen shows. The Story Map plan adds the `Story | Map`
-/// segment and the Map view; until then `.map` shows the outline.
+/// Which view the Story screen shows: the outline, or the Story Map (behind `DevFlags.storyMap`).
 enum StoryMode: Hashable, Sendable {
     case story, map
 }
@@ -19,28 +18,73 @@ struct StoryEntryRoute: Hashable {
     let entryId: String
 }
 
-/// The Story screen: the whole journal as an outline of period summaries.
-/// Spec: docs/superpowers/specs/2026-09-28-story-accordion-design.md.
+/// The Story screen: the whole journal as an outline of period summaries, or (with
+/// `DevFlags.storyMap`) as the zoomable Story Map, behind a `Story | Map` segment.
+/// Specs: docs/superpowers/specs/2026-09-28-story-accordion-design.md and
+/// docs/superpowers/specs/2026-09-28-story-map-design.md.
 /// Reads `AppServices` from the environment, so both entry points build it the same way.
 struct StoryView: View {
 
     @EnvironmentObject private var services: AppServices
-    let mode: StoryMode
-    let focus: PeriodKey?
+    @State private var mode: StoryMode
+    /// The period both views share: the last row expanded in the outline, or the
+    /// last dot focused on the Map. Switching views opens the other one on it.
+    @State private var focusedPeriod: PeriodKey?
     /// Opens the Create flow (empty state, and prompt cards inside entry detail).
     let onPrompt: (CreateEntryRequest) -> Void
 
     /// Explicit because the private environment object would make the memberwise
     /// initializer private, and callers need the defaults.
     init(mode: StoryMode = .story, focus: PeriodKey? = nil, onPrompt: @escaping (CreateEntryRequest) -> Void) {
-        self.mode = mode
-        self.focus = focus
+        // With the flag off there is no Map; a `.map` route shows the outline.
+        _mode = State(initialValue: DevFlags.storyMap ? mode : .story)
+        _focusedPeriod = State(initialValue: focus)
         self.onPrompt = onPrompt
     }
 
     var body: some View {
-        // Both modes show the outline in this plan; the Story Map plan switches on `mode`.
-        StoryScreen(services: services, focus: focus, onPrompt: onPrompt)
+        Group {
+            switch mode {
+            case .story:
+                StoryScreen(services: services, focus: focusedPeriod, onPrompt: onPrompt,
+                            onExpand: { focusedPeriod = $0 })
+            case .map:
+                StoryMapView(
+                    focus: focusedPeriod,
+                    onFocusChange: { focusedPeriod = $0 },
+                    onSeeInStory: { key in
+                        focusedPeriod = key
+                        mode = .story
+                    }
+                )
+            }
+        }
+        .navigationTitle("Your story")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if DevFlags.storyMap {
+                ToolbarItem(placement: .principal) {
+                    Picker("View", selection: $mode) {
+                        Text("Story").tag(StoryMode.story)
+                        Text("Map").tag(StoryMode.map)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 180)
+                }
+            }
+        }
+        // Here, not in StoryScreen, so the Map's quote and high-point links resolve too.
+        .navigationDestination(for: StoryEntryRoute.self) { route in
+            JournalDetailView(
+                entryId: route.entryId,
+                journals: services.journals,
+                profiles: services.profiles,
+                ai: services.ai,
+                media: services.media,
+                onPrompt: onPrompt
+            )
+            .tracksInterruptionSurface(services.activity)
+        }
     }
 }
 
@@ -51,10 +95,14 @@ private struct StoryScreen: View {
     @StateObject private var viewModel: StoryViewModel
     private let services: AppServices
     private let onPrompt: (CreateEntryRequest) -> Void
+    /// Tells `StoryView` which period the user just opened, for the Map switch.
+    private let onExpand: (PeriodKey) -> Void
 
-    init(services: AppServices, focus: PeriodKey?, onPrompt: @escaping (CreateEntryRequest) -> Void) {
+    init(services: AppServices, focus: PeriodKey?, onPrompt: @escaping (CreateEntryRequest) -> Void,
+         onExpand: @escaping (PeriodKey) -> Void = { _ in }) {
         self.services = services
         self.onPrompt = onPrompt
+        self.onExpand = onExpand
         _viewModel = StateObject(wrappedValue: StoryViewModel(
             loadEntries: { try await services.journals.fetchAllEntries() },
             loadSummaries: { try await services.periodSummaries.all() },
@@ -90,17 +138,6 @@ private struct StoryScreen: View {
             await viewModel.reconcileAndReload()
         }
         .task { await viewModel.start() }
-        .navigationDestination(for: StoryEntryRoute.self) { route in
-            JournalDetailView(
-                entryId: route.entryId,
-                journals: services.journals,
-                profiles: services.profiles,
-                ai: services.ai,
-                media: services.media,
-                onPrompt: onPrompt
-            )
-            .tracksInterruptionSurface(services.activity)
-        }
     }
 
     @ViewBuilder
@@ -149,7 +186,10 @@ private struct StoryScreen: View {
                 StoryRowView(
                     row: row,
                     isExpanded: viewModel.expanded.contains(row.id),
-                    onToggle: { withAnimation(.easeInOut(duration: 0.2)) { viewModel.toggle(row.id) } }
+                    onToggle: {
+                        if !viewModel.expanded.contains(row.id), let key = row.node.key { onExpand(key) }
+                        withAnimation(.easeInOut(duration: 0.2)) { viewModel.toggle(row.id) }
+                    }
                 )
                 .id(row.id)   // scroll target for a focused open
             }
