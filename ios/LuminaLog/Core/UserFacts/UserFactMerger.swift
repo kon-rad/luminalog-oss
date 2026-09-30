@@ -103,15 +103,20 @@ enum UserFactMerger {
                 } else {
                     // Stale evidence (an old entry re-read after an edit) cannot end a
                     // fact that started later, and validTo can never precede validFrom.
-                    guard earliest >= (fact.validFrom ?? fact.firstObservedAt) else { outcome.dropped += 1; continue }
+                    // Only the stale entries are dropped; the op stands on the rest.
+                    let start = fact.validFrom ?? fact.firstObservedAt
+                    let current = evidence.filter { batch.entryDates[$0].map { $0 >= start } ?? false }
+                    guard let ended = current.compactMap({ batch.entryDates[$0] }).min() else {
+                        outcome.dropped += 1; continue
+                    }
                     if fact.userAuthored {
-                        fact.proposal = UserFactProposal(kind: .invalidate, statement: nil, validTo: earliest,
-                                                         reason: clean(op.reason), evidence: evidence)
+                        fact.proposal = UserFactProposal(kind: .invalidate, statement: nil, validTo: ended,
+                                                         reason: clean(op.reason), evidence: current)
                         outcome.proposed += 1
                     } else {
                         fact.status = .invalidated
-                        fact.validTo = earliest
-                        fact.evidence = appendingEvidence(fact.evidence, evidence)
+                        fact.validTo = ended
+                        fact.evidence = appendingEvidence(fact.evidence, current)
                         invalidatedNow.append(fact.id)
                         outcome.invalidated += 1
                     }

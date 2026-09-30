@@ -834,6 +834,9 @@ extension UserFact {
 
 extension UserFactExtractionState {
 
+    /// The fields `UserFactRepository.saveExtractionProgress` writes. Not `learning`.
+    static let progressFields = ["processed", "failures", "skipped", "promptVersion"]
+
     /// Plaintext only. Firestore returns map values as NSNumber.
     init(firestore data: [String: Any]) {
         func int64Map(_ key: String) -> [String: Int64] {

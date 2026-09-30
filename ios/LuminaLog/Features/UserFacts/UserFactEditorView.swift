@@ -87,8 +87,29 @@ struct NotTrueAnymoreSheet: View {
 
     let fact: UserFact
     let onSave: (Date) -> Void
-    @State private var endedOn = Date()
+    @State private var endedOn: Date
     @Environment(\.dismiss) private var dismiss
+    /// Captured once, so the range and the initial date agree.
+    private let now: Date
+
+    init(fact: UserFact, now: Date = Date(), onSave: @escaping (Date) -> Void) {
+        self.fact = fact
+        self.onSave = onSave
+        self.now = now
+        _endedOn = State(initialValue: Self.initialEnd(validFrom: fact.validFrom, now: now))
+    }
+
+    /// The picker's range. A start later than now (stored by a device with a fast
+    /// clock) is clamped to now: a range whose lower bound exceeds the upper traps.
+    static func range(validFrom: Date?, now: Date) -> ClosedRange<Date> {
+        min(validFrom ?? .distantPast, now)...now
+    }
+
+    /// Today, clamped into `range`.
+    static func initialEnd(validFrom: Date?, now: Date) -> Date {
+        let bounds = range(validFrom: validFrom, now: now)
+        return min(max(now, bounds.lowerBound), bounds.upperBound)
+    }
 
     var body: some View {
         NavigationStack {
@@ -99,7 +120,7 @@ struct NotTrueAnymoreSheet: View {
                     Text("Argo keeps it in your history, with when it was true.")
                 }
                 DatePicker("Stopped being true on", selection: $endedOn,
-                           in: (fact.validFrom ?? .distantPast)...Date(), displayedComponents: .date)
+                           in: Self.range(validFrom: fact.validFrom, now: now), displayedComponents: .date)
             }
             .navigationTitle("Not true anymore")
             .navigationBarTitleDisplayMode(.inline)

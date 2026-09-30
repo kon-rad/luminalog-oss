@@ -41,10 +41,10 @@ final class UserFactReconcilerTests: XCTestCase {
         entries = [F.entry("e1", "2026-09-20T10:00:00Z"), F.entry("e2", "2026-09-21T10:00:00Z")]
     }
 
-    private func make() -> UserFactReconciler {
+    private func make(repository: UserFactRepository? = nil) -> UserFactReconciler {
         UserFactReconciler(
             extractor: extractor,
-            repository: repo,
+            repository: repository ?? repo,
             loadEntries: { [unowned self] in (self.entries, self.fromServer) },
             hasConsent: { [unowned self] in self.consent },
             isEnabled: { [unowned self] in self.enabled },
@@ -201,6 +201,77 @@ final class UserFactReconcilerTests: XCTestCase {
         XCTAssertTrue(facts.isEmpty)
         let state = try await repo.state()
         XCTAssertFalse(state.learning)
+        XCTAssertTrue(state.processed.isEmpty)
+    }
+
+    /// A view model on the same repository, with its pause wired to `reconciler`.
+    private func viewModel(_ repository: UserFactRepository, _ reconciler: UserFactReconciler) -> UserFactsViewModel {
+        UserFactsViewModel(repository: repository, loadEntries: { [] }, hasConsent: { true },
+                           reconcile: { 0 }, pauseLearning: { reconciler.pause() })
+    }
+
+    /// "Forget everything" lands after the reconciler re-read (learning still true in
+    /// its copy) and before it saves: nothing is written and learning stays off.
+    func testForgetEverythingAfterTheReReadSavesNothing() async throws {
+        let hooked = HookedUserFactRepository(repo)
+        let reconciler = make(repository: hooked)
+        let vm = viewModel(hooked, reconciler)
+        extractor.outcomes = [.success([addForestCity])]
+        hooked.onStateRead[2] = { await vm.forgetEverything() }
+        let result = await reconciler.run(budget: 4, force: true)
+        XCTAssertEqual(result.skipped, .paused)
+        XCTAssertEqual(result.batches, 0)
+        let facts = try await repo.all()
+        XCTAssertTrue(facts.isEmpty)
+        let state = try await repo.state()
+        XCTAssertFalse(state.learning)
+        XCTAssertTrue(state.processed.isEmpty)
+    }
+
+    /// Turning learning off mid-run is not undone by the run's own writes.
+    func testPausingDuringARunIsNotUndone() async throws {
+        let hooked = HookedUserFactRepository(repo)
+        let reconciler = make(repository: hooked)
+        let vm = viewModel(hooked, reconciler)
+        extractor.outcomes = [.success([addForestCity])]
+        hooked.onStateRead[2] = { await vm.setLearning(false) }
+        let result = await reconciler.run(budget: 4, force: true)
+        XCTAssertEqual(result.skipped, .paused)
+        let facts = try await repo.all()
+        XCTAssertTrue(facts.isEmpty)
+        let state = try await repo.state()
+        XCTAssertFalse(state.learning)
+        XCTAssertTrue(state.processed.isEmpty)
+    }
+
+    /// The reconciler owns only the progress fields: its state write never touches
+    /// `learning`, even when its copy is stale (another device paused meanwhile).
+    func testTheReconcilersStateWriteNeverChangesLearning() async throws {
+        let hooked = HookedUserFactRepository(repo)
+        extractor.outcomes = [.success([addForestCity])]
+        hooked.onStateRead[2] = { [unowned self] in
+            var paused = (try? await self.repo.state()) ?? UserFactExtractionState()
+            paused.learning = false
+            try? await self.repo.saveState(paused)
+        }
+        await make(repository: hooked).run(budget: 4, force: true)
+        let state = try await repo.state()
+        XCTAssertFalse(state.learning)
+        XCTAssertEqual(Set(state.processed.keys), ["e1", "e2"])
+    }
+
+    /// A storage error after a successful extraction is not the model's fault: it ends
+    /// the run without charging the entries a failure (4 failures skip an entry).
+    func testAStorageErrorAfterExtractionChargesNoFailure() async throws {
+        repo.saveError = Boom()
+        extractor.outcomes = [.success([addForestCity])]
+        let result = await make().run(budget: 4, force: true)
+        XCTAssertEqual(result.failed, 0)
+        XCTAssertTrue(result.aborted)
+        XCTAssertEqual(extractor.requests.count, 1)
+        let state = try await repo.state()
+        XCTAssertTrue(state.failures.isEmpty)
+        XCTAssertTrue(state.skipped.isEmpty)
         XCTAssertTrue(state.processed.isEmpty)
     }
 }

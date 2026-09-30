@@ -42,6 +42,10 @@ final class UserFactReconciler {
     private var inFlight: Task<RunResult, Never>?
     private var lastRunAt: Date?
     private var notEntitledUntil: Date?
+    /// Bumped by `pause()`. A run records it at the start and stops before any write
+    /// once it has changed, so a same-process "Forget everything" or pause that lands
+    /// between the run's re-read and its saves is never undone.
+    private var pauseEpoch = 0
 
     init(
         extractor: UserFactExtracting,
@@ -61,6 +65,12 @@ final class UserFactReconciler {
         self.timeZone = timeZone
         self.now = now
         self.makeId = makeId
+    }
+
+    /// Called by the facts screen when learning is turned off or everything is forgotten,
+    /// before it writes. A run in flight stops without writing anything more.
+    func pause() {
+        pauseEpoch += 1
     }
 
     /// One pass. A call made during a pass joins it instead of starting another.
@@ -85,6 +95,8 @@ final class UserFactReconciler {
             result.skipped = .throttled; return result
         }
         lastRunAt = startedAt
+        let epoch = pauseEpoch
+        var isPaused: Bool { pauseEpoch != epoch }
 
         let entries: [JournalEntry]
         let isFromServer: Bool
@@ -101,7 +113,7 @@ final class UserFactReconciler {
             result.aborted = true
             return result
         }
-        guard state.learning else { result.skipped = .paused; return result }
+        guard state.learning, !isPaused else { result.skipped = .paused; return result }
 
         // Prune only against a server-confirmed, complete list. A cache read
         // (isFromServer == false) may be missing entries that still exist, and an
@@ -110,7 +122,8 @@ final class UserFactReconciler {
         if isFromServer, !entries.isEmpty {
             do {
                 result.pruned = try await prune(facts: &facts, state: &state,
-                                                liveIds: Set(entries.map(\.id)), at: startedAt)
+                                                liveIds: Set(entries.map(\.id)), at: startedAt,
+                                                isPaused: { isPaused })
             } catch {
                 Self.logger.error("user facts: prune failed: \(error.localizedDescription, privacy: .public)")
             }
@@ -121,27 +134,14 @@ final class UserFactReconciler {
         var consecutiveFailures = 0
         batches: while remaining > 0,
               let batch = UserFactPlanner.nextBatch(entries: entries, facts: facts, state: state, now: now(), timeZone: tz) {
+            guard !isPaused else { result.skipped = .paused; break batches }
             remaining -= 1
+            // Only the model call can charge the entries a failure. A storage error
+            // after it (below) is not the entries' fault, so it never counts toward
+            // skipping them.
+            let response: UserFactsResponse
             do {
-                let response = try await extractor.extractUserFacts(batch.request)
-                // Re-read both, full and fresh: an edit, a delete or "Forget everything"
-                // made while the request was in flight must win over this run's copies.
-                let fresh = try await repository.all()
-                state = try await repository.state()
-                guard state.learning else { result.skipped = .paused; break batches }
-                let outcome = UserFactMerger.apply(response.ops, to: fresh, batch: batch, model: response.model,
-                                                   now: Self.wholeMillis(now()), makeId: makeId)
-                for fact in outcome.upserts { try await repository.save(fact) }
-                for (id, stamp) in batch.stamps {
-                    state.processed[id] = stamp
-                    state.failures[id] = nil
-                }
-                state.promptVersion = UserFactPlanner.promptVersion
-                try await repository.saveState(state)
-                facts = Self.replacing(fresh, with: outcome.upserts)
-                result.batches += 1
-                result.added += outcome.added
-                consecutiveFailures = 0
+                response = try await extractor.extractUserFacts(batch.request)
             } catch {
                 if Self.isNotEntitled(error) {
                     notEntitledUntil = now().addingTimeInterval(Self.notEntitledBackoff)
@@ -153,7 +153,7 @@ final class UserFactReconciler {
                 consecutiveFailures += 1
                 // Fresh state, so a concurrent "Forget everything" is not overwritten.
                 var latest = (try? await repository.state()) ?? state
-                guard latest.learning else { result.skipped = .paused; break batches }
+                guard latest.learning, !isPaused else { result.skipped = .paused; break batches }
                 for id in batch.entryIds {
                     let count = (latest.failures[id] ?? 0) + 1
                     latest.failures[id] = count
@@ -161,12 +161,43 @@ final class UserFactReconciler {
                         latest.skipped[id] = stamp
                     }
                 }
-                try? await repository.saveState(latest)
+                try? await repository.saveExtractionProgress(latest)
                 state = latest
                 if consecutiveFailures >= Self.maxConsecutiveFailures {
                     result.aborted = true
                     break batches
                 }
+                continue batches
+            }
+            do {
+                // Re-read both, full and fresh: an edit, a delete or "Forget everything"
+                // made while the request was in flight must win over this run's copies.
+                let fresh = try await repository.all()
+                state = try await repository.state()
+                // The merge below is synchronous, so this is the last check before the
+                // first write; `isPaused` is re-checked before every later one.
+                guard state.learning, !isPaused else { result.skipped = .paused; break batches }
+                let outcome = UserFactMerger.apply(response.ops, to: fresh, batch: batch, model: response.model,
+                                                   now: Self.wholeMillis(now()), makeId: makeId)
+                for fact in outcome.upserts {
+                    guard !isPaused else { result.skipped = .paused; break batches }
+                    try await repository.save(fact)
+                }
+                guard !isPaused else { result.skipped = .paused; break batches }
+                for (id, stamp) in batch.stamps {
+                    state.processed[id] = stamp
+                    state.failures[id] = nil
+                }
+                state.promptVersion = UserFactPlanner.promptVersion
+                try await repository.saveExtractionProgress(state)
+                facts = Self.replacing(fresh, with: outcome.upserts)
+                result.batches += 1
+                result.added += outcome.added
+                consecutiveFailures = 0
+            } catch {
+                Self.logger.error("user facts: save failed: \(error.localizedDescription, privacy: .public)")
+                result.aborted = true
+                break batches
             }
         }
         Self.logger.info("user facts: batches \(result.batches) failed \(result.failed) added \(result.added) pruned \(result.pruned)")
@@ -174,18 +205,25 @@ final class UserFactReconciler {
     }
 
     private func prune(
-        facts: inout [UserFact], state: inout UserFactExtractionState, liveIds: Set<String>, at date: Date
+        facts: inout [UserFact], state: inout UserFactExtractionState, liveIds: Set<String>, at date: Date,
+        isPaused: () -> Bool
     ) async throws -> Int {
         let (updated, deletedIds) = UserFactMerger.pruneDeletedEntries(facts, liveEntryIds: liveIds, now: date)
-        for id in deletedIds { try await repository.delete(id: id) }
-        for fact in updated { try await repository.save(fact) }
+        for id in deletedIds {
+            guard !isPaused() else { return 0 }
+            try await repository.delete(id: id)
+        }
+        for fact in updated {
+            guard !isPaused() else { return 0 }
+            try await repository.save(fact)
+        }
         facts = Self.replacing(facts.filter { !deletedIds.contains($0.id) }, with: updated)
         var next = state
         next.processed = next.processed.filter { liveIds.contains($0.key) }
         next.failures = next.failures.filter { liveIds.contains($0.key) }
         next.skipped = next.skipped.filter { liveIds.contains($0.key) }
-        if next != state {
-            try await repository.saveState(next)
+        if next != state, !isPaused() {
+            try await repository.saveExtractionProgress(next)
             state = next
         }
         return updated.count + deletedIds.count

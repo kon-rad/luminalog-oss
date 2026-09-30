@@ -11,20 +11,23 @@ final class UserFactsViewModelTests: XCTestCase {
     private var entries: [JournalEntry] = []
     private var reconcileCalls = 0
     private var reconcileWork: (@MainActor () async -> Int) = { 0 }
+    private var pauseCalls = 0
 
     override func setUp() async throws {
         repo = InMemoryUserFactRepository()
         entries = [F.entry("e1", "2026-09-20T10:00:00Z"), F.entry("e2", "2026-09-21T10:00:00Z"), F.entry("e3", "2026-09-22T10:00:00Z")]
         reconcileCalls = 0
         reconcileWork = { 0 }
+        pauseCalls = 0
     }
 
-    private func make(consent: Bool = true) -> UserFactsViewModel {
+    private func make(consent: Bool = true, repository: UserFactRepository? = nil) -> UserFactsViewModel {
         UserFactsViewModel(
-            repository: repo,
+            repository: repository ?? repo,
             loadEntries: { [unowned self] in self.entries },
             hasConsent: { consent },
             reconcile: { [unowned self] in self.reconcileCalls += 1; return await self.reconcileWork() },
+            pauseLearning: { [unowned self] in self.pauseCalls += 1 },
             now: { [unowned self] in self.clock },
             makeId: { "made" }
         )
@@ -215,5 +218,62 @@ final class UserFactsViewModelTests: XCTestCase {
         XCTAssertEqual(UserFactFormat.span(for: ended, timeZone: utc), "Mar 2026 to Feb 2027")
         ended.validFrom = nil
         XCTAssertEqual(UserFactFormat.span(for: ended, timeZone: utc), "Until Feb 2027")
+    }
+
+    /// Skipped entries count as done and the total is only what the reader can read
+    /// (settled, not empty), so the progress line can finish.
+    func testProgressCountsSkippedAsDoneAndOnlyEligibleEntries() async throws {
+        entries += [F.entry("fresh", "2026-09-28T11:50:00Z"), F.entry("blank", "2026-09-20T10:00:00Z", content: "  ")]
+        try await repo.saveState(UserFactExtractionState(processed: ["e1": 1], skipped: ["e2": 1]))
+        let vm = make()
+        await vm.load()
+        XCTAssertEqual(vm.progress, .init(read: 2, total: 3))
+        try await repo.saveState(UserFactExtractionState(processed: ["e1": 1, "e3": 1], skipped: ["e2": 1]))
+        await vm.load()
+        XCTAssertNil(vm.progress, "the unsettled and the blank entry do not hold the line open")
+    }
+
+    /// The screen's `.task` fires again on every back navigation; only the first
+    /// appearance reads. Pull to refresh (`start()`) always does.
+    func testAppearStartsOnlyOnce() async {
+        let vm = make()
+        await vm.appear()
+        await vm.appear()
+        XCTAssertEqual(reconcileCalls, 1)
+        await vm.start()
+        XCTAssertEqual(reconcileCalls, 2)
+    }
+
+    func testForgetEverythingStopsLearningBeforeDeleting() async throws {
+        try await repo.save(F.fact("a"))
+        let hooked = HookedUserFactRepository(repo)
+        var learningAtDelete: Bool?
+        hooked.onDeleteAll = { [unowned self] in learningAtDelete = (try? await self.repo.state())?.learning }
+        await make(repository: hooked).forgetEverything()
+        XCTAssertEqual(learningAtDelete, false)
+        XCTAssertTrue(repo.store.isEmpty)
+    }
+
+    func testForgetEverythingAndPausingBumpTheReconcilerPause() async {
+        let vm = make()
+        await vm.setLearning(true)
+        XCTAssertEqual(pauseCalls, 0)
+        await vm.setLearning(false)
+        XCTAssertEqual(pauseCalls, 1)
+        await vm.forgetEverything()
+        XCTAssertEqual(pauseCalls, 2)
+    }
+
+    /// Another device with a slow clock can store a start later than now: the picker
+    /// range must stay valid (lower <= upper) and the initial date inside it.
+    func testNotTrueRangeClampsAStartLaterThanNow() {
+        let now = F.date("2026-09-28T12:00:00Z")
+        let future = F.date("2026-10-05T12:00:00Z")
+        XCTAssertEqual(NotTrueAnymoreSheet.range(validFrom: future, now: now), now...now)
+        XCTAssertEqual(NotTrueAnymoreSheet.range(validFrom: nil, now: now), Date.distantPast...now)
+        let past = F.date("2026-03-02T10:00:00Z")
+        XCTAssertEqual(NotTrueAnymoreSheet.range(validFrom: past, now: now), past...now)
+        XCTAssertEqual(NotTrueAnymoreSheet.initialEnd(validFrom: future, now: now), now)
+        XCTAssertEqual(NotTrueAnymoreSheet.initialEnd(validFrom: past, now: now), now)
     }
 }

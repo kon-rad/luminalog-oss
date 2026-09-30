@@ -51,7 +51,7 @@ struct UserFactsView: View {
             }
         }
         .refreshable { await viewModel.start() }
-        .task { await viewModel.start() }
+        .task { await viewModel.appear() }
         .navigationDestination(for: UserFactsRoute.self) { route in
             switch route {
             case .fact(let id):

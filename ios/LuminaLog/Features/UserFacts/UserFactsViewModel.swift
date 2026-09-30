@@ -39,15 +39,19 @@ final class UserFactsViewModel: ObservableObject {
     private let loadEntries: @MainActor () async throws -> [JournalEntry]
     private let consent: @MainActor () -> Bool
     private let reconcile: @MainActor () async -> Int
+    /// Tells a run in flight to stop writing (`UserFactReconciler.pause()`).
+    private let pauseLearning: @MainActor () -> Void
     private let now: @MainActor () -> Date
     private let makeId: () -> String
     private var entriesById: [String: JournalEntry] = [:]
+    private var didStart = false
 
     init(
         repository: UserFactRepository,
         loadEntries: @escaping @MainActor () async throws -> [JournalEntry],
         hasConsent: @escaping @MainActor () -> Bool,
         reconcile: @escaping @MainActor () async -> Int,
+        pauseLearning: @escaping @MainActor () -> Void = {},
         now: @escaping @MainActor () -> Date = Date.init,
         makeId: @escaping () -> String = { UUID().uuidString }
     ) {
@@ -55,6 +59,7 @@ final class UserFactsViewModel: ObservableObject {
         self.loadEntries = loadEntries
         self.consent = hasConsent
         self.reconcile = reconcile
+        self.pauseLearning = pauseLearning
         self.now = now
         self.makeId = makeId
     }
@@ -67,7 +72,8 @@ final class UserFactsViewModel: ObservableObject {
             repository: services.userFacts,
             loadEntries: { [journals = services.journals] in try await journals.fetchAllEntries() },
             hasConsent: { [consentStore = services.consentStore] in consentStore.hasConsentedAI },
-            reconcile: { await reconciler?.run(budget: UserFactReconciler.screenBudget, force: true).batches ?? 0 }
+            reconcile: { await reconciler?.run(budget: UserFactReconciler.screenBudget, force: true).batches ?? 0 },
+            pauseLearning: { reconciler?.pause() }
         )
     }
 
@@ -104,7 +110,15 @@ final class UserFactsViewModel: ObservableObject {
         }
     }
 
-    /// On appear and pull to refresh: show what is stored, then read a little more.
+    /// The screen's `.task`. Runs `start()` on the first appearance only: `.task` fires
+    /// again on every back navigation, and pull to refresh is the explicit trigger.
+    func appear() async {
+        guard !didStart else { return }
+        didStart = true
+        await start()
+    }
+
+    /// First appearance and pull to refresh: show what is stored, then read a little more.
     func start() async {
         await load()
         guard loadState == .loaded, learning, hasConsent else { return }
@@ -120,8 +134,11 @@ final class UserFactsViewModel: ObservableObject {
             facts = all
             learning = state.learning
             hasEntries = !entries.isEmpty
-            let readable = entries.filter { !$0.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-            let read = readable.filter { state.processed[$0.id] != nil }.count
+            // Only what the reader will read (settled, not empty) counts, and a skipped
+            // entry is done, so the line can finish.
+            let date = now()
+            let readable = entries.filter { UserFactPlanner.isEligible($0, now: date) }
+            let read = readable.filter { state.processed[$0.id] != nil || state.skipped[$0.id] != nil }.count
             progress = (learning && read < readable.count) ? Progress(read: read, total: readable.count) : nil
             loadState = .loaded
         } catch {
@@ -194,6 +211,7 @@ final class UserFactsViewModel: ObservableObject {
     }
 
     func setLearning(_ on: Bool) async {
+        if !on { pauseLearning() }
         do {
             var state = try await repository.state()
             state.learning = on
@@ -207,12 +225,14 @@ final class UserFactsViewModel: ObservableObject {
     }
 
     /// Hard-deletes every fact, tombstones included, resets what has been read, and
-    /// turns learning off so nothing comes back until the user turns it on.
+    /// turns learning off so nothing comes back until the user turns it on. Learning goes
+    /// off first (in this process and in the store), so a run can't refill the facts.
     func forgetEverything() async {
+        pauseLearning()
         do {
-            try await repository.deleteAll()
             try await repository.saveState(UserFactExtractionState(learning: false,
                                                                    promptVersion: UserFactPlanner.promptVersion))
+            try await repository.deleteAll()
             facts = []
             learning = false
             progress = nil

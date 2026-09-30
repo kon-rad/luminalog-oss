@@ -30,4 +30,11 @@ final class InMemoryUserFactRepository: UserFactRepository {
     func state() async throws -> UserFactExtractionState { storedState }
 
     func saveState(_ state: UserFactExtractionState) async throws { storedState = state }
+
+    func saveExtractionProgress(_ state: UserFactExtractionState) async throws {
+        storedState.processed = state.processed
+        storedState.failures = state.failures
+        storedState.skipped = state.skipped
+        storedState.promptVersion = state.promptVersion
+    }
 }

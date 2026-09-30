@@ -14,7 +14,12 @@ protocol UserFactRepository: AnyObject {
     func deleteAll() async throws
     /// The extraction bookkeeping. The default state when none is stored or signed out.
     func state() async throws -> UserFactExtractionState
+    /// Replaces the whole state doc, `learning` included. For the user's own switches.
     func saveState(_ state: UserFactExtractionState) async throws
+    /// Writes only the fields the reconciler owns (`processed`, `failures`, `skipped`,
+    /// `promptVersion`), each replaced whole; `learning` is never touched, so a run
+    /// can't undo "Forget everything" or a pause that landed while it was writing.
+    func saveExtractionProgress(_ state: UserFactExtractionState) async throws
 }
 
 enum UserFactRepositoryError: Error {
@@ -92,5 +97,13 @@ final class FirestoreUserFactRepository: UserFactRepository {
     func saveState(_ state: UserFactExtractionState) async throws {
         guard let uid = auth.currentUserId else { throw UserFactRepositoryError.signedOut }
         try await stateDoc(uid).setData(state.firestoreData())
+    }
+
+    func saveExtractionProgress(_ state: UserFactExtractionState) async throws {
+        guard let uid = auth.currentUserId else { throw UserFactRepositoryError.signedOut }
+        // mergeFields, not merge: true. A deep merge would keep map keys the
+        // reconciler removed (a pruned entry id), since maps merge key by key.
+        let fields = UserFactExtractionState.progressFields
+        try await stateDoc(uid).setData(state.firestoreData().filter { fields.contains($0.key) }, mergeFields: fields)
     }
 }

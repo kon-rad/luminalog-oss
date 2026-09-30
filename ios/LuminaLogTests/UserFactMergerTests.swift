@@ -149,6 +149,25 @@ final class UserFactMergerTests: XCTestCase {
         XCTAssertTrue(outcome.upserts.isEmpty)
     }
 
+    /// Mixed evidence: the stale entry is dropped, the op is kept on the rest, and
+    /// validTo is the earliest entry that remains.
+    func testInvalidateWithMixedEvidenceKeepsOnlyTheEntriesAfterTheStart() throws {
+        let known = F.fact("k", category: .place, subject: "Kuching", statement: "You live in Kuching.",
+                           validFrom: "2026-03-02T10:00:00Z")
+        let outcome = apply([UserFactOperation(op: "invalidate", ref: "f1", reason: "You moved.", evidence: ["old", "e2", "e1"])],
+                            to: [known], batch(["old": "2026-02-01T10:00:00Z", "e1": sep21, "e2": sep25], refs: ["f1": "k"]))
+        let fact = try XCTUnwrap(outcome.upserts.first)
+        XCTAssertEqual(outcome.invalidated, 1)
+        XCTAssertEqual(fact.validTo, F.date(sep21))
+        XCTAssertEqual(fact.evidence, ["e0", "e2", "e1"])
+
+        let mine = F.fact("m", userAuthored: true, validFrom: "2026-03-02T10:00:00Z")
+        let proposed = apply([UserFactOperation(op: "invalidate", ref: "f1", reason: "x", evidence: ["old", "e2"])],
+                             to: [mine], batch(["old": "2026-02-01T10:00:00Z", "e2": sep25], refs: ["f1": "m"]))
+        XCTAssertEqual(proposed.upserts.first?.proposal,
+                       UserFactProposal(kind: .invalidate, statement: nil, validTo: F.date(sep25), reason: "x", evidence: ["e2"]))
+    }
+
     func testStaleInvalidateOnAUserAuthoredFactIsDropped() {
         let mine = F.fact("k", userAuthored: true, validFrom: "2026-03-02T10:00:00Z")
         let outcome = apply([UserFactOperation(op: "invalidate", ref: "f1", reason: "x", evidence: ["old"])],
