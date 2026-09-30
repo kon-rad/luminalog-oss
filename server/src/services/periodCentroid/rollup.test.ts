@@ -17,18 +17,28 @@ function periodsRef(uid: string) {
       }
     },
     where(field: string, _op: '==', value: unknown) {
-      return {
-        async get() {
-          const rows = Object.entries(docs)
-            .filter(([k]) => k.startsWith(prefix))
-            .map(([, v]) => v)
-            .filter(v => v[field] === value)
-          return { docs: rows.map(v => ({ data: () => v })) }
-        },
-      }
+      return query([[field, value]])
     },
   }
+  // Chainable equality-only query; every executed query's filters are recorded so
+  // tests can assert which filters were pushed down to Firestore.
+  function query(filters: Array<[string, unknown]>): any {
+    return {
+      where(field: string, _op: '==', value: unknown) {
+        return query([...filters, [field, value]])
+      },
+      async get() {
+        executedQueries.push(filters)
+        const rows = Object.entries(docs)
+          .filter(([k]) => k.startsWith(prefix))
+          .map(([, v]) => v)
+          .filter(v => filters.every(([f, val]) => v[f] === val))
+        return { docs: rows.map(v => ({ data: () => v })) }
+      },
+    }
+  }
 }
+const executedQueries: Array<Array<[string, unknown]>> = []
 
 vi.mock('../../middleware/firebaseAuth', () => ({
   db: {
@@ -56,6 +66,7 @@ import {
 
 beforeEach(() => {
   for (const k of Object.keys(docs)) delete docs[k]
+  executedQueries.length = 0
   computeDayCentroid.mockReset()
 })
 
@@ -179,6 +190,25 @@ describe('updatePeriodCentroidsForDay', () => {
     const juneMonth = monthIndexFromDayIndex(dayLateJune)
     const juneMonthKey = `u1/month_${juneMonth}`
     expect(docs[juneMonthKey]).toBeUndefined()
+  })
+
+  it('filters child docs by their parent field in the Firestore query, not only in memory', async () => {
+    const day = dayIndexFor(2026, 6, 1)
+    const anchor = thursdayDayIndexFromDayIndex(day)
+    computeDayCentroid.mockResolvedValue({ centroid: [1, 1, 1], wordTotal: 100 })
+
+    await updatePeriodCentroidsForDay('u1', day)
+
+    expect(executedQueries).toContainEqual([['periodType', 'day'], ['weekIndex', weekIndexFromDayIndex(day)]])
+    expect(executedQueries).toContainEqual([['periodType', 'week'], ['monthIndex', monthIndexFromDayIndex(anchor)]])
+    expect(executedQueries).toContainEqual([['periodType', 'month'], ['quarterIndex', quarterIndexFromDayIndex(anchor)]])
+    expect(executedQueries).toContainEqual([['periodType', 'quarter'], ['yearIndex', yearIndexFromDayIndex(anchor)]])
+    // Lifetime has no parent field: the year tier is still read whole.
+    expect(executedQueries).toContainEqual([['periodType', 'year']])
+    // No unfiltered read of any tier below year.
+    for (const tier of ['day', 'week', 'month', 'quarter']) {
+      expect(executedQueries).not.toContainEqual([['periodType', tier]])
+    }
   })
 
   it('rolls up to the week-anchor month/quarter/year/lifetime after only the minority-side day', async () => {

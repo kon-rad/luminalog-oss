@@ -33,14 +33,23 @@ function periodsCollection(userId: string) {
   return db.collection('users').doc(userId).collection('periodCentroids')
 }
 
-/** All centroid docs of `childTier` for this user whose stored field matches. */
+/**
+ * All centroid docs of `childTier` for this user whose stored parent field matches.
+ * The parent filter is pushed into the Firestore query (two equality filters work
+ * off automatic single-field indexes), so a save reads only its own tier chain
+ * rather than the user's whole periodCentroids history. The in-memory filter stays
+ * as a guard.
+ */
 async function childVectors(
   userId: string,
   childTier: PeriodType,
   field: string,
   value: number,
 ): Promise<number[][]> {
-  const snap = await periodsCollection(userId).where('periodType', '==', childTier).get()
+  const snap = await periodsCollection(userId)
+    .where('periodType', '==', childTier)
+    .where(field, '==', value)
+    .get()
   return snap.docs
     .map((d: any) => d.data() as PeriodCentroidDoc)
     .filter((row: PeriodCentroidDoc) => (row as any)[field] === value)
