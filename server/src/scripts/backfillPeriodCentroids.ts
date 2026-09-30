@@ -81,7 +81,7 @@ async function tagEntryChunks(
     merged.push({ ...meta, localDayIndex: day })
     days.add(day)
   })
-  if (LIVE && ids.length > 0) await col.update({ ids, metadatas: merged })
+  if (LIVE && ids.length > 0) await col.update({ ids, metadatas: merged as any })
   return { chunks: ids.length, days: Array.from(days) }
 }
 
