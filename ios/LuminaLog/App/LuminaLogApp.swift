@@ -35,7 +35,7 @@ struct LuminaLogApp: App {
         // EVERY build; the non-ZK path no longer exists on the server.
         UserDefaults.standard.register(defaults: [DevFlags.aiModel1Key: true])
         UserDefaults.standard.register(defaults: [DevFlags.periodSummariesKey: true])
-        UserDefaults.standard.register(defaults: [DevFlags.storyMapKey: false])
+        UserDefaults.standard.register(defaults: [DevFlags.storyMapKey: true])
         UserDefaults.standard.register(defaults: [DevFlags.userFactsKey: true])
 
         #if DEBUG

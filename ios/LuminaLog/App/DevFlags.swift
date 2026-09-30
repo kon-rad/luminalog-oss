@@ -73,7 +73,8 @@ enum DevFlags {
     }
 
     /// Shows the Story Map: the `Story | Map` segment on the Story screen, the Home
-    /// card's Map button and the Settings "Story map" row. Registered OFF.
+    /// card's Map button and the Settings "Story map" row. Registered ON for every
+    /// build (see LuminaLogApp.init); set false in UserDefaults to hide it on one device.
     /// Spec: docs/superpowers/specs/2026-09-28-story-map-design.md.
     static var storyMap: Bool {
         get { UserDefaults.standard.bool(forKey: storyMapKey) }
