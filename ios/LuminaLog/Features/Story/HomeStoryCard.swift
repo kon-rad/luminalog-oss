@@ -104,11 +104,23 @@ struct HomeStoryCard: View {
             .buttonStyle(.plain)
             .accessibilityHint("Opens your story, from all time down to single days")
 
-            // STORY MAP INSERTION POINT. The Story Map plan adds, here and nowhere else:
-            //   if DevFlags.storyMap {
-            //       NavigationLink(value: StoryRoute(mode: .map)) { ... Text("Map") ... }
-            //   }
-            // This plan ships without it.
+            if DevFlags.storyMap {
+                NavigationLink(value: StoryRoute(mode: .map)) {
+                    HStack(spacing: Spacing.xs) {
+                        Image(systemName: "circle.hexagongrid")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("Map")
+                    }
+                    .font(.uiBody.weight(.semibold))
+                    .foregroundStyle(Color.accentWarm)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Spacing.m)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Story map")
+                .accessibilityHint("Opens your story as a map you can zoom")
+            }
         }
     }
 

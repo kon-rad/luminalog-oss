@@ -168,6 +168,9 @@ struct SettingsView: View {
                     leaderboardRow
                     if DevFlags.periodSummaries {
                         storyRow
+                        if DevFlags.storyMap {
+                            storyMapRow
+                        }
                     }
                     if DevFlags.userFacts {
                         userFactsRow
@@ -421,6 +424,45 @@ struct SettingsView: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Your story")
         .accessibilityHint("Opens your journal summarized by day, week, month and year")
+    }
+
+    private var storyMapRow: some View {
+        Button {
+            storyRoute = StoryRoute(mode: .map)
+            showStory = true
+        } label: {
+            HStack(spacing: Spacing.m) {
+                Image(systemName: "circle.hexagongrid")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.accentWarm)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.small, style: .continuous)
+                            .fill(Color.accentWarm.opacity(0.12))
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Story map")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Your story as a map you can zoom")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+            }
+            .padding(Spacing.m)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                    .fill(Color.cardBackground)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Story map")
+        .accessibilityHint("Opens your journal as a map you can zoom from all time down to one entry")
     }
 
     // MARK: - What Argo knows row
