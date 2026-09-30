@@ -1,80 +1,111 @@
 /**
- * One-time backfill: give every user their zoom-pyramid `periodCentroids`
- * (week/month/quarter/year/lifetime position tiers) for journal days that were
- * indexed BEFORE the feature shipped.
- *
- * `updatePeriodCentroidsForDay` only ever runs as a side effect of `POST
- * /v1/rag/index` and entry delete (see `rag.ts`), so a day indexed before this
- * deploy never got its centroids written, even though its Chroma chunks already
- * carry the `dayIndex` metadata (tagged at index time, or by the earlier
- * `backfillConstellation.ts` run). This script:
- *   1. For each user, reads every Chroma chunk's `dayIndex` metadata (no writes
- *      to Chroma, unlike backfillConstellation, since the tagging already exists)
- *      and collects the distinct set of days that have any indexed content.
- *   2. For each distinct day, calls `updatePeriodCentroidsForDay` (self-gating,
- *      idempotent) to (re)write that day's centroid and roll it up through week,
- *      month, quarter, year, and lifetime.
- *
- * Unlike Soul Constellation, position here is UNGATED (no word-count threshold):
- * every day with any indexed content gets a centroid.
+ * Re-key the zoom pyramid's `periodCentroids` from UTC days to LOCAL days (profile
+ * timezone), for the Story Map (spec docs/superpowers/specs/2026-09-28-story-map-design.md,
+ * private workspace). For each user:
+ *   1. Reads every journal's `createdAt` and the user's `timezone`, and tags that
+ *      entry's Chroma chunks with `localDayIndex` (METADATA ONLY: no re-embedding,
+ *      no text, `dayIndex` untouched so the Soul Constellation doesn't move).
+ *   2. Deletes every existing `users/{uid}/periodCentroids` doc. All of them were
+ *      keyed by UTC day, so none can be kept.
+ *   3. Recomputes each local day that has chunks via `updatePeriodCentroidsForDay`
+ *      (idempotent), which rolls up week, month, quarter, year and lifetime.
  *
  * SAFE: dry-run by default (reads only, writes nothing). Pass `--live` to write.
- * Idempotent: re-running recomputes the same tiers from the same source chunks.
- * Optional `--user <uid>` limits to one user (for testing).
+ * Idempotent: a re-run re-tags with the same values and recomputes the same tiers.
+ * Production data: run `--live --user <uid>` on a test account first, and only with
+ * Konrad's go-ahead.
  *
  *   Dry run (default):  npx tsx src/scripts/backfillPeriodCentroids.ts
  *   One user, live:     npx tsx src/scripts/backfillPeriodCentroids.ts --live --user <uid>
  *   All users, live:    npx tsx src/scripts/backfillPeriodCentroids.ts --live
  */
 import 'dotenv/config'
+import admin from 'firebase-admin'
 import { db } from '../middleware/firebaseAuth'
 import { getJournalsCollection } from '../db/chroma'
 import { updatePeriodCentroidsForDay } from '../services/periodCentroid/rollup'
+import { planLocalDays } from '../services/periodCentroid/backfillPlan'
 
 const LIVE = process.argv.includes('--live')
 const userIdx = process.argv.indexOf('--user')
 const ONLY_USER = userIdx !== -1 ? process.argv[userIdx + 1] : null
+const DELETE_BATCH = 400
 
 interface UserResult {
   uid: string
-  chunksScanned: number
-  chunksSkippedNoDayIndex: number
-  distinctDays: number
+  entries: number
+  entriesSkippedNoDate: number
+  entriesSkippedNoChunks: number
+  chunksTagged: number
+  staleDocs: number
+  localDays: number
 }
 
-/** Every distinct `dayIndex` a user has any indexed Chroma chunk for. */
-async function distinctDaysForUser(uid: string): Promise<{ days: number[]; result: Omit<UserResult, 'uid' | 'distinctDays'> }> {
+/** Tag one entry's chunks with `localDayIndex`. Returns how many chunks it has. */
+async function tagEntryChunks(uid: string, entryId: string, localDayIndex: number): Promise<number> {
   const col = await getJournalsCollection()
-  const res = await col.get({
-    where: { userId: { $eq: uid } },
+  const existing = await col.get({
+    where: { $and: [{ userId: { $eq: uid } }, { entryId: { $eq: entryId } }] },
     include: ['metadatas'] as any,
   })
-  const metas = (res.metadatas ?? []) as Array<{ dayIndex?: number } | null>
-
-  const days = new Set<number>()
-  let skipped = 0
-  for (const m of metas) {
-    if (m && typeof m.dayIndex === 'number') {
-      days.add(m.dayIndex)
-    } else {
-      skipped += 1
-    }
-  }
-
-  return {
-    days: [...days].sort((a, b) => a - b),
-    result: { chunksScanned: metas.length, chunksSkippedNoDayIndex: skipped },
-  }
+  if (existing.ids.length === 0) return 0
+  const metas = (existing.metadatas ?? []) as Array<Record<string, unknown>>
+  const merged = existing.ids.map((_: string, i: number) => ({ ...(metas[i] ?? {}), localDayIndex }))
+  if (LIVE) await col.update({ ids: existing.ids, metadatas: merged })
+  return existing.ids.length
 }
 
-async function backfillUser(uid: string): Promise<UserResult> {
-  const { days, result } = await distinctDaysForUser(uid)
+/** Delete every periodCentroids doc for the user. Returns how many exist. */
+async function deleteStaleCentroids(uid: string): Promise<number> {
+  const snap = await db.collection('users').doc(uid).collection('periodCentroids').get()
+  if (LIVE) {
+    for (let i = 0; i < snap.docs.length; i += DELETE_BATCH) {
+      const batch = db.batch()
+      for (const d of snap.docs.slice(i, i + DELETE_BATCH)) batch.delete(d.ref)
+      await batch.commit()
+    }
+  }
+  return snap.size
+}
 
+async function backfillUser(uid: string, timeZone: string | undefined): Promise<UserResult> {
+  const journals = await db.collection('journals').where('userId', '==', uid).get()
+  const plan = planLocalDays(
+    journals.docs.map((d: any) => ({
+      id: d.id,
+      createdAt: (d.data().createdAt as admin.firestore.Timestamp | undefined)?.toDate() ?? null,
+    })),
+    timeZone,
+  )
+
+  let chunksTagged = 0
+  let entriesSkippedNoChunks = 0
+  const daysWithChunks = new Set<number>()
+  for (const [entryId, localDay] of plan.localDayByEntry) {
+    const n = await tagEntryChunks(uid, entryId, localDay)
+    if (n === 0) {
+      entriesSkippedNoChunks += 1
+      continue
+    }
+    chunksTagged += n
+    daysWithChunks.add(localDay)
+  }
+
+  const staleDocs = await deleteStaleCentroids(uid)
+  const days = Array.from(daysWithChunks).sort((a, b) => a - b)
   if (LIVE) {
     for (const d of days) await updatePeriodCentroidsForDay(uid, d)
   }
 
-  return { uid, distinctDays: days.length, ...result }
+  return {
+    uid,
+    entries: journals.size,
+    entriesSkippedNoDate: plan.skippedNoDate,
+    entriesSkippedNoChunks,
+    chunksTagged,
+    staleDocs,
+    localDays: days.length,
+  }
 }
 
 async function main(): Promise<void> {
@@ -85,28 +116,34 @@ async function main(): Promise<void> {
     : (await db.collection('users').get()).docs
   console.log(`[backfill-period-centroids] scanning ${userDocs.length} user(s)`)
 
+  let totalChunks = 0
+  let totalStale = 0
   let totalDays = 0
-  let usersWithDays = 0
 
   for (const uDoc of userDocs) {
     if (!uDoc.exists) {
       console.warn(`  user ${uDoc.id}: not found, skipping`)
       continue
     }
-    const r = await backfillUser(uDoc.id)
-    totalDays += r.distinctDays
-    if (r.distinctDays > 0) usersWithDays += 1
-    if (r.chunksScanned > 0) {
+    const r = await backfillUser(uDoc.id, uDoc.data()?.timezone as string | undefined)
+    totalChunks += r.chunksTagged
+    totalStale += r.staleDocs
+    totalDays += r.localDays
+    if (r.entries > 0 || r.staleDocs > 0) {
       console.log(
-        `  user ${uDoc.id}: ${r.chunksScanned} chunk(s) -> ${r.distinctDays} distinct day(s)` +
-          (r.chunksSkippedNoDayIndex ? `, ${r.chunksSkippedNoDayIndex} chunk(s) skipped (no dayIndex)` : ''),
+        `  user ${r.uid}: ${r.entries} entries, ${r.chunksTagged} chunk(s) to tag, ` +
+          `${r.staleDocs} stale doc(s), ${r.localDays} local day(s)` +
+          (r.entriesSkippedNoChunks ? `, ${r.entriesSkippedNoChunks} no-chunk` : '') +
+          (r.entriesSkippedNoDate ? `, ${r.entriesSkippedNoDate} no-date` : ''),
       )
     }
   }
 
   console.log(
-    `[backfill-period-centroids] ${LIVE ? 'DONE' : 'DRY-RUN complete'}, ` +
-      `${totalDays} day(s) across ${usersWithDays} user(s) ${LIVE ? 'recomputed' : 'would be recomputed'}.` +
+    `[backfill-period-centroids] ${LIVE ? 'DONE' : 'DRY-RUN complete'}: ` +
+      `${totalChunks} chunk(s) ${LIVE ? 'tagged' : 'would be tagged'}, ` +
+      `${totalStale} stale doc(s) ${LIVE ? 'deleted' : 'would be deleted'}, ` +
+      `${totalDays} local day(s) ${LIVE ? 'recomputed' : 'would be recomputed'}.` +
       (LIVE ? '' : '\n  Re-run with --live to apply.'),
   )
 }
