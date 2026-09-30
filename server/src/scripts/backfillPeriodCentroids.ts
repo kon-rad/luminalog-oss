@@ -12,6 +12,11 @@
  *
  * SAFE: dry-run by default (reads only, writes nothing). Pass `--live` to write.
  * Idempotent: a re-run re-tags with the same values and recomputes the same tiers.
+ * Entries with no usable `createdAt` fall back to each chunk's existing `dayIndex`
+ * (the UTC day, matching the index-time fallback) and are counted as fallbackToUtcDay.
+ * Failure: the run STOPS at the first failing user and exits non-zero. Step 2 deletes
+ * before step 3 recomputes, so a failure after the delete leaves that user's pyramid
+ * partial; recovery is re-running the same user (`--live --user <uid>`), which is idempotent.
  * Production data: run `--live --user <uid>` on a test account first, and only with
  * Konrad's go-ahead.
  *
@@ -26,33 +31,58 @@ import { getJournalsCollection } from '../db/chroma'
 import { updatePeriodCentroidsForDay } from '../services/periodCentroid/rollup'
 import { planLocalDays } from '../services/periodCentroid/backfillPlan'
 
-const LIVE = process.argv.includes('--live')
-const userIdx = process.argv.indexOf('--user')
-const ONLY_USER = userIdx !== -1 ? process.argv[userIdx + 1] : null
+import { parseBackfillArgs } from './backfillArgs'
+
+// Parse before any database access: a bad flag must never fall through to all users.
+const parsed = parseBackfillArgs(process.argv.slice(2))
+if ('error' in parsed) {
+  console.error(`[backfill-period-centroids] ${parsed.error}`)
+  process.exit(1)
+}
+const LIVE = parsed.live
+const ONLY_USER = parsed.onlyUser
 const DELETE_BATCH = 400
 
 interface UserResult {
   uid: string
   entries: number
-  entriesSkippedNoDate: number
+  fallbackToUtcDay: number
   entriesSkippedNoChunks: number
   chunksTagged: number
   staleDocs: number
   localDays: number
 }
 
-/** Tag one entry's chunks with `localDayIndex`. Returns how many chunks it has. */
-async function tagEntryChunks(uid: string, entryId: string, localDayIndex: number): Promise<number> {
+/**
+ * Tag one entry's chunks with `localDayIndex`. A null `localDay` means the entry has
+ * no usable date: each chunk falls back to its own existing `dayIndex`. Returns the
+ * chunk count and the distinct days tagged.
+ */
+async function tagEntryChunks(
+  uid: string,
+  entryId: string,
+  localDay: number | null,
+): Promise<{ chunks: number; days: number[] }> {
   const col = await getJournalsCollection()
   const existing = await col.get({
     where: { $and: [{ userId: { $eq: uid } }, { entryId: { $eq: entryId } }] },
     include: ['metadatas'] as any,
   })
-  if (existing.ids.length === 0) return 0
+  if (existing.ids.length === 0) return { chunks: 0, days: [] }
   const metas = (existing.metadatas ?? []) as Array<Record<string, unknown>>
-  const merged = existing.ids.map((_: string, i: number) => ({ ...(metas[i] ?? {}), localDayIndex }))
-  if (LIVE) await col.update({ ids: existing.ids, metadatas: merged })
-  return existing.ids.length
+  const ids: string[] = []
+  const merged: Array<Record<string, unknown>> = []
+  const days = new Set<number>()
+  existing.ids.forEach((id: string, i: number) => {
+    const meta = metas[i] ?? {}
+    const day = localDay ?? (typeof meta.dayIndex === 'number' ? meta.dayIndex : null)
+    if (day === null) return
+    ids.push(id)
+    merged.push({ ...meta, localDayIndex: day })
+    days.add(day)
+  })
+  if (LIVE && ids.length > 0) await col.update({ ids, metadatas: merged })
+  return { chunks: ids.length, days: Array.from(days) }
 }
 
 /** Delete every periodCentroids doc for the user. Returns how many exist. */
@@ -68,43 +98,63 @@ async function deleteStaleCentroids(uid: string): Promise<number> {
   return snap.size
 }
 
+class UserRunError extends Error {
+  constructor(public afterDelete: boolean, cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause))
+  }
+}
+
 async function backfillUser(uid: string, timeZone: string | undefined): Promise<UserResult> {
-  const journals = await db.collection('journals').where('userId', '==', uid).get()
-  const plan = planLocalDays(
-    journals.docs.map((d: any) => ({
-      id: d.id,
-      createdAt: (d.data().createdAt as admin.firestore.Timestamp | undefined)?.toDate() ?? null,
-    })),
-    timeZone,
-  )
+  // Set just before the delete starts: a delete that fails midway may have committed
+  // some batches, so it counts as partial too.
+  let afterDelete = false
+  try {
+    const journals = await db.collection('journals').where('userId', '==', uid).get()
+    const plan = planLocalDays(
+      journals.docs.map((d: any) => {
+        const ts = d.data().createdAt
+        return { id: d.id, createdAt: typeof ts?.toDate === 'function' ? (ts.toDate() as Date) : null }
+      }),
+      timeZone,
+    )
 
-  let chunksTagged = 0
-  let entriesSkippedNoChunks = 0
-  const daysWithChunks = new Set<number>()
-  for (const [entryId, localDay] of plan.localDayByEntry) {
-    const n = await tagEntryChunks(uid, entryId, localDay)
-    if (n === 0) {
-      entriesSkippedNoChunks += 1
-      continue
+    let chunksTagged = 0
+    let entriesSkippedNoChunks = 0
+    let fallbackToUtcDay = 0
+    const daysWithChunks = new Set<number>()
+    const work: Array<[string, number | null]> = [
+      ...Array.from(plan.localDayByEntry.entries()),
+      ...plan.noDateEntryIds.map((id): [string, number | null] => [id, null]),
+    ]
+    for (const [entryId, localDay] of work) {
+      const r = await tagEntryChunks(uid, entryId, localDay)
+      if (r.chunks === 0) {
+        entriesSkippedNoChunks += 1
+        continue
+      }
+      if (localDay === null) fallbackToUtcDay += 1
+      chunksTagged += r.chunks
+      for (const d of r.days) daysWithChunks.add(d)
     }
-    chunksTagged += n
-    daysWithChunks.add(localDay)
-  }
 
-  const staleDocs = await deleteStaleCentroids(uid)
-  const days = Array.from(daysWithChunks).sort((a, b) => a - b)
-  if (LIVE) {
-    for (const d of days) await updatePeriodCentroidsForDay(uid, d)
-  }
+    if (LIVE) afterDelete = true
+    const staleDocs = await deleteStaleCentroids(uid)
+    const days = Array.from(daysWithChunks).sort((a, b) => a - b)
+    if (LIVE) {
+      for (const d of days) await updatePeriodCentroidsForDay(uid, d)
+    }
 
-  return {
-    uid,
-    entries: journals.size,
-    entriesSkippedNoDate: plan.skippedNoDate,
-    entriesSkippedNoChunks,
-    chunksTagged,
-    staleDocs,
-    localDays: days.length,
+    return {
+      uid,
+      entries: journals.size,
+      fallbackToUtcDay,
+      entriesSkippedNoChunks,
+      chunksTagged,
+      staleDocs,
+      localDays: days.length,
+    }
+  } catch (err) {
+    throw new UserRunError(afterDelete, err)
   }
 }
 
@@ -125,7 +175,19 @@ async function main(): Promise<void> {
       console.warn(`  user ${uDoc.id}: not found, skipping`)
       continue
     }
-    const r = await backfillUser(uDoc.id, uDoc.data()?.timezone as string | undefined)
+    let r: UserResult
+    try {
+      r = await backfillUser(uDoc.id, uDoc.data()?.timezone as string | undefined)
+    } catch (err) {
+      const e = err as UserRunError
+      console.error(
+        e.afterDelete
+          ? `user ${uDoc.id}: pyramid PARTIAL after delete, re-run --live --user ${uDoc.id}`
+          : `user ${uDoc.id}: failed before any write`,
+      )
+      console.error(`  cause: ${e.message}`)
+      process.exit(1)
+    }
     totalChunks += r.chunksTagged
     totalStale += r.staleDocs
     totalDays += r.localDays
@@ -134,7 +196,7 @@ async function main(): Promise<void> {
         `  user ${r.uid}: ${r.entries} entries, ${r.chunksTagged} chunk(s) to tag, ` +
           `${r.staleDocs} stale doc(s), ${r.localDays} local day(s)` +
           (r.entriesSkippedNoChunks ? `, ${r.entriesSkippedNoChunks} no-chunk` : '') +
-          (r.entriesSkippedNoDate ? `, ${r.entriesSkippedNoDate} no-date` : ''),
+          (r.fallbackToUtcDay ? `, fallbackToUtcDay: ${r.fallbackToUtcDay}` : ''),
       )
     }
   }

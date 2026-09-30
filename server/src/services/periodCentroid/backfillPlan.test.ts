@@ -26,7 +26,18 @@ describe('planLocalDays', () => {
       { id: 'a', createdAt: new Date('2026-09-20T10:00:00Z') },
     ], 'UTC')
     expect(plan.skippedNoDate).toBe(1)
+    expect(plan.noDateEntryIds).toEqual(['none'])
     expect(plan.localDayByEntry.has('none')).toBe(false)
     expect(plan.days).toEqual([day(2026, 9, 20), day(2026, 9, 27)])
+  })
+
+  it('routes entries with a missing or invalid date to the fallback list, not the day map', () => {
+    const plan = planLocalDays([
+      { id: 'nul', createdAt: null },
+      { id: 'bad', createdAt: new Date('nope') },
+      { id: 'ok', createdAt: new Date('2026-09-20T10:00:00Z') },
+    ], 'UTC')
+    expect(plan.noDateEntryIds).toEqual(['nul', 'bad'])
+    expect(plan.days).toEqual([day(2026, 9, 20)])
   })
 })
