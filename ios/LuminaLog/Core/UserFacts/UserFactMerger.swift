@@ -48,11 +48,11 @@ enum UserFactMerger {
             case "add":
                 guard let category = op.category.flatMap(UserFactCategory.init(rawValue:)),
                       let statement = clean(op.statement) else { outcome.dropped += 1; continue }
-                let key = normalized(statement)
-                let same: (UserFact) -> Bool = { $0.category == category && normalized($0.statement) == key }
-                if byId.values.contains(where: { $0.status == .rejected && same($0) }) {
+                if isTombstoned(category: category, statement: statement, in: byId.values) {
                     outcome.dropped += 1; continue
                 }
+                let key = normalized(statement)
+                let same: (UserFact) -> Bool = { $0.category == category && normalized($0.statement) == key }
                 if var twin = byId.values.first(where: { $0.status == .active && same($0) }) {
                     confirm(&twin, evidence: evidence, latest: latest, now: now)
                     touch(twin)
@@ -80,7 +80,15 @@ enum UserFactMerger {
                     outcome.confirmed += 1
                 } else if op.op == "update" {
                     guard let statement = clean(op.statement) else { outcome.dropped += 1; continue }
-                    if fact.userAuthored {
+                    if isTombstoned(category: fact.category, statement: statement, in: byId.values) {
+                        outcome.dropped += 1; continue
+                    }
+                    if normalized(statement) == normalized(fact.statement) {
+                        // A no-op update (the model re-sent the current statement): a
+                        // confirmation, not a rewrite or a proposal.
+                        confirm(&fact, evidence: evidence, latest: latest, now: now)
+                        outcome.confirmed += 1
+                    } else if fact.userAuthored {
                         fact.proposal = UserFactProposal(kind: .update, statement: statement, validTo: nil,
                                                          reason: nil, evidence: evidence)
                         fact.updatedAt = now
@@ -88,6 +96,7 @@ enum UserFactMerger {
                     } else {
                         fact.statement = statement
                         fact.model = model
+                        fact.promptVersion = UserFactPlanner.promptVersion
                         confirm(&fact, evidence: evidence, latest: latest, now: now)
                         outcome.updated += 1
                     }
@@ -116,12 +125,15 @@ enum UserFactMerger {
         }
 
         // Link each ended fact to its replacement: an add in this batch with the same
-        // category and subject, or else the only add in that category.
+        // category and subject, or else, for a single-valued category (a person can
+        // have many entries in the same category, a place or job usually cannot),
+        // the only add in that category.
+        let singleValuedCategories: Set<UserFactCategory> = [.place, .work]
         for oldId in invalidatedNow {
             guard var old = byId[oldId] else { continue }
             let candidates = addedNow.compactMap { byId[$0] }.filter { $0.category == old.category }
             let match = candidates.first { normalized($0.subject) == normalized(old.subject) }
-                ?? (candidates.count == 1 ? candidates[0] : nil)
+                ?? (singleValuedCategories.contains(old.category) && candidates.count == 1 ? candidates[0] : nil)
             if let match {
                 old.supersededBy = match.id
                 touch(old)
@@ -167,6 +179,17 @@ enum UserFactMerger {
         let folded = text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
         let spaced = String(folded.unicodeScalars.map { CharacterSet.alphanumerics.contains($0) ? Character($0) : " " })
         return spaced.split(separator: " ").joined(separator: " ")
+    }
+
+    /// True if a rejected (tombstoned) fact exists with the same category and the
+    /// same normalized statement. A deleted fact never comes back, whether the
+    /// server proposes it again as an `add` or tries to rewrite an existing fact
+    /// into its wording via `update`.
+    private static func isTombstoned(
+        category: UserFactCategory, statement: String, in facts: Dictionary<String, UserFact>.Values
+    ) -> Bool {
+        let key = normalized(statement)
+        return facts.contains { $0.status == .rejected && $0.category == category && normalized($0.statement) == key }
     }
 
     private static func confirm(_ fact: inout UserFact, evidence: [String], latest: Date, now: Date) {

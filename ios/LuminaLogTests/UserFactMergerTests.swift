@@ -80,6 +80,35 @@ final class UserFactMergerTests: XCTestCase {
         XCTAssertEqual(fact.validFrom, known.validFrom, "an update is the same truth, so it keeps its start")
     }
 
+    func testUpdateIntoATombstoneIsDropped() {
+        let tomb = F.fact("t", statement: "Tom is your cousin.", status: .rejected)
+        let known = F.fact("k", category: .person, subject: "Tom", statement: "Tom is your friend.")
+        let outcome = apply([UserFactOperation(op: "update", ref: "f1", statement: "  tom is your COUSIN ", evidence: ["e1"])],
+                            to: [tomb, known], batch(["e1": sep21], refs: ["f1": "k"]))
+        XCTAssertEqual(outcome.dropped, 1)
+        XCTAssertTrue(outcome.upserts.isEmpty)
+    }
+
+    func testUpdateIntoATombstoneOnAUserAuthoredFactIsDropped() {
+        let tomb = F.fact("t", statement: "Tom is your cousin.", status: .rejected)
+        let mine = F.fact("k", category: .person, subject: "Tom", statement: "Tom is my friend.", userAuthored: true)
+        let outcome = apply([UserFactOperation(op: "update", ref: "f1", statement: "tom is your COUSIN", evidence: ["e1"])],
+                            to: [tomb, mine], batch(["e1": sep21], refs: ["f1": "k"]))
+        XCTAssertEqual(outcome.dropped, 1)
+        XCTAssertTrue(outcome.upserts.isEmpty, "no proposal is created for an update into a tombstone")
+    }
+
+    func testUpdateWithTheSameStatementIsTreatedAsAConfirm() throws {
+        let known = F.fact("k", statement: "Maya is your sister.")
+        let outcome = apply([UserFactOperation(op: "update", ref: "f1", statement: "maya IS your sister", evidence: ["e1"])],
+                            to: [known], batch(["e1": sep21], refs: ["f1": "k"]))
+        XCTAssertEqual(outcome.updated, 0)
+        XCTAssertEqual(outcome.confirmed, 1)
+        let fact = try XCTUnwrap(outcome.upserts.first)
+        XCTAssertEqual(fact.statement, "Maya is your sister.", "the original wording is kept, not the model's paraphrase")
+        XCTAssertEqual(fact.evidence, ["e0", "e1"])
+    }
+
     func testUpdateOnAUserAuthoredFactBecomesAProposal() throws {
         let mine = F.fact("k", statement: "Maya is my sister.", userAuthored: true)
         let outcome = apply([UserFactOperation(op: "update", ref: "f1", statement: "Maya is your younger sister.", evidence: ["e1"])],
@@ -120,6 +149,14 @@ final class UserFactMergerTests: XCTestCase {
         XCTAssertTrue(outcome.upserts.isEmpty)
     }
 
+    func testStaleInvalidateOnAUserAuthoredFactIsDropped() {
+        let mine = F.fact("k", userAuthored: true, validFrom: "2026-03-02T10:00:00Z")
+        let outcome = apply([UserFactOperation(op: "invalidate", ref: "f1", reason: "x", evidence: ["old"])],
+                            to: [mine], batch(["old": "2026-02-01T10:00:00Z"], refs: ["f1": "k"]))
+        XCTAssertEqual(outcome.dropped, 1)
+        XCTAssertTrue(outcome.upserts.isEmpty, "no proposal is created for a stale invalidate either")
+    }
+
     func testTheReplacementIsLinkedBySupersededBy() throws {
         let known = F.fact("k", category: .place, subject: "Kuching", statement: "You live in Kuching.")
         let outcome = apply([
@@ -138,6 +175,16 @@ final class UserFactMergerTests: XCTestCase {
             UserFactOperation(op: "add", category: "place", subject: "JB", statement: "You work in Johor Bahru.", evidence: ["e1"]),
         ], to: [known], batch(["e1": sep21], refs: ["f1": "k"]))
         XCTAssertNil(try XCTUnwrap(outcome.upserts.first { $0.id == "k" }).supersededBy)
+    }
+
+    func testNoLinkForAPersonInvalidateWithAnUnrelatedPersonAdd() throws {
+        let known = F.fact("k", category: .person, subject: "Maya", statement: "Maya is your sister.")
+        let outcome = apply([
+            UserFactOperation(op: "invalidate", ref: "f1", reason: "She moved away.", evidence: ["e1"]),
+            UserFactOperation(op: "add", category: "person", subject: "Sam", statement: "Sam is your friend.", evidence: ["e1"]),
+        ], to: [known], batch(["e1": sep21], refs: ["f1": "k"]))
+        XCTAssertNil(try XCTUnwrap(outcome.upserts.first { $0.id == "k" }).supersededBy,
+                     "person is not single-valued, so a single unrelated add must not link")
     }
 
     func testOpsOnAFactThatIsNoLongerActiveAreDropped() {
