@@ -29,3 +29,19 @@ export function planLocalDays(journals: JournalDayInput[], timeZone: string | nu
   const days = Array.from(new Set(localDayByEntry.values())).sort((a, b) => a - b)
   return { localDayByEntry, days, noDateEntryIds, skippedNoDate: noDateEntryIds.length }
 }
+
+/**
+ * Race guard for the backfill: local days present in the user's chunks now
+ * (`currentDays`, raw `localDayIndex` metadata values) that were not in the set
+ * the recompute loop covered. A live index that lands between the scan and the
+ * centroid delete writes a day doc the delete then removes; recomputing these
+ * days restores it. Ascending and distinct; non-numbers are ignored.
+ */
+export function daysAddedSince(originalDays: Iterable<number>, currentDays: Iterable<unknown>): number[] {
+  const seen = new Set(originalDays)
+  const added = new Set<number>()
+  for (const d of currentDays) {
+    if (typeof d === 'number' && !seen.has(d)) added.add(d)
+  }
+  return Array.from(added).sort((a, b) => a - b)
+}

@@ -9,6 +9,8 @@
  *      keyed by UTC day, so none can be kept.
  *   3. Recomputes each local day that has chunks via `updatePeriodCentroidsForDay`
  *      (idempotent), which rolls up week, month, quarter, year and lifetime.
+ *   4. Re-reads the user's distinct chunk local days and recomputes any day not in
+ *      the step-3 set once (a live index racing the delete can otherwise lose its day).
  *
  * SAFE: dry-run by default (reads only, writes nothing). Pass `--live` to write.
  * Idempotent: a re-run re-tags with the same values and recomputes the same tiers.
@@ -25,11 +27,10 @@
  *   All users, live:    npx tsx src/scripts/backfillPeriodCentroids.ts --live
  */
 import 'dotenv/config'
-import admin from 'firebase-admin'
 import { db } from '../middleware/firebaseAuth'
 import { getJournalsCollection } from '../db/chroma'
 import { updatePeriodCentroidsForDay } from '../services/periodCentroid/rollup'
-import { planLocalDays } from '../services/periodCentroid/backfillPlan'
+import { planLocalDays, daysAddedSince } from '../services/periodCentroid/backfillPlan'
 
 import { parseBackfillArgs } from './backfillArgs'
 
@@ -51,6 +52,8 @@ interface UserResult {
   chunksTagged: number
   staleDocs: number
   localDays: number
+  /** Days picked up by the post-recompute race pass (LIVE only). */
+  lateDays: number
 }
 
 /**
@@ -83,6 +86,16 @@ async function tagEntryChunks(
   })
   if (LIVE && ids.length > 0) await col.update({ ids, metadatas: merged as any })
   return { chunks: ids.length, days: Array.from(days) }
+}
+
+/** Every `localDayIndex` value on the user's chunks (metadata only, userId-scoped). */
+async function currentChunkLocalDays(uid: string): Promise<unknown[]> {
+  const col = await getJournalsCollection()
+  const res = await col.get({
+    where: { userId: { $eq: uid } },
+    include: ['metadatas'] as any,
+  })
+  return ((res.metadatas ?? []) as Array<Record<string, unknown> | null>).map(m => m?.localDayIndex)
 }
 
 /** Delete every periodCentroids doc for the user. Returns how many exist. */
@@ -140,8 +153,12 @@ async function backfillUser(uid: string, timeZone: string | undefined): Promise<
     if (LIVE) afterDelete = true
     const staleDocs = await deleteStaleCentroids(uid)
     const days = Array.from(daysWithChunks).sort((a, b) => a - b)
+    let lateDays: number[] = []
     if (LIVE) {
       for (const d of days) await updatePeriodCentroidsForDay(uid, d)
+      // One extra pass for days a concurrent live index added after the scan.
+      lateDays = daysAddedSince(days, await currentChunkLocalDays(uid))
+      for (const d of lateDays) await updatePeriodCentroidsForDay(uid, d)
     }
 
     return {
@@ -151,7 +168,8 @@ async function backfillUser(uid: string, timeZone: string | undefined): Promise<
       entriesSkippedNoChunks,
       chunksTagged,
       staleDocs,
-      localDays: days.length,
+      localDays: days.length + lateDays.length,
+      lateDays: lateDays.length,
     }
   } catch (err) {
     throw new UserRunError(afterDelete, err)
@@ -183,7 +201,7 @@ async function main(): Promise<void> {
       console.error(
         e.afterDelete
           ? `user ${uDoc.id}: pyramid PARTIAL after delete, re-run --live --user ${uDoc.id}`
-          : `user ${uDoc.id}: failed before any write`,
+          : `user ${uDoc.id}: failed before the centroid delete (Chroma tags may be partly applied; re-run is safe)`,
       )
       console.error(`  cause: ${e.message}`)
       process.exit(1)
@@ -196,7 +214,8 @@ async function main(): Promise<void> {
         `  user ${r.uid}: ${r.entries} entries, ${r.chunksTagged} chunk(s) to tag, ` +
           `${r.staleDocs} stale doc(s), ${r.localDays} local day(s)` +
           (r.entriesSkippedNoChunks ? `, ${r.entriesSkippedNoChunks} no-chunk` : '') +
-          (r.fallbackToUtcDay ? `, fallbackToUtcDay: ${r.fallbackToUtcDay}` : ''),
+          (r.fallbackToUtcDay ? `, fallbackToUtcDay: ${r.fallbackToUtcDay}` : '') +
+          (r.lateDays ? `, ${r.lateDays} late day(s) recomputed` : ''),
       )
     }
   }

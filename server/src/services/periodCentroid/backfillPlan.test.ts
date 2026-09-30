@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { planLocalDays } from './backfillPlan'
+import { planLocalDays, daysAddedSince } from './backfillPlan'
 
 const day = (y: number, m: number, d: number) => Math.floor(Date.UTC(y, m - 1, d) / 86_400_000)
 
@@ -39,5 +39,19 @@ describe('planLocalDays', () => {
     ], 'UTC')
     expect(plan.noDateEntryIds).toEqual(['nul', 'bad'])
     expect(plan.days).toEqual([day(2026, 9, 20)])
+  })
+})
+
+describe('daysAddedSince', () => {
+  it('returns local days that gained chunks after the original scan, ascending and distinct', () => {
+    expect(daysAddedSince([10, 12], [12, 15, 10, 11, 15])).toEqual([11, 15])
+  })
+
+  it('returns nothing when no new day appeared (a day that lost its chunks is not re-added)', () => {
+    expect(daysAddedSince([10, 12, 13], [12, 10])).toEqual([])
+  })
+
+  it('ignores non-numeric metadata values', () => {
+    expect(daysAddedSince([10], [10, undefined, null, 'x', 14] as unknown[])).toEqual([14])
   })
 })
