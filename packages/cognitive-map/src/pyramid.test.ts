@@ -181,4 +181,48 @@ describe('mountZoomPyramid', () => {
     handle.destroy()
     expect(el.children).toHaveLength(0)
   })
+
+  it('focus() focuses a dot of the current tier as a tap would', () => {
+    const onFocusChange = vi.fn()
+    const onNeedNarrative = vi.fn()
+    const el = host()
+    const handle = mountZoomPyramid(el, { onFocusChange, onNeedNarrative })
+    handle.setTierData('week', weekPoints)
+    handle.focus(2)
+    expect(onFocusChange).toHaveBeenCalledWith({
+      periodType: 'week', periodIndex: 2, childCount: 1, narrative: null,
+    })
+    expect(onNeedNarrative).toHaveBeenCalledWith('week', 2)
+  })
+
+  it('focus() is a no-op before the tier has data or for an unknown dot', () => {
+    const onFocusChange = vi.fn()
+    const el = host()
+    const handle = mountZoomPyramid(el, { onFocusChange })
+    handle.focus(1)
+    handle.setTierData('week', weekPoints)
+    handle.focus(99)
+    expect(onFocusChange).not.toHaveBeenCalled()
+  })
+
+  it('remounts the entry map without stacking listeners', () => {
+    const onSelectBeat = vi.fn()
+    const el = host()
+    const handle = mountZoomPyramid(el, { onSelectBeat, initialTier: 'day' })
+    handle.setTierData('day', [{ periodIndex: 100, x: 0, y: 0, z: 0, childCount: 1, parentIndex: 1 }])
+    handle.drillIn(100)
+    const beat = (id: string) => ({
+      id, tier: 'map' as const, kind: 'event' as const, text: id, quote: id,
+      quoteStart: 0, domain: 'craft' as const, isSpine: false, isKeeper: false,
+      generality: 0, keepScore: 0, degree: 0, mentions: [],
+    })
+    handle.setEntryMap(100, { v: 1, beats: [beat('first')], edges: [] })
+    handle.setEntryMap(100, { v: 1, beats: [beat('second')], edges: [] })
+    expect(el.querySelector('g[data-beat-id="first"]')).toBeFalsy()
+    el.querySelector<SVGGElement>('g[data-beat-id="second"]')!.dispatchEvent(
+      new MouseEvent('click', { bubbles: true }),
+    )
+    expect(onSelectBeat).toHaveBeenCalledTimes(1)
+    expect(onSelectBeat).toHaveBeenCalledWith('second')
+  })
 })

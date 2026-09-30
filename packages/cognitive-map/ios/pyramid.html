@@ -65,6 +65,12 @@
     try { handle && handle.zoomOut(); } catch (e) { post('log', 'zoomOut threw: ' + (e && e.message)); }
   };
 
+  // Called by the native host to focus one dot of the current tier (a period the
+  // user was already looking at in the Story view).
+  window.zoomPyramidFocus = function (periodIndex) {
+    try { handle && handle.focus(periodIndex); } catch (e) { post('log', 'focus threw: ' + (e && e.message)); }
+  };
+
   window.onerror = function (message, source, line, column) {
     post('log', 'JS error: ' + message + ' @' + (source || '') + ':' + line + ':' + column);
   };

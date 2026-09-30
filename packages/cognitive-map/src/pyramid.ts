@@ -82,6 +82,12 @@ export interface ZoomPyramidHandle {
    *  so a host can offer its own tap/keyboard affordance without the renderer
    *  knowing anything about that UI. */
   drillIn(periodIndex: number): void
+  /** Focuses one dot of the current view, exactly as a tap would (fires
+   *  `onFocusChange`, requests the narrative). No-op in entry mode or when the dot
+   *  isn't in the current view, e.g. its tier data hasn't been pushed yet. Lets a
+   *  host open the pyramid on a period it already knows (the Story Map's Story to
+   *  Map switch). */
+  focus(periodIndex: number): void
   /** Moves up one tier: out of the entry view back to its day, out of a drilled-in
    *  child view back to its parent's siblings, or to the next coarser tier
    *  unfiltered when already at the top of the current drill stack. No-op at the
@@ -216,6 +222,7 @@ export function mountZoomPyramid(
   }
 
   function focus(periodIndex: number) {
+    if (entryDayIndex !== null) return
     const view = currentView()
     const point = pointsForView(view).find(p => p.periodIndex === periodIndex)
     if (!point) return
@@ -248,6 +255,9 @@ export function mountZoomPyramid(
       el.appendChild(loading)
       return
     }
+    // A second setEntryMap for the day on screen (the host switching entries on a
+    // day with several) must replace the map, not stack a second set of listeners.
+    entryHandle?.destroy()
     entryHandle = mountCognitiveMap(el, map, {
       theme: opts.theme,
       colorScheme: opts.colorScheme,
@@ -411,6 +421,7 @@ export function mountZoomPyramid(
       if (entryDayIndex === dayPeriodIndex) enterEntry(dayPeriodIndex)
     },
     drillIn,
+    focus,
     zoomOut,
     destroy() {
       el.removeEventListener('click', onClick)
