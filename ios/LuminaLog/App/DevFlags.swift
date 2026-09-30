@@ -16,6 +16,7 @@ enum DevFlags {
     static let zkMigrationKey = "ll-zk-migration"
     static let periodSummariesKey = "ll-period-summaries"
     static let userFactsKey = "ll-user-facts"
+    static let storyMapKey = "ll-story-map"
 
     /// Selects the zero-knowledge AI path. When ON the client decrypts context
     /// locally and sends it as PLAINTEXT to the AI endpoints, and — because the
@@ -69,6 +70,14 @@ enum DevFlags {
     static var userFacts: Bool {
         get { UserDefaults.standard.bool(forKey: userFactsKey) }
         set { UserDefaults.standard.set(newValue, forKey: userFactsKey) }
+    }
+
+    /// Shows the Story Map: the `Story | Map` segment on the Story screen, the Home
+    /// card's Map button and the Settings "Story map" row. Registered OFF.
+    /// Spec: docs/superpowers/specs/2026-09-28-story-map-design.md.
+    static var storyMap: Bool {
+        get { UserDefaults.standard.bool(forKey: storyMapKey) }
+        set { UserDefaults.standard.set(newValue, forKey: storyMapKey) }
     }
 }
 
