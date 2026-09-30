@@ -970,6 +970,16 @@ extension ProxyAIService: PeriodSummaryGenerating {
     }
 }
 
+// MARK: - User facts
+
+extension ProxyAIService: UserFactExtracting {
+    /// Zero-knowledge: `request` is PLAINTEXT built on device by `UserFactPlanner`; the
+    /// server extracts and forgets. The caller applies, encrypts and stores the result.
+    func extractUserFacts(_ request: UserFactsRequest) async throws -> UserFactsResponse {
+        try await api.post(path: "/v1/ai/user-facts", body: request)
+    }
+}
+
 private extension Calendar {
     /// True when `a` and `b` fall on the same calendar day in `timeZone`.
     static func dayMatches(_ a: Date, _ b: Date, in timeZone: TimeZone) -> Bool {

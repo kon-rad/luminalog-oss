@@ -15,6 +15,7 @@ enum DevFlags {
     static let aiModel1Key = "ll-ai-model1"
     static let zkMigrationKey = "ll-zk-migration"
     static let periodSummariesKey = "ll-period-summaries"
+    static let userFactsKey = "ll-user-facts"
 
     /// Selects the zero-knowledge AI path. When ON the client decrypts context
     /// locally and sends it as PLAINTEXT to the AI endpoints, and — because the
@@ -60,6 +61,14 @@ enum DevFlags {
     static var periodSummaries: Bool {
         get { UserDefaults.standard.bool(forKey: periodSummariesKey) }
         set { UserDefaults.standard.set(newValue, forKey: periodSummariesKey) }
+    }
+
+    /// Gates "What Argo knows": the extraction reconciler, the Settings row, and the
+    /// facts block in voice memory. Registered ON for every build (see
+    /// LuminaLogApp.init); set false in UserDefaults to turn it off on one device.
+    static var userFacts: Bool {
+        get { UserDefaults.standard.bool(forKey: userFactsKey) }
+        set { UserDefaults.standard.set(newValue, forKey: userFactsKey) }
     }
 }
 
