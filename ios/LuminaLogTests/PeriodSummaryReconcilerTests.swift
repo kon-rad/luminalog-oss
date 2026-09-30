@@ -202,8 +202,29 @@ final class PeriodSummaryReconcilerTests: XCTestCase {
         XCTAssertEqual(result.deleted, 0)
         XCTAssertTrue(repo.deleted.isEmpty)
         XCTAssertNotNil(repo.store[PeriodKey(.day, 20_711)]) // 15 Sep kept
-        XCTAssertEqual(generator.requests.first?.periodLabel, "Wed 16 Sep 2026")
-        XCTAssertGreaterThan(result.generated, 0)
+        // The new day is filled; the stale week is not rebuilt from a partial read.
+        XCTAssertEqual(generator.requests.map(\.periodLabel), ["Wed 16 Sep 2026"])
+        XCTAssertEqual(result.generated, 1)
+    }
+
+    func testCacheSourcedReadDoesNotRegenerateAStaleDay() async {
+        let reconciler = makeReconciler()
+        await reconciler.run(budget: 20, includeOpen: false)
+        // A cache read with an extra 15 Sep entry: the day and week are now stale.
+        entries.append(entry("b2", "2026-09-15T18:00:00Z"))
+        fromServer = false
+        clock = clock.addingTimeInterval(PeriodSummaryReconciler.throttleInterval + 1)
+        generator.requests = []
+        let cached = await reconciler.run(budget: 20, includeOpen: false)
+        XCTAssertEqual(cached, .init())
+        XCTAssertTrue(generator.requests.isEmpty)
+
+        // The next server-confirmed read catches up.
+        fromServer = true
+        clock = clock.addingTimeInterval(PeriodSummaryReconciler.throttleInterval + 1)
+        let confirmed = await reconciler.run(budget: 20, includeOpen: false)
+        XCTAssertEqual(generator.requests.map(\.periodLabel), ["Tue 15 Sep 2026", "Week of Mon 14 Sep 2026"])
+        XCTAssertEqual(confirmed.generated, 2)
     }
 
     func testServerConfirmedEmptyListDeletesAllSummaries() async {
