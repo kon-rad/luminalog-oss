@@ -175,6 +175,18 @@ function normWithMap(s: string): { text: string; map: number[] } {
  * The part of `source` that `quote` matches after normalization, in the source's
  * own casing, spacing, and quote marks. null when the quote is not in the source.
  */
+// Words are counted by ICU's dictionary segmenter, not by spaces, so Chinese,
+// Japanese and Thai (which don't put spaces between words) get the same floor.
+const WORDS = new Intl.Segmenter(undefined, { granularity: 'word' })
+
+function isLongEnoughQuote(quote: string): boolean {
+  let words = 0
+  for (const seg of WORDS.segment(quote)) {
+    if (seg.isWordLike && ++words >= PERIOD_SUMMARY_QUOTE_MIN_WORDS) return true
+  }
+  return false
+}
+
 function sourceMatch(source: string, quote: string): string | null {
   const q = norm(quote)
   if (!q) return null
@@ -238,9 +250,7 @@ export function parsePeriodSummary(raw: string, req: PeriodSummaryRequest): Peri
       for (const src of sources.get(a.entryId) ?? []) {
         const quote = sourceMatch(src, a.quote)
         if (quote === null) continue
-        return quote.split(/\s+/).filter(Boolean).length >= PERIOD_SUMMARY_QUOTE_MIN_WORDS
-          ? [{ entryId: a.entryId, quote }]
-          : []
+        return isLongEnoughQuote(quote) ? [{ entryId: a.entryId, quote }] : []
       }
       return []
     })

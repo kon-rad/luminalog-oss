@@ -180,6 +180,31 @@ describe('parsePeriodSummary', () => {
     expect(r?.anchors).toEqual([{ entryId: 'e1', quote: 'Woke at 6' }])
   })
 
+  it('counts words in Japanese, Chinese and Thai, which have no spaces between words', () => {
+    const unspacedReq: PeriodSummaryRequest = {
+      ...dayReq,
+      children: [
+        child('08:05 · text', 'You could not sleep.', { id: 'j1', excerpt: '昨日は全然眠れなかった。' }),
+        child('09:10 · text', 'You went for a walk.', { id: 'z1', excerpt: '今天去海边散步了。' }),
+        child('10:15 · text', 'You could not sleep.', { id: 't1', excerpt: 'ฉันนอนไม่หลับเลย ไปทะเล' }),
+      ],
+    }
+    const r = parsePeriodSummary(reply({
+      anchors: [
+        { entryId: 'j1', quote: '昨日は' },           // 昨日|は, dropped
+        { entryId: 'j1', quote: '全然眠れなかった' }, // kept
+        { entryId: 't1', quote: 'ไปทะเล' },            // ไป|ทะเล, dropped
+        { entryId: 'z1', quote: '去海边散步' },       // 去|海边|散步, kept
+        { entryId: 't1', quote: 'ฉันนอนไม่หลับเลย' }, // kept
+      ],
+    }), unspacedReq)
+    expect(r?.anchors).toEqual([
+      { entryId: 'j1', quote: '全然眠れなかった' },
+      { entryId: 'z1', quote: '去海边散步' },
+      { entryId: 't1', quote: 'ฉันนอนไม่หลับเลย' },
+    ])
+  })
+
   it('drops an anchor whose quote is not in the cited input', () => {
     const r = parsePeriodSummary(reply({
       anchors: [
