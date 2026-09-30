@@ -82,6 +82,7 @@ describe('indexHandler', () => {
   it("refreshes period centroids for the entry's local day", async () => {
     const res = mockRes()
     await indexHandler({ uid: 'u1', body: { entryId: 'e1', dayIndex: 5, chunks: ['a'] } } as any, res)
+    await new Promise(setImmediate)
     expect(resolveEntryLocalDay).toHaveBeenCalledWith('u1', 'e1', 5)
     expect(updatePeriodCentroidsForDay).toHaveBeenCalledWith('u1', 6)
     expect(updateConstellationForDay).toHaveBeenCalledWith('u1', 5) // constellation stays on dayIndex
@@ -91,6 +92,8 @@ describe('indexHandler', () => {
     ;(updatePeriodCentroidsForDay as any).mockRejectedValueOnce(new Error('boom'))
     const res = mockRes()
     await indexHandler({ uid: 'u1', body: { entryId: 'e1', dayIndex: 5, chunks: ['a'] } } as any, res)
+    await new Promise(setImmediate)
+    expect(updatePeriodCentroidsForDay).toHaveBeenCalled()
     expect(res.json).toHaveBeenCalledWith({ ok: true, entryId: 'e1', chunks: 2 })
   })
 })
@@ -99,7 +102,10 @@ describe('deleteHandler', () => {
   it("reads the local day before purging and refreshes that day's positions", async () => {
     const res = mockRes()
     await deleteHandler({ uid: 'u1', params: { entryId: 'e9' } } as any, res)
+    await new Promise(setImmediate)
     expect(getEntryLocalDayIndex).toHaveBeenCalledWith('u1', 'e9')
+    expect((getEntryLocalDayIndex as any).mock.invocationCallOrder[0])
+      .toBeLessThan((deleteEntryChunks as any).mock.invocationCallOrder[0])
     expect(updatePeriodCentroidsForDay).toHaveBeenCalledWith('u1', 43)
   })
 

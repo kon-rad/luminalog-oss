@@ -72,8 +72,10 @@ export async function indexHandler(req: Request, res: Response): Promise<void> {
     })
     // Keep the day's constellation star in sync with the just-indexed chunks.
     await refreshConstellationForDay(uid, dayIndex)
-    await refreshPeriodCentroidsForDay(uid, localDayIndex)
     res.json({ ok: true, entryId: body.entryId, chunks: n })
+    // Fire-and-forget after the response (helper catches and logs). Concurrent rollups
+    // for the same day recompute from current state, so the last writer wins.
+    void refreshPeriodCentroidsForDay(uid, localDayIndex)
   } catch (e) {
     console.error('[rag/index]', e)
     res.status(500).json({ error: 'Index failed' })
@@ -86,18 +88,19 @@ export async function deleteHandler(req: Request, res: Response): Promise<void> 
   const entryId = req.params.entryId
   if (!entryId) { res.status(400).json({ error: 'Missing entryId' }); return }
   try {
-    // Capture the entry's day BEFORE purging its chunks so we can recompute that
-    // day's star (it may lose its ≥750-word qualification once the entry is gone).
+    // Capture the entry's days BEFORE purging its chunks so we can recompute them
+    // (the star may lose its ≥750-word qualification once the entry is gone).
     const dayIndex = await getEntryDayIndex(uid, entryId)
     const localDayIndex = await getEntryLocalDayIndex(uid, entryId)
     await deleteEntryChunks(uid, entryId)
     if (dayIndex !== null) {
       await refreshConstellationForDay(uid, dayIndex)
     }
-    if (localDayIndex !== null) {
-      await refreshPeriodCentroidsForDay(uid, localDayIndex)
-    }
     res.json({ deleted: true, entryId })
+    if (localDayIndex !== null) {
+      // Fire-and-forget after the response; concurrent rollups recompute from current state (last writer wins).
+      void refreshPeriodCentroidsForDay(uid, localDayIndex)
+    }
   } catch (e) {
     console.error('[rag/delete]', e)
     res.status(500).json({ error: 'Delete failed' })
