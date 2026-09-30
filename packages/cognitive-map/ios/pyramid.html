@@ -36,7 +36,9 @@
         },
         onNeedEntry: function (dayPeriodIndex) { post('needEntry', dayPeriodIndex); },
         onFocusChange: function (info) { post('focusChange', JSON.stringify(info)); },
-        onSelectBeat: function (beatId) { post('selectBeat', beatId); },
+        onSelectBeat: function (beatId, dayPeriodIndex) {
+          post('selectBeat', JSON.stringify({ beatId: beatId, day: dayPeriodIndex }));
+        },
       });
     } catch (e) {
       post('log', 'mount threw: ' + (e && e.message) + (e && e.stack ? '\n' + e.stack : ''));

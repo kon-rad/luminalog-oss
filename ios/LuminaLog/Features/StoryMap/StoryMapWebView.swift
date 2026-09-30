@@ -20,6 +20,35 @@ struct StoryMapData {
     }
 }
 
+/// The entry map pushed for each day, with that entry's content. The renderer caches
+/// entry maps per day and re-shows a cached day without asking again, and beat ids
+/// (`b0`, `b1`, ...) repeat across entries, so a beat tap is resolved against the map
+/// of the day it came from, never "the last map pushed".
+struct StoryMapShownEntries {
+    private var byDay: [Int: (map: CognitiveMap, content: String)] = [:]
+
+    mutating func record(day: Int, map: CognitiveMap, content: String) {
+        byDay[day] = (map, content)
+    }
+
+    /// The beat `beatId` on `day`'s map, and the content of the entry it came from.
+    func beat(id beatId: String, day: Int) -> (beat: Beat, content: String)? {
+        guard let shown = byDay[day], let beat = shown.map.beat(id: beatId) else { return nil }
+        return (beat, shown.content)
+    }
+
+    /// The renderer's `selectBeat` message body: `{"beatId": "b0", "day": 20721}`.
+    struct SelectBeatPayload: Decodable, Equatable {
+        let beatId: String
+        let day: Int
+    }
+
+    static func decodeSelectBeat(_ body: Any) -> SelectBeatPayload? {
+        guard let raw = body as? String, let data = raw.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(SelectBeatPayload.self, from: data)
+    }
+}
+
 /// SwiftUI's handle on the bridge: pushes loaded data in and forwards chip taps. A
 /// plain reference holder, kept in `@State`, so calling it never re-renders the view.
 @MainActor
@@ -103,6 +132,12 @@ struct StoryMapWebView: UIViewRepresentable {
 
     func updateUIView(_ webView: WKWebView, context: Context) {}
 
+    /// The content controller retains its script message handlers; removing them
+    /// releases the coordinator when the view goes away.
+    static func dismantleUIView(_ uiView: WKWebView, coordinator: Coordinator) {
+        uiView.configuration.userContentController.removeAllScriptMessageHandlers()
+    }
+
     @MainActor
     final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         private let journals: JournalRepository
@@ -126,9 +161,8 @@ struct StoryMapWebView: UIViewRepresentable {
         private var selectedEntryByDay: [Int: String] = [:]
         /// Entry maps generated during this session, so a chip switch back is instant.
         private var generatedMaps: [String: CognitiveMapGeneration] = [:]
-        /// The map and content on screen, to resolve a `selectBeat` id for the inspector.
-        private var currentEntryMap: CognitiveMap?
-        private var currentEntryContent = ""
+        /// The map and content pushed per day, to resolve a `selectBeat` for the inspector.
+        private var shownEntries = StoryMapShownEntries()
 
         init(
             journals: JournalRepository, ai: AIService, initialFocus: PyramidTarget?,
@@ -194,10 +228,10 @@ struct StoryMapWebView: UIViewRepresentable {
                 guard let raw = message.body as? String else { onFocusChange(nil); return }
                 onFocusChange(decode(raw, as: FocusInfo.self))
             case "selectBeat":
-                guard let beatId = message.body as? String, let map = currentEntryMap,
-                      let beat = map.beat(id: beatId)
+                guard let payload = StoryMapShownEntries.decodeSelectBeat(message.body),
+                      let found = shownEntries.beat(id: payload.beatId, day: payload.day)
                 else { return }
-                onSelectBeat(beat, currentEntryContent)
+                onSelectBeat(found.beat, found.content)
             case "log":
                 storyMapLog.error("Story map JS: \(String(describing: message.body), privacy: .public)")
             default:
@@ -220,7 +254,7 @@ struct StoryMapWebView: UIViewRepresentable {
             onTierLoaded(periodType, points.isEmpty)
             if let target = pendingFocus, target.periodType == periodType {
                 pendingFocus = nil
-                webView?.evaluateJavaScript("window.zoomPyramidFocus(\(target.periodIndex));", completionHandler: nil)
+                focusDot(target.periodIndex)
             }
         }
 
@@ -261,16 +295,20 @@ struct StoryMapWebView: UIViewRepresentable {
             selectedEntryByDay[day] = id
             guard let entry = data?.entriesById[id] else { return }
             var generation = entry.cognitiveMap ?? generatedMaps[id]
-            if generation == nil, let generated = try? await ai.generateEntryMap(journalId: id) {
-                generation = generated
-                generatedMaps[id] = generated
-                try? await journals.updateCognitiveMap(id: id, map: generated)
+            if generation == nil {
+                do {
+                    let generated = try await ai.generateEntryMap(journalId: id)
+                    generation = generated
+                    generatedMaps[id] = generated
+                    try? await journals.updateCognitiveMap(id: id, map: generated)
+                } catch {
+                    storyMapLog.error("entry map generation failed: \(error.localizedDescription, privacy: .public)")
+                }
             }
             // The user may have tapped another chip while this one generated.
             guard selectedEntryByDay[day] == id else { return }
             let map = generation?.map ?? CognitiveMap(v: 1, beats: [], edges: [])
-            currentEntryMap = map
-            currentEntryContent = entry.content
+            shownEntries.record(day: day, map: map, content: entry.content)
             push(kind: "entry", day, encodableToObject(map) ?? [:])
         }
 
@@ -286,6 +324,12 @@ struct StoryMapWebView: UIViewRepresentable {
         private func encodableToObject(_ value: some Encodable) -> Any? {
             guard let data = try? JSONEncoder().encode(value) else { return nil }
             return try? JSONSerialization.jsonObject(with: data)
+        }
+
+        /// Focuses one dot of the current tier. `periodIndex` is an Int, never text.
+        private func focusDot(_ periodIndex: Int) {
+            guard let webView, didLoad else { return }
+            webView.evaluateJavaScript("window.zoomPyramidFocus(\(periodIndex));")
         }
 
         /// Every push goes through one JSON-serialized varargs call, so summary text

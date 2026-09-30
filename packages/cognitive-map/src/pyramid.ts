@@ -55,13 +55,17 @@ export interface ZoomPyramidOptions {
    *  entirely the host's call) and answers via `setEntryMap`. */
   onNeedEntry?: (dayPeriodIndex: number) => void
   /** Fired whenever the focused dot changes (a fresh tap, or a pushed narrative
-   *  landing on the currently focused dot). Never fired for a drill-in/out: the
-   *  renderer draws dots, never narrative text, so the host renders this in its
-   *  own chrome (a caption region below the canvas), the same way it already owns
-   *  the entry tier's legend sheet. */
+   *  landing on the currently focused dot), and with the day's info when drilling
+   *  into a day whose entry map is already cached (no `onNeedEntry` fires then, so
+   *  this is the host's only signal that that day is on screen). Otherwise never
+   *  fired for a drill-in/out: the renderer draws dots, never narrative text, so
+   *  the host renders this in its own chrome (a caption region below the canvas),
+   *  the same way it already owns the entry tier's legend sheet. */
   onFocusChange?: (info: FocusInfo | null) => void
-  /** Forwarded verbatim from the delegated entry-tier `mountCognitiveMap`. */
-  onSelectBeat?: (beatId: string) => void
+  /** Forwarded from the delegated entry-tier `mountCognitiveMap`, plus the day on
+   *  screen: beat ids (`b0`, `b1`, ...) repeat across entries, so the host needs
+   *  the day to know which entry's map the id belongs to. */
+  onSelectBeat?: (beatId: string, dayPeriodIndex: number) => void
   /** CSS custom property overrides. The host owns the palette; see theme.ts. */
   theme?: Record<string, string>
   colorScheme?: 'light' | 'dark'
@@ -237,11 +241,24 @@ export function mountZoomPyramid(
     draw()
   }
 
-  function enterEntry(dayPeriodIndex: number) {
+  /** `announce` is set only by a drill-in, never by a pushed map replacing the one
+   *  on screen, so switching entries on a day doesn't re-fire the day's focus. */
+  function enterEntry(dayPeriodIndex: number, announce = false) {
+    const dayPoint = announce
+      ? pointsForView(currentView()).find(p => p.periodIndex === dayPeriodIndex)
+      : undefined
     entryDayIndex = dayPeriodIndex
     el.replaceChildren()
     viewport = null
     const map = entryMapCache.get(dayPeriodIndex)
+    if (announce && map) {
+      opts.onFocusChange?.({
+        periodType: 'day',
+        periodIndex: dayPeriodIndex,
+        childCount: dayPoint?.childCount ?? 1,
+        narrative: narrativeFor('day', dayPeriodIndex),
+      })
+    }
     if (!map) {
       if (!requestedEntries.has(dayPeriodIndex)) {
         requestedEntries.add(dayPeriodIndex)
@@ -261,7 +278,7 @@ export function mountZoomPyramid(
     entryHandle = mountCognitiveMap(el, map, {
       theme: opts.theme,
       colorScheme: opts.colorScheme,
-      onSelectBeat: opts.onSelectBeat,
+      onSelectBeat: beatId => opts.onSelectBeat?.(beatId, dayPeriodIndex),
     })
   }
 
@@ -280,7 +297,7 @@ export function mountZoomPyramid(
 
     focusedPeriodIndex = null
     if (view.tier === 'day') {
-      enterEntry(periodIndex)
+      enterEntry(periodIndex, true)
       return
     }
     const next = tierBelow(view.tier)

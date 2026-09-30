@@ -171,7 +171,7 @@ describe('mountZoomPyramid', () => {
     el.querySelector<SVGGElement>('g[data-beat-id="b1"]')!.dispatchEvent(
       new MouseEvent('click', { bubbles: true }),
     )
-    expect(onSelectBeat).toHaveBeenCalledWith('b1')
+    expect(onSelectBeat).toHaveBeenCalledWith('b1', 100)
   })
 
   it('removes everything on destroy', () => {
@@ -223,6 +223,48 @@ describe('mountZoomPyramid', () => {
       new MouseEvent('click', { bubbles: true }),
     )
     expect(onSelectBeat).toHaveBeenCalledTimes(1)
-    expect(onSelectBeat).toHaveBeenCalledWith('second')
+    expect(onSelectBeat).toHaveBeenCalledWith('second', 100)
+  })
+
+  it('re-entering a cached day reports that day, and beat taps carry the day on screen', () => {
+    const onSelectBeat = vi.fn()
+    const onFocusChange = vi.fn()
+    const onNeedEntry = vi.fn()
+    const el = host()
+    const handle = mountZoomPyramid(el, { onSelectBeat, onFocusChange, onNeedEntry, initialTier: 'day' })
+    handle.setTierData('day', [
+      { periodIndex: 100, x: 0, y: 0, z: 0, childCount: 2, parentIndex: 1 },
+      { periodIndex: 101, x: 5, y: 5, z: 0, childCount: 1, parentIndex: 1 },
+    ])
+    const beat = (id: string, text: string) => ({
+      id, tier: 'map' as const, kind: 'event' as const, text, quote: text,
+      quoteStart: 0, domain: 'craft' as const, isSpine: false, isKeeper: false,
+      generality: 0, keepScore: 0, degree: 0, mentions: [],
+    })
+    // A, then B, both with a beat id "b0".
+    handle.drillIn(100)
+    handle.setEntryMap(100, { v: 1, beats: [beat('b0', 'Day A')], edges: [] })
+    handle.zoomOut()
+    handle.drillIn(101)
+    handle.setEntryMap(101, { v: 1, beats: [beat('b0', 'Day B')], edges: [] })
+    handle.zoomOut()
+    expect(onNeedEntry).toHaveBeenCalledTimes(2)
+    expect(onFocusChange).not.toHaveBeenCalled()
+
+    // Back to A: served from cache, so no needEntry, but the host hears about the day.
+    handle.drillIn(100)
+    expect(onNeedEntry).toHaveBeenCalledTimes(2)
+    expect(onFocusChange).toHaveBeenCalledTimes(1)
+    expect(onFocusChange).toHaveBeenLastCalledWith({
+      periodType: 'day', periodIndex: 100, childCount: 2, narrative: null,
+    })
+    el.querySelector<SVGGElement>('g[data-beat-id="b0"]')!.dispatchEvent(
+      new MouseEvent('click', { bubbles: true }),
+    )
+    expect(onSelectBeat).toHaveBeenLastCalledWith('b0', 100)
+
+    // A pushed replacement for the day on screen (a chip switch) does not re-announce.
+    handle.setEntryMap(100, { v: 1, beats: [beat('b0', 'Day A, second entry')], edges: [] })
+    expect(onFocusChange).toHaveBeenCalledTimes(1)
   })
 })
