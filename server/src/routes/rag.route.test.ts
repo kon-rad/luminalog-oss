@@ -5,6 +5,13 @@ vi.mock('../services/ragStore', () => ({
   deleteEntryChunks: vi.fn(async () => {}),
   searchChunks: vi.fn(async () => [{ entryId: 'e1', chunkIndex: 0, score: 0.9 }]),
   getEntryDayIndex: vi.fn(async () => 42),
+  getEntryLocalDayIndex: vi.fn(async () => 43),
+}))
+vi.mock('../services/periodCentroid/rollup', () => ({
+  updatePeriodCentroidsForDay: vi.fn(async () => {}),
+}))
+vi.mock('../services/periodCentroid/localDay', () => ({
+  resolveEntryLocalDay: vi.fn(async () => 6),
 }))
 vi.mock('../services/constellation/constellationService', () => ({
   updateConstellationForDay: vi.fn(async () => {}),
@@ -19,7 +26,9 @@ vi.mock('../middleware/requireAiConsent', () => ({ requireAiConsent: vi.fn() }))
 vi.mock('../middleware/requirePro', () => ({ requirePro: vi.fn() }))
 
 import { indexHandler, deleteHandler, searchHandler, graphHandler } from './rag'
-import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryDayIndex } from '../services/ragStore'
+import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryDayIndex, getEntryLocalDayIndex } from '../services/ragStore'
+import { updatePeriodCentroidsForDay } from '../services/periodCentroid/rollup'
+import { resolveEntryLocalDay } from '../services/periodCentroid/localDay'
 import { updateConstellationForDay } from '../services/constellation/constellationService'
 import { computeJournalGraph } from '../services/ragGraph'
 
@@ -46,7 +55,7 @@ describe('indexHandler', () => {
       res,
     )
     expect(indexEntryChunks).toHaveBeenCalledWith({
-      userId: 'u1', entryId: 'e1', type: 'text', dayIndex: 5, wordCount: 12, chunks: ['a', 'b'],
+      userId: 'u1', entryId: 'e1', type: 'text', dayIndex: 5, localDayIndex: 6, wordCount: 12, chunks: ['a', 'b'],
     })
     expect(res.json).toHaveBeenCalledWith({ ok: true, entryId: 'e1', chunks: 2 })
   })
@@ -70,9 +79,38 @@ describe('indexHandler', () => {
     expect(res.json).toHaveBeenCalledWith({ ok: true, entryId: 'e1', chunks: 2 })
   })
 
+  it("refreshes period centroids for the entry's local day", async () => {
+    const res = mockRes()
+    await indexHandler({ uid: 'u1', body: { entryId: 'e1', dayIndex: 5, chunks: ['a'] } } as any, res)
+    expect(resolveEntryLocalDay).toHaveBeenCalledWith('u1', 'e1', 5)
+    expect(updatePeriodCentroidsForDay).toHaveBeenCalledWith('u1', 6)
+    expect(updateConstellationForDay).toHaveBeenCalledWith('u1', 5) // constellation stays on dayIndex
+  })
+
+  it('still succeeds when the period centroid refresh throws (non-fatal)', async () => {
+    ;(updatePeriodCentroidsForDay as any).mockRejectedValueOnce(new Error('boom'))
+    const res = mockRes()
+    await indexHandler({ uid: 'u1', body: { entryId: 'e1', dayIndex: 5, chunks: ['a'] } } as any, res)
+    expect(res.json).toHaveBeenCalledWith({ ok: true, entryId: 'e1', chunks: 2 })
+  })
 })
 
 describe('deleteHandler', () => {
+  it("reads the local day before purging and refreshes that day's positions", async () => {
+    const res = mockRes()
+    await deleteHandler({ uid: 'u1', params: { entryId: 'e9' } } as any, res)
+    expect(getEntryLocalDayIndex).toHaveBeenCalledWith('u1', 'e9')
+    expect(updatePeriodCentroidsForDay).toHaveBeenCalledWith('u1', 43)
+  })
+
+  it('skips the position refresh for chunks that predate localDayIndex', async () => {
+    ;(getEntryLocalDayIndex as any).mockResolvedValueOnce(null)
+    const res = mockRes()
+    await deleteHandler({ uid: 'u1', params: { entryId: 'e9' } } as any, res)
+    expect(updatePeriodCentroidsForDay).not.toHaveBeenCalled()
+    expect(res.json).toHaveBeenCalledWith({ deleted: true, entryId: 'e9' })
+  })
+
   it('deletes the entry’s chunks for the caller and recomputes its day', async () => {
     const res = mockRes()
     await deleteHandler({ uid: 'u1', params: { entryId: 'e9' } } as any, res)

@@ -2,7 +2,9 @@ import { Router, Request, Response } from 'express'
 import { firebaseAuth } from '../middleware/firebaseAuth'
 import { requireAiConsent } from '../middleware/requireAiConsent'
 import { requirePro } from '../middleware/requirePro'
-import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryDayIndex } from '../services/ragStore'
+import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryDayIndex, getEntryLocalDayIndex } from '../services/ragStore'
+import { updatePeriodCentroidsForDay } from '../services/periodCentroid/rollup'
+import { resolveEntryLocalDay } from '../services/periodCentroid/localDay'
 import { updateConstellationForDay } from '../services/constellation/constellationService'
 import { computeJournalGraph } from '../services/ragGraph'
 
@@ -20,11 +22,19 @@ async function refreshConstellationForDay(userId: string, dayIndex: number): Pro
   }
 }
 
-// The zoom pyramid's periodCentroid rollup (`refreshPeriodCentroidsForDay`, calling
-// `updatePeriodCentroidsForDay` from `../services/periodCentroid/rollup`) is
-// deliberately unwired here: the feature is paused pending more design work (see
-// DEV-LOG). The service and its tests are untouched; re-add the two call sites
-// below (indexHandler, deleteHandler) to resume.
+/**
+ * Recompute the zoom pyramid's positions (`periodCentroids`) for one LOCAL day and
+ * every tier above it. Resumed for the Story Map (spec 2026-09-28): keyed by the
+ * profile-timezone day so a map dot and a period summary are the same day.
+ * Non-fatal, like the constellation refresh.
+ */
+async function refreshPeriodCentroidsForDay(userId: string, localDayIndex: number): Promise<void> {
+  try {
+    await updatePeriodCentroidsForDay(userId, localDayIndex)
+  } catch (e) {
+    console.error('[rag] period centroid refresh failed', { localDayIndex }, e)
+  }
+}
 
 // Chunk-level semantic RAG. The vector store holds NO journal text, only vectors
 // + metadata. Chunking happens on the CLIENT (deterministic); this router just
@@ -49,16 +59,20 @@ export async function indexHandler(req: Request, res: Response): Promise<void> {
   }
   const dayIndex = typeof body.dayIndex === 'number' ? body.dayIndex : 0
   try {
+    // Never throws: falls back to the client's UTC day.
+    const localDayIndex = await resolveEntryLocalDay(uid, body.entryId, dayIndex)
     const n = await indexEntryChunks({
       userId: uid, // ownership from the token, NEVER the body
       entryId: body.entryId,
       type: typeof body.type === 'string' ? body.type : 'text',
       dayIndex,
+      localDayIndex,
       wordCount: typeof body.wordCount === 'number' ? body.wordCount : 0,
       chunks: body.chunks as string[],
     })
     // Keep the day's constellation star in sync with the just-indexed chunks.
     await refreshConstellationForDay(uid, dayIndex)
+    await refreshPeriodCentroidsForDay(uid, localDayIndex)
     res.json({ ok: true, entryId: body.entryId, chunks: n })
   } catch (e) {
     console.error('[rag/index]', e)
@@ -75,9 +89,13 @@ export async function deleteHandler(req: Request, res: Response): Promise<void> 
     // Capture the entry's day BEFORE purging its chunks so we can recompute that
     // day's star (it may lose its ≥750-word qualification once the entry is gone).
     const dayIndex = await getEntryDayIndex(uid, entryId)
+    const localDayIndex = await getEntryLocalDayIndex(uid, entryId)
     await deleteEntryChunks(uid, entryId)
     if (dayIndex !== null) {
       await refreshConstellationForDay(uid, dayIndex)
+    }
+    if (localDayIndex !== null) {
+      await refreshPeriodCentroidsForDay(uid, localDayIndex)
     }
     res.json({ deleted: true, entryId })
   } catch (e) {
