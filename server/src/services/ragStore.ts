@@ -36,6 +36,10 @@ export interface IndexChunksParams {
   entryId: string
   type: string
   dayIndex: number
+  /** The entry's day in the user's profile timezone (zoom pyramid positions).
+   *  Separate from `dayIndex`, which the Soul Constellation reads. Optional so
+   *  callers and rows from before the Story Map keep their shape. */
+  localDayIndex?: number
   wordCount: number
   chunks: string[]
 }
@@ -66,6 +70,23 @@ export async function getEntryDayIndex(userId: string, entryId: string): Promise
   )
   const meta = (res.metadatas?.[0] ?? null) as { dayIndex?: number } | null
   return typeof meta?.dayIndex === 'number' ? meta.dayIndex : null
+}
+
+/**
+ * The `localDayIndex` an entry's chunks are stored under, so a delete can refresh
+ * that day's pyramid position. Null if the entry has no chunks or they predate the
+ * field (the periodCentroids backfill tags those). userId-scoped.
+ */
+export async function getEntryLocalDayIndex(userId: string, entryId: string): Promise<number | null> {
+  const res = await withJournalsCollection(col =>
+    col.get({
+      where: { $and: [{ userId: { $eq: userId } }, { entryId: { $eq: entryId } }] },
+      include: ['metadatas'] as any,
+      limit: 1,
+    }),
+  )
+  const meta = (res.metadatas?.[0] ?? null) as { localDayIndex?: number } | null
+  return typeof meta?.localDayIndex === 'number' ? meta.localDayIndex : null
 }
 
 /** Delete all of an entry's chunk rows (idempotent, userId-scoped). */
@@ -100,6 +121,7 @@ export async function indexEntryChunks(p: IndexChunksParams): Promise<number> {
     type: p.type,
     dayIndex: p.dayIndex,
     wordCount: p.wordCount,
+    ...(p.localDayIndex === undefined ? {} : { localDayIndex: p.localDayIndex }),
   }))
   // Purge old chunks + add new ones as one unit, so a stale-collection reset
   // retries both together (a clean replace).

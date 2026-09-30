@@ -76,6 +76,13 @@ describe('meanVector', () => {
 describe('updatePeriodCentroidsForDay', () => {
   const dayIndexFor = (y: number, m: number, d: number) => Math.floor(Date.UTC(y, m - 1, d) / 86_400_000)
 
+  it('reads the day from localDayIndex, not the constellation dayIndex', async () => {
+    const day = dayIndexFor(2026, 9, 26)
+    computeDayCentroid.mockResolvedValue({ centroid: [1, 1, 1], wordTotal: 10 })
+    await updatePeriodCentroidsForDay('u1', day)
+    expect(computeDayCentroid).toHaveBeenCalledWith('u1', day, 'localDayIndex')
+  })
+
   it('does nothing but clear a stale day doc when the day has no chunks', async () => {
     computeDayCentroid.mockResolvedValue(null)
     const day = dayIndexFor(2026, 6, 1)

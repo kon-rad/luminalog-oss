@@ -26,6 +26,15 @@ describe('computeDayCentroid', () => {
     expect(res!.wordTotal).toBe(750) // 400 (A, once) + 350 (B), not 1150
   })
 
+  it('keeps the constellation on dayIndex by default and filters by localDayIndex when asked', async () => {
+    get.mockResolvedValue({ embeddings: [[1, 1]], metadatas: [{ entryId: 'A', wordCount: 10 }] })
+    await computeDayCentroid('u1', 42, 'localDayIndex')
+    expect(get).toHaveBeenCalledWith({
+      where: { $and: [{ userId: { $eq: 'u1' } }, { localDayIndex: { $eq: 42 } }] },
+      include: ['embeddings', 'metadatas'],
+    })
+  })
+
   it('returns null when the day has no chunks', async () => {
     get.mockResolvedValue({ embeddings: [], metadatas: [] })
     expect(await computeDayCentroid('u1', 20272)).toBeNull()

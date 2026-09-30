@@ -33,10 +33,13 @@ export async function getWithFindingIdRetry<T>(
 export async function computeDayCentroid(
   userId: string,
   dayIndex: number,
+  /** Which chunk metadata holds the day: `dayIndex` (Soul Constellation, the
+   *  default) or `localDayIndex` (zoom pyramid positions, profile timezone). */
+  field: 'dayIndex' | 'localDayIndex' = 'dayIndex',
 ): Promise<{ centroid: number[]; wordTotal: number } | null> {
   const col = await getJournalsCollection()
   const res = await getWithFindingIdRetry(() => col.get({
-    where: { $and: [{ userId: { $eq: userId } }, { dayIndex: { $eq: dayIndex } }] },
+    where: { $and: [{ userId: { $eq: userId } }, { [field]: { $eq: dayIndex } }] },
     include: ['embeddings', 'metadatas'] as any,
   }))
   const embs = (res.embeddings ?? []) as number[][]

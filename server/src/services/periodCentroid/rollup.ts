@@ -82,6 +82,10 @@ async function writeOrDeleteTier(
  * `updateConstellationForDay`: a day with no indexed chunks clears its doc (and any
  * tier left with no children clears too), never leaving a stale row behind.
  *
+ * `dayIndex` is the LOCAL day in the user's profile timezone (see
+ * `localDay.ts`), read from each chunk's `localDayIndex` metadata, so pyramid
+ * days match the iOS period summaries' days (Story Map spec).
+ *
  * STATELESS input, PERSISTENT output: reads Chroma's stored vectors (never decrypts
  * text) and writes only to `users/{userId}/periodCentroids`, a server-only collection
  * mirroring `constellationCentroids`'s privacy posture (see the design spec).
@@ -97,7 +101,7 @@ export async function updatePeriodCentroidsForDay(userId: string, dayIndex: numb
   const weekQuarter = quarterIndexFromDayIndex(weekAnchorDay)
   const weekYear = yearIndexFromDayIndex(weekAnchorDay)
 
-  const day = await computeDayCentroid(userId, dayIndex)
+  const day = await computeDayCentroid(userId, dayIndex, 'localDayIndex')
   const dayRef = periodsCollection(userId).doc(`day_${dayIndex}`)
   if (day === null) {
     await dayRef.delete()

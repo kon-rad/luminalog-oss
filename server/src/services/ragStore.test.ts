@@ -1,6 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 const col = {
+  get: vi.fn(async () => ({ ids: [] as string[], metadatas: [] as any[] })),
   add: vi.fn(async () => {}),
   delete: vi.fn(async () => {}),
   query: vi.fn(async () => ({
@@ -15,7 +16,7 @@ vi.mock('../db/chroma', () => ({
 }))
 vi.mock('./aiClient', () => ({ embed: vi.fn(async (t: string[]) => t.map(() => [0.1, 0.2, 0.3])) }))
 
-import { indexEntryChunks, deleteEntryChunks, searchChunks, CHUNKER_VERSION } from './ragStore'
+import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryLocalDayIndex, CHUNKER_VERSION } from './ragStore'
 import { embed } from './aiClient'
 
 beforeEach(() => { vi.clearAllMocks() })
@@ -66,6 +67,33 @@ describe('indexEntryChunks', () => {
     expect(col.delete).toHaveBeenCalledTimes(1)
     expect(col.add).not.toHaveBeenCalled()
     expect(embed).not.toHaveBeenCalled()
+  })
+
+  it('adds localDayIndex to every chunk when given', async () => {
+    await indexEntryChunks({
+      userId: 'u1', entryId: 'e1', type: 'text', dayIndex: 5, localDayIndex: 6, wordCount: 12,
+      chunks: ['alpha', 'beta'],
+    })
+    const addArg = (col.add as any).mock.calls[0][0]
+    expect(addArg.metadatas.map((m: any) => m.localDayIndex)).toEqual([6, 6])
+    expect(addArg.metadatas[0].dayIndex).toBe(5) // the constellation's day is untouched
+  })
+})
+
+describe('getEntryLocalDayIndex', () => {
+  it("returns the entry's stored localDayIndex, userId-scoped", async () => {
+    ;(col.get as any).mockResolvedValueOnce({ ids: ['u1__e9__0'], metadatas: [{ localDayIndex: 20357 }] })
+    expect(await getEntryLocalDayIndex('u1', 'e9')).toBe(20357)
+    expect(col.get).toHaveBeenCalledWith({
+      where: { $and: [{ userId: { $eq: 'u1' } }, { entryId: { $eq: 'e9' } }] },
+      include: ['metadatas'],
+      limit: 1,
+    })
+  })
+
+  it('returns null for chunks indexed before the field existed', async () => {
+    ;(col.get as any).mockResolvedValueOnce({ ids: ['u1__e9__0'], metadatas: [{ dayIndex: 5 }] })
+    expect(await getEntryLocalDayIndex('u1', 'e9')).toBeNull()
   })
 })
 
