@@ -14,6 +14,9 @@ enum DevFlags {
     static let forceOnboardingKey = "ll-force-onboarding"
     static let aiModel1Key = "ll-ai-model1"
     static let zkMigrationKey = "ll-zk-migration"
+    static let periodSummariesKey = "ll-period-summaries"
+    static let userFactsKey = "ll-user-facts"
+    static let storyMapKey = "ll-story-map"
 
     /// Selects the zero-knowledge AI path. When ON the client decrypts context
     /// locally and sends it as PLAINTEXT to the AI endpoints, and — because the
@@ -51,6 +54,30 @@ enum DevFlags {
     static var forceOnboarding: Bool {
         get { UserDefaults.standard.bool(forKey: forceOnboardingKey) }
         set { UserDefaults.standard.set(newValue, forKey: forceOnboardingKey) }
+    }
+
+    /// Gates period summaries: the catch-up reconciler and the voice memory ladder.
+    /// Registered ON for every build (see LuminaLogApp.init); set false in
+    /// UserDefaults to stop generation on one device.
+    static var periodSummaries: Bool {
+        get { UserDefaults.standard.bool(forKey: periodSummariesKey) }
+        set { UserDefaults.standard.set(newValue, forKey: periodSummariesKey) }
+    }
+
+    /// Gates "What Argo knows": the extraction reconciler, the Settings row, and the
+    /// facts block in voice memory. Registered ON for every build (see
+    /// LuminaLogApp.init); set false in UserDefaults to turn it off on one device.
+    static var userFacts: Bool {
+        get { UserDefaults.standard.bool(forKey: userFactsKey) }
+        set { UserDefaults.standard.set(newValue, forKey: userFactsKey) }
+    }
+
+    /// Shows the Story Map: the `Story | Map` segment on the Story screen, the Home
+    /// card's Map button and the Settings "Story map" row. Registered OFF.
+    /// Spec: docs/superpowers/specs/2026-09-28-story-map-design.md.
+    static var storyMap: Bool {
+        get { UserDefaults.standard.bool(forKey: storyMapKey) }
+        set { UserDefaults.standard.set(newValue, forKey: storyMapKey) }
     }
 }
 

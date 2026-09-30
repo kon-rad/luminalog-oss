@@ -33,14 +33,23 @@ function periodsCollection(userId: string) {
   return db.collection('users').doc(userId).collection('periodCentroids')
 }
 
-/** All centroid docs of `childTier` for this user whose stored field matches. */
+/**
+ * All centroid docs of `childTier` for this user whose stored parent field matches.
+ * The parent filter is pushed into the Firestore query (two equality filters work
+ * off automatic single-field indexes), so a save reads only its own tier chain
+ * rather than the user's whole periodCentroids history. The in-memory filter stays
+ * as a guard.
+ */
 async function childVectors(
   userId: string,
   childTier: PeriodType,
   field: string,
   value: number,
 ): Promise<number[][]> {
-  const snap = await periodsCollection(userId).where('periodType', '==', childTier).get()
+  const snap = await periodsCollection(userId)
+    .where('periodType', '==', childTier)
+    .where(field, '==', value)
+    .get()
   return snap.docs
     .map((d: any) => d.data() as PeriodCentroidDoc)
     .filter((row: PeriodCentroidDoc) => (row as any)[field] === value)
@@ -82,6 +91,10 @@ async function writeOrDeleteTier(
  * `updateConstellationForDay`: a day with no indexed chunks clears its doc (and any
  * tier left with no children clears too), never leaving a stale row behind.
  *
+ * `dayIndex` is the LOCAL day in the user's profile timezone (see
+ * `localDay.ts`), read from each chunk's `localDayIndex` metadata, so pyramid
+ * days match the iOS period summaries' days (Story Map spec).
+ *
  * STATELESS input, PERSISTENT output: reads Chroma's stored vectors (never decrypts
  * text) and writes only to `users/{userId}/periodCentroids`, a server-only collection
  * mirroring `constellationCentroids`'s privacy posture (see the design spec).
@@ -97,7 +110,7 @@ export async function updatePeriodCentroidsForDay(userId: string, dayIndex: numb
   const weekQuarter = quarterIndexFromDayIndex(weekAnchorDay)
   const weekYear = yearIndexFromDayIndex(weekAnchorDay)
 
-  const day = await computeDayCentroid(userId, dayIndex)
+  const day = await computeDayCentroid(userId, dayIndex, 'localDayIndex')
   const dayRef = periodsCollection(userId).doc(`day_${dayIndex}`)
   if (day === null) {
     await dayRef.delete()

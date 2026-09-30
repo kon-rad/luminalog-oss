@@ -694,3 +694,170 @@ extension CognitiveMapGeneration {
         ]
     }
 }
+
+// MARK: - PeriodSummary
+
+extension PeriodSummary {
+
+    /// Decrypt `title`/`sentence`/`summary` (AAD `periodSummaries.<field>`) and the
+    /// `details` JSON (AAD `periodSummaries.details`; absent decodes as `.empty`);
+    /// everything else is plaintext metadata. `id` is the doc id `{type}_{index}`,
+    /// which carries the key.
+    init(firestore data: [String: Any], id: String, cipher: FieldCipher) throws {
+        guard let key = PeriodKey(docId: id) else {
+            throw MappingDecryptionError.missingField("periodSummaries.id")
+        }
+        self.init(
+            key: key,
+            title: try cipher.opened(data["title"], "periodSummaries.title"),
+            sentence: try cipher.opened(data["sentence"], "periodSummaries.sentence"),
+            summary: try cipher.opened(data["summary"], "periodSummaries.summary"),
+            generatedAt: timestamp(data["generatedAt"]) ?? .distantPast,
+            sourceCount: data["sourceCount"] as? Int ?? 0,
+            sourceFingerprint: data["sourceFingerprint"] as? String ?? "",
+            isOpen: data["isOpen"] as? Bool ?? false,
+            model: data["model"] as? String ?? "",
+            promptVersion: data["promptVersion"] as? Int ?? 0,
+            details: try Self.openedDetails(data["details"], cipher: cipher)
+        )
+    }
+
+    private static func openedDetails(_ value: Any?, cipher: FieldCipher) throws -> PeriodSummaryDetails {
+        guard let json = try cipher.openedIfPresent(value, "periodSummaries.details") else { return .empty }
+        return try JSONDecoder().decode(PeriodSummaryDetails.self, from: Data(json.utf8))
+    }
+
+    /// The document body for `periodSummaries/{uid}/tiers/{key.docId}`. Mirrors `init(firestore:)`.
+    func firestoreData(cipher: FieldCipher) throws -> [String: Any] {
+        let detailsJSON = String(decoding: try JSONEncoder().encode(details), as: UTF8.self)
+        return [
+            "periodType": key.type.rawValue,
+            "periodIndex": key.index,
+            "title": try cipher.sealed(title, "periodSummaries.title"),
+            "sentence": try cipher.sealed(sentence, "periodSummaries.sentence"),
+            "summary": try cipher.sealed(summary, "periodSummaries.summary"),
+            "details": try cipher.sealed(detailsJSON, "periodSummaries.details"),
+            "generatedAt": Timestamp(date: generatedAt),
+            "sourceCount": sourceCount,
+            "sourceFingerprint": sourceFingerprint,
+            "isOpen": isOpen,
+            "model": model,
+            "promptVersion": promptVersion,
+        ]
+    }
+}
+
+// MARK: - UserFact
+
+extension UserFact {
+
+    /// AAD contexts. Must match any future web reader byte for byte (ADR-0002).
+    static let categoryContext = "userFacts.category"
+    static let subjectContext = "userFacts.subject"
+    static let statementContext = "userFacts.statement"
+    static let proposalContext = "userFacts.proposal"
+
+    /// Proposal JSON uses epoch milliseconds so a non-Swift reader can parse it.
+    private static let proposalEncoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .millisecondsSince1970
+        return encoder
+    }()
+
+    private static let proposalDecoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .millisecondsSince1970
+        return decoder
+    }()
+
+    /// Decrypts `category`, `subject` and `statement` (required) and `proposal` (optional:
+    /// a proposal that fails to open or decode is dropped, the fact still loads).
+    init(firestore data: [String: Any], id: String, cipher: FieldCipher) throws {
+        guard let category = UserFactCategory(rawValue: try cipher.opened(data["category"], Self.categoryContext)) else {
+            throw MappingDecryptionError.missingField("userFacts.category")
+        }
+        guard let status = (data["status"] as? String).flatMap(UserFactStatus.init(rawValue:)) else {
+            throw MappingDecryptionError.missingField("userFacts.status")
+        }
+        let proposal = (try? cipher.openedIfPresent(data["proposal"], Self.proposalContext))
+            .flatMap { json in try? Self.proposalDecoder.decode(UserFactProposal.self, from: Data(json.utf8)) }
+        self.init(
+            id: id,
+            category: category,
+            subject: try cipher.opened(data["subject"], Self.subjectContext),
+            statement: try cipher.opened(data["statement"], Self.statementContext),
+            status: status,
+            origin: (data["origin"] as? String).flatMap(UserFactOrigin.init(rawValue:)) ?? .extracted,
+            userAuthored: data["userAuthored"] as? Bool ?? false,
+            evidence: data["evidence"] as? [String] ?? [],
+            firstObservedAt: timestamp(data["firstObservedAt"]) ?? .distantPast,
+            lastConfirmedAt: timestamp(data["lastConfirmedAt"]) ?? .distantPast,
+            validFrom: timestamp(data["validFrom"]),
+            validTo: timestamp(data["validTo"]),
+            supersededBy: data["supersededBy"] as? String,
+            proposal: proposal,
+            createdAt: timestamp(data["createdAt"]) ?? .distantPast,
+            updatedAt: timestamp(data["updatedAt"]) ?? .distantPast,
+            model: data["model"] as? String ?? "",
+            promptVersion: data["promptVersion"] as? Int ?? 0
+        )
+    }
+
+    /// The document body for `userFacts/{uid}/facts/{id}`, written with `setData` (a
+    /// full replace, so a cleared proposal or end date really disappears).
+    func firestoreData(cipher: FieldCipher) throws -> [String: Any] {
+        var data: [String: Any] = [
+            "category": try cipher.sealed(category.rawValue, Self.categoryContext),
+            "subject": try cipher.sealed(subject, Self.subjectContext),
+            "statement": try cipher.sealed(statement, Self.statementContext),
+            "status": status.rawValue,
+            "origin": origin.rawValue,
+            "userAuthored": userAuthored,
+            "evidence": evidence,
+            "firstObservedAt": Timestamp(date: firstObservedAt),
+            "lastConfirmedAt": Timestamp(date: lastConfirmedAt),
+            "createdAt": Timestamp(date: createdAt),
+            "updatedAt": Timestamp(date: updatedAt),
+            "model": model,
+            "promptVersion": promptVersion,
+        ]
+        if let validFrom { data["validFrom"] = Timestamp(date: validFrom) }
+        if let validTo { data["validTo"] = Timestamp(date: validTo) }
+        if let supersededBy { data["supersededBy"] = supersededBy }
+        if let proposal {
+            let json = String(decoding: try Self.proposalEncoder.encode(proposal), as: UTF8.self)
+            data["proposal"] = try cipher.sealed(json, Self.proposalContext)
+        }
+        return data
+    }
+}
+
+extension UserFactExtractionState {
+
+    /// The fields `UserFactRepository.saveExtractionProgress` writes. Not `learning`.
+    static let progressFields = ["processed", "failures", "skipped", "promptVersion"]
+
+    /// Plaintext only. Firestore returns map values as NSNumber.
+    init(firestore data: [String: Any]) {
+        func int64Map(_ key: String) -> [String: Int64] {
+            (data[key] as? [String: Any] ?? [:]).compactMapValues { ($0 as? NSNumber)?.int64Value }
+        }
+        self.init(
+            processed: int64Map("processed"),
+            failures: (data["failures"] as? [String: Any] ?? [:]).compactMapValues { ($0 as? NSNumber)?.intValue },
+            skipped: int64Map("skipped"),
+            learning: data["learning"] as? Bool ?? true,
+            promptVersion: data["promptVersion"] as? Int ?? 0
+        )
+    }
+
+    func firestoreData() -> [String: Any] {
+        [
+            "processed": processed,
+            "failures": failures,
+            "skipped": skipped,
+            "learning": learning,
+            "promptVersion": promptVersion,
+        ]
+    }
+}

@@ -120,6 +120,9 @@ struct RootView: View {
                     onResumeDraft: { draftId in
                         selectedTab = .home
                         createRequest = CreateEntryRequest(resumeDraftId: draftId)
+                    },
+                    onPrompt: { request in
+                        createRequest = request
                     }
                 )
             }
@@ -192,11 +195,18 @@ struct RootView: View {
                 // Catch-up path: iOS may run the 5 AM background refresh late or
                 // not at all, so every foreground re-runs the (idempotent) cycle.
                 Task { await encouragements?.runCycle(profile: latestProfile) }
+                // Period summaries catch-up (closed periods, paced backfill). Throttled
+                // inside the reconciler, so frequent foregrounds cost nothing.
+                Task { await services.periodSummaryReconciler?.run(budget: 20, includeOpen: false) }
+                // "What Argo knows" catch-up. Throttled inside the reconciler (30 min).
+                Task { await services.userFactReconciler?.run(budget: UserFactReconciler.foregroundBudget) }
                 services.drafts.reload()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .encouragementRefreshRequested)) { _ in
             Task { await encouragements?.runCycle(profile: latestProfile) }
+            Task { await services.periodSummaryReconciler?.run(budget: 10, includeOpen: false) }
+            Task { await services.userFactReconciler?.run(budget: UserFactReconciler.foregroundBudget) }
         }
     }
 

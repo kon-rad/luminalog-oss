@@ -171,7 +171,7 @@ describe('mountZoomPyramid', () => {
     el.querySelector<SVGGElement>('g[data-beat-id="b1"]')!.dispatchEvent(
       new MouseEvent('click', { bubbles: true }),
     )
-    expect(onSelectBeat).toHaveBeenCalledWith('b1')
+    expect(onSelectBeat).toHaveBeenCalledWith('b1', 100)
   })
 
   it('removes everything on destroy', () => {
@@ -180,5 +180,91 @@ describe('mountZoomPyramid', () => {
     handle.setTierData('week', weekPoints)
     handle.destroy()
     expect(el.children).toHaveLength(0)
+  })
+
+  it('focus() focuses a dot of the current tier as a tap would', () => {
+    const onFocusChange = vi.fn()
+    const onNeedNarrative = vi.fn()
+    const el = host()
+    const handle = mountZoomPyramid(el, { onFocusChange, onNeedNarrative })
+    handle.setTierData('week', weekPoints)
+    handle.focus(2)
+    expect(onFocusChange).toHaveBeenCalledWith({
+      periodType: 'week', periodIndex: 2, childCount: 1, narrative: null,
+    })
+    expect(onNeedNarrative).toHaveBeenCalledWith('week', 2)
+  })
+
+  it('focus() is a no-op before the tier has data or for an unknown dot', () => {
+    const onFocusChange = vi.fn()
+    const el = host()
+    const handle = mountZoomPyramid(el, { onFocusChange })
+    handle.focus(1)
+    handle.setTierData('week', weekPoints)
+    handle.focus(99)
+    expect(onFocusChange).not.toHaveBeenCalled()
+  })
+
+  it('remounts the entry map without stacking listeners', () => {
+    const onSelectBeat = vi.fn()
+    const el = host()
+    const handle = mountZoomPyramid(el, { onSelectBeat, initialTier: 'day' })
+    handle.setTierData('day', [{ periodIndex: 100, x: 0, y: 0, z: 0, childCount: 1, parentIndex: 1 }])
+    handle.drillIn(100)
+    const beat = (id: string) => ({
+      id, tier: 'map' as const, kind: 'event' as const, text: id, quote: id,
+      quoteStart: 0, domain: 'craft' as const, isSpine: false, isKeeper: false,
+      generality: 0, keepScore: 0, degree: 0, mentions: [],
+    })
+    handle.setEntryMap(100, { v: 1, beats: [beat('first')], edges: [] })
+    handle.setEntryMap(100, { v: 1, beats: [beat('second')], edges: [] })
+    expect(el.querySelector('g[data-beat-id="first"]')).toBeFalsy()
+    el.querySelector<SVGGElement>('g[data-beat-id="second"]')!.dispatchEvent(
+      new MouseEvent('click', { bubbles: true }),
+    )
+    expect(onSelectBeat).toHaveBeenCalledTimes(1)
+    expect(onSelectBeat).toHaveBeenCalledWith('second', 100)
+  })
+
+  it('re-entering a cached day reports that day, and beat taps carry the day on screen', () => {
+    const onSelectBeat = vi.fn()
+    const onFocusChange = vi.fn()
+    const onNeedEntry = vi.fn()
+    const el = host()
+    const handle = mountZoomPyramid(el, { onSelectBeat, onFocusChange, onNeedEntry, initialTier: 'day' })
+    handle.setTierData('day', [
+      { periodIndex: 100, x: 0, y: 0, z: 0, childCount: 2, parentIndex: 1 },
+      { periodIndex: 101, x: 5, y: 5, z: 0, childCount: 1, parentIndex: 1 },
+    ])
+    const beat = (id: string, text: string) => ({
+      id, tier: 'map' as const, kind: 'event' as const, text, quote: text,
+      quoteStart: 0, domain: 'craft' as const, isSpine: false, isKeeper: false,
+      generality: 0, keepScore: 0, degree: 0, mentions: [],
+    })
+    // A, then B, both with a beat id "b0".
+    handle.drillIn(100)
+    handle.setEntryMap(100, { v: 1, beats: [beat('b0', 'Day A')], edges: [] })
+    handle.zoomOut()
+    handle.drillIn(101)
+    handle.setEntryMap(101, { v: 1, beats: [beat('b0', 'Day B')], edges: [] })
+    handle.zoomOut()
+    expect(onNeedEntry).toHaveBeenCalledTimes(2)
+    expect(onFocusChange).not.toHaveBeenCalled()
+
+    // Back to A: served from cache, so no needEntry, but the host hears about the day.
+    handle.drillIn(100)
+    expect(onNeedEntry).toHaveBeenCalledTimes(2)
+    expect(onFocusChange).toHaveBeenCalledTimes(1)
+    expect(onFocusChange).toHaveBeenLastCalledWith({
+      periodType: 'day', periodIndex: 100, childCount: 2, narrative: null,
+    })
+    el.querySelector<SVGGElement>('g[data-beat-id="b0"]')!.dispatchEvent(
+      new MouseEvent('click', { bubbles: true }),
+    )
+    expect(onSelectBeat).toHaveBeenLastCalledWith('b0', 100)
+
+    // A pushed replacement for the day on screen (a chip switch) does not re-announce.
+    handle.setEntryMap(100, { v: 1, beats: [beat('b0', 'Day A, second entry')], edges: [] })
+    expect(onFocusChange).toHaveBeenCalledTimes(1)
   })
 })

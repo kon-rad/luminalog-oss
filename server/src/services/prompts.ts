@@ -4,6 +4,7 @@
 
 import type { ProfileFields } from './profileContext'
 import type { PeriodType } from './periodCentroid/periodIndex'
+import type { PeriodSummaryType } from './periodSummary'
 
 /** Default system prompt for per-entry summary generation ({type} → entry kind). */
 export const DEFAULT_SUMMARY_SYSTEM_PROMPT =
@@ -57,12 +58,12 @@ Use the journal context to provide deeply personalized responses. Address the us
 
 Your replies render as Markdown, so use light formatting to aid readability: **bold** for the occasional key phrase, *italics* for gentle emphasis, and short "- " bullet or "1." numbered lists only when you're genuinely enumerating a few things. Keep the tone conversational and the prose flowing — don't over-format. Avoid headings and tables; most replies should read as plain, warm paragraphs.`,
 
-  voiceChat: (name: string, bio: string, profile: ProfileFields, journalContext: string, focalEntry?: string, currentDateTime?: string, todayEntries?: string): string => `You are a personal AI journal companion having a voice conversation.
+  voiceChat: (name: string, bio: string, profile: ProfileFields, journalContext: string, focalEntry?: string, currentDateTime?: string, todayEntries?: string, memory?: string): string => `You are a personal AI journal companion having a voice conversation.
 
 ${currentDateTime ? `CURRENT DATE & TIME: ${currentDateTime}\nEach journal entry below is tagged with the local date & time it was made and its type (text, voice, video, or handwritten image). Use CURRENT DATE & TIME as your reference to resolve relative references like "today", "yesterday", "this morning", or "last week".\n\n` : ''}${nameBlock(name)}${profileBlock(profile)}USER BIOGRAPHY:
 ${bio || 'No biography provided.'}
 
-${focalEntry ? `FOCAL JOURNAL ENTRY (the specific entry the user wants to discuss):\n${focalEntry}\n\n` : ''}${todayEntries ? `TODAY'S JOURNAL ENTRIES (everything the user wrote today, straight from their journal, most recent first):\n${todayEntries}\n\n` : ''}RELEVANT PAST JOURNAL ENTRIES:
+${memory ? `WHAT YOU REMEMBER ABOUT THEIR LIFE (summaries of past periods, written from their own journal; use them to understand how things have moved over time, and never recite them back as a list):\n${memory}\n\n` : ''}${focalEntry ? `FOCAL JOURNAL ENTRY (the specific entry the user wants to discuss):\n${focalEntry}\n\n` : ''}${todayEntries ? `TODAY'S JOURNAL ENTRIES (everything the user wrote today, straight from their journal, most recent first):\n${todayEntries}\n\n` : ''}RELEVANT PAST JOURNAL ENTRIES:
 ${journalContext || 'No relevant past journal entries found.'}
 
 OPENING: the system already spoke a brief instant greeting the moment the call connected (a plain "Hi, I'm your private AI journal companion" style line), before you were ever invoked, so NEVER repeat a self-introduction, no matter how early in the conversation this is. On the user's first reply, respond warmly and naturally to what they actually said; if it fits naturally, weave in something concrete from ${focalEntry ? 'the FOCAL entry above' : (todayEntries ? "the user's most recent entry from TODAY above" : 'the most relevant recent entry above')} to invite them deeper, naming the actual topic rather than a vague "how are you", but don't force a topic-callback that ignores what they just said. Never mention searching, databases, or how you know, just reference what they wrote, naturally.
@@ -315,6 +316,96 @@ ${ctx.journalContext || 'No entries this week.'}
 ### Output
 Return STRICT JSON ONLY (no markdown, no preamble), exactly this shape:
 {"morning":"…","afternoon":"…","evening":"…"}`,
+
+  /**
+   * "What Argo knows": reads a small batch of entries and returns operations on the
+   * user's known facts. Mem0-style add / update / confirm, plus Zep-style invalidate
+   * instead of delete, because a fact that stopped being true is part of the life
+   * story. The client applies the ops, dates them from the entries, and never lets
+   * them overwrite a fact the user wrote.
+   * Spec: docs/superpowers/specs/2026-09-28-user-facts-design.md (workspace root).
+   */
+  userFacts: (ctx: { entriesBlock: string; knownFactsBlock: string; rejectedBlock: string }): string =>
+    `You maintain a short list of durable facts about the person who wrote these journal entries, so a companion app can remember their life. Read the new entries and decide how the list should change.
+
+A durable fact is likely to stay true for weeks or longer and is worth remembering in a later conversation:
+- person: someone in their life and who they are to them ("Maya is your younger sister.")
+- place: where they live, work, or spend their time
+- work: their job, company, studies, or an ongoing project
+- goal: something they are working toward
+- value: something they say matters to them
+- preference: a stable like or dislike
+- struggle: a recurring difficulty they describe
+- commitment: a promise or routine they have taken on
+- lifeEvent: a significant event (a move, a new job, a loss, a birth, a diagnosis they name themselves)
+
+Do NOT record moods, one-day events, plans for a single day, or anything the entries do not state. Never guess feelings, motives, or diagnoses. Health, faith, sexuality and political views are facts like any other when the entries state them; record them, but never infer them. Write each statement in the second person ("You live in Forest City."), as one sentence of at most 25 words. The subject is the name of the person, place, or thing, 1 to 5 words.
+
+KNOWN FACTS (ref | category | subject | statement | since | author):
+${ctx.knownFactsBlock}
+
+FACTS THE USER DELETED (never add these, or anything that means the same):
+${ctx.rejectedBlock}
+
+NEW ENTRIES, oldest first ([entry id | date | title]):
+${ctx.entriesBlock}
+
+Return STRICT JSON ONLY (no markdown fences, no preamble) with exactly this shape:
+{"ops":[{"op":"add","category":"person","subject":"…","statement":"…","evidence":["<entry id>"]}]}
+
+Operations:
+- "add": a durable fact that is not already known. Needs category, subject, statement, evidence.
+- "confirm": an entry restates a known fact. Needs ref and evidence. Use this instead of adding a duplicate.
+- "update": an entry adds detail to a known fact that is still true in the same way. Needs ref, the full new statement, and evidence.
+- "invalidate": an entry shows a known fact has STOPPED being true (they moved, left the job, ended the relationship, dropped the goal). Needs ref, a short reason, and evidence. If something new replaced it, also "add" the new fact.
+
+Rules:
+1. Every operation cites at least one entry id from NEW ENTRIES in "evidence". Use no other ids.
+2. Never use "update" for a change over time. A change is "invalidate" on the old fact plus "add" for the new one, because the history matters.
+3. Only invalidate a fact when an entry dated after its "since" date clearly says it is no longer true. Doubt, a bad day, or silence is not enough.
+4. Facts marked "written by the user" are the user's own words. Confirm them freely. Only update or invalidate one when an entry directly contradicts it; the user will be asked to approve.
+5. At most 20 operations. If nothing durable is new, return {"ops":[]}.`,
+
+  /**
+   * SYSTEM prompt for `/v1/ai/period-summary`: one period of the user's life as a
+   * short title, two lengths of summary, and grounding details (salience, verbatim
+   * anchor quotes, key scenes, thread labels). Inputs are entries (day) or
+   * child-period summaries (every higher tier), sent as plaintext by the client.
+   * The output is stored as long-term memory that an AI companion reads and that
+   * the Story screens show, so it favors concrete nouns and the user's own words.
+   */
+  periodSummary: (ctx: {
+    periodType: PeriodSummaryType
+    periodLabel: string
+    isOpen: boolean
+    childrenBlock: string
+  }): string => `You are writing the memory of one period of a person's life, for their private journaling app.
+
+PERIOD: ${ctx.periodLabel} (${ctx.periodType})${ctx.isOpen ? '\nThis period is still in progress. Summarize it SO FAR, never as if it has ended.' : ''}
+
+The inputs below are ${ctx.periodType === 'day' ? 'summaries of the journal entries they wrote that day, each with the start of the entry in their own words' : 'summaries of the shorter periods inside this one, each with its salience, quotes from their entries, and threads'}, in chronological order.
+
+Rules:
+1. Write in second person ("you"). Warm but factual. No advice, no cheerleading, no therapy language.
+2. Use only what the inputs say. Never invent events, people, feelings, or outcomes.
+3. Name specifics: projects, people, places, recurring themes, the emotional arc, and what changed from the start of the period to the end. Lead with the parts that matter most (highest salience).
+4. Describe the arc as the inputs show it. Do not resolve what the person has not resolved, and do not add a silver lining.
+5. "title": 2 to 6 words naming this period like a chapter title ("The Forest City move", "Shipping the voice call"). No dates, no period type words ("week", "month"), no ending punctuation.
+6. "sentence": exactly one sentence, at most 25 words, the single most important thing about this period.
+7. "summary": one paragraph of 80 to 120 words covering the main threads and how they moved.
+8. "salience": a whole number from 1 to 10 for how much this period matters in the person's life: 1 is routine, 10 is a life event (a loss, a move, a birth, a breakup, a launch).
+9. "anchors": 1 to 3 short quotes (at most 25 words each) that best carry this period, copied word for word from the "In their own words" or "Quote" lines, each with the entry id shown on that line. Never change a word inside a quote. Use [] if nothing fits.
+10. "keyScenes": the entry id of the high point, the low point, and the turning point of this period, using only entry ids shown in the inputs. Use null when no entry clearly is one. A turning point needs a visible change of direction.
+11. "threads": 0 to 5 labels of 1 to 4 words for the recurring people, projects, places, or struggles in this period. When an input already lists a thread for the same topic, reuse that label exactly.
+12. An AI companion will read this as memory, so prefer concrete nouns over adjectives.
+
+INPUTS:
+"""
+${ctx.childrenBlock}
+"""
+
+Return STRICT JSON ONLY (no markdown, no preamble), exactly this shape:
+{"title":"…","sentence":"…","summary":"…","salience":5,"anchors":[{"entryId":"…","quote":"…"}],"keyScenes":{"high":null,"low":null,"turning":null},"threads":["…"]}`,
 
   /**
    * SYSTEM prompt for the daily shareable-card LLM call (`/v1/ai/daily-report`).

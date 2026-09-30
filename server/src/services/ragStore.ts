@@ -36,6 +36,12 @@ export interface IndexChunksParams {
   entryId: string
   type: string
   dayIndex: number
+  /** The entry's day in the user's profile timezone (zoom pyramid positions).
+   *  Separate from `dayIndex`, which the Soul Constellation reads. Optional so
+   *  callers and rows from before the Story Map keep their shape. May be a
+   *  pending lookup: it is awaited only after embedding, so the lookup overlaps
+   *  the embed call instead of adding a serial round trip. */
+  localDayIndex?: number | Promise<number>
   wordCount: number
   chunks: string[]
 }
@@ -50,13 +56,21 @@ function chunkId(userId: string, entryId: string, i: number): string {
   return `${userId}__${entryId}__${i}`
 }
 
+export interface EntryDays {
+  /** UTC day the Soul Constellation reads. */
+  dayIndex: number | null
+  /** Profile-timezone day the zoom pyramid reads; null for chunks that predate
+   *  the field (the periodCentroids backfill tags those). */
+  localDayIndex: number | null
+}
+
 /**
- * The `dayIndex` an entry's chunks are stored under (all of an entry's chunks share
- * one day, from its `createdAt`). Used to recompute that day's constellation star
- * after a delete, when the caller only knows the entryId. Null if the entry has no
- * indexed chunks. userId-scoped.
+ * Both days an entry's chunks are stored under (all of an entry's chunks share one
+ * day), read in ONE metadata get so a delete can recompute the constellation star
+ * and the pyramid position after purging. Both null if the entry has no indexed
+ * chunks. userId-scoped.
  */
-export async function getEntryDayIndex(userId: string, entryId: string): Promise<number | null> {
+export async function getEntryDays(userId: string, entryId: string): Promise<EntryDays> {
   const res = await withJournalsCollection(col =>
     col.get({
       where: { $and: [{ userId: { $eq: userId } }, { entryId: { $eq: entryId } }] },
@@ -64,8 +78,11 @@ export async function getEntryDayIndex(userId: string, entryId: string): Promise
       limit: 1,
     }),
   )
-  const meta = (res.metadatas?.[0] ?? null) as { dayIndex?: number } | null
-  return typeof meta?.dayIndex === 'number' ? meta.dayIndex : null
+  const meta = (res.metadatas?.[0] ?? null) as { dayIndex?: number; localDayIndex?: number } | null
+  return {
+    dayIndex: typeof meta?.dayIndex === 'number' ? meta.dayIndex : null,
+    localDayIndex: typeof meta?.localDayIndex === 'number' ? meta.localDayIndex : null,
+  }
 }
 
 /** Delete all of an entry's chunk rows (idempotent, userId-scoped). */
@@ -91,6 +108,7 @@ export async function indexEntryChunks(p: IndexChunksParams): Promise<number> {
   }
   // Embed ONCE (expensive) outside the collection retry.
   const embeddings = await embed(p.chunks)
+  const localDayIndex = await p.localDayIndex
   const ids = p.chunks.map((_, i) => chunkId(p.userId, p.entryId, i))
   const metadatas = p.chunks.map((_, i) => ({
     userId: p.userId,
@@ -100,6 +118,7 @@ export async function indexEntryChunks(p: IndexChunksParams): Promise<number> {
     type: p.type,
     dayIndex: p.dayIndex,
     wordCount: p.wordCount,
+    ...(localDayIndex === undefined ? {} : { localDayIndex }),
   }))
   // Purge old chunks + add new ones as one unit, so a stale-collection reset
   // retries both together (a clean replace).

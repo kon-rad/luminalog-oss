@@ -49,6 +49,16 @@ describe('PROMPTS.voiceChat', () => {
     expect(p).toContain('USER PROFILE:')
     expect(p).toContain('- Lives in: Berlin')
   })
+
+  it('includes the memory block when memory is provided', () => {
+    const p = PROMPTS.voiceChat('Ada', 'bio', {}, '', undefined, undefined, undefined, 'This week so far: You shipped.')
+    expect(p).toContain('WHAT YOU REMEMBER ABOUT THEIR LIFE')
+    expect(p).toContain('This week so far: You shipped.')
+  })
+
+  it('omits the memory block when memory is absent', () => {
+    expect(PROMPTS.voiceChat('Ada', 'bio', {}, '')).not.toContain('WHAT YOU REMEMBER')
+  })
 })
 
 describe('DEFAULT_SUMMARY_SYSTEM_PROMPT', () => {
@@ -74,5 +84,57 @@ describe('PROMPTS.dailyReport', () => {
     expect(p).toMatch(/public|shareable|share/i)
     expect(p).toMatch(/never|do not|don't/i)
     expect(p).toMatch(/name|people|place|health|financ/i)
+  })
+})
+
+describe('PROMPTS.periodSummary', () => {
+  const base = { periodType: 'week' as const, periodLabel: 'Week of Mon 21 Sep 2026', childrenBlock: '[Mon]\nYou shipped.' }
+
+  it('includes the label, the inputs, and the JSON contract', () => {
+    const p = PROMPTS.periodSummary({ ...base, isOpen: false })
+    expect(p).toContain('Week of Mon 21 Sep 2026')
+    expect(p).toContain('[Mon]\nYou shipped.')
+    expect(p).toContain('{"title":"…","sentence":"…","summary":"…","salience":5,"anchors":[{"entryId":"…","quote":"…"}],"keyScenes":{"high":null,"low":null,"turning":null},"threads":["…"]}')
+    expect(p).not.toContain('SO FAR')
+  })
+
+  it('tells the model an open period is still in progress', () => {
+    expect(PROMPTS.periodSummary({ ...base, isOpen: true })).toContain('SO FAR')
+  })
+
+  it('describes day inputs as entries and higher tiers as shorter periods', () => {
+    expect(PROMPTS.periodSummary({ ...base, periodType: 'day', isOpen: false })).toContain('journal entries')
+    expect(PROMPTS.periodSummary({ ...base, isOpen: false })).toContain('shorter periods')
+  })
+
+  it('demands verbatim quotes and forbids an invented resolution', () => {
+    const p = PROMPTS.periodSummary({ ...base, isOpen: false })
+    expect(p).toContain('word for word')
+    expect(p).toContain('Do not resolve what the person has not resolved')
+  })
+})
+
+describe('PROMPTS.userFacts', () => {
+  const p = PROMPTS.userFacts({
+    entriesBlock: '[e1 | 2026-09-21]\nI moved.',
+    knownFactsBlock: 'f1 | place | Kuching | You live in Kuching.',
+    rejectedBlock: '- person: Tom is your cousin.',
+  })
+
+  it('includes all three blocks and the JSON contract', () => {
+    expect(p).toContain('[e1 | 2026-09-21]\nI moved.')
+    expect(p).toContain('f1 | place | Kuching | You live in Kuching.')
+    expect(p).toContain('- person: Tom is your cousin.')
+    expect(p).toContain('{"ops":[')
+  })
+
+  it('keeps history: a change is invalidate plus add, never update or delete', () => {
+    expect(p).toContain('"invalidate"')
+    expect(p).toContain('Never use "update" for a change over time')
+    expect(p).not.toContain('"delete"')
+  })
+
+  it('contains no em dash', () => {
+    expect(p).not.toContain('\u2014')
   })
 })

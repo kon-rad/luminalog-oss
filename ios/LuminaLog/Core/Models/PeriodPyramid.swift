@@ -3,7 +3,7 @@ import Foundation
 /// One tier's positioned dot, as returned by `GET /v1/ai/period-positions/:periodType`.
 /// Mirrors `PeriodPositionPoint` in `server/src/services/periodCentroid/rollup.ts`.
 /// `Codable`, not just `Decodable`: it is decoded from the route response AND
-/// re-encoded by `ZoomPyramidWebView`'s `encodableToObject` to push into the
+/// re-encoded by `StoryMapWebView`'s `encodableToObject` to push into the
 /// renderer's `setTierData` bridge call.
 struct PeriodPositionPoint: Codable, Equatable, Sendable {
     let periodIndex: Int

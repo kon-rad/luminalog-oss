@@ -43,7 +43,7 @@ vi.mock('../services/ragStore', () => ({
   indexEntryChunks: vi.fn(),
   deleteEntryChunks: vi.fn(),
   searchChunks: vi.fn(),
-  getEntryDayIndex: vi.fn(),
+  getEntryDays: vi.fn(),
 }))
 vi.mock('../services/constellation/constellationService', () => ({
   updateConstellationForDay: vi.fn(),

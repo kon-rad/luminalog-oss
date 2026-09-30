@@ -17,6 +17,8 @@ export interface VoiceCallSession {
   bio: string
   profile: ProfileFields
   todayContext: string
+  /** Period-summary memory ladder built on device at call start. */
+  memoryContext?: string
   focalEntry?: string
   now?: string
   expiresAt: number
@@ -54,6 +56,8 @@ export interface CreateSessionData {
   bio: string
   profile: ProfileFields
   todayContext: string
+  /** Period-summary memory ladder built on device at call start. */
+  memoryContext?: string
   focalEntry?: string
   now?: string
 }

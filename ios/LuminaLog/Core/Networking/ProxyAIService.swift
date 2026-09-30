@@ -38,6 +38,12 @@ final class ProxyAIService: AIService {
     /// `AppServices.live()`; used on the Model-1 path (`DevFlags.aiModel1` ON) to
     /// rank RAG context via `/v1/rag/search`, with a keyword fallback. Nil in mocks.
     private let coordinator: SemanticIndexCoordinating?
+    /// Builds the voice memory ladder (`PeriodSummaryReconciler.voiceMemoryContext`)
+    /// in the given timezone. Set by `AppServices` after construction whenever a
+    /// period-summary generator exists (the reconciler is built from this service);
+    /// the feature flag and consent are checked inside `voiceMemoryContext`. Nil in
+    /// mock wiring.
+    var memoryContextProvider: (@MainActor @Sendable (TimeZone) async -> String?)?
     /// Injected clock so Model-1 recency scoring / day bounds are testable.
     private let now: () -> Date
 
@@ -820,6 +826,19 @@ final class ProxyAIService: AIService {
         let entries = (try? await journals.fetchAllEntries()) ?? []
         let focal = journalId.flatMap { id in entries.first(where: { $0.id == id }) }
 
+        // Period-summary memory ladder: cached docs only, bounded like RAG so a slow
+        // Firestore read can never delay the call.
+        // Timezone from the profile already in hand (same rule as
+        // `AppServices.profileTimeZone`), so the ladder never opens a second listener.
+        let memoryProvider = memoryContextProvider
+        let memoryTimeZone = profile.flatMap { TimeZone(identifier: $0.timezone) } ?? .current
+        async let memory: String? = Self.withBudget(
+            seconds: Self.voiceRagBudgetSeconds, fallback: nil,
+            onTimeout: { Self.logger.error("voice memory ladder missed its budget, call starts without it") }
+        ) {
+            await memoryProvider?(memoryTimeZone)
+        }
+
         // TODAY's entries come straight from the local DB — NOT RAG. They must always be
         // present and complete: a just-written entry isn't in the semantic index yet, and
         // "what did I write today?" is the most common ask. Fetching them directly also
@@ -850,13 +869,15 @@ final class ProxyAIService: AIService {
         // Local timestamp + type per block so the assistant can reason about when/how each
         // entry was made; paired with CURRENT DATE & TIME in the system prompt.
         let ragContext = Model1Requests.format(ranked, snippetChars: 500, dateStyle: .dateTimeLocal)
+        let memoryContext = await memory
         return VoiceCallContext(
             name: profile?.displayName ?? "",
             bio: profile?.biography ?? "",
             profile: profile.map { Model1Requests.profileFields(from: $0.details) } ?? [:],
             todayContext: todayContext,
             ragContext: ragContext,
-            focalEntry: focal?.content
+            focalEntry: focal?.content,
+            memoryContext: memoryContext
         )
     }
 
@@ -867,6 +888,7 @@ final class ProxyAIService: AIService {
     private static func withBudget<T: Sendable>(
         seconds: Double,
         fallback: T,
+        onTimeout: (@Sendable () -> Void)? = nil,
         operation: @escaping @Sendable () async -> T
     ) async -> T {
         await withCheckedContinuation { (continuation: CheckedContinuation<T, Never>) in
@@ -877,7 +899,10 @@ final class ProxyAIService: AIService {
             }
             Task {
                 try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-                if once.claim() { continuation.resume(returning: fallback) }
+                if once.claim() {
+                    onTimeout?()
+                    continuation.resume(returning: fallback)
+                }
             }
         }
     }
@@ -932,6 +957,26 @@ final class ProxyAIService: AIService {
         formatter.timeZone = timeZone
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
         return formatter.date(from: "\(dateArg)T12:00:00")
+    }
+}
+
+// MARK: - Period summaries
+
+extension ProxyAIService: PeriodSummaryGenerating {
+    /// Zero-knowledge: `request` is PLAINTEXT built on device by `PeriodSummaryPlanner`;
+    /// the server generates and forgets. The caller encrypts and stores the result.
+    func generatePeriodSummary(_ request: PeriodSummaryRequest) async throws -> GeneratedPeriodSummary {
+        try await api.post(path: "/v1/ai/period-summary", body: request)
+    }
+}
+
+// MARK: - User facts
+
+extension ProxyAIService: UserFactExtracting {
+    /// Zero-knowledge: `request` is PLAINTEXT built on device by `UserFactPlanner`; the
+    /// server extracts and forgets. The caller applies, encrypts and stores the result.
+    func extractUserFacts(_ request: UserFactsRequest) async throws -> UserFactsResponse {
+        try await api.post(path: "/v1/ai/user-facts", body: request)
     }
 }
 

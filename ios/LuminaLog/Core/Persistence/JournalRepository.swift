@@ -49,6 +49,11 @@ protocol JournalRepository: AnyObject {
     /// or the key is unavailable (same convention as `entries(after:)`).
     func fetchAllEntries() async throws -> [JournalEntry]
 
+    /// `fetchAllEntries` plus whether the list is server-confirmed and complete (not
+    /// served from the offline cache, no undecodable docs dropped). Period-summary
+    /// orphan deletion trusts only a confirmed list. Defaults to unconfirmed.
+    func fetchAllEntriesWithSource() async throws -> (entries: [JournalEntry], isFromServer: Bool)
+
     /// Live-updating stream of a single entry; emits nil if it does not exist
     /// or is deleted.
     ///
@@ -110,4 +115,10 @@ protocol JournalRepository: AnyObject {
     /// locale), excluding `draftId`. Used to suffix same-day date-titled
     /// entries ("June 26, 2026 2", "June 26, 2026 3", …).
     func countEntries(on date: Date, excluding draftId: String) async throws -> Int
+}
+
+extension JournalRepository {
+    func fetchAllEntriesWithSource() async throws -> (entries: [JournalEntry], isFromServer: Bool) {
+        (try await fetchAllEntries(), false)
+    }
 }

@@ -76,6 +76,15 @@ final class AppServices: ObservableObject {
     /// from the entries created today (self-healing across transcript retries,
     /// edits, and deletes). Started per signed-in user from `LuminaLogApp`.
     let dailyGoalReconciler: DailyGoalReconciler
+    let periodSummaries: PeriodSummaryRepository
+    /// Keeps period summaries caught up (foreground, background refresh, voice).
+    /// Nil when the AI service cannot generate them (mock wiring).
+    let periodSummaryReconciler: PeriodSummaryReconciler?
+    /// "What Argo knows": encrypted facts extracted from the journal (ADR-0164).
+    let userFacts: UserFactRepository
+    /// Keeps `userFacts` caught up (foreground, background refresh, the facts screen).
+    /// Nil when the AI service cannot extract (mock wiring).
+    let userFactReconciler: UserFactReconciler?
     /// Re-transcribes voice/video entries whose transcript failed or came back
     /// degenerate, from the durable S3 audio, and refreshes their derived AI.
     /// Run once per signed-in user at launch from `LuminaLogApp`.
@@ -102,6 +111,7 @@ final class AppServices: ObservableObject {
         profiles: ProfileRepository,
         dailyReports: DailyReportRepository,
         encouragements: EncouragementRepository,
+        periodSummaries: PeriodSummaryRepository,
         failedReports: FailedReportStore,
         chats: ChatRepository,
         ai: AIService,
@@ -128,7 +138,8 @@ final class AppServices: ObservableObject {
         eoaWrapTransport: EOAWrapTransport? = nil,
         eoaKeyEnroller: EOAKeyEnroller? = nil,
         inboxService: InboxService,
-        infoAnswerDrafter: InfoAnswerDrafting? = nil
+        infoAnswerDrafter: InfoAnswerDrafting? = nil,
+        userFacts: UserFactRepository? = nil
     ) {
         self.auth = auth
         self.keys = keys
@@ -164,6 +175,22 @@ final class AppServices: ObservableObject {
         self.inboxService = inboxService
         self.infoAnswerDrafter = infoAnswerDrafter
         self.dailyGoalReconciler = DailyGoalReconciler(journals: journals, profiles: profiles)
+        self.periodSummaries = periodSummaries
+        if let generator = ai as? PeriodSummaryGenerating {
+            let reconciler = PeriodSummaryReconciler(
+                generator: generator,
+                repository: periodSummaries,
+                loadEntries: { [journals] in try await journals.fetchAllEntriesWithSource() },
+                timeZone: { [profiles] in await Self.profileTimeZone(profiles) },
+                hasConsent: { [consentStore] in consentStore.hasConsentedAI }
+            )
+            self.periodSummaryReconciler = reconciler
+            (ai as? ProxyAIService)?.memoryContextProvider = { [weak reconciler] timeZone in
+                await reconciler?.voiceMemoryContext(timeZone: timeZone)
+            }
+        } else {
+            self.periodSummaryReconciler = nil
+        }
         // Built here (not in the factories) from the injected repositories, mirroring
         // `dailyGoalReconciler`. The recoverer is the same fetch→decrypt→transcribe
         // path the manual Retry uses; `recover`'s `save` handles re-embedding/goal.
@@ -174,6 +201,67 @@ final class AppServices: ObservableObject {
         self.voiceRecordingImporter = api.map {
             VoiceRecordingImporter(api: $0, media: media, keys: keys, repository: chats)
         }
+        let resolvedUserFacts = userFacts ?? InMemoryUserFactRepository()
+        self.userFacts = resolvedUserFacts
+        if let extractor = ai as? UserFactExtracting {
+            self.userFactReconciler = UserFactReconciler(
+                extractor: extractor,
+                repository: resolvedUserFacts,
+                loadEntries: { [journals] in try await journals.fetchAllEntriesWithSource() },
+                hasConsent: { [consentStore] in consentStore.hasConsentedAI }
+            )
+        } else {
+            self.userFactReconciler = nil
+        }
+        // Voice memory: current facts first, then the period ladder (ADR-0164). Wraps
+        // whatever provider the period-summaries wiring above installed, preserving its
+        // `timeZone` parameter; falls back to the ladder alone if reading facts fails.
+        // Gated on DevFlags.userFacts only: "Learn from my journal" governs extraction,
+        // not use of facts already learned.
+        if let proxy = ai as? ProxyAIService {
+            let ladder = proxy.memoryContextProvider
+            let facts = resolvedUserFacts
+            proxy.memoryContextProvider = { timeZone in
+                let factsBlock: String? = DevFlags.userFacts
+                    ? UserFactsMemory.block(facts: (try? await facts.all()) ?? [])
+                    : nil
+                let ladderText = await ladder?(timeZone)
+                let parts = [factsBlock, ladderText].compactMap { $0 }.filter { !$0.isEmpty }
+                return parts.isEmpty ? nil : parts.joined(separator: "\n\n")
+            }
+        }
+    }
+
+    /// The profile's timezone (period summaries bucket days by it, so they don't
+    /// reshuffle when the device travels): its identifier, else the device timezone.
+    /// Nil when the profile is unresolved (the stream yields nil or nothing within 3
+    /// seconds), so the reconciler skips the run instead of hanging or bucketing days
+    /// by a guessed zone. The read-only voice ladder uses the device-timezone fallback
+    /// on its own path (`ProxyAIService.voiceCallContext`).
+    static func profileTimeZone(_ profiles: ProfileRepository) async -> TimeZone? {
+        let stream = profiles.profile()
+        let resolved = await withTaskGroup(of: TimeZone?.self) { group -> TimeZone? in
+            group.addTask {
+                for await profile in stream {
+                    return profile.map { TimeZone(identifier: $0.timezone) ?? .current }
+                }
+                return nil
+            }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
+        return resolved
+    }
+
+    /// The profile timezone, with the same 3-second device fallback the period
+    /// summaries reconciler uses, so views bucket days exactly like the summaries.
+    func profileTimeZone() async -> TimeZone {
+        await Self.profileTimeZone(profiles) ?? .current
     }
 
     /// Production service wiring: always uses Firebase and real backends.
@@ -249,6 +337,7 @@ final class AppServices: ObservableObject {
         let profiles = FirestoreProfileRepository(auth: auth, keys: keys)
         let dailyReports = FirestoreDailyReportRepository(auth: auth, keys: keys)
         let encouragements = FirestoreEncouragementRepository(auth: auth, keys: keys)
+        let periodSummaries = FirestorePeriodSummaryRepository(auth: auth, keys: keys)
         let failedReports = FailedReportStore(auth: auth)
         let chats = FirestoreChatRepository(auth: auth, keys: keys)
 
@@ -354,6 +443,7 @@ final class AppServices: ObservableObject {
             profiles: profiles,
             dailyReports: dailyReports,
             encouragements: encouragements,
+            periodSummaries: periodSummaries,
             failedReports: failedReports,
             chats: chats,
             ai: ai,
@@ -388,7 +478,8 @@ final class AppServices: ObservableObject {
             inboxService: ProxyInboxService(api: api),
             infoAnswerDrafter: InfoAnswerDrafter(
                 api: api, journals: journals, profiles: profiles, searcher: coordinator
-            )
+            ),
+            userFacts: FirestoreUserFactRepository(auth: auth, keys: keys)
         )
     }
 
@@ -409,6 +500,7 @@ final class AppServices: ObservableObject {
         let profiles = MockProfileRepository()
         let dailyReports = MockDailyReportRepository()
         let encouragements = InMemoryEncouragementRepository()
+        let periodSummaries = InMemoryPeriodSummaryRepository()
         let failedReports = FailedReportStore(auth: auth, directory: FileManager.default.temporaryDirectory)
         let ai = MockAIService()
         let media = MockMediaUploader()
@@ -443,6 +535,7 @@ final class AppServices: ObservableObject {
             profiles: profiles,
             dailyReports: dailyReports,
             encouragements: encouragements,
+            periodSummaries: periodSummaries,
             failedReports: failedReports,
             chats: chats,
             ai: ai,

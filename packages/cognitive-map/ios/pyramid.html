@@ -36,7 +36,9 @@
         },
         onNeedEntry: function (dayPeriodIndex) { post('needEntry', dayPeriodIndex); },
         onFocusChange: function (info) { post('focusChange', JSON.stringify(info)); },
-        onSelectBeat: function (beatId) { post('selectBeat', beatId); },
+        onSelectBeat: function (beatId, dayPeriodIndex) {
+          post('selectBeat', JSON.stringify({ beatId: beatId, day: dayPeriodIndex }));
+        },
       });
     } catch (e) {
       post('log', 'mount threw: ' + (e && e.message) + (e && e.stack ? '\n' + e.stack : ''));
@@ -63,6 +65,12 @@
   // the renderer's own pinch-to-zoom-out gesture.
   window.zoomPyramidZoomOut = function () {
     try { handle && handle.zoomOut(); } catch (e) { post('log', 'zoomOut threw: ' + (e && e.message)); }
+  };
+
+  // Called by the native host to focus one dot of the current tier (a period the
+  // user was already looking at in the Story view).
+  window.zoomPyramidFocus = function (periodIndex) {
+    try { handle && handle.focus(periodIndex); } catch (e) { post('log', 'focus threw: ' + (e && e.message)); }
   };
 
   window.onerror = function (message, source, line, column) {

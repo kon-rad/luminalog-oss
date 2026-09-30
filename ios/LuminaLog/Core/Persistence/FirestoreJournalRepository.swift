@@ -136,6 +136,21 @@ final class FirestoreJournalRepository: JournalRepository {
         }
     }
 
+    func fetchAllEntriesWithSource() async throws -> (entries: [JournalEntry], isFromServer: Bool) {
+        guard let uid = auth.currentUserId, let cipher = keys.currentCipher else { return ([], false) }
+        let snapshot = try await journals
+            .whereField("userId", isEqualTo: uid)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+        let entries = snapshot.documents.compactMap {
+            JournalEntry(documentId: $0.documentID, data: $0.data(), cipher: cipher)
+        }
+        // Confirmed only when the server answered and every doc decoded: a dropped
+        // doc would otherwise look deleted to the period-summary orphan check.
+        let confirmed = !snapshot.metadata.isFromCache && entries.count == snapshot.documents.count
+        return (entries, confirmed)
+    }
+
     func entry(id: String) -> AsyncStream<JournalEntry?> {
         AsyncStream { continuation in
             let listener = self.journals.document(id)
