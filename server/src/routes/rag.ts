@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express'
 import { firebaseAuth } from '../middleware/firebaseAuth'
 import { requireAiConsent } from '../middleware/requireAiConsent'
 import { requirePro } from '../middleware/requirePro'
-import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryDayIndex, getEntryLocalDayIndex } from '../services/ragStore'
+import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryDays } from '../services/ragStore'
 import { updatePeriodCentroidsForDay } from '../services/periodCentroid/rollup'
 import { resolveEntryLocalDay } from '../services/periodCentroid/localDay'
 import { updateConstellationForDay } from '../services/constellation/constellationService'
@@ -59,17 +59,20 @@ export async function indexHandler(req: Request, res: Response): Promise<void> {
   }
   const dayIndex = typeof body.dayIndex === 'number' ? body.dayIndex : 0
   try {
-    // Never throws: falls back to the client's UTC day.
-    const localDayIndex = await resolveEntryLocalDay(uid, body.entryId, dayIndex)
+    // Started now, awaited by indexEntryChunks only after embedding, so the two
+    // Firestore gets overlap the embed call. Never rejects: falls back to the
+    // client's UTC day.
+    const localDayLookup = resolveEntryLocalDay(uid, body.entryId, dayIndex)
     const n = await indexEntryChunks({
       userId: uid, // ownership from the token, NEVER the body
       entryId: body.entryId,
       type: typeof body.type === 'string' ? body.type : 'text',
       dayIndex,
-      localDayIndex,
+      localDayIndex: localDayLookup,
       wordCount: typeof body.wordCount === 'number' ? body.wordCount : 0,
       chunks: body.chunks as string[],
     })
+    const localDayIndex = await localDayLookup
     // Keep the day's constellation star in sync with the just-indexed chunks.
     await refreshConstellationForDay(uid, dayIndex)
     res.json({ ok: true, entryId: body.entryId, chunks: n })
@@ -90,8 +93,7 @@ export async function deleteHandler(req: Request, res: Response): Promise<void> 
   try {
     // Capture the entry's days BEFORE purging its chunks so we can recompute them
     // (the star may lose its ≥750-word qualification once the entry is gone).
-    const dayIndex = await getEntryDayIndex(uid, entryId)
-    const localDayIndex = await getEntryLocalDayIndex(uid, entryId)
+    const { dayIndex, localDayIndex } = await getEntryDays(uid, entryId)
     await deleteEntryChunks(uid, entryId)
     if (dayIndex !== null) {
       await refreshConstellationForDay(uid, dayIndex)

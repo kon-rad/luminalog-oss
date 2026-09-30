@@ -16,7 +16,7 @@ vi.mock('../db/chroma', () => ({
 }))
 vi.mock('./aiClient', () => ({ embed: vi.fn(async (t: string[]) => t.map(() => [0.1, 0.2, 0.3])) }))
 
-import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryLocalDayIndex, CHUNKER_VERSION } from './ragStore'
+import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryDays, CHUNKER_VERSION } from './ragStore'
 import { embed } from './aiClient'
 
 beforeEach(() => { vi.clearAllMocks() })
@@ -78,12 +78,30 @@ describe('indexEntryChunks', () => {
     expect(addArg.metadatas.map((m: any) => m.localDayIndex)).toEqual([6, 6])
     expect(addArg.metadatas[0].dayIndex).toBe(5) // the constellation's day is untouched
   })
+
+  it('accepts a pending localDayIndex and awaits it only after embedding', async () => {
+    let resolveDay!: (d: number) => void
+    const pendingDay = new Promise<number>(r => { resolveDay = r })
+    const done = indexEntryChunks({
+      userId: 'u1', entryId: 'e1', type: 'text', dayIndex: 5, localDayIndex: pendingDay, wordCount: 12,
+      chunks: ['alpha', 'beta'],
+    })
+    await new Promise(setImmediate)
+    // Embedding ran while the local day was still unresolved; nothing written yet.
+    expect(embed).toHaveBeenCalledWith(['alpha', 'beta'])
+    expect(col.add).not.toHaveBeenCalled()
+    resolveDay(7)
+    expect(await done).toBe(2)
+    const addArg = (col.add as any).mock.calls[0][0]
+    expect(addArg.metadatas.map((m: any) => m.localDayIndex)).toEqual([7, 7])
+  })
 })
 
-describe('getEntryLocalDayIndex', () => {
-  it("returns the entry's stored localDayIndex, userId-scoped", async () => {
-    ;(col.get as any).mockResolvedValueOnce({ ids: ['u1__e9__0'], metadatas: [{ localDayIndex: 20357 }] })
-    expect(await getEntryLocalDayIndex('u1', 'e9')).toBe(20357)
+describe('getEntryDays', () => {
+  it("returns both stored days in one userId-scoped metadata read", async () => {
+    ;(col.get as any).mockResolvedValueOnce({ ids: ['u1__e9__0'], metadatas: [{ dayIndex: 20356, localDayIndex: 20357 }] })
+    expect(await getEntryDays('u1', 'e9')).toEqual({ dayIndex: 20356, localDayIndex: 20357 })
+    expect(col.get).toHaveBeenCalledTimes(1)
     expect(col.get).toHaveBeenCalledWith({
       where: { $and: [{ userId: { $eq: 'u1' } }, { entryId: { $eq: 'e9' } }] },
       include: ['metadatas'],
@@ -91,9 +109,14 @@ describe('getEntryLocalDayIndex', () => {
     })
   })
 
-  it('returns null for chunks indexed before the field existed', async () => {
+  it('returns a null localDayIndex for chunks indexed before the field existed', async () => {
     ;(col.get as any).mockResolvedValueOnce({ ids: ['u1__e9__0'], metadatas: [{ dayIndex: 5 }] })
-    expect(await getEntryLocalDayIndex('u1', 'e9')).toBeNull()
+    expect(await getEntryDays('u1', 'e9')).toEqual({ dayIndex: 5, localDayIndex: null })
+  })
+
+  it('returns both null when the entry has no chunks', async () => {
+    ;(col.get as any).mockResolvedValueOnce({ ids: [], metadatas: [] })
+    expect(await getEntryDays('u1', 'e9')).toEqual({ dayIndex: null, localDayIndex: null })
   })
 })
 

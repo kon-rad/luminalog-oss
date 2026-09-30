@@ -4,8 +4,7 @@ vi.mock('../services/ragStore', () => ({
   indexEntryChunks: vi.fn(async () => 2),
   deleteEntryChunks: vi.fn(async () => {}),
   searchChunks: vi.fn(async () => [{ entryId: 'e1', chunkIndex: 0, score: 0.9 }]),
-  getEntryDayIndex: vi.fn(async () => 42),
-  getEntryLocalDayIndex: vi.fn(async () => 43),
+  getEntryDays: vi.fn(async () => ({ dayIndex: 42, localDayIndex: 43 })),
 }))
 vi.mock('../services/periodCentroid/rollup', () => ({
   updatePeriodCentroidsForDay: vi.fn(async () => {}),
@@ -26,7 +25,7 @@ vi.mock('../middleware/requireAiConsent', () => ({ requireAiConsent: vi.fn() }))
 vi.mock('../middleware/requirePro', () => ({ requirePro: vi.fn() }))
 
 import { indexHandler, deleteHandler, searchHandler, graphHandler } from './rag'
-import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryDayIndex, getEntryLocalDayIndex } from '../services/ragStore'
+import { indexEntryChunks, deleteEntryChunks, searchChunks, getEntryDays } from '../services/ragStore'
 import { updatePeriodCentroidsForDay } from '../services/periodCentroid/rollup'
 import { resolveEntryLocalDay } from '../services/periodCentroid/localDay'
 import { updateConstellationForDay } from '../services/constellation/constellationService'
@@ -55,9 +54,35 @@ describe('indexHandler', () => {
       res,
     )
     expect(indexEntryChunks).toHaveBeenCalledWith({
-      userId: 'u1', entryId: 'e1', type: 'text', dayIndex: 5, localDayIndex: 6, wordCount: 12, chunks: ['a', 'b'],
+      userId: 'u1', entryId: 'e1', type: 'text', dayIndex: 5, localDayIndex: expect.any(Promise), wordCount: 12, chunks: ['a', 'b'],
     })
+    // The pending local day still resolves to the profile-timezone day for the chunk metadata.
+    expect(await (indexEntryChunks as any).mock.calls[0][0].localDayIndex).toBe(6)
     expect(res.json).toHaveBeenCalledWith({ ok: true, entryId: 'e1', chunks: 2 })
+  })
+
+  it('starts the local-day lookup before embedding instead of awaiting it first', async () => {
+    let resolveDay!: (d: number) => void
+    ;(resolveEntryLocalDay as any).mockReturnValueOnce(new Promise<number>(r => { resolveDay = r }))
+    let lookupSettledAtIndexStart: boolean | null = null
+    let settled = false
+    ;(indexEntryChunks as any).mockImplementationOnce(async (p: any) => {
+      lookupSettledAtIndexStart = settled
+      await p.localDayIndex
+      return 1
+    })
+    const res = mockRes()
+    const done = indexHandler({ uid: 'u1', body: { entryId: 'e1', dayIndex: 5, chunks: ['a'] } } as any, res)
+    await new Promise(setImmediate)
+    expect(resolveEntryLocalDay).toHaveBeenCalledWith('u1', 'e1', 5)
+    expect(indexEntryChunks).toHaveBeenCalled()
+    expect(lookupSettledAtIndexStart).toBe(false)
+    settled = true
+    resolveDay(6)
+    await done
+    await new Promise(setImmediate)
+    expect(res.json).toHaveBeenCalledWith({ ok: true, entryId: 'e1', chunks: 1 })
+    expect(updatePeriodCentroidsForDay).toHaveBeenCalledWith('u1', 6)
   })
 
   it('refreshes the constellation for the indexed day', async () => {
@@ -99,39 +124,41 @@ describe('indexHandler', () => {
 })
 
 describe('deleteHandler', () => {
-  it("reads the local day before purging and refreshes that day's positions", async () => {
+  it("reads the entry's days in one metadata read before purging and refreshes the local day", async () => {
     const res = mockRes()
     await deleteHandler({ uid: 'u1', params: { entryId: 'e9' } } as any, res)
     await new Promise(setImmediate)
-    expect(getEntryLocalDayIndex).toHaveBeenCalledWith('u1', 'e9')
-    expect((getEntryLocalDayIndex as any).mock.invocationCallOrder[0])
+    expect(getEntryDays).toHaveBeenCalledTimes(1)
+    expect(getEntryDays).toHaveBeenCalledWith('u1', 'e9')
+    expect((getEntryDays as any).mock.invocationCallOrder[0])
       .toBeLessThan((deleteEntryChunks as any).mock.invocationCallOrder[0])
     expect(updatePeriodCentroidsForDay).toHaveBeenCalledWith('u1', 43)
   })
 
   it('skips the position refresh for chunks that predate localDayIndex', async () => {
-    ;(getEntryLocalDayIndex as any).mockResolvedValueOnce(null)
+    ;(getEntryDays as any).mockResolvedValueOnce({ dayIndex: 42, localDayIndex: null })
     const res = mockRes()
     await deleteHandler({ uid: 'u1', params: { entryId: 'e9' } } as any, res)
     expect(updatePeriodCentroidsForDay).not.toHaveBeenCalled()
+    expect(updateConstellationForDay).toHaveBeenCalledWith('u1', 42)
     expect(res.json).toHaveBeenCalledWith({ deleted: true, entryId: 'e9' })
   })
 
   it('deletes the entry’s chunks for the caller and recomputes its day', async () => {
     const res = mockRes()
     await deleteHandler({ uid: 'u1', params: { entryId: 'e9' } } as any, res)
-    expect(getEntryDayIndex).toHaveBeenCalledWith('u1', 'e9')
     expect(deleteEntryChunks).toHaveBeenCalledWith('u1', 'e9')
     expect(updateConstellationForDay).toHaveBeenCalledWith('u1', 42)
     expect(res.json).toHaveBeenCalledWith({ deleted: true, entryId: 'e9' })
   })
 
   it('skips the constellation recompute when the entry had no indexed day', async () => {
-    ;(getEntryDayIndex as any).mockResolvedValueOnce(null)
+    ;(getEntryDays as any).mockResolvedValueOnce({ dayIndex: null, localDayIndex: null })
     const res = mockRes()
     await deleteHandler({ uid: 'u1', params: { entryId: 'e9' } } as any, res)
     expect(deleteEntryChunks).toHaveBeenCalledWith('u1', 'e9')
     expect(updateConstellationForDay).not.toHaveBeenCalled()
+    expect(updatePeriodCentroidsForDay).not.toHaveBeenCalled()
     expect(res.json).toHaveBeenCalledWith({ deleted: true, entryId: 'e9' })
   })
 })
