@@ -59,21 +59,17 @@ final class UserFactsViewModel: ObservableObject {
         self.makeId = makeId
     }
 
-    // Production wiring waits on Task 9, which adds `services.userFacts` and
-    // `services.userFactReconciler` to `AppServices`. Until then this stays
-    // commented out so the app target keeps building; uncomment once Task 9 lands.
-    //
-    // /// Production wiring. `reconcile` returns the number of batches read, so the screen
-    // /// reloads only when something could have changed.
-    // convenience init(services: AppServices) {
-    //     let reconciler = services.userFactReconciler
-    //     self.init(
-    //         repository: services.userFacts,
-    //         loadEntries: { [journals = services.journals] in try await journals.fetchAllEntries() },
-    //         hasConsent: { [consentStore = services.consentStore] in consentStore.hasConsentedAI },
-    //         reconcile: { await reconciler?.run(budget: UserFactReconciler.screenBudget, force: true).batches ?? 0 }
-    //     )
-    // }
+    /// Production wiring. `reconcile` returns the number of batches read, so the screen
+    /// reloads only when something could have changed.
+    convenience init(services: AppServices) {
+        let reconciler = services.userFactReconciler
+        self.init(
+            repository: services.userFacts,
+            loadEntries: { [journals = services.journals] in try await journals.fetchAllEntries() },
+            hasConsent: { [consentStore = services.consentStore] in consentStore.hasConsentedAI },
+            reconcile: { await reconciler?.run(budget: UserFactReconciler.screenBudget, force: true).batches ?? 0 }
+        )
+    }
 
     var hasConsent: Bool { consent() }
 

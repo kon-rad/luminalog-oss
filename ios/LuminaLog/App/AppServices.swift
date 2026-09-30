@@ -80,6 +80,11 @@ final class AppServices: ObservableObject {
     /// Keeps period summaries caught up (foreground, background refresh, voice).
     /// Nil when the AI service cannot generate them (mock wiring).
     let periodSummaryReconciler: PeriodSummaryReconciler?
+    /// "What Argo knows": encrypted facts extracted from the journal (ADR-0164).
+    let userFacts: UserFactRepository
+    /// Keeps `userFacts` caught up (foreground, background refresh, the facts screen).
+    /// Nil when the AI service cannot extract (mock wiring).
+    let userFactReconciler: UserFactReconciler?
     /// Re-transcribes voice/video entries whose transcript failed or came back
     /// degenerate, from the durable S3 audio, and refreshes their derived AI.
     /// Run once per signed-in user at launch from `LuminaLogApp`.
@@ -133,7 +138,8 @@ final class AppServices: ObservableObject {
         eoaWrapTransport: EOAWrapTransport? = nil,
         eoaKeyEnroller: EOAKeyEnroller? = nil,
         inboxService: InboxService,
-        infoAnswerDrafter: InfoAnswerDrafting? = nil
+        infoAnswerDrafter: InfoAnswerDrafting? = nil,
+        userFacts: UserFactRepository? = nil
     ) {
         self.auth = auth
         self.keys = keys
@@ -194,6 +200,18 @@ final class AppServices: ObservableObject {
             journals: journals, ai: ai, recover: { await transcriptRecoverer.recover($0) })
         self.voiceRecordingImporter = api.map {
             VoiceRecordingImporter(api: $0, media: media, keys: keys, repository: chats)
+        }
+        let resolvedUserFacts = userFacts ?? InMemoryUserFactRepository()
+        self.userFacts = resolvedUserFacts
+        if let extractor = ai as? UserFactExtracting {
+            self.userFactReconciler = UserFactReconciler(
+                extractor: extractor,
+                repository: resolvedUserFacts,
+                loadEntries: { [journals] in try await journals.fetchAllEntriesWithSource() },
+                hasConsent: { [consentStore] in consentStore.hasConsentedAI }
+            )
+        } else {
+            self.userFactReconciler = nil
         }
     }
 
@@ -443,7 +461,8 @@ final class AppServices: ObservableObject {
             inboxService: ProxyInboxService(api: api),
             infoAnswerDrafter: InfoAnswerDrafter(
                 api: api, journals: journals, profiles: profiles, searcher: coordinator
-            )
+            ),
+            userFacts: FirestoreUserFactRepository(auth: auth, keys: keys)
         )
     }
 

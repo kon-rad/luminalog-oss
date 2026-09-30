@@ -26,6 +26,7 @@ struct SettingsView: View {
 
     @State private var showProfileDetail = false
     @State private var showLeaderboard = false
+    @State private var showUserFacts = false
     @State private var showStory = false
     /// What the Story destination opens. The Story Map plan's "Story map" row sets
     /// `StoryRoute(mode: .map)` before flipping `showStory`.
@@ -168,6 +169,9 @@ struct SettingsView: View {
                     if DevFlags.periodSummaries {
                         storyRow
                     }
+                    if DevFlags.userFacts {
+                        userFactsRow
+                    }
                     if let message = viewModel.errorMessage {
                         errorBanner(message)
                     }
@@ -207,6 +211,9 @@ struct SettingsView: View {
             }
             .navigationDestination(isPresented: $showStory) {
                 StoryView(mode: storyRoute.mode, focus: storyRoute.focus, onPrompt: onPrompt)
+            }
+            .navigationDestination(isPresented: $showUserFacts) {
+                UserFactsView(viewModel: UserFactsViewModel(services: services), onPrompt: onPrompt)
             }
             .navigationDestination(isPresented: $showRecordings) {
                 RecordingsRecoveryView(
@@ -414,6 +421,44 @@ struct SettingsView: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Your story")
         .accessibilityHint("Opens your journal summarized by day, week, month and year")
+    }
+
+    // MARK: - What Argo knows row
+
+    private var userFactsRow: some View {
+        Button { showUserFacts = true } label: {
+            HStack(spacing: Spacing.m) {
+                Image(systemName: "person.text.rectangle")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.accentWarm)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.small, style: .continuous)
+                            .fill(Color.accentWarm.opacity(0.12))
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("What Argo knows")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("People, places and goals from your journal")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+            }
+            .padding(Spacing.m)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                    .fill(Color.cardBackground)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("What Argo knows")
+        .accessibilityHint("Opens the people, places and goals Argo remembers from your journal")
     }
 
     @ViewBuilder
