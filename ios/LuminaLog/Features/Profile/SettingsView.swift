@@ -27,6 +27,7 @@ struct SettingsView: View {
     @State private var showProfileDetail = false
     @State private var showLeaderboard = false
     @State private var showUserFacts = false
+    @State private var showInbox = false
     @State private var showStory = false
     /// What the Story destination opens. The Story Map plan's "Story map" row sets
     /// `StoryRoute(mode: .map)` before flipping `showStory`.
@@ -175,6 +176,7 @@ struct SettingsView: View {
                     if DevFlags.userFacts {
                         userFactsRow
                     }
+                    inboxRow
                     if let message = viewModel.errorMessage {
                         errorBanner(message)
                     }
@@ -204,7 +206,7 @@ struct SettingsView: View {
                 .padding(.bottom, AppTabBar.scrollBottomPadding)
             }
             .background(Color.appBackground.ignoresSafeArea())
-            .navigationTitle("Settings")
+            .navigationTitle("Menu")
             .scrollDismissesKeyboard(.interactively)
             .navigationDestination(isPresented: $showProfileDetail) {
                 ProfileDetailView(viewModel: viewModel)
@@ -214,6 +216,14 @@ struct SettingsView: View {
             }
             .navigationDestination(isPresented: $showStory) {
                 StoryView(mode: storyRoute.mode, focus: storyRoute.focus, onPrompt: onPrompt)
+            }
+            .navigationDestination(isPresented: $showInbox) {
+                InboxListView(
+                    viewModel: InboxViewModel(
+                        inboxService: services.inboxService,
+                        drafter: services.infoAnswerDrafter
+                    )
+                )
             }
             .navigationDestination(isPresented: $showUserFacts) {
                 UserFactsView(viewModel: UserFactsViewModel(services: services), onPrompt: onPrompt)
@@ -501,6 +511,42 @@ struct SettingsView: View {
         .buttonStyle(.plain)
         .accessibilityLabel("What Argo knows")
         .accessibilityHint("Opens the people, places and goals Argo remembers from your journal")
+    }
+
+    private var inboxRow: some View {
+        Button { showInbox = true } label: {
+            HStack(spacing: Spacing.m) {
+                Image(systemName: "tray")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.accentWarm)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.small, style: .continuous)
+                            .fill(Color.accentWarm.opacity(0.12))
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Inbox")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Info requests from other agents")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+            }
+            .padding(Spacing.m)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                    .fill(Color.cardBackground)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Inbox")
+        .accessibilityHint("Opens pending info requests from other agents")
     }
 
     @ViewBuilder

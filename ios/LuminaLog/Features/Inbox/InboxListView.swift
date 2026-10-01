@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Main list of pending agent info requests (Inbox tab).
+/// Main list of pending agent info requests. Pushed from Settings, so it relies on
+/// the Settings navigation stack rather than owning one.
 struct InboxListView: View {
 
     @StateObject private var viewModel: InboxViewModel
@@ -10,23 +11,21 @@ struct InboxListView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.appBackground.ignoresSafeArea()
+        ZStack {
+            Color.appBackground.ignoresSafeArea()
 
-                if viewModel.requests.isEmpty && !viewModel.isLoading {
-                    emptyState
-                } else {
-                    listContent
-                }
+            if viewModel.requests.isEmpty && !viewModel.isLoading {
+                emptyState
+            } else {
+                listContent
             }
-            .navigationTitle("Inbox")
-            .task {
-                await viewModel.load()
-            }
-            .refreshable {
-                await viewModel.load()
-            }
+        }
+        .navigationTitle("Inbox")
+        .task {
+            await viewModel.load()
+        }
+        .refreshable {
+            await viewModel.load()
         }
     }
 
@@ -49,6 +48,7 @@ struct InboxListView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
+            .padding(.bottom, AppTabBar.scrollBottomPadding)
         }
     }
 

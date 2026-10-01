@@ -7,7 +7,6 @@ import UIKit
 enum AppTab: String, CaseIterable, Identifiable {
     case home
     case journal
-    case inbox
     case chats
     case settings
 
@@ -17,9 +16,8 @@ enum AppTab: String, CaseIterable, Identifiable {
         switch self {
         case .home: return "Home"
         case .journal: return "Journal"
-        case .inbox: return "Inbox"
         case .chats: return "Chats"
-        case .settings: return "Settings"
+        case .settings: return "Menu"
         }
     }
 
@@ -27,9 +25,8 @@ enum AppTab: String, CaseIterable, Identifiable {
         switch self {
         case .home: return "house"
         case .journal: return "book"
-        case .inbox: return "tray"
         case .chats: return "bubble.left.and.bubble.right"
-        case .settings: return "gear"
+        case .settings: return "line.3.horizontal"
         }
     }
 }
@@ -58,7 +55,6 @@ struct AppTabBar: View {
         HStack(spacing: 0) {
             tabButton(.home)
             tabButton(.journal)
-            tabButton(.inbox)
             createButton
             tabButton(.chats)
             tabButton(.settings)
