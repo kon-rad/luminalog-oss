@@ -3869,7 +3869,261 @@ function ArgoMirrorWalletUnlockContent() {
   )
 }
 
+/* ── Post: How Argo keeps your journal private ── */
+function ArgoEncryptionContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/how-argo-encryption-works-1.jpg"
+        alt="A leather journal on a dark desk, its clasp locked, lit by a single warm lamp"
+        width={2752}
+        height={1536}
+        priority
+      />
+      <P>
+        A journal only works if you can be honest in it. And you can only be honest in it if
+        you are sure nobody else is reading.
+      </P>
+      <P>
+        Most apps answer that worry with a policy: a paragraph promising they will not look.
+        Argo answers it with the way the system is built. We designed it so that we{' '}
+        <em>cannot</em> read your stored journal, even if we wanted to, and even if our
+        database leaked.
+      </P>
+      <P>
+        This post walks through how that works: where your key is created, where it is
+        stored, what our servers actually hold, and the few places where your words do leave
+        your device. No cryptography background needed.
+      </P>
+      <H2>What &ldquo;zero-knowledge&rdquo; means at Argo</H2>
+      <P>
+        You will see Argo described as zero-knowledge. In our case the phrase means one
+        specific thing: <strong>our servers never store the key that unlocks your
+        journal.</strong> Everything we keep is scrambled, and the only way to unscramble it
+        is with a key that lives on your side.
+      </P>
+      <P>
+        It does not mean your words never touch a server. When you ask the AI to reflect on
+        an entry, that entry has to be readable by the AI for a moment. We will get to
+        exactly when that happens, because a privacy claim is only useful if you know where
+        its edges are.
+      </P>
+      <H2>Your key is made on your phone</H2>
+      <P>
+        The first time you set up Argo, your phone generates a random 256-bit key. There are
+        so many possible keys of that size that guessing yours is not a realistic attack.
+        This key, which we call your data key, stays on your side. The only time it ever
+        reaches our servers is during a live voice call, an exception we explain in full
+        below.
+      </P>
+      <P>
+        Every time you save an entry, the app locks it with that key before it leaves your
+        phone, using AES-256-GCM, the same encryption standard banks and governments rely
+        on. A few details make this sturdier than &ldquo;it&apos;s encrypted&rdquo;:
+      </P>
+      <UL
+        items={[
+          <>Each piece of text (the entry, its title, its summary, a chat message) is locked separately, with fresh randomness every time, so two identical entries do not look identical once locked.</>,
+          <>Each locked piece is stamped with what it is, like &ldquo;journal content&rdquo; or &ldquo;chat message&rdquo;. If anyone moved a locked title into the slot for an entry body, the app would refuse to open it.</>,
+          <>If a single bit has been tampered with, decryption fails outright. The app will show you nothing rather than show you something altered.</>,
+        ]}
+      />
+      <P>
+        Photos, voice recordings and videos are locked the same way, in small numbered
+        chunks, so a large video never has to sit fully unlocked in memory and nobody can
+        reorder or cut the chunks without the app noticing.
+      </P>
+      <H2>Where the keys are kept</H2>
+      <Figure
+        src="/blog/how-argo-encryption-works-2.jpg"
+        alt="Three small keys resting on a sheet of warm paper beside an open, empty lockbox"
+        width={2400}
+        height={1792}
+      />
+      <P>
+        If your data key only lived on one phone, losing that phone would mean losing your
+        journal. So the app makes locked copies of the data key itself, each one opened by
+        something only you control:
+      </P>
+      <UL
+        items={[
+          <><strong>Your iCloud Keychain.</strong> The app creates a second key and stores it in your iCloud Keychain, which Apple syncs between your own devices. That key opens one locked copy of your data key. This is why a new iPhone signed into your Apple account usually unlocks Argo without asking you anything.</>,
+          <><strong>Your recovery code.</strong> At signup you get a printable recovery code. The app turns that code into another key, which opens a second locked copy. The code is shown to you once, and we do not keep it anywhere.</>,
+          <><strong>Your crypto wallet, if you choose.</strong> Since Argo 1.0.1 you can also enroll an Ethereum wallet you personally hold. Signing a message with it opens a third locked copy.</>,
+        ]}
+      />
+      <P>
+        Our servers store these locked copies, because your devices need to fetch them. But
+        we hold none of the things that open them. To us, each one is a sealed envelope with
+        no key attached.
+      </P>
+      <P>
+        There is no back door. If you lose your devices, your recovery code, and your
+        enrolled wallet, nobody can unlock your journal, including us. That is the cost of a
+        system where we cannot read your data, and we think it is the right one for a
+        journal.
+      </P>
+      <H2>What happens when you sign in</H2>
+      <P>
+        <strong>On a phone you already use</strong>, the app reads the key from your iCloud
+        Keychain, fetches its locked copy of your data key, and opens it on the phone. No
+        server is ever asked to decrypt anything.
+      </P>
+      <P>
+        <strong>On a new phone without your iCloud Keychain</strong>, the app asks for your
+        recovery code (or a wallet signature), opens your data key on the device, then sets
+        up a fresh iCloud Keychain key so you are not asked again.
+      </P>
+      <P>
+        <strong>When you create an account</strong>, the app is careful about order. It
+        makes your data key, saves both locked copies, then fetches them back and confirms
+        each one really opens to the same key, all before a single entry is encrypted. Only
+        then does it show you your recovery code, and it waits for you to confirm you saved
+        it. You cannot end up with an encrypted journal that has no working backup.
+      </P>
+      <P>
+        <strong>In a web browser</strong>, iCloud Keychain is not available, so the recovery
+        code is the way in. You type it once. The browser then stores a key of its own that
+        can be used but cannot be copied out of the browser, so later visits open without
+        asking. Two honest limits: Safari clears that stored key after about a week without
+        a visit, so occasional Safari users will type their code again, and no browser
+        storage can protect you from malicious code running on the page itself. That is a
+        limit of encryption in any browser, and we would rather tell you than imply
+        otherwise.
+      </P>
+      <H2>What our database actually contains</H2>
+      <P>
+        If someone copied our entire database and file storage tomorrow, here is what they
+        would get: your entries, titles, summaries, insights, chat and voice transcripts,
+        profile details, photos, recordings and videos, all as scrambled data with no key to
+        open them.
+      </P>
+      <P>
+        Search works the same way. When Argo finds entries related to the one you are
+        reading, the work of understanding your writing happens on your phone. The resulting
+        search data is encrypted before it is stored, so our servers keep it without being
+        able to read it.
+      </P>
+      <P>
+        What we can see is the information a service needs to run: your account ID, email,
+        display name and timezone, when entries were created, how many words they contain,
+        and how long a recording runs. A few small settings fields are also stored
+        unencrypted today, such as custom instructions you write for summaries. None of them
+        hold entry content, and encrypting them is on our list.
+      </P>
+      <H2>When the AI needs to read</H2>
+      <Figure
+        src="/blog/how-argo-encryption-works-3.jpg"
+        alt="A single candle lit inside a dark room, its light falling on an open page for a brief moment"
+        width={2528}
+        height={1696}
+      />
+      <P>
+        An AI cannot reflect on words it cannot read. So when you use an AI feature, such as
+        an insight on an entry, a chat, or a daily prompt, your phone unlocks the needed
+        text, sends it over an encrypted connection to our server, which passes it to the AI
+        model for that one request. The result comes back to your phone, which locks it
+        before saving. Our server keeps nothing from the exchange.
+      </P>
+      <P>
+        Today that AI processing runs by default on Venice AI, under a privacy tier that is
+        anonymized and encrypted in transit, with no prompt retention. We can also route
+        these features to Morpheus, which runs models inside a hardware secure enclave, as
+        we explained in <A
+        href="https://myargoquest.com/blog/how-private-ai-works-morpheus-tees-enclaves">an
+        earlier post</A>. Your journal is never used to train AI models, ours or our
+        providers&apos;.
+      </P>
+      <P>
+        Some newer features show how far this design goes. Argo writes short summaries of
+        each of your days, weeks, months and years. A typical app would run that as a job on
+        its own servers every night. Ours cannot, because the server cannot read your
+        entries. So your phone does the bookkeeping: when you open the app, it checks which
+        periods are missing or out of date, unlocks just the entries those summaries need,
+        asks for each summary, then locks the result and saves it.
+      </P>
+      <P>
+        Voice and video entries follow the same rule. To produce a transcript, the audio is
+        sent to a speech-to-text provider named in our privacy policy, which transcribes it
+        and does not keep it for other purposes. Dictating into a text field is different:
+        that runs entirely on your phone.
+      </P>
+      <H2>The one exception: live voice calls</H2>
+      <Figure
+        src="/blog/how-argo-encryption-works-4.jpg"
+        alt="An old brass desk microphone in a dim room, a warm glow fading around it as if the light is about to go out"
+        width={2400}
+        height={1792}
+      />
+      <P>
+        Live voice calls are the one place where our server does see your key, and it is
+        worth spelling out.
+      </P>
+      <P>
+        During a call, the AI needs to recall relevant moments from your past entries while
+        you are talking, faster than your phone could look them up and send them over. So
+        when a call starts, your phone hands our server your data key for the length of that
+        call. The server uses it to open only the past entries needed to answer you, and
+        holds the key and the opened text in memory only. Nothing from the call is written
+        to disk or logged. When the call ends, the key is wiped from memory, and if the
+        end-of-call signal never arrives, a 30-minute timer wipes it anyway.
+      </P>
+      <P>
+        The call recording takes a short detour too. Our voice-call partner, Vapi, produces
+        the recording, and our server briefly holds an unencrypted copy until your phone
+        next opens, encrypts it, and stores the locked version. Our unencrypted copy is then
+        deleted. Vapi also keeps its own copy for a limited period.
+      </P>
+      <P>
+        The model that talks with you during a call runs on Venice AI, not inside a secure
+        enclave, because no enclave model is fast enough yet for real-time conversation. It
+        is the one part of Argo that asks you for more trust than the rest, which is why the
+        app&apos;s consent screen calls it out instead of burying it.
+      </P>
+      <H2>What we can do, and what we cannot</H2>
+      <P>
+        There is exactly one thing our server can do with your key material: destroy it.
+        Deleting the locked copies of your data key makes everything encrypted with it
+        permanently unreadable, a step known as crypto-shredding. We can delete your
+        journal. We cannot read it.
+      </P>
+      <P>
+        Two things are public on purpose. If you mint your Soul NFT, its public record
+        includes your first name and your journaling stats, like days journaled and total
+        words. The in-app leaderboard shows display names and stats for top users. Neither
+        includes a word of what you wrote, and both are explained at the point you opt in.
+      </P>
+      <H2>Check it yourself</H2>
+      <P>
+        Privacy claims should be something you can verify, not something you take on faith.
+        Argo&apos;s code is <A href="https://github.com/kon-rad/luminalog-oss">open
+        source</A>, including the encryption on your phone and in the browser, the key
+        handling, and the voice pipeline described here. Our <A
+        href="https://myargoquest.com/privacy">privacy policy</A> names the outside services
+        that process your data.
+      </P>
+      <P>
+        The aim was never a company you trust with your journal. It was a journal that works
+        without needing to trust us.
+      </P>
+      <P>
+        <em>Argo Writer Agent</em>
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'how-argo-encryption-works',
+    title: 'How Argo keeps your journal private: keys, encryption, and the honest exceptions',
+    description:
+      "A plain-English walkthrough of Argo's zero-knowledge encryption: where your key is created, where it is stored, what our servers can and cannot read, when your words reach an AI, and the one exception during live voice calls.",
+    date: 'October 1, 2026',
+    isoDate: '2026-10-01T10:00',
+    readingTime: '10 min read',
+    Content: ArgoEncryptionContent,
+  },
   {
     slug: 'argo-1-0-1-mirror-wallet-unlock',
     title: "What's new in Argo 1.0.1: Mirror and unlocking your journal with your wallet",
