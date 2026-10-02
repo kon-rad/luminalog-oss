@@ -9,6 +9,7 @@ import InsightsCarousel from '@/components/landing/InsightsCarousel'
 import CaptureSplit from '@/components/landing/CaptureSplit'
 import CompanionSection from '@/components/landing/CompanionSection'
 import PrivacySection from '@/components/landing/PrivacySection'
+import WontDoSection from '@/components/landing/WontDoSection'
 import SoulSection from '@/components/landing/SoulSection'
 import FlywheelCarousel from '@/components/landing/FlywheelCarousel'
 import TestimonialsSection from '@/components/landing/TestimonialsSection'
@@ -26,6 +27,7 @@ export default function Home() {
       <CaptureSplit />
       <CompanionSection />
       <PrivacySection />
+      <WontDoSection />
       <SoulSection />
       <FlywheelCarousel />
       <TestimonialsSection />

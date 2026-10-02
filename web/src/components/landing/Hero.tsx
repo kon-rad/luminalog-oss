@@ -63,7 +63,7 @@ export default function Hero() {
           letterSpacing: '-0.03em',
         }}
       >
-        Record, reflect,<br />and grow.
+        The AI that knows you —<br />without owning you.
       </motion.h1>
 
       <motion.p
@@ -72,10 +72,10 @@ export default function Hero() {
         transition={{ duration: 0.9, ease: 'easeOut', delay: 0.45 }}
         style={{ marginTop: 22, fontSize: 19, lineHeight: 1.65, color: MUTE, maxWidth: 560 }}
       >
-        Argo is an AI journaling app: a private container for your thoughts. Capture your
-        days in voice, text, video, or handwriting, and talk to an AI that has read every
-        entry you have written. Hit your daily 750-word goal, keep your streak alive, and
-        grow more articulate and whole as it comes to know you.
+        Argo is a private AI journal. It reads every entry you've written, finds patterns
+        you'd never see, and asks the question you weren't asking yourself. It never sells
+        your data. It never trains on your words. The key never leaves your device. Argo
+        is the AI that knows you — without owning you.
       </motion.p>
 
       <motion.div
