@@ -122,7 +122,7 @@ final class EncouragementCoordinator: ObservableObject {
             )
         }
         guard !messages.isEmpty else { return }
-        try await repository.save(messages)
+        try await repository.save(messages, inputs: nil)
     }
 
     /// Arms each planned slot and cancels any slot the plan did not fill, so a

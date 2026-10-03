@@ -13,7 +13,7 @@ final class EncouragementHistoryTests: XCTestCase {
 
     func testExcludesMessagesNotYetDelivered() async throws {
         let repo = InMemoryEncouragementRepository()
-        try await repo.save([message("a", delivered: nil)])
+        try await repo.save([message("a", delivered: nil)], inputs: nil)
 
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let result = try await repo.recentDelivered(limit: 20, before: now, after: nil)
@@ -25,7 +25,7 @@ final class EncouragementHistoryTests: XCTestCase {
         let repo = InMemoryEncouragementRepository()
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         let future = now.addingTimeInterval(3600)
-        try await repo.save([message("a", delivered: future)])
+        try await repo.save([message("a", delivered: future)], inputs: nil)
 
         let result = try await repo.recentDelivered(limit: 20, before: now, after: nil)
 
@@ -39,7 +39,7 @@ final class EncouragementHistoryTests: XCTestCase {
             message("morning", delivered: now.addingTimeInterval(-7200)),
             message("afternoon", delivered: now.addingTimeInterval(-3600)),
             message("yesterday", delivered: now.addingTimeInterval(-90_000)),
-        ])
+        ], inputs: nil)
 
         let result = try await repo.recentDelivered(limit: 20, before: now, after: nil)
 
@@ -53,7 +53,7 @@ final class EncouragementHistoryTests: XCTestCase {
             message("newest", delivered: now.addingTimeInterval(-100)),
             message("middle", delivered: now.addingTimeInterval(-200)),
             message("oldest", delivered: now.addingTimeInterval(-300)),
-        ])
+        ], inputs: nil)
 
         let firstPage = try await repo.recentDelivered(limit: 1, before: now, after: nil)
         XCTAssertEqual(firstPage.map(\.id), ["newest"])

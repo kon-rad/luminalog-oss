@@ -8,16 +8,26 @@ final class InMemoryEncouragementRepository: EncouragementRepository {
 
     private var stored: [EncouragementMessage] = []
     private var batchDateKeys: Set<String> = []
+    private var storedInputs: [String: MirrorInputs] = [:]
 
     func hasBatch(forDateKey dateKey: String) async throws -> Bool {
         batchDateKeys.contains(dateKey)
     }
 
-    func save(_ messages: [EncouragementMessage]) async throws {
+    func save(_ messages: [EncouragementMessage], inputs: MirrorInputs?) async throws {
         stored.append(contentsOf: messages)
+        if let inputs { storedInputs[inputs.dateKey] = inputs }
         for message in messages {
             batchDateKeys.insert(EncouragementIds.dateKeyPrefix(message.id))
         }
+    }
+
+    func message(id: String) async throws -> EncouragementMessage? {
+        stored.first { $0.id == id }
+    }
+
+    func inputs(forDateKey dateKey: String) async throws -> MirrorInputs? {
+        storedInputs[dateKey]
     }
 
     func messages(forDateKey dateKey: String) async throws -> [EncouragementMessage] {

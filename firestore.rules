@@ -170,6 +170,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
+    // What went into each day's Mirror batch (prompt + source excerpts),
+    // client-encrypted (AAD dailyEncouragementInputs.*). Owner-only.
+    match /dailyEncouragements/{uid}/inputs/{dateKey} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // Period summaries (day/week/month/quarter/year/all), client-encrypted
     // (AAD periodSummaries.title / .sentence / .summary / .details). Owner-only.
     match /periodSummaries/{uid}/tiers/{periodId} {

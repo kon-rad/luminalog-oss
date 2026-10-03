@@ -1281,7 +1281,7 @@ struct SettingsView: View {
                 }
             }
             do {
-                try await services.encouragements.save(messages)
+                try await services.encouragements.save(messages, inputs: nil)
                 backfillMirrorsStatus = "Backfilled \(messages.count) messages across 3 days"
             } catch {
                 backfillMirrorsStatus = "Backfill failed, tap to retry"

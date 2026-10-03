@@ -6,9 +6,15 @@ protocol EncouragementRepository: AnyObject {
     /// Guards against a second AI call on the same day.
     func hasBatch(forDateKey dateKey: String) async throws -> Bool
     /// Persists a freshly generated day's echoes (up to one per time-of-day
-    /// slot). The server holds no key, so the client owns persistence, exactly
-    /// as it does for daily reports.
-    func save(_ messages: [EncouragementMessage]) async throws
+    /// slot) and, when known, what went into generating them, in one write so a
+    /// batch never exists without its inputs. The server holds no key, so the
+    /// client owns persistence.
+    func save(_ messages: [EncouragementMessage], inputs: MirrorInputs?) async throws
+    /// One echo by document id, or nil if it no longer exists.
+    func message(id: String) async throws -> EncouragementMessage?
+    /// The inputs recorded for `dateKey`'s batch, or nil for batches generated
+    /// before inputs were recorded.
+    func inputs(forDateKey dateKey: String) async throws -> MirrorInputs?
     /// Every echo generated for `dateKey`, in no particular order.
     func messages(forDateKey dateKey: String) async throws -> [EncouragementMessage]
     /// Records that `id` was scheduled into a slot firing at `date`.
@@ -42,6 +48,10 @@ final class FirestoreEncouragementRepository: EncouragementRepository {
         db.collection("dailyEncouragements").document(uid).collection("messages")
     }
 
+    private func inputsCollection(_ uid: String) -> CollectionReference {
+        db.collection("dailyEncouragements").document(uid).collection("inputs")
+    }
+
     /// Document ids for `dateKey` all start with `"{dateKey}_"`, so a prefix
     /// range finds them without scanning the whole collection.
     private func dateKeyRange(_ uid: String, _ dateKey: String) -> Query {
@@ -57,14 +67,32 @@ final class FirestoreEncouragementRepository: EncouragementRepository {
         return !snap.documents.isEmpty
     }
 
-    func save(_ messages: [EncouragementMessage]) async throws {
+    func save(_ messages: [EncouragementMessage], inputs: MirrorInputs?) async throws {
         guard let uid = auth.currentUserId, let cipher = keys.currentCipher else { return }
         let batch = db.batch()
         for message in messages {
             let ref = messagesCollection(uid).document(message.id)
             batch.setData(try message.firestoreData(cipher: cipher), forDocument: ref)
         }
+        if let inputs {
+            batch.setData(try inputs.firestoreData(cipher: cipher),
+                          forDocument: inputsCollection(uid).document(inputs.dateKey))
+        }
         try await batch.commit()
+    }
+
+    func message(id: String) async throws -> EncouragementMessage? {
+        guard let uid = auth.currentUserId, let cipher = keys.currentCipher else { return nil }
+        let snap = try await messagesCollection(uid).document(id).getDocument()
+        guard let data = snap.data() else { return nil }
+        return try? EncouragementMessage(firestore: data, id: id, cipher: cipher)
+    }
+
+    func inputs(forDateKey dateKey: String) async throws -> MirrorInputs? {
+        guard let uid = auth.currentUserId, let cipher = keys.currentCipher else { return nil }
+        let snap = try await inputsCollection(uid).document(dateKey).getDocument()
+        guard let data = snap.data() else { return nil }
+        return try? MirrorInputs(firestore: data, dateKey: dateKey, cipher: cipher)
     }
 
     func messages(forDateKey dateKey: String) async throws -> [EncouragementMessage] {
@@ -140,5 +168,52 @@ extension EncouragementMessage {
             data["deliveredAt"] = Timestamp(date: deliveredAt)
         }
         return data
+    }
+}
+
+// MARK: - Mirror inputs mapping
+
+extension MirrorInputs {
+
+    private static func jsonEncoder() -> JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .millisecondsSince1970
+        return encoder
+    }
+
+    private static func jsonDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .millisecondsSince1970
+        return decoder
+    }
+
+    /// Seals the prompt strings and the sources (as one JSON string); the model
+    /// name, attempt count, fallback slots and timestamp are plaintext metadata.
+    func firestoreData(cipher: FieldCipher) throws -> [String: Any] {
+        let sourcesJSON = String(decoding: try Self.jsonEncoder().encode(sources), as: UTF8.self)
+        var data: [String: Any] = [
+            "sources": try cipher.sealed(sourcesJSON, "dailyEncouragementInputs.sources"),
+            "fallbackSlots": fallbackSlots.map(\.rawValue),
+            "createdAt": Timestamp(date: createdAt),
+        ]
+        if let system { data["system"] = try cipher.sealed(system, "dailyEncouragementInputs.system") }
+        if let user { data["user"] = try cipher.sealed(user, "dailyEncouragementInputs.user") }
+        if let model { data["model"] = model }
+        if let attempts { data["attempts"] = attempts }
+        return data
+    }
+
+    init(firestore data: [String: Any], dateKey: String, cipher: FieldCipher) throws {
+        let sourcesJSON = try cipher.opened(data["sources"], "dailyEncouragementInputs.sources")
+        self.init(
+            dateKey: dateKey,
+            sources: try Self.jsonDecoder().decode([MirrorSource].self, from: Data(sourcesJSON.utf8)),
+            system: try cipher.openedIfPresent(data["system"], "dailyEncouragementInputs.system"),
+            user: try cipher.openedIfPresent(data["user"], "dailyEncouragementInputs.user"),
+            model: data["model"] as? String,
+            attempts: (data["attempts"] as? NSNumber)?.intValue,
+            fallbackSlots: (data["fallbackSlots"] as? [String] ?? []).compactMap(TimeOfDay.init(rawValue:)),
+            createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date(timeIntervalSince1970: 0)
+        )
     }
 }

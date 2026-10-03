@@ -43,13 +43,21 @@ final class EncouragementCoordinatorTests: XCTestCase {
     private final class InMemoryRepo: EncouragementRepository {
         var stored: [EncouragementMessage] = []
         var batchDateKeys: Set<String> = []
+        var savedInputs: [MirrorInputs] = []
 
         func hasBatch(forDateKey dateKey: String) async throws -> Bool {
             batchDateKeys.contains(dateKey)
         }
-        func save(_ messages: [EncouragementMessage]) async throws {
+        func save(_ messages: [EncouragementMessage], inputs: MirrorInputs?) async throws {
             stored.append(contentsOf: messages)
+            if let inputs { savedInputs.append(inputs) }
             for m in messages { batchDateKeys.insert(EncouragementIds.dateKeyPrefix(m.id)) }
+        }
+        func message(id: String) async throws -> EncouragementMessage? {
+            stored.first { $0.id == id }
+        }
+        func inputs(forDateKey dateKey: String) async throws -> MirrorInputs? {
+            savedInputs.last { $0.dateKey == dateKey }
         }
         func messages(forDateKey dateKey: String) async throws -> [EncouragementMessage] {
             stored.filter { EncouragementIds.dateKeyPrefix($0.id) == dateKey }
