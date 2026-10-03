@@ -122,13 +122,24 @@ final class EncouragementCoordinator: ObservableObject {
             )
         }
         guard !messages.isEmpty else { return }
-        try await repository.save(messages, inputs: nil)
+        let inputs: MirrorInputs? = echoes.sources.isEmpty ? nil : MirrorInputs(
+            dateKey: dateKey,
+            sources: echoes.sources,
+            system: echoes.prompt?.system,
+            user: echoes.prompt?.user,
+            model: echoes.prompt?.model,
+            attempts: echoes.prompt?.attempts,
+            fallbackSlots: (echoes.prompt?.fallbackSlots ?? []).compactMap(TimeOfDay.init(rawValue:)),
+            createdAt: reference
+        )
+        try await repository.save(messages, inputs: inputs)
     }
 
     /// Arms each planned slot and cancels any slot the plan did not fill, so a
     /// missed or ungrounded slot never leaves a stale notification pending from
-    /// an earlier run. The notification title is always the static feature
-    /// name; the model-generated text is the body only.
+    /// an earlier run. The notification has no title, so the whole collapsed
+    /// notification height goes to the body; the message id rides along in
+    /// `userInfo` for the tap.
     private func arm(_ plan: [EncouragementAssignment]) async throws {
         let assigned = Dictionary(uniqueKeysWithValues: plan.map { ($0.slotId, $0) })
         for slot in EncouragementSlot.all {
@@ -138,8 +149,9 @@ final class EncouragementCoordinator: ObservableObject {
             }
             await scheduler.reschedule(
                 identifier: slot.id,
-                title: EncouragementPrefs.displayName,
+                title: "",
                 body: assignment.message.text,
+                userInfo: [EncouragementPrefs.messageIdUserInfoKey: assignment.message.id],
                 to: assignment.fireDate
             )
             try await repository.markDelivered(id: assignment.message.id, at: assignment.fireDate)

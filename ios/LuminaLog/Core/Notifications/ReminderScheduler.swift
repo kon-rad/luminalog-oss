@@ -12,8 +12,15 @@ protocol ReminderScheduling: AnyObject {
     /// request-on-first-foreground behavior).
     func authorizationStatus() async -> UNAuthorizationStatus
     /// Cancel the pending notification for `identifier`; if `fireDate` is
-    /// non-nil, schedule one non-repeating notification at that date.
-    func reschedule(identifier: String, title: String, body: String, to fireDate: Date?) async
+    /// non-nil, schedule one non-repeating notification at that date carrying
+    /// `userInfo` (read back when the user taps it).
+    func reschedule(identifier: String, title: String, body: String, userInfo: [String: String], to fireDate: Date?) async
+}
+
+extension ReminderScheduling {
+    func reschedule(identifier: String, title: String, body: String, to fireDate: Date?) async {
+        await reschedule(identifier: identifier, title: title, body: body, userInfo: [:], to: fireDate)
+    }
 }
 
 @MainActor
@@ -42,7 +49,7 @@ final class ReminderScheduler: ReminderScheduling {
         await center.notificationSettings().authorizationStatus
     }
 
-    func reschedule(identifier: String, title: String, body: String, to fireDate: Date?) async {
+    func reschedule(identifier: String, title: String, body: String, userInfo: [String: String], to fireDate: Date?) async {
         center.removePendingNotificationRequests(withIdentifiers: [identifier])
         guard let fireDate else { return }
 
@@ -50,6 +57,7 @@ final class ReminderScheduler: ReminderScheduling {
         content.title = title
         content.body = body
         content.sound = .default
+        content.userInfo = userInfo
 
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timezone

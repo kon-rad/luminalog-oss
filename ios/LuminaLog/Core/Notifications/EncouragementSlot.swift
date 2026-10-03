@@ -7,9 +7,13 @@ import Foundation
 enum EncouragementPrefs {
     static let enabledKey = "ll-encouragement.enabled"
     static let defaultEnabled = true
-    /// User-facing feature name: the Settings toggle, the notification title,
-    /// and the history screen all read this one constant.
+    /// User-facing feature name: the Settings toggle and the history screen
+    /// read this one constant. The notification has no title (the body gets the
+    /// full collapsed height).
     static let displayName = "Mirror"
+    /// Notification `userInfo` key carrying the Echo's document id, so a tap
+    /// opens that exact message.
+    static let messageIdUserInfoKey = "mirrorMessageId"
 }
 
 /// One of the three fixed delivery times for Mirror's Echo notifications.

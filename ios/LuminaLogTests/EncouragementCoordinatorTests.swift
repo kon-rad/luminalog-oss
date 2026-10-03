@@ -86,14 +86,18 @@ final class EncouragementCoordinatorTests: XCTestCase {
         var status: UNAuthorizationStatus = .authorized
         private(set) var requestAuthorizationCallCount = 0
         var scheduled: [(id: String, title: String, body: String, date: Date?)] = []
+        var userInfos: [String: [String: String]] = [:]
+        var titles: [String: String] = [:]
         func requestAuthorization() async -> Bool {
             requestAuthorizationCallCount += 1
             if authorized { status = .authorized }
             return authorized
         }
         func authorizationStatus() async -> UNAuthorizationStatus { status }
-        func reschedule(identifier: String, title: String, body: String, to fireDate: Date?) async {
+        func reschedule(identifier: String, title: String, body: String, userInfo: [String: String], to fireDate: Date?) async {
             scheduled.append((identifier, title, body, fireDate))
+            userInfos[identifier] = userInfo
+            titles[identifier] = title
         }
     }
 
@@ -152,9 +156,8 @@ final class EncouragementCoordinatorTests: XCTestCase {
         XCTAssertEqual(repo.stored.count, 3)
         let armed = scheduler.scheduled.filter { $0.date != nil }
         XCTAssertEqual(armed.count, 3)
-        // The notification title is always the static feature name, never
-        // model-generated copy; the echo sentence is the body.
-        XCTAssertEqual(armed.map(\.title), [EncouragementPrefs.displayName, EncouragementPrefs.displayName, EncouragementPrefs.displayName])
+        // No title, so the whole collapsed notification height goes to the body.
+        XCTAssertEqual(armed.map(\.title), ["", "", ""])
         XCTAssertEqual(armed.map(\.body), ["T-morning", "T-afternoon", "T-evening"])
         XCTAssertEqual(repo.stored.filter(\.isDelivered).count, 3)
     }
@@ -292,6 +295,55 @@ final class EncouragementCoordinatorTests: XCTestCase {
         XCTAssertFalse(enabled)
         XCTAssertFalse(coordinator.isEnabled)
         XCTAssertEqual(scheduler.scheduled.filter { $0.date == nil }.count, EncouragementSlot.all.count)
+    }
+
+    func testSavesInputsWithTheBatch() async throws {
+        let ai = StubAI(); let repo = InMemoryRepo(); let scheduler = SpyScheduler()
+        ai.result = GeneratedMirrorEchoes(
+            morning: "m", afternoon: "a", evening: "e",
+            sources: [MirrorSource(id: "e1", type: "text", title: "T", createdAt: Date(), content: "c")],
+            prompt: MirrorPrompt(system: "S", user: "U", model: "mod", attempts: 1, fallbackSlots: ["evening"])
+        )
+        let coordinator = makeCoordinator(ai: ai, repo: repo, scheduler: scheduler)
+
+        await coordinator.runCycle(profile: utcProfile())
+
+        let inputs = try XCTUnwrap(repo.savedInputs.last)
+        XCTAssertEqual(inputs.system, "S")
+        XCTAssertEqual(inputs.user, "U")
+        XCTAssertEqual(inputs.fallbackSlots, [.evening])
+        XCTAssertEqual(inputs.sources.map(\.id), ["e1"])
+        XCTAssertEqual(inputs.dateKey, EncouragementIds.dateKeyPrefix(repo.stored[0].id))
+    }
+
+    func testOlderServerStillSavesSources() async throws {
+        let ai = StubAI(); let repo = InMemoryRepo(); let scheduler = SpyScheduler()
+        ai.result = GeneratedMirrorEchoes(
+            morning: "m", afternoon: nil, evening: nil,
+            sources: [MirrorSource(id: "e1", type: "text", title: "T", createdAt: Date(), content: "c")]
+        )
+        let coordinator = makeCoordinator(ai: ai, repo: repo, scheduler: scheduler)
+
+        await coordinator.runCycle(profile: utcProfile())
+
+        let inputs = try XCTUnwrap(repo.savedInputs.last)
+        XCTAssertNil(inputs.system)
+        XCTAssertEqual(inputs.sources.count, 1)
+    }
+
+    func testArmedNotificationsHaveNoTitleAndCarryTheMessageId() async throws {
+        let ai = StubAI(); let repo = InMemoryRepo(); let scheduler = SpyScheduler()
+        let coordinator = makeCoordinator(ai: ai, repo: repo, scheduler: scheduler)
+
+        await coordinator.runCycle(profile: utcProfile())
+
+        let armed = scheduler.scheduled.filter { $0.date != nil }
+        XCTAssertFalse(armed.isEmpty, "the 05:00 UTC clock leaves every slot ahead")
+        for slot in armed {
+            XCTAssertEqual(scheduler.titles[slot.id], "")
+            let id = try XCTUnwrap(scheduler.userInfos[slot.id]?[EncouragementPrefs.messageIdUserInfoKey])
+            XCTAssertTrue(repo.stored.contains { $0.id == id })
+        }
     }
 
     func testIsEnabledDefaultsToOn() {

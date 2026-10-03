@@ -28,7 +28,7 @@ final class ReminderCoordinatorTests: XCTestCase {
 
         func authorizationStatus() async -> UNAuthorizationStatus { status }
 
-        func reschedule(identifier: String, title: String, body: String, to fireDate: Date?) async {
+        func reschedule(identifier: String, title: String, body: String, userInfo: [String: String], to fireDate: Date?) async {
             calls.append((identifier, fireDate))
         }
 
