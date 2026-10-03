@@ -23,7 +23,7 @@ import {
   parseEncouragements, fallbackEncouragements,
   ENCOURAGEMENT_COUNT, ENCOURAGEMENT_TITLE_MAX, ENCOURAGEMENT_BODY_MAX,
 } from '../services/dailyEncouragements'
-import { parseMirrorEchoes, fallbackMirrorEchoes } from '../services/dailyMirror'
+import { parseMirrorEchoes, fallbackMirrorEchoes, fallbackSlotsOf, MIRROR_TRIGGER } from '../services/dailyMirror'
 import { parsePeriodSummaryRequest, buildChildrenBlock, parsePeriodSummary } from '../services/periodSummary'
 import { dailyReportHandler } from './dailyReport'
 import { userFactsHandler } from './userFacts'
@@ -449,18 +449,32 @@ export async function dailyMirrorHandler(req: Request, res: Response): Promise<v
     // Nothing to ground the echoes in: return null for every slot rather than
     // ask the model to invent a week the user did not write.
     if (entries.length === 0) {
-      res.json({ morning: null, afternoon: null, evening: null, sourceEntryIds: [] }); return
+      res.json({ morning: null, afternoon: null, evening: null, sourceEntryIds: [], prompt: null }); return
     }
 
     const journalContext = buildJournalContext(entries)
     const systemPrompt = PROMPTS.mirrorEchoes({ journalContext })
-    const trigger = 'Generate the three echoes now as strict JSON.'
-
-    let echoes = parseMirrorEchoes(await generate(systemPrompt, trigger))
-    if (!echoes) echoes = parseMirrorEchoes(await generate(systemPrompt, trigger))
+    let attempts = 1
+    let echoes = parseMirrorEchoes(await generate(systemPrompt, MIRROR_TRIGGER))
+    if (!echoes) {
+      attempts = 2
+      echoes = parseMirrorEchoes(await generate(systemPrompt, MIRROR_TRIGGER))
+    }
     if (!echoes) echoes = fallbackMirrorEchoes()
 
-    res.json({ ...echoes, sourceEntryIds })
+    // The exact strings sent to the model, so the client can show what it saw.
+    // Built from plaintext the client sent; nothing is persisted here.
+    res.json({
+      ...echoes,
+      sourceEntryIds,
+      prompt: {
+        system: systemPrompt,
+        user: MIRROR_TRIGGER,
+        model: activeChatModel(),
+        attempts,
+        fallbackSlots: fallbackSlotsOf(echoes),
+      },
+    })
   } catch (err: any) {
     console.error('[ai/daily-mirror]', err)
     res.status(500).json({ error: err.message })

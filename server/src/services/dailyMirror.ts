@@ -8,8 +8,18 @@ export type MirrorTimeOfDay = 'morning' | 'afternoon' | 'evening'
 /** Fixed delivery order, matching the iOS `EncouragementSlot.all` slot order. */
 export const MIRROR_TIME_SLOTS: readonly MirrorTimeOfDay[] = ['morning', 'afternoon', 'evening']
 
-/** Lock-screen safe length: longer text is truncated by iOS, not by us. */
-export const MIRROR_TEXT_MAX = 220
+/** Fits a collapsed lock-screen notification with no title line. */
+export const MIRROR_TEXT_MAX = 160
+
+/** The user message sent with the mirror system prompt, returned verbatim to the client. */
+export const MIRROR_TRIGGER = 'Generate the three echoes now as strict JSON.'
+
+/** Cuts at the last space at or before `max`; text with no space there is hard-cut. */
+function clampAtWord(text: string, max: number): string {
+  const window = text.slice(0, max + 1)
+  const lastSpace = window.lastIndexOf(' ')
+  return (lastSpace > 0 ? window.slice(0, lastSpace) : text.slice(0, max)).trimEnd()
+}
 
 /** Matching quote-character pairs a model reply might wrap the sentence in. */
 const QUOTE_PAIRS: ReadonlyArray<readonly [string, string]> = [
@@ -27,14 +37,14 @@ function stripWrappingQuotes(text: string): string {
 
 /**
  * Cleans one raw model reply into a single Echo sentence: strips a wrapping
- * quote pair the model added despite being told not to, trims, and hard-clamps
- * to the notification-safe length. No JSON parsing: the prompt is instructed to
+ * quote pair the model added despite being told not to, trims, and clamps
+ * to the notification-safe length at a word boundary. No JSON parsing: the prompt is instructed to
  * return the bare sentence and nothing else. Returns '' when nothing usable
  * came back, so the caller can retry once before falling back.
  */
 export function cleanEcho(raw: string): string {
   let text = stripWrappingQuotes(raw.trim()).trim()
-  if (text.length > MIRROR_TEXT_MAX) text = text.slice(0, MIRROR_TEXT_MAX).trimEnd()
+  if (text.length > MIRROR_TEXT_MAX) text = clampAtWord(text, MIRROR_TEXT_MAX)
   return text
 }
 
@@ -51,6 +61,11 @@ const FALLBACKS: Record<MirrorTimeOfDay, string> = {
 
 export function fallbackEcho(timeOfDay: MirrorTimeOfDay): string {
   return FALLBACKS[timeOfDay]
+}
+
+/** Slots whose text is the canned fallback rather than model output. */
+export function fallbackSlotsOf(echoes: Record<MirrorTimeOfDay, string>): MirrorTimeOfDay[] {
+  return MIRROR_TIME_SLOTS.filter(slot => echoes[slot] === fallbackEcho(slot))
 }
 
 /** All three slots' fallback sentences at once, for when the batch call never parses. */

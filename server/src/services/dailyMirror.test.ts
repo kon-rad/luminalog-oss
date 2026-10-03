@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  cleanEcho, fallbackEcho, fallbackMirrorEchoes, parseMirrorEchoes,
+  cleanEcho, fallbackEcho, fallbackMirrorEchoes, fallbackSlotsOf, parseMirrorEchoes,
   MIRROR_TEXT_MAX, MIRROR_TIME_SLOTS,
 } from './dailyMirror'
 
@@ -95,5 +95,32 @@ describe('parseMirrorEchoes', () => {
 
   it('returns null when the matched braces do not contain valid JSON', () => {
     expect(parseMirrorEchoes('{"morning": ,}')).toBeNull()
+  })
+})
+
+describe('cleanEcho word-boundary clamp', () => {
+  it('cuts long text at the last space at or before MIRROR_TEXT_MAX', () => {
+    const out = cleanEcho('word '.repeat(60))
+    expect(out.length).toBeLessThanOrEqual(MIRROR_TEXT_MAX)
+    expect(out.endsWith('word')).toBe(true)
+  })
+  it('hard-cuts text with no spaces (CJK) to MIRROR_TEXT_MAX', () => {
+    const out = cleanEcho('今'.repeat(300))
+    expect(out.length).toBe(MIRROR_TEXT_MAX)
+  })
+  it('leaves text at exactly the limit alone', () => {
+    const text = 'a'.repeat(MIRROR_TEXT_MAX)
+    expect(cleanEcho(text)).toBe(text)
+  })
+  it('is 160', () => { expect(MIRROR_TEXT_MAX).toBe(160) })
+})
+
+describe('fallbackSlotsOf', () => {
+  it('lists slots whose text is the canned fallback', () => {
+    const echoes = { morning: 'Real one.', afternoon: fallbackEcho('afternoon'), evening: fallbackEcho('evening') }
+    expect(fallbackSlotsOf(echoes)).toEqual(['afternoon', 'evening'])
+  })
+  it('is empty when the model wrote every slot', () => {
+    expect(fallbackSlotsOf({ morning: 'a', afternoon: 'b', evening: 'c' })).toEqual([])
   })
 })

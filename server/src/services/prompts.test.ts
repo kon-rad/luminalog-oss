@@ -138,3 +138,9 @@ describe('PROMPTS.userFacts', () => {
     expect(p).not.toContain('\u2014')
   })
 })
+
+describe('mirrorEchoes length', () => {
+  it('asks for at most 140 characters per echo', () => {
+    expect(PROMPTS.mirrorEchoes({ journalContext: 'x' })).toContain('at most 140 characters')
+  })
+})

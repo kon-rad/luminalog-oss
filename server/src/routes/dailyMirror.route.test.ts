@@ -61,6 +61,45 @@ const entries = [{ id: 'e1', type: 'text', title: 'Monday', content: 'I kept avo
 beforeEach(() => { chatCompletion.mockReset() })
 
 describe('dailyMirrorHandler', () => {
+  it('returns the exact prompt the model saw', async () => {
+    chatCompletion.mockResolvedValueOnce(modelReply(JSON.stringify({ morning: 'a.', afternoon: 'b.', evening: 'c.' })))
+    const res = mockRes()
+    await dailyMirrorHandler({ uid: 'u1', body: { name: 'Kon', profile: {}, entries } } as any, res)
+
+    const sent = chatCompletion.mock.calls[0][0]
+    expect(res.body.prompt.system).toBe(sent[0].content)
+    expect(res.body.prompt.user).toBe(sent[1].content)
+    expect(res.body.prompt.user).toBe('Generate the three echoes now as strict JSON.')
+    expect(res.body.prompt.system).toContain('I kept avoiding the hard call.')
+    expect(res.body.prompt.model).toBe('mock-model')
+    expect(res.body.prompt.attempts).toBe(1)
+    expect(res.body.prompt.fallbackSlots).toEqual([])
+  })
+
+  it('counts a retry as two attempts', async () => {
+    chatCompletion
+      .mockResolvedValueOnce(modelReply('not json'))
+      .mockResolvedValueOnce(modelReply(JSON.stringify({ morning: 'a.', afternoon: 'b.', evening: 'c.' })))
+    const res = mockRes()
+    await dailyMirrorHandler({ uid: 'u1', body: { name: 'Kon', profile: {}, entries } } as any, res)
+    expect(res.body.prompt.attempts).toBe(2)
+  })
+
+  it('flags every slot as fallback when nothing parses', async () => {
+    chatCompletion.mockResolvedValue(modelReply('still not json'))
+    const res = mockRes()
+    await dailyMirrorHandler({ uid: 'u1', body: { name: 'Kon', profile: {}, entries } } as any, res)
+    expect(res.body.prompt.attempts).toBe(2)
+    expect(res.body.prompt.fallbackSlots).toEqual(['morning', 'afternoon', 'evening'])
+  })
+
+  it('returns prompt null when there are no entries', async () => {
+    const res = mockRes()
+    await dailyMirrorHandler({ uid: 'u1', body: { name: 'Kon', profile: {}, entries: [] } } as any, res)
+    expect(res.body.prompt).toBeNull()
+    expect(chatCompletion).not.toHaveBeenCalled()
+  })
+
   it('returns all three echoes and the source entry ids from a single model call', async () => {
     chatCompletion.mockResolvedValueOnce(modelReply(JSON.stringify({
       morning: 'Name the thing you are avoiding before the day fills up.',
@@ -160,7 +199,7 @@ describe('dailyMirrorHandler', () => {
     await dailyMirrorHandler({ uid: 'u1', body: { profile: {}, entries: [] } } as any, res)
 
     expect(res.statusCode).toBe(200)
-    expect(res.body).toEqual({ morning: null, afternoon: null, evening: null, sourceEntryIds: [] })
+    expect(res.body).toEqual({ morning: null, afternoon: null, evening: null, sourceEntryIds: [], prompt: null })
     expect(chatCompletion).not.toHaveBeenCalled()
   })
 
