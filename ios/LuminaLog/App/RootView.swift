@@ -22,6 +22,8 @@ struct RootView: View {
     @State private var selectedTab: AppTab = .home
     @State private var createRequest: CreateEntryRequest?
     @State private var journalChatRequest: JournalChatRequest?
+    @ObservedObject private var mirrorRouter = MirrorRouter.shared
+    @State private var mirrorRoute: MirrorRoute?
     @State private var isKeyboardVisible = false
     /// Shown the instant Save is tapped in the Create flow, which now dismisses
     /// immediately while the entry finishes saving in the background.
@@ -33,6 +35,26 @@ struct RootView: View {
         { journalId, journalTitle, kind in
             journalChatRequest = JournalChatRequest(journalId: journalId, journalTitle: journalTitle, kind: kind)
         }
+    }
+
+    private struct MirrorRoute: Identifiable { let id: String }
+
+    /// A sheet can't present over a full-screen cover, so a tap that lands
+    /// mid-Create or mid-chat waits until that cover closes.
+    private var canPresentMirror: Bool { createRequest == nil && journalChatRequest == nil }
+
+    private func presentPendingMirror() {
+        guard canPresentMirror, let id = mirrorRouter.pendingMirrorId else { return }
+        mirrorRouter.pendingMirrorId = nil
+        mirrorRoute = MirrorRoute(id: id)
+    }
+
+    private func presentPendingChat() {
+        guard mirrorRouter.pendingChat != nil else { return }
+        if mirrorRoute != nil { mirrorRoute = nil; return } // the sheet's onDismiss presents it
+        guard createRequest == nil, journalChatRequest == nil, let chat = mirrorRouter.pendingChat else { return }
+        mirrorRouter.pendingChat = nil
+        journalChatRequest = chat
     }
 
     var body: some View {
@@ -167,6 +189,21 @@ struct RootView: View {
                 .tracksInterruptionSurface(services.activity)
             }
         }
+        .sheet(item: $mirrorRoute, onDismiss: presentPendingChat) { route in
+            NavigationStack {
+                MirrorDetailView(id: route.id, repository: services.encouragements)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("Done") { mirrorRoute = nil }.foregroundStyle(Color.accentWarm)
+                        }
+                    }
+            }
+        }
+        .onAppear(perform: presentPendingMirror)
+        .onChange(of: mirrorRouter.pendingMirrorId) { _, _ in presentPendingMirror() }
+        .onChange(of: mirrorRouter.pendingChat?.id) { _, _ in presentPendingChat() }
+        .onChange(of: createRequest == nil) { _, _ in presentPendingMirror() }
+        .onChange(of: journalChatRequest == nil) { _, _ in presentPendingMirror(); presentPendingChat() }
         .task {
             if encouragements == nil {
                 encouragements = EncouragementCoordinator(

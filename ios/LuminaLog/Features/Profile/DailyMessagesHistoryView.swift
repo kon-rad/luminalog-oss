@@ -55,16 +55,30 @@ struct DailyMessagesHistoryView: View {
     }
 
     private func row(_ message: EncouragementMessage) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("\(message.timeOfDay.label) \u{00b7} \(Self.timestampLabel(message.deliveredAt ?? message.createdAt))")
-                .font(.captionText)
-                .foregroundStyle(Color.textSecondary)
-            Text(message.text)
-                .font(.uiBody)
-                .foregroundStyle(Color.textPrimary)
+        NavigationLink {
+            MirrorDetailView(id: message.id, repository: repository)
+        } label: {
+            HStack(alignment: .top, spacing: Spacing.s) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(message.timeOfDay.label) \u{00b7} \(Self.timestampLabel(message.deliveredAt ?? message.createdAt))")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                    Text(message.text)
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary)
+                    .padding(.top, 4)
+            }
+            .padding(Spacing.m)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
-        .padding(Spacing.m)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .buttonStyle(.plain)
     }
 
     private var emptyState: some View {

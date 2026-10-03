@@ -6,17 +6,19 @@ struct JournalChatPickerSheet: View {
 
     let journalTitle: String
     let onSelect: (ChatKind) -> Void
+    var heading: String = "Chat about this entry"
+    var explainer: String = "Start a new text or voice call with your AI. This journal entry will be included in the conversation as context."
 
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: Spacing.m) {
             VStack(spacing: Spacing.s) {
-                Text("Chat about this entry")
+                Text(heading)
                     .font(.sectionHeader)
                     .foregroundStyle(Color.textPrimary)
 
-                Text("Start a new text or voice call with your AI. This journal entry will be included in the conversation as context.")
+                Text(explainer)
                     .font(.captionText)
                     .foregroundStyle(Color.textSecondary)
                     .multilineTextAlignment(.center)
