@@ -158,6 +158,7 @@ final class ProxyAIService: AIService {
         let morning: String?
         let afternoon: String?
         let evening: String?
+        let prompt: MirrorPrompt?
     }
 
     private struct ChatBody: Encodable {
@@ -387,18 +388,21 @@ final class ProxyAIService: AIService {
             .date(byAdding: .day, value: -7, to: now()) else { return empty }
 
         let recent = await firstEmission(journals.recentEntries(limit: 60)) ?? []
-        let entries = Model1Requests.encouragementEntries(from: recent, since: since)
-        guard !entries.isEmpty else { return empty }
+        let sources = Model1Requests.mirrorSources(from: recent, since: since)
+        guard !sources.isEmpty else { return empty }
 
         let profile = await loadProfile()
         let body = Model1Requests.DailyEncouragementsBody(
             name: profile?.displayName ?? "",
             profile: profile.map { Model1Requests.profileFields(from: $0.details) } ?? [:],
-            entries: entries
+            entries: Model1Requests.encouragementEntries(from: recent, since: since)
         )
         let response: DailyMirrorResponse =
             try await api.post(path: "/v1/ai/daily-mirror", body: body)
-        return GeneratedMirrorEchoes(morning: response.morning, afternoon: response.afternoon, evening: response.evening)
+        return GeneratedMirrorEchoes(
+            morning: response.morning, afternoon: response.afternoon, evening: response.evening,
+            sources: sources, prompt: response.prompt
+        )
     }
 
     func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error> {

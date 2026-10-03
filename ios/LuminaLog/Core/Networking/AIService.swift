@@ -48,6 +48,12 @@ struct GeneratedMirrorEchoes: Decodable, Equatable, Sendable {
     let morning: String?
     let afternoon: String?
     let evening: String?
+    /// The entries sent to the model, exactly as sent. Filled by the client, never decoded.
+    var sources: [MirrorSource] = []
+    /// The exact prompt, when the server returned it.
+    var prompt: MirrorPrompt? = nil
+
+    private enum CodingKeys: String, CodingKey { case morning, afternoon, evening }
 
     func text(for timeOfDay: TimeOfDay) -> String? {
         switch timeOfDay {

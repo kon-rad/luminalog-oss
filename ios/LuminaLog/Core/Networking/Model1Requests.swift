@@ -183,23 +183,37 @@ enum Model1Requests {
     /// The user's entries from the last seven days, newest first, for the morning
     /// encouragement batch. A larger snippet than `promptEntries` because these
     /// messages must be grounded in specifics; `limit` still caps the request size.
+    /// The entries a Mirror batch is generated from, exactly as sent (excerpt and
+    /// all), plus each entry's date so the detail screen can show it.
+    static func mirrorSources(
+        from entries: [JournalEntry],
+        since: Date,
+        limit: Int = 20,
+        snippetChars: Int = 800
+    ) -> [MirrorSource] {
+        entries
+            .filter { $0.createdAt >= since }
+            .prefix(limit)
+            .map { entry in
+                MirrorSource(
+                    id: entry.id,
+                    type: entry.type.rawValue,
+                    title: entry.title.isEmpty ? "Untitled" : entry.title,
+                    createdAt: entry.createdAt,
+                    content: String(entry.content.prefix(snippetChars))
+                )
+            }
+    }
+
     static func encouragementEntries(
         from entries: [JournalEntry],
         since: Date,
         limit: Int = 20,
         snippetChars: Int = 800
     ) -> [DailyEncouragementsBody.Entry] {
-        entries
-            .filter { $0.createdAt >= since }
-            .prefix(limit)
-            .map { entry in
-                DailyEncouragementsBody.Entry(
-                    id: entry.id,
-                    type: entry.type.rawValue,
-                    title: entry.title.isEmpty ? "Untitled" : entry.title,
-                    content: String(entry.content.prefix(snippetChars))
-                )
-            }
+        mirrorSources(from: entries, since: since, limit: limit, snippetChars: snippetChars).map {
+            DailyEncouragementsBody.Entry(id: $0.id, type: $0.type, title: $0.title, content: $0.content)
+        }
     }
 
     /// Client-side RAG context string, mirroring the server retriever's format
