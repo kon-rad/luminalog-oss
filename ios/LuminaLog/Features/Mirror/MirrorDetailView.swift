@@ -11,6 +11,9 @@ struct MirrorDetailView: View {
 
     @State private var showDetails = false
     @State private var showChatPicker = false
+    /// Held until the picker has finished dismissing; presenting the chat cover
+    /// mid-dismissal is silently dropped by UIKit.
+    @State private var pendingChatKind: ChatKind?
 
     init(id: String, repository: EncouragementRepository, onOpenEntry: ((String) -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: MirrorDetailViewModel(id: id, repository: repository))
@@ -54,14 +57,16 @@ struct MirrorDetailView: View {
             .padding(.top, Spacing.s)
             .padding(.bottom, AppTabBar.scrollBottomPadding)
         }
-        .sheet(isPresented: $showChatPicker) {
+        .sheet(isPresented: $showChatPicker, onDismiss: {
+            guard let kind = pendingChatKind else { return }
+            pendingChatKind = nil
+            MirrorRouter.shared.startChat(JournalChatRequest(
+                journalId: nil, journalTitle: MirrorChatContext.chatLabel(echo), kind: kind, mirrorId: echo.id
+            ))
+        }) {
             JournalChatPickerSheet(
                 journalTitle: MirrorChatContext.chatLabel(echo),
-                onSelect: { kind in
-                    MirrorRouter.shared.startChat(JournalChatRequest(
-                        journalId: nil, journalTitle: MirrorChatContext.chatLabel(echo), kind: kind, mirrorId: echo.id
-                    ))
-                },
+                onSelect: { kind in pendingChatKind = kind },
                 heading: "Chat about this reflection",
                 explainer: "Start a new text or voice call with your AI. This reflection and the journal entries it came from will be included as context."
             )
@@ -123,13 +128,15 @@ struct MirrorDetailView: View {
 
     private func sourcesList(_ inputs: MirrorInputs) -> some View {
         VStack(alignment: .leading, spacing: Spacing.s) {
-            Text("SOURCE ENTRIES").font(.captionText.weight(.semibold)).foregroundStyle(Color.textSecondary)
+            if !inputs.sources.isEmpty {
+                Text("SOURCE ENTRIES").font(.captionText.weight(.semibold)).foregroundStyle(Color.textSecondary)
+            }
             ForEach(inputs.sources, id: \.id) { source in
                 Button {
                     onOpenEntry?(source.id)
                 } label: {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("\(source.title) · \(source.createdAt.formatted(date: .abbreviated, time: .shortened))")
+                        Text("\(source.type) · \(source.title) · \(source.createdAt.formatted(date: .abbreviated, time: .shortened))")
                             .font(.captionText.weight(.semibold))
                             .foregroundStyle(onOpenEntry == nil ? Color.textPrimary : Color.accentWarm)
                         Text(source.content)

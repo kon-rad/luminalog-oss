@@ -53,4 +53,25 @@ final class MirrorDetailViewModelTests: XCTestCase {
         older.user = nil
         XCTAssertTrue(MirrorDetailViewModel.detailsText(older).contains("Prompt text not recorded."))
     }
+
+    func testDetailsTextIncludesAttemptsAndFallbackAfterModel() {
+        var withFallback = inputs()
+        withFallback.attempts = 2
+        withFallback.fallbackSlots = [.evening]
+        let text = MirrorDetailViewModel.detailsText(withFallback)
+        let model = try! XCTUnwrap(text.range(of: "MODEL"))
+        let attempts = try! XCTUnwrap(text.range(of: "ATTEMPTS\n\n2"))
+        let fallback = try! XCTUnwrap(text.range(of: "CANNED FALLBACK (not model output)"))
+        XCTAssertLessThan(model.lowerBound, attempts.lowerBound)
+        XCTAssertLessThan(attempts.lowerBound, fallback.lowerBound)
+        XCTAssertTrue(text.contains("Evening"))
+    }
+
+    func testDetailsTextOmitsSourcesBlockWhenEmpty() {
+        var none = inputs()
+        none.sources = []
+        let text = MirrorDetailViewModel.detailsText(none)
+        XCTAssertFalse(text.contains("SOURCE ENTRIES"))
+        XCTAssertTrue(text.contains("SYSTEM PROMPT"))
+    }
 }

@@ -40,14 +40,21 @@ final class MirrorDetailViewModel: ObservableObject {
     /// Plain text of the Details section for "Copy text": sources, then the
     /// system prompt, then the user message, each verbatim.
     static func detailsText(_ inputs: MirrorInputs) -> String {
-        let sources = inputs.sources.map { source in
-            "[\(source.type) · \(source.title) · \(source.createdAt.formatted(date: .abbreviated, time: .shortened))]\n\(source.content)"
-        }.joined(separator: "\n\n---\n\n")
-        var parts = ["SOURCE ENTRIES\n\n\(sources)"]
+        var parts: [String] = []
+        if !inputs.sources.isEmpty {
+            let sources = inputs.sources.map { source in
+                "[\(source.type) · \(source.title) · \(source.createdAt.formatted(date: .abbreviated, time: .shortened))]\n\(source.content)"
+            }.joined(separator: "\n\n---\n\n")
+            parts.append("SOURCE ENTRIES\n\n\(sources)")
+        }
         if let system = inputs.system, let user = inputs.user {
             parts.append("SYSTEM PROMPT\n\n\(system)")
             parts.append("USER MESSAGE\n\n\(user)")
             if let model = inputs.model { parts.append("MODEL\n\n\(model)") }
+            if let attempts = inputs.attempts { parts.append("ATTEMPTS\n\n\(attempts)") }
+            if !inputs.fallbackSlots.isEmpty {
+                parts.append("CANNED FALLBACK (not model output)\n\n\(inputs.fallbackSlots.map(\.label).joined(separator: ", "))")
+            }
         } else {
             parts.append("Prompt text not recorded.")
         }

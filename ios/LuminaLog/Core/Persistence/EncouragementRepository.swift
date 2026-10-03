@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseFirestore
+import OSLog
 
 protocol EncouragementRepository: AnyObject {
     /// Whether a batch was already generated for `dateKey` ("yyyy-MM-dd").
@@ -34,6 +35,8 @@ protocol EncouragementRepository: AnyObject {
 /// plain document-id prefix range, no composite index needed.
 @MainActor
 final class FirestoreEncouragementRepository: EncouragementRepository {
+
+    private static let logger = Logger(subsystem: "com.konradgnat.luminalog", category: "encouragement")
 
     private let db = Firestore.firestore()
     private let auth: AuthService
@@ -85,14 +88,25 @@ final class FirestoreEncouragementRepository: EncouragementRepository {
         guard let uid = auth.currentUserId, let cipher = keys.currentCipher else { return nil }
         let snap = try await messagesCollection(uid).document(id).getDocument()
         guard let data = snap.data() else { return nil }
-        return try? EncouragementMessage(firestore: data, id: id, cipher: cipher)
+        do {
+            return try EncouragementMessage(firestore: data, id: id, cipher: cipher)
+        } catch {
+            // Treated as missing; log the doc id and error only, never content.
+            Self.logger.error("Mirror message \(id, privacy: .public) failed to decode: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 
     func inputs(forDateKey dateKey: String) async throws -> MirrorInputs? {
         guard let uid = auth.currentUserId, let cipher = keys.currentCipher else { return nil }
         let snap = try await inputsCollection(uid).document(dateKey).getDocument()
         guard let data = snap.data() else { return nil }
-        return try? MirrorInputs(firestore: data, dateKey: dateKey, cipher: cipher)
+        do {
+            return try MirrorInputs(firestore: data, dateKey: dateKey, cipher: cipher)
+        } catch {
+            Self.logger.error("Mirror inputs \(dateKey, privacy: .public) failed to decode: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 
     func messages(forDateKey dateKey: String) async throws -> [EncouragementMessage] {
