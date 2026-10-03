@@ -59,7 +59,7 @@ final class VoiceCallContextBudgetTests: XCTestCase {
         )
 
         let start = Date()
-        let context = try await service.voiceCallContext(journalId: focal.id)
+        let context = try await service.voiceCallContext(chatId: nil, journalId: focal.id)
         let elapsed = Date().timeIntervalSince(start)
 
         XCTAssertLessThan(
@@ -70,5 +70,25 @@ final class VoiceCallContextBudgetTests: XCTestCase {
             context?.focalEntry, focal.content,
             "the focal entry (fast, local, no network needed) must survive a stalled RAG search"
         )
+    }
+
+    func testMirrorChatUsesTheMirrorAsFocalContext() async throws {
+        let api = ProxyAPIClient(
+            baseURL: URL(string: "https://example.test")!,
+            tokenProvider: VCCBStubTokenProvider(),
+            session: URLSession(configuration: .ephemeral)
+        )
+        let chat = Chat(userId: "u1", kind: .voice, title: "Voice call", mirrorId: "2026-10-03_morning")
+        let service = ProxyAIService(
+            api: api,
+            journals: MockJournalRepository(entries: []),
+            profiles: MockProfileRepository(),
+            chats: MockChatRepository(chats: [chat], messages: [:]),
+            coordinator: HangingSearcher()
+        )
+        service.mirrorFocalProvider = { id in "MIRROR BLOCK for \(id)" }
+
+        let context = try await service.voiceCallContext(chatId: chat.id, journalId: nil)
+        XCTAssertEqual(context?.focalEntry, "MIRROR BLOCK for 2026-10-03_morning")
     }
 }

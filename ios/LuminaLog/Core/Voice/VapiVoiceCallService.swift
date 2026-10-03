@@ -178,7 +178,7 @@ final class VapiVoiceCallService: VoiceCallService {
         // along with everything else. See `ProxyAIService.voiceCallContext`.)
         var request = CallConfigRequest(chatId: chatId, journalId: journalId)
         request.now = Self.localNowStamp()
-        if let context = try? await self.ai.voiceCallContext(journalId: journalId) {
+        if let context = try? await self.ai.voiceCallContext(chatId: chatId, journalId: journalId) {
             request.apply(context)
         }
 

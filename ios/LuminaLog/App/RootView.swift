@@ -160,6 +160,7 @@ struct RootView: View {
                     credits: services.credits,
                     journalId: request.journalId,
                     journalTitle: request.journalTitle,
+                    mirrorId: request.mirrorId,
                     onViewTranscript: { _ in journalChatRequest = nil },
                     onInsufficientCredits: { journalChatRequest = nil }
                 )

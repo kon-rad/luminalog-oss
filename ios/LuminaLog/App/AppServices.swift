@@ -191,6 +191,11 @@ final class AppServices: ObservableObject {
         } else {
             self.periodSummaryReconciler = nil
         }
+        (ai as? ProxyAIService)?.mirrorFocalProvider = { [encouragements] id in
+            guard let message = try? await encouragements.message(id: id) else { return nil }
+            let inputs = try? await encouragements.inputs(forDateKey: EncouragementIds.dateKeyPrefix(id))
+            return MirrorChatContext.focalText(message: message, inputs: inputs ?? nil)
+        }
         // Built here (not in the factories) from the injected repositories, mirroring
         // `dailyGoalReconciler`. The recoverer is the same fetch→decrypt→transcribe
         // path the manual Retry uses; `recover`'s `save` handles re-embedding/goal.

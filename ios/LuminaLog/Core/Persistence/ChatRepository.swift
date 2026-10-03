@@ -19,8 +19,8 @@ protocol ChatRepository: AnyObject {
     func messages(chatId: String) -> AsyncStream<[ChatMessage]>
 
     /// Create a new chat owned by the current user. Pass `journalId`/`journalTitle`
-    /// to anchor the chat to a specific entry.
-    func createChat(kind: ChatKind, title: String, journalId: String?, journalTitle: String?) async throws -> Chat
+    /// to anchor the chat to a specific entry, or `mirrorId` for a Mirror reflection.
+    func createChat(kind: ChatKind, title: String, journalId: String?, journalTitle: String?, mirrorId: String?) async throws -> Chat
 
     /// Append a message and advance the chat's `lastMessageAt`.
     func appendMessage(_ message: ChatMessage, to chatId: String) async throws
@@ -33,6 +33,11 @@ protocol ChatRepository: AnyObject {
 }
 
 extension ChatRepository {
+    /// Convenience for callers that anchor to an entry but not a Mirror reflection.
+    func createChat(kind: ChatKind, title: String, journalId: String?, journalTitle: String?) async throws -> Chat {
+        try await createChat(kind: kind, title: title, journalId: journalId, journalTitle: journalTitle, mirrorId: nil)
+    }
+
     /// Convenience for callers that don't need journal context.
     func createChat(kind: ChatKind, title: String) async throws -> Chat {
         try await createChat(kind: kind, title: title, journalId: nil, journalTitle: nil)

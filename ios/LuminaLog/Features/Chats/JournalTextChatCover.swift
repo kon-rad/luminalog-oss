@@ -3,9 +3,11 @@ import SwiftUI
 /// Value type carrying the details of a journal-linked chat or call request.
 struct JournalChatRequest: Identifiable {
     let id = UUID()
-    let journalId: String
+    let journalId: String?
     let journalTitle: String
     let kind: ChatKind
+    /// Set for a chat about a Mirror reflection instead of an entry.
+    var mirrorId: String? = nil
 }
 
 /// Full-screen cover that creates a journal-linked text chat then shows `ChatView`.
@@ -65,7 +67,8 @@ struct JournalTextChatCover: View {
                             kind: .text,
                             title: "New chat",
                             journalId: request.journalId,
-                            journalTitle: request.journalTitle
+                            journalTitle: request.journalTitle,
+                            mirrorId: request.mirrorId
                         )
                     } catch {
                         hasFailed = true

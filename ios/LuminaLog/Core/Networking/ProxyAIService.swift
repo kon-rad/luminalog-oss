@@ -44,6 +44,9 @@ final class ProxyAIService: AIService {
     /// the feature flag and consent are checked inside `voiceMemoryContext`. Nil in
     /// mock wiring.
     var memoryContextProvider: (@MainActor @Sendable (TimeZone) async -> String?)?
+    /// Builds a Mirror chat's focal context from its message id
+    /// (`MirrorChatContext.focalText`). Set by `AppServices`; nil in mocks.
+    var mirrorFocalProvider: (@MainActor @Sendable (String) async -> String?)?
     /// Injected clock so Model-1 recency scoring / day bounds are testable.
     private let now: () -> Date
 
@@ -790,10 +793,12 @@ final class ProxyAIService: AIService {
             from: entries, query: ragQuery, now: now(), searcher: coordinator
         )
 
-        // Focal entry: the entry this chat was launched from (chat.journalId).
+        // Focal context: the Mirror reflection or the entry this chat was launched from.
         var focalEntry: String?
-        if let journalId = await firstEmission(chats.chats())?
-            .first(where: { $0.id == chatId })?.journalId {
+        let chat = await firstEmission(chats.chats())?.first(where: { $0.id == chatId })
+        if let mirrorId = chat?.mirrorId {
+            focalEntry = await mirrorFocalProvider?(mirrorId)
+        } else if let journalId = chat?.journalId {
             focalEntry = entries.first(where: { $0.id == journalId })?.content
         }
 
@@ -824,11 +829,16 @@ final class ProxyAIService: AIService {
     /// `todayContext`, which need no network at all. Previously the entire function was
     /// raced against a single hard deadline by the caller, so a slow search silently
     /// discarded the focal entry too, along with everything else.
-    func voiceCallContext(journalId: String?) async throws -> VoiceCallContext? {
+    func voiceCallContext(chatId: String?, journalId: String?) async throws -> VoiceCallContext? {
         guard DevFlags.aiModel1, let journals, let profiles else { return nil }
         let profile = await firstEmission(profiles.profile()).flatMap { $0 }
         let entries = (try? await journals.fetchAllEntries()) ?? []
         let focal = journalId.flatMap { id in entries.first(where: { $0.id == id }) }
+        var mirrorFocal: String?
+        if let chatId, let chats,
+           let mirrorId = await firstEmission(chats.chats())?.first(where: { $0.id == chatId })?.mirrorId {
+            mirrorFocal = await mirrorFocalProvider?(mirrorId)
+        }
 
         // Period-summary memory ladder: cached docs only, bounded like RAG so a slow
         // Firestore read can never delay the call.
@@ -864,7 +874,7 @@ final class ProxyAIService: AIService {
             .prefix(3)
             .map(\.content)
             .joined(separator: "\n\n")
-        let ragQuery = String((focal?.content ?? recentText).suffix(2000))
+        let ragQuery = String((mirrorFocal ?? focal?.content ?? recentText).suffix(2000))
         let ranked = await Self.withBudget(seconds: Self.voiceRagBudgetSeconds, fallback: []) {
             await Model1Requests.rankedEntries(
                 from: pastEntries, query: ragQuery, now: self.now(), searcher: self.coordinator
@@ -880,7 +890,7 @@ final class ProxyAIService: AIService {
             profile: profile.map { Model1Requests.profileFields(from: $0.details) } ?? [:],
             todayContext: todayContext,
             ragContext: ragContext,
-            focalEntry: focal?.content,
+            focalEntry: mirrorFocal ?? focal?.content,
             memoryContext: memoryContext
         )
     }

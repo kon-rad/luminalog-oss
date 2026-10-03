@@ -28,6 +28,9 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
     var journalId: String?
     /// Cached title of the focal entry (avoids an extra Firestore read in the history list).
     var journalTitle: String?
+    /// Id of the Mirror reflection this chat is about, if any
+    /// (`dailyEncouragements/{uid}/messages/{id}`). Display label lives in `journalTitle`.
+    var mirrorId: String?
 
     init(
         id: String = UUID().uuidString,
@@ -44,7 +47,8 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
         pendingRecordingKey: String? = nil,
         rawTranscript: String? = nil,
         journalId: String? = nil,
-        journalTitle: String? = nil
+        journalTitle: String? = nil,
+        mirrorId: String? = nil
     ) {
         self.id = id
         self.userId = userId
@@ -61,5 +65,6 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
         self.rawTranscript = rawTranscript
         self.journalId = journalId
         self.journalTitle = journalTitle
+        self.mirrorId = mirrorId
     }
 }

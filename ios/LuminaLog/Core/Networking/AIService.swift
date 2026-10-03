@@ -92,7 +92,7 @@ protocol AIService: AnyObject {
     /// Zero-knowledge (Model-1) only: build the plaintext voice-call context on-device
     /// (name, bio, profile, on-device RAG, focal entry) so it can be injected into the
     /// Vapi system prompt. Returns nil off the ZK path (the server builds context then).
-    func voiceCallContext(journalId: String?) async throws -> VoiceCallContext?
+    func voiceCallContext(chatId: String?, journalId: String?) async throws -> VoiceCallContext?
 
     /// Zero-knowledge zoom-pyramid position track: one tier's positioned dots. Plain
     /// read, not a job (see the route's own doc comment: no LLM call on this path).
@@ -195,7 +195,7 @@ extension AIService {
 
     /// Default: no client-built voice context (non-ZK paths and mocks). Only the
     /// zero-knowledge `ProxyAIService` overrides this.
-    func voiceCallContext(journalId: String?) async throws -> VoiceCallContext? { nil }
+    func voiceCallContext(chatId: String?, journalId: String?) async throws -> VoiceCallContext? { nil }
 
     /// Default: only the zero-knowledge `ProxyAIService` reads period positions.
     func periodPositions(periodType: String) async throws -> [PeriodPositionPoint] {

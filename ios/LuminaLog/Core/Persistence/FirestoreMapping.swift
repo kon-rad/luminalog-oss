@@ -473,7 +473,8 @@ extension Chat {
             pendingRecordingKey: data["pendingRecordingKey"] as? String,
             rawTranscript: (try? cipher.openedIfPresent(data["rawTranscript"], "chats.rawTranscript")) ?? nil,
             journalId: data["journalId"] as? String,
-            journalTitle: data["journalTitle"] as? String
+            journalTitle: data["journalTitle"] as? String,
+            mirrorId: data["mirrorId"] as? String
         )
     }
 
@@ -488,6 +489,7 @@ extension Chat {
         if let vapiCallId { data["vapiCallId"] = vapiCallId }
         if let journalId { data["journalId"] = journalId }
         if let journalTitle { data["journalTitle"] = journalTitle }
+        if let mirrorId { data["mirrorId"] = mirrorId }
         return data
     }
 }

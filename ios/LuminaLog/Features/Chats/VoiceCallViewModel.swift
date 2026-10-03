@@ -64,6 +64,7 @@ final class VoiceCallViewModel: ObservableObject {
     private let credits: CreditService
     let journalTitle: String?
     private let journalId: String?
+    private let mirrorId: String?
 
     private var eventsTask: Task<Void, Never>?
     private var timerTask: Task<Void, Never>?
@@ -75,11 +76,12 @@ final class VoiceCallViewModel: ObservableObject {
     /// at `.connected` and raised live if the user tops up mid-call.
     private var budgetSeconds = 0
 
-    init(voice: VoiceCallService, chats: ChatRepository, credits: CreditService, journalId: String? = nil, journalTitle: String? = nil) {
+    init(voice: VoiceCallService, chats: ChatRepository, credits: CreditService, journalId: String? = nil, journalTitle: String? = nil, mirrorId: String? = nil) {
         self.voice = voice
         self.chats = chats
         self.credits = credits
         self.journalId = journalId
+        self.mirrorId = mirrorId
         self.journalTitle = journalTitle
     }
 
@@ -122,7 +124,7 @@ final class VoiceCallViewModel: ObservableObject {
         }
 
         do {
-            let chat = try await chats.createChat(kind: .voice, title: "Voice call", journalId: journalId, journalTitle: journalTitle)
+            let chat = try await chats.createChat(kind: .voice, title: "Voice call", journalId: journalId, journalTitle: journalTitle, mirrorId: mirrorId)
             self.chat = chat
             try await voice.startCall(chatId: chat.id, journalId: journalId, journalTitle: journalTitle)
         } catch {

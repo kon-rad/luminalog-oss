@@ -24,10 +24,11 @@ struct VoiceCallView: View {
         credits: CreditService,
         journalId: String? = nil,
         journalTitle: String? = nil,
+        mirrorId: String? = nil,
         onViewTranscript: @escaping (Chat) -> Void,
         onInsufficientCredits: (() -> Void)? = nil
     ) {
-        _viewModel = StateObject(wrappedValue: VoiceCallViewModel(voice: voice, chats: chats, credits: credits, journalId: journalId, journalTitle: journalTitle))
+        _viewModel = StateObject(wrappedValue: VoiceCallViewModel(voice: voice, chats: chats, credits: credits, journalId: journalId, journalTitle: journalTitle, mirrorId: mirrorId))
         self.onViewTranscript = onViewTranscript
         self.onInsufficientCredits = onInsufficientCredits
     }
