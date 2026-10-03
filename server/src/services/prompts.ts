@@ -15,6 +15,9 @@ export const DEFAULT_SUMMARY_SYSTEM_PROMPT =
   `Output exactly one short sentence, nothing more.`
 
 /** Fallback when the user's journal excerpts do not support an answer. */
+/** The user message sent with the mirror system prompt, returned verbatim to the client. */
+export const MIRROR_TRIGGER = 'Generate the three echoes now as strict JSON.'
+
 export const NO_ANSWER = "I don't have enough in my journal to answer this."
 
 /** Renders the "USER'S NAME:" block, or '' when no name is set. */

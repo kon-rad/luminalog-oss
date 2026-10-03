@@ -7,7 +7,7 @@ import { requireAiConsent } from '../middleware/requireAiConsent'
 import { requirePro } from '../middleware/requirePro'
 import { chatCompletion, transcribeAudio, streamToBuffer, activeChatModel } from '../services/aiClient'
 import { extractAudio } from '../services/audioExtractor'
-import { PROMPTS } from '../services/prompts'
+import { PROMPTS, MIRROR_TRIGGER } from '../services/prompts'
 import { generateSummaryText, generateEntryAI } from '../services/summaryGenerator'
 import { startMapJob, getMapJob } from '../services/cognitiveMap/jobs'
 import { startPeriodNarrativeJob, getPeriodNarrativeJob } from '../services/periodNarrative/jobs'
@@ -23,7 +23,7 @@ import {
   parseEncouragements, fallbackEncouragements,
   ENCOURAGEMENT_COUNT, ENCOURAGEMENT_TITLE_MAX, ENCOURAGEMENT_BODY_MAX,
 } from '../services/dailyEncouragements'
-import { parseMirrorEchoes, fallbackMirrorEchoes, fallbackSlotsOf, MIRROR_TRIGGER } from '../services/dailyMirror'
+import { parseMirrorEchoes, fallbackMirrorEchoes, fallbackSlotsOf } from '../services/dailyMirror'
 import { parsePeriodSummaryRequest, buildChildrenBlock, parsePeriodSummary } from '../services/periodSummary'
 import { dailyReportHandler } from './dailyReport'
 import { userFactsHandler } from './userFacts'

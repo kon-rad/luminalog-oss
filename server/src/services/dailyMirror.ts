@@ -11,9 +11,6 @@ export const MIRROR_TIME_SLOTS: readonly MirrorTimeOfDay[] = ['morning', 'aftern
 /** Fits a collapsed lock-screen notification with no title line. */
 export const MIRROR_TEXT_MAX = 160
 
-/** The user message sent with the mirror system prompt, returned verbatim to the client. */
-export const MIRROR_TRIGGER = 'Generate the three echoes now as strict JSON.'
-
 /** Cuts at the last space at or before `max`; text with no space there is hard-cut. */
 function clampAtWord(text: string, max: number): string {
   const window = text.slice(0, max + 1)
