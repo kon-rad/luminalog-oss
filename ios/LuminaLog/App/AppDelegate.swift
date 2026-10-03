@@ -1,15 +1,18 @@
 import UIKit
+import UserNotifications
 
 /// Captures the background URLSession completion handler iOS hands us when it
 /// relaunches the app to deliver finished background uploads. The app wires
 /// `onBackgroundURLSessionEvents` to forward the handler to BackgroundUploadTransport.
-final class AppDelegate: NSObject, UIApplicationDelegate {
+final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     var onBackgroundURLSessionEvents: ((@escaping () -> Void) -> Void)?
 
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        // Set before launch finishes so a tap that launched the app is delivered.
+        UNUserNotificationCenter.current().delegate = self
         // BGTaskScheduler requires every handler to be registered before launch
         // completes, which is earlier than any view exists. The coordinator lives in
         // the view layer (it needs AppServices), so the handler just posts a
@@ -30,6 +33,24 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
                      handleEventsForBackgroundURLSession identifier: String,
                      completionHandler: @escaping () -> Void) {
         onBackgroundURLSessionEvents?(completionHandler)
+    }
+
+    /// A tapped Mirror Echo opens its detail; other notifications just open the app.
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+        let id = MirrorRouter.mirrorId(from: response.notification.request.content.userInfo)
+        Task { @MainActor in
+            MirrorRouter.shared.open(mirrorId: id)
+            completionHandler()
+        }
+    }
+
+    /// Unchanged behavior: no banners while the app is in the foreground.
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([])
     }
 }
 
