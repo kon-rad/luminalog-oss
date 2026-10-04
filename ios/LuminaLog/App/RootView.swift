@@ -49,6 +49,13 @@ struct RootView: View {
         mirrorRoute = MirrorRoute(id: id)
     }
 
+    /// A cover's onDismiss fires after UIKit has finished dismissing it, so a
+    /// presentation started here is not dropped mid-dismissal.
+    private func presentPendingAfterCover() {
+        presentPendingMirror()
+        presentPendingChat()
+    }
+
     private func presentPendingChat() {
         guard mirrorRouter.pendingChat != nil else { return }
         if mirrorRoute != nil { mirrorRoute = nil; return } // the sheet's onDismiss presents it
@@ -156,7 +163,7 @@ struct RootView: View {
             services.activity.setOnHomeTab(tab == .home)
         }
         .onAppear { services.activity.setOnHomeTab(selectedTab == .home) }
-        .fullScreenCover(item: $createRequest) { request in
+        .fullScreenCover(item: $createRequest, onDismiss: presentPendingAfterCover) { request in
             CreateEntryView(
                 request: request,
                 services: services,
@@ -165,7 +172,7 @@ struct RootView: View {
             .tracksInterruptionSurface(services.activity)
         }
         .toast(message: $toastMessage)
-        .fullScreenCover(item: $journalChatRequest) { request in
+        .fullScreenCover(item: $journalChatRequest, onDismiss: presentPendingAfterCover) { request in
             switch request.kind {
             case .text:
                 JournalTextChatCover(
@@ -202,8 +209,6 @@ struct RootView: View {
         .onAppear(perform: presentPendingMirror)
         .onChange(of: mirrorRouter.pendingMirrorId) { _, _ in presentPendingMirror() }
         .onChange(of: mirrorRouter.pendingChat?.id) { _, _ in presentPendingChat() }
-        .onChange(of: createRequest == nil) { _, _ in presentPendingMirror() }
-        .onChange(of: journalChatRequest == nil) { _, _ in presentPendingMirror(); presentPendingChat() }
         .task {
             if encouragements == nil {
                 encouragements = EncouragementCoordinator(

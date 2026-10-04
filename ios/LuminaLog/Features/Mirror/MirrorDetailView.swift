@@ -40,7 +40,13 @@ struct MirrorDetailView: View {
         }
         .navigationTitle(EncouragementPrefs.displayName)
         .navigationBarTitleDisplayMode(.inline)
-        .task { await viewModel.load() }
+        .task {
+            // Reloading on every reappear would flash the spinner; "Try again" reloads explicitly.
+            switch viewModel.state {
+            case .loading, .failed: await viewModel.load()
+            case .notFound, .loaded: break
+            }
+        }
     }
 
     private func loaded(_ echo: EncouragementMessage, _ inputs: MirrorInputs?) -> some View {

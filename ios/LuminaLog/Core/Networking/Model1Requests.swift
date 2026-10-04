@@ -180,9 +180,6 @@ enum Model1Requests {
         }
     }
 
-    /// The user's entries from the last seven days, newest first, for the morning
-    /// encouragement batch. A larger snippet than `promptEntries` because these
-    /// messages must be grounded in specifics; `limit` still caps the request size.
     /// The entries a Mirror batch is generated from, exactly as sent (excerpt and
     /// all), plus each entry's date so the detail screen can show it.
     static func mirrorSources(
@@ -205,6 +202,9 @@ enum Model1Requests {
             }
     }
 
+    /// The user's entries from the last seven days, newest first, for the morning
+    /// encouragement batch. A larger snippet than `promptEntries` because these
+    /// messages must be grounded in specifics; `limit` still caps the request size.
     static func encouragementEntries(
         from entries: [JournalEntry],
         since: Date,
