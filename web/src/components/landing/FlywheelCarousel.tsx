@@ -7,22 +7,22 @@ const SPOKES = [
   {
     title: 'The Argo Podcast',
     stat: '12+ guests',
-    body: 'Verified voices from crypto, AI, and startups, in conversation about the practice of building in public.',
+    body: 'Verified voices from crypto, AI, and startups, all building things that don\u2019t extract their users.',
   },
   {
     title: 'The kids class',
     stat: '3 classes, 10 paying subscribers',
-    body: '10 to 12 kids per class, learning AI and STEM hands-on.',
+    body: 'AI and STEM education that teaches sovereignty: not just how to prompt, but how to own your tools.',
   },
   {
     title: 'The AI Power Users course',
     stat: '$100+ per head',
-    body: 'Free online. Paid in person, in Singapore, and now Cambodia.',
+    body: 'Free online. Paid in person, in Singapore, and now Cambodia. AI literacy as a practice of independence.',
   },
   {
     title: 'The community',
-    stat: '100,000+ views, about $0 ad spend',
-    body: 'AI education, the kids programme, yoga livestreams, and DJ livestreams. A subscription is not an app. It is a membership.',
+    stat: '100,000+ views, ~$0 ad spend',
+    body: 'AI education, kids programme, yoga, DJ livestreams. A membership where privacy is the standard, not the premium.',
   },
 ]
 
@@ -31,10 +31,10 @@ export default function FlywheelCarousel() {
     <section style={{ background: INK, color: CREAM, padding: '120px 0' }}>
       <div className="wrap">
         <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: ACCENT }}>
-          The flywheel
+          The community
         </span>
         <h2 className="serif" style={{ marginTop: 14, fontSize: 'clamp(30px, 4vw, 46px)', fontWeight: 600 }}>
-          Four spokes, one wheel.
+          Built in public, with you.
         </h2>
         <div style={{ marginTop: 40, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 48, alignItems: 'center' }}>
           <Image
