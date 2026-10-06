@@ -7,17 +7,17 @@ const SPOKES = [
   {
     title: 'The Argo Podcast',
     stat: '12+ guests',
-    body: 'Verified voices from crypto, AI, and startups \u2014 all building things that don\u2019t extract their users.',
+    body: 'Verified voices from crypto, AI, and startups, all building things that don\u2019t extract their users.',
   },
   {
     title: 'The kids class',
     stat: '3 classes, 10 paying subscribers',
-    body: 'AI and STEM education that teaches sovereignty \u2014 not just how to prompt, but how to own your tools.',
+    body: 'AI and STEM education that teaches sovereignty: not just how to prompt, but how to own your tools.',
   },
   {
     title: 'The AI Power Users course',
     stat: '$100+ per head',
-    body: 'Free online. Paid in person \u2014 AI literacy as a practice of independence.',
+    body: 'Free online. Paid in person, in Singapore, and now Cambodia. AI literacy as a practice of independence.',
   },
   {
     title: 'The community',

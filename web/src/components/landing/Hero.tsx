@@ -57,13 +57,14 @@ export default function Hero() {
         transition={{ duration: 0.9, ease: 'easeOut', delay: 0.25 }}
         style={{
           marginTop: 32,
-          fontSize: 'clamp(40px, 6vw, 76px)',
+          fontSize: 'clamp(38px, 6vw, 76px)',
           lineHeight: 1.04,
           fontWeight: 600,
           letterSpacing: '-0.03em',
+          textWrap: 'balance',
         }}
       >
-        The AI that knows you —<br />without owning you.
+        The AI that knows you,<br />without owning you.
       </motion.h1>
 
       <motion.p
@@ -74,8 +75,7 @@ export default function Hero() {
       >
         Argo is a private AI journal. It reads every entry you've written, finds patterns
         you'd never see, and asks the question you weren't asking yourself. It never sells
-        your data. It never trains on your words. The key never leaves your device. Argo
-        is the AI that knows you — without owning you.
+        your data. It never trains on your words. The key never leaves your device.
       </motion.p>
 
       <motion.div
