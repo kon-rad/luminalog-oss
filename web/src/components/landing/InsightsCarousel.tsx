@@ -47,38 +47,48 @@ export default function InsightsCarousel() {
         <p style={{ marginTop: 12, fontSize: 17, color: MUTE, maxWidth: 520 }}>
           The moment you hit 750 words, Argo reads the day and hands you something back.
         </p>
-      </div>
 
-      <div style={{ marginTop: 48, display: 'flex', gap: 24, overflowX: 'auto', scrollSnapType: 'x mandatory', padding: '4px 24px 24px' }}>
-        {CARDS.map((card, i) => (
-          <div
-            key={i}
-            style={{
-              scrollSnapAlign: 'start',
-              flex: '0 0 min(78vw, 360px)',
-              borderRadius: 28,
-              border: `1px solid ${HAIRLINE}`,
-              background: 'rgba(255,255,255,0.03)',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            {card.kind === 'image' ? (
-              <Image src={card.src} alt={card.alt} width={462} height={1000} style={{ width: '100%', height: 'auto', display: 'block' }} />
-            ) : (
-              <div style={{ padding: '32px 26px', minHeight: 300, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: ACCENT }}>
-                  {card.eyebrow}
-                </span>
-                <p className="serif" style={{ marginTop: 14, fontSize: 20, lineHeight: 1.5, whiteSpace: 'pre-line', fontStyle: 'italic' }}>
-                  {card.body}
-                </p>
-              </div>
-            )}
-            <p style={{ padding: '16px 20px 22px', fontSize: 14, lineHeight: 1.5, color: MUTE }}>{card.caption}</p>
-          </div>
-        ))}
+        {/* A grid inside the page column, not a scroller: all four cards sit in
+         * one row on desktop. The screenshot is a tall phone capture, so it
+         * gets a fixed-height tile instead of setting the row's height. */}
+        <div
+          style={{
+            marginTop: 48,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: 16,
+          }}
+        >
+          {CARDS.map((card, i) => (
+            <div
+              key={i}
+              style={{
+                borderRadius: 22,
+                border: `1px solid ${HAIRLINE}`,
+                background: 'rgba(255,255,255,0.03)',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {card.kind === 'image' ? (
+                <div style={{ position: 'relative', height: 300, margin: '16px 16px 0' }}>
+                  <Image src={card.src} alt={card.alt} fill sizes="280px" style={{ objectFit: 'contain' }} />
+                </div>
+              ) : (
+                <div style={{ padding: '22px 18px 0', flex: 1 }}>
+                  <span style={{ display: 'block', fontSize: 12, lineHeight: 1.4, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: ACCENT }}>
+                    {card.eyebrow}
+                  </span>
+                  <p className="serif" style={{ marginTop: 12, fontSize: 'clamp(15px, 1.6vw, 17px)', lineHeight: 1.5, whiteSpace: 'pre-line', fontStyle: 'italic' }}>
+                    {card.body}
+                  </p>
+                </div>
+              )}
+              <p style={{ padding: '12px 18px 18px', fontSize: 13.5, lineHeight: 1.5, color: MUTE }}>{card.caption}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   )
