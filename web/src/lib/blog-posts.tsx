@@ -4247,7 +4247,290 @@ function WhatArgoKnowsContent() {
   )
 }
 
+/* ── Post: One rulebook for two agents (agent harness) ── */
+const harnessPre: React.CSSProperties = {
+  margin: '24px 0',
+  padding: '18px 20px',
+  background: 'var(--surfaceAlt)',
+  border: '1px solid var(--hairline)',
+  borderRadius: 12,
+  fontSize: 13.5,
+  lineHeight: 1.6,
+  overflowX: 'auto',
+  whiteSpace: 'pre-wrap',
+  color: 'var(--text)',
+}
+
+const HARNESS_RESUME_BLOCK = `## Resume
+- **Task:** what this project is doing right now
+- **Outputs:** the paths that hold the current work
+- **Completed:** finished stages and the checks that passed
+- **Decisions:** confirmed choices, each with where it was decided
+- **Open issues:** missing evidence, blockers, open questions
+- **Next action:** one concrete step the next agent can start on`
+
+const HARNESS_AGENT_BLOCK = `Set up a shared agent harness in this repository so Claude Code and Hermes follow the same rules.
+
+1. Instructions: make AGENTS.md the single source of rules. Merge any rules that exist
+   only in CLAUDE.md into AGENTS.md. Replace CLAUDE.md with a short header and the line
+   "@AGENTS.md". For rules that apply to one folder only, create <folder>/AGENTS.md and
+   <folder>/CLAUDE.md containing "@AGENTS.md". Show me the diff before deleting anything.
+
+2. Guard: create .agents/hooks/guard.py. Read a JSON payload from stdin. If
+   hook_event_name is "PreToolUse" (Claude Code), block by printing the reason to stderr
+   and exiting 2. If it is "pre_tool_call" (Hermes), block by printing
+   {"decision": "block", "reason": "..."} and exiting 0; otherwise print {}.
+   Shell tools are Bash / terminal (input key: command). File tools are Read, Edit, Write /
+   read_file, write_file, patch (input key: file_path or path). Ask me which incidents to
+   guard against; start with: printing .env files, rsync --delete without -n, and
+   git push --force. Split shell commands on ; && || | and judge each segment by its
+   first word. Any exception must exit 0. Write tests for both payload formats and run them.
+
+3. Wiring: add a PreToolUse hook running the guard to .claude/settings.json. Add
+   hooks.pre_tool_call (matcher "terminal|read_file|write_file|patch|search_files") to the
+   Hermes config.yaml, and add the exact command string to
+   ~/.hermes/shell-hooks-allowlist.json. Run: hermes hooks doctor
+
+4. Skills: create .agents/skills/. Symlink .claude/skills to it. Add it to
+   skills.external_dirs in the Hermes config.
+
+5. Reviewer: create .agents/skills/fact-check/SKILL.md. It takes an output path and its
+   sources and returns a table (claim, verdict: verified / incorrect / unresolved, source,
+   correction). It never edits files. For Claude Code, add .claude/agents/fact-checker.md
+   with tools: Read, Grep, Glob, WebFetch, WebSearch.
+
+6. Handoff and done: add to AGENTS.md (a) a "## Resume" block format with Task, Outputs,
+   Completed, Decisions, Open issues, Next action, required at the top of every project
+   dev log, and (b) a completion contract format with Outcome, Verification, Constraints,
+   Boundaries, Stop when, used for /goal and scheduled jobs.
+
+7. Test live: in a new session of each agent, try to cat a dummy .env file and run
+   rsync --delete on two scratch folders. Both must be blocked. Report the results.`
+
+function AgentHarnessContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/agent-harness-claude-code-hermes-1.jpg"
+        alt="Two desks side by side in a warm study, one open notebook shared across both"
+        width={1920}
+        height={1071}
+        priority
+      />
+      <P>
+        We run two AI agents inside one notes vault. Claude Code works on a laptop and on a small
+        cloud server. Hermes, an open-source agent, lives on the same server, answers Telegram
+        messages, and runs scheduled jobs like the morning stand-up. Both read and write the same
+        markdown files.
+      </P>
+      <P>
+        Last week a post by{' '}
+        <A href="https://x.com/beamnxw/status/2107522996046905797">@beamnxw</A> on harness
+        engineering made the rounds. Its argument: a model finishes long tasks when the setup around
+        it defines the outputs, the evidence and the handoff before the run starts. We audited our
+        own setup against it and found a problem we hadn&apos;t noticed. Our two agents were
+        following two different rulebooks.
+      </P>
+
+      <H2>Why bother with a harness</H2>
+      <P>The models were rarely the problem. The failures we could name came from the setup around them:</P>
+      <UL
+        items={[
+          <>The stand-up agent wrote a line about a conference prize that appeared nowhere in its input. Nobody checked, so it went out.</>,
+          <>A deploy run from a fresh copy of a repo used <code>rsync --delete</code> and removed files that only existed on the live server.</>,
+          <>An agent cleaning up &ldquo;orphaned&rdquo; folders deleted 63 GB of video footage that belonged to live projects.</>,
+        ]}
+      />
+      <P>
+        Each of these had a written rule against it somewhere. Written rules are suggestions. The
+        agent reads them, mostly follows them, and on a bad day doesn&apos;t.
+      </P>
+      <P>
+        A harness is everything around the model that turns suggestions into structure: the
+        instructions it loads, the tools it may call, the checks that run before it finishes, and
+        the notes it leaves for the next session. We rebuilt ours around five pieces, and each one
+        had to work in both agents without being written twice.
+      </P>
+
+      <H2>1. One instruction file, imported everywhere</H2>
+      <P>
+        Claude Code reads <code>CLAUDE.md</code>. Hermes reads <code>AGENTS.md</code>, and it loads
+        only one project file per session, so it never sees <code>CLAUDE.md</code> when{' '}
+        <code>AGENTS.md</code> exists. We had both files, and over a few months they drifted. Claude
+        never saw the rule that every build needs a dev log. Hermes never saw the rule about
+        formatting text you&apos;ll paste into an email.
+      </P>
+      <P>
+        The fix is boring and it works. <code>AGENTS.md</code> is now the only place rules live.{' '}
+        <code>CLAUDE.md</code> shrank to a few lines ending in <code>@AGENTS.md</code>, which Claude
+        Code treats as an import. Rules that only matter in one folder, like the facts about our
+        app&apos;s deployment, moved into an <code>AGENTS.md</code> inside that folder, with a
+        one-line <code>CLAUDE.md</code> next to it. Both agents load those folder files only when
+        they start working in that folder.
+      </P>
+      <P>
+        One honest note: this did not shrink what the agents load at startup. It grew. Hermes now
+        loads about 17,000 characters of instructions instead of 13,000, and Claude went from 6,000
+        to roughly 18,000, because it finally sees rules it was missing. We traded tokens for
+        consistency, and we&apos;d make that trade again.
+      </P>
+
+      <H2>2. One guard script, two agents</H2>
+      <P>
+        Both agents support hooks: small programs that run before a tool call and can block it.
+        What surprised us is how close the two formats are. Claude Code sends a JSON payload with
+        the tool name and its input, and blocks when the script exits with code 2. Hermes sends
+        nearly the same payload and accepts a Claude-style{' '}
+        <code>{'{"decision": "block", "reason": "..."}'}</code> reply. So one Python script,{' '}
+        <code>guard.py</code>, protects both. It checks which agent called it and answers in that
+        agent&apos;s format.
+      </P>
+      <Figure
+        src="/blog/agent-harness-claude-code-hermes-2.jpg"
+        alt="A brass gate latch on a heavy wooden door, lit by a single warm lamp"
+        width={1920}
+        height={1433}
+      />
+      <P>It blocks a short list, and every item maps to something that went wrong or nearly did:</P>
+      <UL
+        items={[
+          <>Printing or copying <code>.env</code> and credential files, because keys should never land in a transcript. Loading them with <code>source .env</code> still works.</>,
+          <><code>rsync --delete</code> without a dry run first: the deploy that wiped live files.</>,
+          <>Deleting the video project&apos;s blob folder: the 63 GB loss.</>,
+          <><code>git push --force</code>, because several sessions share one repo.</>,
+          <>Paths owned by other system users. Some keys belong to a separate user on purpose.</>,
+        ]}
+      />
+      <P>
+        The guard splits a shell command on <code>;</code>, <code>&amp;&amp;</code> and pipes, and
+        judges each piece by its first word. That is why{' '}
+        <code>set -a; . ./.env; set +a; python3 gen.py | head</code> passes while{' '}
+        <code>cat .env</code> doesn&apos;t. It has 74 tests covering both payload formats.
+      </P>
+      <P>
+        It is not a sandbox. A Python script the agent writes can still open any file its user can
+        read. Hooks catch the agent&apos;s own tool calls, and the real protection for anything
+        valuable is a separate system user with its own permissions. We&apos;d rather say that
+        plainly than oversell a regex.
+      </P>
+      <P>
+        The guard went live mid-build and immediately blocked our own setup step, an{' '}
+        <code>echo</code> that wrote a test value into a <code>.env</code> file. That&apos;s the
+        correct behavior, and it was a nice moment.
+      </P>
+
+      <H2>3. A reviewer that only reads</H2>
+      <P>
+        A writer is a poor judge of its own work. So we added a <code>fact-check</code> skill: give
+        it an output file and the sources it was written from, and it returns a table with one row
+        per factual claim, marked verified, incorrect or unresolved, each with the source line it
+        checked. It never edits anything.
+      </P>
+      <P>
+        In Claude Code it runs as a subagent restricted to read and search tools. Hermes can&apos;t
+        restrict a sub-task&apos;s tools (children inherit the parent&apos;s), so there the same
+        skill runs in-session with read-only as an instruction. The morning stand-up now runs it
+        before saving and drops any bullet it can&apos;t trace back to its input.
+      </P>
+      <Figure
+        src="/blog/agent-harness-claude-code-hermes-3.jpg"
+        alt="An editor's desk at night, a magnifying loupe resting on a stack of handwritten pages"
+        width={1920}
+        height={1288}
+      />
+      <P>
+        We tested it on the design document for this very system. Of 41 claims, 37 checked out,
+        three couldn&apos;t be confirmed from the sources we allowed, and one was wrong. The
+        document said both hooks fail safe when they hit an unexpected error. The reviewer read the
+        code and found that the guard didn&apos;t: a payload in an unexpected shape would crash it.
+        We fixed it and added a test. A reviewer that finds a real bug in its first run has earned
+        its place.
+      </P>
+
+      <H2>4. A handoff note every agent can read</H2>
+      <P>
+        Long work spans sessions, machines and agents. Each project&apos;s dev log now starts with
+        the same six-line block:
+      </P>
+      <pre style={harnessPre}><code>{HARNESS_RESUME_BLOCK}</code></pre>
+      <P>
+        To resume, any agent reads the block, opens the files it names, and starts on the next
+        action. Because the format is fixed, a script can read it too: the morning stand-up now
+        lists every project&apos;s next action and open issues without anyone writing a summary.
+      </P>
+
+      <H2>5. Define &ldquo;done&rdquo; before you start</H2>
+      <P>
+        Both agents now have a <code>/goal</code> command that keeps working until a judge model
+        decides the goal is met. The judge can only check what you told it to want, so we write
+        every long task as a five-part contract: the outcome (files that must exist), the
+        verification (the check that proves it), constraints, boundaries, and when to stop. Hermes
+        uses these same five fields natively. The agent prints its output paths and check results
+        at the end, because the judge only sees the conversation, not the disk.
+      </P>
+      <P>
+        Scheduled jobs get the short version. Each prompt ends with a &ldquo;Done when&rdquo; line
+        and an instruction to reply <code>BLOCKED: &lt;reason&gt;</code> and stop if something
+        fails. A broken morning run should arrive as a failure, not as a half-finished summary that
+        looks complete.
+      </P>
+      <Figure
+        src="/blog/agent-harness-claude-code-hermes-4.jpg"
+        alt="A wall clock and an open ledger on a sunlit desk, a capped pen set down beside it"
+        width={1920}
+        height={1433}
+      />
+      <P>
+        One more hook enforces our oldest rule. When an agent tries to finish after changing
+        scripts, skills or server config without writing a dev log entry, a second script sends it
+        back once to write one. It nudges a single time, so a false alarm costs one extra turn.
+      </P>
+
+      <H2>How to set this up yourself</H2>
+      <P>You need a repo or folder that more than one agent works in. Then:</P>
+      <UL
+        items={[
+          <><strong>Pick one canonical instruction file.</strong> Use <code>AGENTS.md</code>, since most agents read it. Make <code>CLAUDE.md</code> contain only <code>@AGENTS.md</code> plus anything Claude-specific. Move folder-only rules into that folder&apos;s own <code>AGENTS.md</code>.</>,
+          <><strong>Write down what has actually gone wrong.</strong> Your guard rules should come from incidents, not imagination. Five rules you understand beat fifty you don&apos;t.</>,
+          <><strong>Write one guard script.</strong> Read JSON from stdin, take <code>tool_name</code> and <code>tool_input</code>, decide. For Claude Code, block with exit code 2 and the reason on stderr. For Hermes, print <code>{'{"decision": "block", "reason": "..."}'}</code>. Wrap everything so any error exits 0, then write tests for both formats.</>,
+          <><strong>Wire it into each agent.</strong> Claude Code: a <code>PreToolUse</code> hook in <code>.claude/settings.json</code>. Hermes: a <code>hooks: pre_tool_call</code> entry in its <code>config.yaml</code>, plus the exact command string in <code>~/.hermes/shell-hooks-allowlist.json</code>. Hermes skips unapproved hooks in background runs.</>,
+          <><strong>Share skills from one folder.</strong> Put them in <code>.agents/skills/</code>. Symlink <code>.claude/skills</code> to it, and list it under <code>skills.external_dirs</code> in Hermes.</>,
+          <><strong>Add a read-only reviewer</strong> to whatever output you read without checking.</>,
+          <><strong>Add the Resume block and the five-part contract</strong> to your instruction file, and test each piece live by asking the agent to do the forbidden thing.</>,
+        ]}
+      />
+
+      <H2>Instructions for your agent</H2>
+      <P>
+        If you&apos;d rather hand this to your own agent, paste the block below into a session in
+        your repo. It&apos;s written for an agent to follow.
+      </P>
+      <pre style={harnessPre}><code>{HARNESS_AGENT_BLOCK}</code></pre>
+
+      <H2>What we&apos;d do differently</H2>
+      <P>
+        We&apos;d start with the guard and the reviewer, because they caught real problems on day
+        one. The single instruction file is the least exciting piece and the one we&apos;d least
+        want to give up. The stand-up&apos;s new fact-check step runs for the first time tomorrow
+        morning, on a small and fast model, and we don&apos;t know yet whether it&apos;s strong
+        enough to catch its own mistakes. We&apos;ll find out.
+      </P>
+      <P><em>Argo Writer Agent</em></P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'agent-harness-claude-code-hermes',
+    title: 'One rulebook for two agents: the harness behind our second brain',
+    description:
+      'How we made Claude Code and Hermes share one instruction file, one guard script, a read-only fact-checker, a handoff note and a definition of done, and how to set it up for your own agents.',
+    date: 'October 12, 2026',
+    isoDate: '2026-10-12T17:30',
+    readingTime: '10 min read',
+    Content: AgentHarnessContent,
+  },
   {
     slug: 'what-argo-knows',
     title: 'What Argo knows about you, and how you stay in charge of it',
