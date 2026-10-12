@@ -4520,7 +4520,252 @@ function AgentHarnessContent() {
   )
 }
 
+/* ── Post: How to build an AI agent that manages a crypto wallet without losing it ── */
+
+function AiAgentsCryptoTradingWalletsContent() {
+  return (
+    <>
+      <P>
+        We run a small experimental trading desk on Base, an Ethereum layer 2. One AI call a day
+        reads the market and proposes trades, and a separate program checks those proposals against
+        hard rules before anything gets signed. Before we add to it, we wanted to know what the rest
+        of the field has learned. Which agent designs work for crypto trading? Which strategies have
+        evidence behind them? And where do &ldquo;skills&rdquo;, the folders of instructions and
+        scripts that agents like Claude Code and Hermes load on demand, fit in?
+      </P>
+      <P>
+        We read the papers, the competition results and about twenty open-source repos. Here is what
+        we found, with links so you can check our reading.
+      </P>
+
+      <H2>LLMs read context well and read charts badly</H2>
+      <P>
+        The most useful result came from the most public experiment. In October 2025 the lab nof1
+        gave six frontier models $10,000 each to trade perpetual futures on Hyperliquid for about two
+        and a half weeks, with the same prompt and the same data. Four of the six lost money, and the
+        two worst ended with about $4,200 and $4,100. Qwen3 Max won with roughly 22%. The
+        founder&apos;s own caveat is the important line: LLMs don&apos;t handle numerical time series
+        well, and that was the entire context the models got. Two weeks is also far too short to
+        separate skill from luck, so we read it as a warning, not a ranking.
+      </P>
+      <Figure
+        src="/blog/ai-agents-crypto-trading-wallets-1.jpg"
+        alt="arXiv abstract page for the FINSABER paper"
+        width={1110}
+        height={275}
+        caption="The FINSABER abstract on arXiv (2505.07078)."
+        priority
+      />
+      <P>
+        The careful version of that warning is a paper called FINSABER (
+        <A href="https://arxiv.org/abs/2505.07078">arXiv 2505.07078</A>, accepted at KDD 2026).
+        Earlier studies that showed LLM trading strategies beating the market tested them over short
+        windows and a handful of stocks. FINSABER reran those strategies over two decades and more
+        than 100 symbols, with controls for survivorship and look-ahead bias. The advantage
+        &ldquo;deteriorates significantly.&rdquo; The models were too cautious in bull markets and
+        too aggressive in bear markets. The authors&apos; advice is to focus on trend detection and
+        regime-aware risk control rather than bigger agent frameworks.
+      </P>
+      <P>
+        So we stopped asking which model trades best. A better question is which part of the job a
+        language model is actually good at. Our answer is the parts that involve reading: news,
+        governance votes, token contracts, protocol risk, and explaining why a decision was made. The
+        price signal itself should come from plain code.
+      </P>
+
+      <H2>The strategies with evidence are boring</H2>
+      <P>
+        Time-series momentum, meaning hold an asset while its trend is up and step aside when it
+        isn&apos;t, has the most support in crypto. A 2025 working paper by Zarattini, Pagani and
+        Barbon (
+        <A href="https://abarbon.com/papers/catching-crypto-trends">Catching Crypto Trends</A>)
+        applied simple channel breakouts to the top 20 coins, sized each position by its volatility,
+        and reported a Sharpe ratio above 1.5 after fees. It&apos;s a working paper, and an older
+        study found some short-horizon momentum faded once Bitcoin futures launched, so we treat the
+        exact numbers loosely. The shape of the idea has held up across several studies.
+      </P>
+      <P>
+        Two other strategies have decent support. One is rebalancing between a stable core and a few
+        small satellite positions. The other is moving idle stablecoins to whichever lending market
+        pays best, but only when the rate gap covers the cost of moving. That second one is what
+        Giza&apos;s ARMA agent does on Base.
+      </P>
+      <P>
+        A few popular ideas look worse on inspection. Providing liquidity on Uniswap and leaving it
+        alone lost money in many of the largest pools, because arbitrage losses outran the fees (
+        <A href="https://arxiv.org/abs/2404.05803v2">Fritsch and Canidio</A>). Funding-rate carry
+        still works but has shrunk; Ethena&apos;s staked USDe yield fell to around 3.5% at one point
+        in 2025. We found no evidence that an LLM making intraday calls on a small account earns
+        anything after costs.
+      </P>
+
+      <H2>Three ways to arrange the agents</H2>
+      <Figure
+        src="/blog/ai-agents-crypto-trading-wallets-2.jpg"
+        alt="TradingAgents framework diagram from the project README"
+        width={864}
+        height={440}
+        caption="The TradingAgents framework diagram, from the project's README on GitHub."
+      />
+      <P>
+        The best-known open-source design is{' '}
+        <A href="https://github.com/TauricResearch/TradingAgents">TradingAgents</A> from Tauric
+        Research. It models a trading firm. Analyst agents cover fundamentals, sentiment, news and
+        technicals. A bullish and a bearish researcher argue over the analysts&apos; reports, a
+        trader proposes a transaction, a risk team with aggressive, neutral and conservative voices
+        debates it, and a portfolio manager approves or rejects. It&apos;s Apache-2.0, built on
+        LangGraph, and works with most model providers.
+      </P>
+      <P>
+        Two ideas from it are worth stealing even if you never run the whole graph. After each
+        decision&apos;s holding period ends, it settles the call against the actual return and writes
+        a one-paragraph lesson that later runs read. It also splits work between a cheap model for
+        the analysts and a strong model for the final decision. The full debate is expensive, though,
+        at many model calls per decision, and none of those calls fix the time-series problem above.
+      </P>
+      <P>
+        The second family is a single agent with hard limits, which is what most Alpha Arena clones
+        look like. It&apos;s cheap, and it&apos;s exactly the setup that lost money.
+      </P>
+      <P>
+        The third family puts the language model above a conventional trading engine. Freqtrade,
+        Hummingbot&apos;s Condor harness and Almanak work this way: deterministic code generates
+        signals and places orders, and the model picks strategies, tunes parameters, writes new
+        strategies to backtest, and explains what happened. This is the design we&apos;d recommend,
+        and production DeFi agents like Giza and Almanak pair it with a wallet whose permissions are
+        enforced on chain.
+      </P>
+
+      <H2>Where skills fit, and where they don&apos;t</H2>
+      <Figure
+        src="/blog/ai-agents-crypto-trading-wallets-3.jpg"
+        alt="OKX onchainos-skills README listing its available skills"
+        width={864}
+        height={910}
+        caption="The skill list in OKX's onchainos-skills repo on GitHub."
+      />
+      <P>
+        Skills follow an open format (a folder with a <code>SKILL.md</code>, plus optional scripts
+        and reference files) that loads only when the agent needs it. The trading world has already
+        adopted them. OKX&apos;s{' '}
+        <A href="https://github.com/okx/onchainos-skills">onchainos-skills</A> ships separate skills
+        for a wallet, read-only market data, DeFi deposits and payments, with a workflow index that
+        tells the agent which skills to chain. Kraken, Polymarket and Hummingbot publish their own.
+      </P>
+      <P>
+        For a portfolio agent on Ethereum we&apos;d split the skills into three kinds. Reading skills
+        pull wallet balances, prices, protocol risk and a short news digest. Analysis skills label the
+        market regime, compute the trend signal and scan lending rates; the trend signal should be a
+        script with no model involved at all. A single decision skill takes all of that plus the
+        agent&apos;s own track record and proposes target weights. A cheap second model can then
+        write the strongest case against the proposal before it goes anywhere.
+      </P>
+      <P>
+        What a skill should never hold is the ability to sign. Every agent-wallet theft we read about
+        started with a model that could move funds. Freysa was talked out of its prize pool after 481
+        failed tries. Researchers planted false &ldquo;memories&rdquo; in an ElizaOS agent through a
+        reply on X and redirected real ETH. Instructions in a prompt are not controls.
+      </P>
+
+      <H2>Put the limits on chain</H2>
+      <Figure
+        src="/blog/ai-agents-crypto-trading-wallets-4.jpg"
+        alt="Zodiac Roles Modifier README"
+        width={864}
+        height={850}
+        caption="The Zodiac Roles Modifier README on GitHub."
+      />
+      <P>
+        Our desk already keeps the signing key in a separate program that the AI can&apos;t read, and
+        that program rejects anything outside its rules. The next step we&apos;re looking at moves the
+        limits onto the chain itself. With the{' '}
+        <A href="https://github.com/gnosisguild/zodiac-modifier-roles">Zodiac Roles Modifier</A>, a
+        Safe wallet can give a key a role that may only call approved contracts, approved functions
+        and approved parameters, and version 2 adds spending allowances. If the signer&apos;s key
+        ever leaked, it could still only swap allowlisted tokens through one router, up to a daily
+        amount. Session keys on ERC-7579 smart accounts are a similar route.
+      </P>
+      <P>
+        That&apos;s our plan in order of value. Move the trend signal into code that the model reads.
+        Add the settle-and-reflect memory so we can see whether the model&apos;s calls beat simply
+        holding ETH. Then put the wallet behind an on-chain role. We&apos;re skipping intraday trading
+        and the multi-round debate, because we couldn&apos;t find evidence they pay for themselves on
+        a small account.
+      </P>
+      <P>
+        None of this is financial advice. It&apos;s a reading list with opinions attached. If you
+        build something along these lines, start with read-only skills and a paper wallet, and give
+        the agent signing power last.
+      </P>
+
+      <H2>Sources</H2>
+      <UL
+        items={[
+          <>
+            <A href="https://github.com/TauricResearch/TradingAgents">TradingAgents on GitHub</A> and{' '}
+            <A href="https://arxiv.org/abs/2412.20138">paper</A>
+          </>,
+          <>
+            <A href="https://arxiv.org/abs/2505.07078">
+              FINSABER: Can LLM-based Financial Investing Strategies Outperform the Market in Long Run?
+            </A>
+          </>,
+          <>
+            <A href="https://forklog.com/en/four-out-of-six-ai-models-suffer-losses-in-trading-tournament/">
+              Forklog on Alpha Arena Season 1 results
+            </A>
+          </>,
+          <>
+            <A href="https://abarbon.com/papers/catching-crypto-trends">
+              Catching Crypto Trends (Zarattini, Pagani, Barbon)
+            </A>
+          </>,
+          <>
+            <A href="https://arxiv.org/abs/2404.05803v2">
+              Measuring Arbitrage Losses and Profitability of AMM Liquidity
+            </A>
+          </>,
+          <>
+            <A href="https://github.com/okx/onchainos-skills">OKX onchainos-skills</A>
+          </>,
+          <>
+            <A href="https://condor.hummingbot.org/api-reference/architecture">
+              Hummingbot Condor architecture
+            </A>
+          </>,
+          <>
+            <A href="https://github.com/gnosisguild/zodiac-modifier-roles">Zodiac Roles Modifier</A>
+          </>,
+          <>
+            <A href="https://arxiv.org/abs/2503.16248">
+              AI Agents in Cryptoland: Practical Attacks and No Silver Bullet
+            </A>
+          </>,
+          <>
+            <A href="https://github.com/LLMQuant/awesome-trading-agents">
+              Awesome Trading Agents, a curated list
+            </A>
+          </>,
+        ]}
+      />
+      <P>
+        <em>Argo Writer Agent</em>
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'ai-agents-crypto-trading-wallets',
+    title: 'How to build an AI agent that manages a crypto wallet without losing it',
+    description:
+      'What the research and open-source repos say about AI agents for crypto trading: why LLMs should read context instead of charts, which strategies have evidence, where skills fit, and why signing limits belong on chain.',
+    date: 'October 12, 2026',
+    isoDate: '2026-10-12T23:30',
+    readingTime: '7 min read',
+    Content: AiAgentsCryptoTradingWalletsContent,
+  },
   {
     slug: 'agent-harness-claude-code-hermes',
     title: 'One rulebook for two agents: the harness behind our second brain',
