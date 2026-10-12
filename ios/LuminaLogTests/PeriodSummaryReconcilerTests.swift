@@ -94,12 +94,59 @@ final class PeriodSummaryReconcilerTests: XCTestCase {
 
     func testClosedRunsAreThrottledButOpenRunsAreNot() async {
         let reconciler = makeReconciler()
-        await reconciler.run(budget: 1, includeOpen: false)
+        await reconciler.run(budget: 20, includeOpen: false) // catches up
+        entries.append(entry("c", "2026-09-16T10:00:00Z"))
         let throttled = await reconciler.run(budget: 20, includeOpen: false)
         XCTAssertEqual(throttled.skipped, .throttled)
         let open = await reconciler.run(budget: 20, includeOpen: true)
         XCTAssertNil(open.skipped)
         XCTAssertGreaterThan(open.generated, 0)
+    }
+
+    func testARunThatSpentItsBudgetWithWorkLeftDoesNotThrottleTheNext() async {
+        let reconciler = makeReconciler()
+        await reconciler.run(budget: 1, includeOpen: false)
+        let next = await reconciler.run(budget: 20, includeOpen: false)
+        XCTAssertNil(next.skipped)
+        XCTAssertEqual(next.generated, 2)
+        let after = await reconciler.run(budget: 20, includeOpen: false)
+        XCTAssertEqual(after.skipped, .throttled, "caught up, so the throttle holds again")
+    }
+
+    func testParallelBatchesGenerateIndependentPeriodsTogetherAndParentsAfter() async {
+        entries = (14...18).map { entry("e\($0)", "2026-09-\($0)T10:00:00Z") }
+        let reconciler = PeriodSummaryReconciler(
+            generator: generator, repository: repo,
+            loadEntries: { [unowned self] in (self.entries, true) },
+            timeZone: { [unowned self] in self.zone },
+            hasConsent: { true }, isEnabled: { true },
+            now: { [unowned self] in self.clock = self.clock.addingTimeInterval(1); return self.clock },
+            concurrency: 4
+        )
+        let result = await reconciler.run(budget: 20, includeOpen: false)
+        // 5 days, then the week (the month is open on 26 Sep, so it waits).
+        XCTAssertEqual(result.generated, 6)
+        let labels = generator.requests.map(\.periodLabel)
+        XCTAssertEqual(Set(labels.prefix(4)), ["Fri 18 Sep 2026", "Thu 17 Sep 2026", "Wed 16 Sep 2026", "Tue 15 Sep 2026"])
+        XCTAssertEqual(labels.suffix(2), ["Mon 14 Sep 2026", "Week of Mon 14 Sep 2026"])
+        XCTAssertEqual(generator.requests.last?.children.count, 5, "the week was built from all five days")
+    }
+
+    func testStopsStartingBatchesOnceTheAppIsInTheBackground() async {
+        var foreground = true
+        let reconciler = PeriodSummaryReconciler(
+            generator: generator, repository: repo,
+            loadEntries: { [unowned self] in (self.entries, true) },
+            timeZone: { [unowned self] in self.zone },
+            hasConsent: { true }, isEnabled: { true },
+            now: { [unowned self] in self.clock = self.clock.addingTimeInterval(1); return self.clock },
+            shouldContinue: { defer { foreground = false }; return foreground }
+        )
+        let result = await reconciler.run(budget: 20, includeOpen: false)
+        XCTAssertEqual(result.generated, 1)
+        foreground = true
+        let resumed = await reconciler.run(budget: 20, includeOpen: false)
+        XCTAssertNil(resumed.skipped, "an interrupted run doesn't throttle the next foreground")
     }
 
     func testAbortsAfterThreeConsecutiveFailures() async {

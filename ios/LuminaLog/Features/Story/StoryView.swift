@@ -107,22 +107,32 @@ private struct StoryScreen: View {
             loadEntries: { try await services.journals.fetchAllEntries() },
             loadSummaries: { try await services.periodSummaries.all() },
             timeZone: { await services.profileTimeZone() },
-            reconcile: { await services.periodSummaryReconciler?.run(budget: 6, includeOpen: true).generated ?? 0 },
+            // Generous: while the reader is on this screen the backfill keeps going,
+            // and each batch redraws the outline as it lands.
+            reconcile: { await services.periodSummaryReconciler?.run(budget: 40, includeOpen: true).generated ?? 0 },
             hasConsent: { services.consentStore.hasConsentedAI },
             focus: focus
         ))
     }
 
+    /// The row at the top of the screen, which the running head names.
+    @State private var topRowId: String?
+
     var body: some View {
         ScrollViewReader { proxy in
+          VStack(spacing: 0) {
+            runningHead(proxy)
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: Spacing.s) {
+                LazyVStack(alignment: .leading, spacing: 0) {
                     content
                 }
-                .padding(.horizontal, Spacing.m)
-                .padding(.top, Spacing.s)
+                .scrollTargetLayout()
+                .padding(.horizontal, 14)
+                .padding(.top, Spacing.xs)
                 .padding(.bottom, AppTabBar.scrollBottomPadding)
             }
+            .scrollPosition(id: $topRowId, anchor: .top)
+          }
             // The view model sets `scrollTarget` once, on the first build of a
             // focused screen, so this scrolls exactly once after the first load.
             .onChange(of: viewModel.scrollTarget) { _, target in
@@ -138,16 +148,57 @@ private struct StoryScreen: View {
             await viewModel.reconcileAndReload()
         }
         .task { await viewModel.start() }
+        .onReceive(NotificationCenter.default.publisher(for: .periodSummariesDidChange)) { _ in
+            Task { await viewModel.summariesChanged() }
+        }
+    }
+
+    /// The running head, as at the top of a printed page: the open sections that hold
+    /// the row at the top of the screen. Tapping one scrolls back to its heading.
+    @ViewBuilder
+    private func runningHead(_ proxy: ScrollViewProxy) -> some View {
+        let top = viewModel.rows.contains { $0.id == topRowId } ? topRowId : viewModel.rows.first?.id
+        let trail = StoryOutline.trail(viewModel.rows, topId: top, expanded: viewModel.expanded)
+        if viewModel.state == .loaded, !trail.isEmpty {
+            VStack(spacing: 0) {
+                // Outer levels give way first, so the innermost section always reads.
+                HStack(spacing: 4) {
+                    ForEach(Array(trail.enumerated()), id: \.element.id) { index, row in
+                        if index > 0 {
+                            Text("\u{00B7}").foregroundStyle(Color.textSecondary).accessibilityHidden(true)
+                        }
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.25)) { proxy.scrollTo(row.id, anchor: .top) }
+                        } label: {
+                            Text(StoryOutline.shortLabel(row.node))
+                                .lineLimit(1)
+                                .foregroundStyle(index == trail.count - 1 ? Color.accentWarm : Color.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+                        .layoutPriority(Double(index))
+                        .accessibilityHint("Scrolls to this section")
+                    }
+                    Spacer(minLength: 0)
+                }
+                .font(.system(.footnote, design: .serif).smallCaps())
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                Rectangle().fill(Color.textSecondary.opacity(0.35)).frame(height: 0.5)
+            }
+            .background(Color.appBackground)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("You are in")
+        }
     }
 
     @ViewBuilder
     private var content: some View {
         switch viewModel.state {
         case .loading:
-            ForEach(0..<3, id: \.self) { _ in
-                RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
-                    .fill(Color.cardBackground)
-                    .frame(height: 96)
+            ForEach(0..<6, id: \.self) { _ in
+                Text("Loading the outline of your story")
+                    .font(.system(.subheadline, design: .serif))
+                    .padding(.vertical, 6)
             }
             .redacted(reason: .placeholder)
             .accessibilityHidden(true)
@@ -175,12 +226,9 @@ private struct StoryScreen: View {
                 Text(message)
                     .font(.captionText)
                     .foregroundStyle(Color.textSecondary)
-                    .padding(Spacing.m)
+                    .italic()
+                    .padding(.vertical, Spacing.s)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
-                            .fill(Color.accentWarm.opacity(0.08))
-                    )
             }
             ForEach(viewModel.rows) { row in
                 StoryRowView(

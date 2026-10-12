@@ -200,6 +200,44 @@ enum StoryOutline {
         return rows
     }
 
+    /// The outline line's own name for a period, short because the rows above it
+    /// already say the rest: "2026", "Q3", "September", "Week of 21 Sep", "Tue 22".
+    /// Entries keep their time label. A straddling week notes its other month.
+    static func shortLabel(_ node: StoryNode) -> String {
+        guard let key = node.key else { return node.label }
+        // Labels come from en_US_POSIX formats: "EEE d MMM yyyy", "MMMM yyyy", "Q3 2026".
+        let words = node.label.split(separator: " ").map(String.init)
+        let base: String
+        switch key.type {
+        case .all: base = "All time"
+        case .year: base = node.label
+        case .quarter, .month: base = words.first ?? node.label
+        case .week: base = words.count >= 6 ? "Wk. \(words[3]) \(words[4])" : node.label
+        case .day: base = words.count >= 2 ? "\(words[0]) \(words[1])" : node.label
+        }
+        switch node.continuation {
+        case .none: return base
+        case .continuesInto(let month): return "\(base) \u{2192} \(month.split(separator: " ").first?.prefix(3) ?? "")"
+        case .continuedFrom(let month): return "\(base), cont."
+        }
+    }
+
+    /// Where the reader is: the open periods that contain the row at the top of the
+    /// screen, outermost first, plus that row itself when it is an open period.
+    /// Feeds the running head. Empty when `topId` isn't a visible row.
+    static func trail(_ rows: [StoryRow], topId: String?, expanded: Set<String>) -> [StoryRow] {
+        guard let topId, let index = rows.firstIndex(where: { $0.id == topId }) else { return [] }
+        let top = rows[index]
+        var trail: [StoryRow] = top.node.key != nil && expanded.contains(top.id) ? [top] : []
+        var depth = top.depth
+        for row in rows[..<index].reversed() where row.depth < depth {
+            trail.insert(row, at: 0)
+            depth = row.depth
+            if depth == 0 { break }
+        }
+        return trail
+    }
+
     /// "October 2026 · 2 entries · so far". The view uppercases it.
     static func labelLine(_ node: StoryNode) -> String {
         var parts = [node.label, node.entryCount == 1 ? "1 entry" : "\(node.entryCount) entries"]

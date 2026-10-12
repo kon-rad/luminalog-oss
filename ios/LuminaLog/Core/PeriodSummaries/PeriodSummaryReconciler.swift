@@ -4,9 +4,17 @@ import OSLog
 /// Keeps `periodSummaries` caught up. Client-driven because the server is
 /// zero-knowledge (ADR-0073): it holds no key, so a server cron could not read the
 /// entries. Every run is idempotent: read all entries and stored summaries, delete
-/// orphans, then ask `PeriodSummaryPlanner` for the next ready period, generate it,
-/// save it, and repeat until the budget or the work runs out. Unfinished work waits
-/// for the next run, which is how the backfill of existing history paces itself.
+/// orphans, then ask `PeriodSummaryPlanner` for the next ready periods, generate up
+/// to `concurrency` of them at once, save them, and repeat until the budget or the
+/// work runs out. Unfinished work waits for the next run, which is how the backfill
+/// of existing history paces itself.
+///
+/// Each call takes 10 to 20 seconds, and runs only happen in the foreground, so the
+/// backfill is paced by how long the app stays open. Three things keep it moving:
+/// independent periods (days, mostly) generate in parallel; each batch runs under a
+/// background-task assertion, so putting the phone down doesn't kill the requests
+/// in flight (they used to end as HTTP 499s and count as failures); and a closed run
+/// that ran out of budget with work left doesn't throttle the next foreground.
 @MainActor
 final class PeriodSummaryReconciler {
 
@@ -37,6 +45,13 @@ final class PeriodSummaryReconciler {
     private let hasConsent: @MainActor () -> Bool
     private let isEnabled: @MainActor () -> Bool
     private let now: @MainActor () -> Date
+    /// Calls in flight at once. Periods in one batch never depend on each other: a
+    /// period in the batch is not fresh, so none of its ancestors is ready.
+    private let concurrency: Int
+    private let backgroundActivity: BackgroundActivityGranting
+    /// False once the app is in the background: the batch in flight finishes under
+    /// its assertion, but no new one starts.
+    private let shouldContinue: @MainActor () -> Bool
 
     private var inFlight: (task: Task<RunResult, Never>, includeOpen: Bool)?
     private var lastClosedRunAt: Date?
@@ -51,7 +66,10 @@ final class PeriodSummaryReconciler {
         timeZone: @escaping @MainActor () async -> TimeZone?,
         hasConsent: @escaping @MainActor () -> Bool,
         isEnabled: @escaping @MainActor () -> Bool = { DevFlags.periodSummaries },
-        now: @escaping @MainActor () -> Date = Date.init
+        now: @escaping @MainActor () -> Date = Date.init,
+        concurrency: Int = 1,
+        backgroundActivity: BackgroundActivityGranting? = nil,
+        shouldContinue: @escaping @MainActor () -> Bool = { true }
     ) {
         self.generator = generator
         self.repository = repository
@@ -60,6 +78,9 @@ final class PeriodSummaryReconciler {
         self.hasConsent = hasConsent
         self.isEnabled = isEnabled
         self.now = now
+        self.concurrency = max(1, concurrency)
+        self.backgroundActivity = backgroundActivity ?? ImmediateBackgroundActivity()
+        self.shouldContinue = shouldContinue
     }
 
     /// One catch-up pass. A call made while a pass is running joins it and returns
@@ -149,47 +170,85 @@ final class PeriodSummaryReconciler {
         var remaining = budget
         var consecutiveFailures = 0
         var failedKeys: Set<PeriodKey> = []
-        while remaining > 0,
-              let item = PeriodSummaryPlanner.next(tree: tree, existing: existing, today: today, timeZone: tz,
-                                                   includeOpen: includeOpen, excluding: failedKeys,
-                                                   missingOnly: !isFromServer) {
-            remaining -= 1
-            do {
-                let generated = try await generator.generatePeriodSummary(item.request)
-                let summary = PeriodSummary(
-                    key: item.key,
-                    title: generated.title,
-                    sentence: generated.sentence,
-                    summary: generated.summary,
-                    generatedAt: Self.wholeMillis(now()),
-                    sourceCount: item.children.count,
-                    sourceFingerprint: item.fingerprint,
-                    isOpen: item.isOpen,
-                    model: generated.model,
-                    promptVersion: PeriodSummaryPlanner.promptVersion,
-                    details: generated.details
-                )
-                try await repository.save(summary)
-                existing[item.key] = summary
-                result.generated += 1
-                consecutiveFailures = 0
-            } catch let ProxyAPIError.httpError(statusCode, _) where statusCode == 402 || statusCode == 403 {
-                notEntitledUntil = now().addingTimeInterval(Self.notEntitledBackoff)
-                result.aborted = true
-                break
-            } catch {
-                Self.logger.error("period summaries: \(item.key.docId, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
-                result.failed += 1
-                consecutiveFailures += 1
-                failedKeys.insert(item.key)
-                if consecutiveFailures >= Self.maxConsecutiveFailures {
+        var caughtUp = false
+        batches: while remaining > 0, shouldContinue() {
+            var batch: [PeriodSummaryWorkItem] = []
+            var taken = failedKeys
+            while batch.count < min(concurrency, remaining),
+                  let item = PeriodSummaryPlanner.next(tree: tree, existing: existing, today: today, timeZone: tz,
+                                                       includeOpen: includeOpen, excluding: taken,
+                                                       missingOnly: !isFromServer) {
+                batch.append(item)
+                taken.insert(item.key)
+            }
+            if batch.isEmpty { caughtUp = true; break }
+            remaining -= batch.count
+
+            let outcomes = await backgroundActivity.run("period-summaries") { await self.generate(batch) }
+            for (item, outcome) in zip(batch, outcomes) {
+                do {
+                    let generated = try outcome.get()
+                    let summary = PeriodSummary(
+                        key: item.key,
+                        title: generated.title,
+                        sentence: generated.sentence,
+                        summary: generated.summary,
+                        generatedAt: Self.wholeMillis(now()),
+                        sourceCount: item.children.count,
+                        sourceFingerprint: item.fingerprint,
+                        isOpen: item.isOpen,
+                        model: generated.model,
+                        promptVersion: PeriodSummaryPlanner.promptVersion,
+                        details: generated.details
+                    )
+                    try await repository.save(summary)
+                    existing[item.key] = summary
+                    result.generated += 1
+                    consecutiveFailures = 0
+                } catch let ProxyAPIError.httpError(statusCode, _) where statusCode == 402 || statusCode == 403 {
+                    notEntitledUntil = now().addingTimeInterval(Self.notEntitledBackoff)
                     result.aborted = true
-                    break
+                    break batches
+                } catch {
+                    Self.logger.error("period summaries: \(item.key.docId, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+                    result.failed += 1
+                    consecutiveFailures += 1
+                    failedKeys.insert(item.key)
+                    if consecutiveFailures >= Self.maxConsecutiveFailures {
+                        result.aborted = true
+                        break batches
+                    }
                 }
             }
+            if result.generated > 0 { NotificationCenter.default.post(name: .periodSummariesDidChange, object: nil) }
         }
+        // A closed run that stopped with work left (budget spent, or the app went to
+        // the background) lets the next foreground carry on instead of waiting out
+        // the throttle. A run that caught up or aborted keeps it.
+        if !includeOpen, !caughtUp, !result.aborted { lastClosedRunAt = nil }
         Self.logger.info("period summaries: generated \(result.generated) failed \(result.failed) deleted \(result.deleted)")
         return result
+    }
+
+    /// Generates every item at once; outcomes come back in `items` order.
+    private func generate(_ items: [PeriodSummaryWorkItem]) async -> [Result<GeneratedPeriodSummary, Error>] {
+        if items.count == 1 { return [await Self.attempt(generator, items[0].request)] }
+        let generator = self.generator
+        return await withTaskGroup(of: (Int, Result<GeneratedPeriodSummary, Error>).self) { group in
+            for (index, item) in items.enumerated() {
+                let request = item.request
+                group.addTask { @MainActor in (index, await Self.attempt(generator, request)) }
+            }
+            var outcomes = [Result<GeneratedPeriodSummary, Error>?](repeating: nil, count: items.count)
+            for await (index, outcome) in group { outcomes[index] = outcome }
+            return outcomes.map { $0! }
+        }
+    }
+
+    private static func attempt(
+        _ generator: PeriodSummaryGenerating, _ request: PeriodSummaryRequest
+    ) async -> Result<GeneratedPeriodSummary, Error> {
+        do { return .success(try await generator.generatePeriodSummary(request)) } catch { return .failure(error) }
     }
 
     /// Truncates to whole milliseconds so a Firestore Timestamp round trip gives
@@ -197,4 +256,10 @@ final class PeriodSummaryReconciler {
     private static func wholeMillis(_ date: Date) -> Date {
         Date(timeIntervalSince1970: (date.timeIntervalSince1970 * 1_000).rounded(.down) / 1_000)
     }
+}
+
+extension Notification.Name {
+    /// Posted after a reconciler batch saved at least one summary, so an open Story
+    /// screen redraws as the backfill lands instead of only when the run ends.
+    static let periodSummariesDidChange = Notification.Name("ll-period-summaries-did-change")
 }

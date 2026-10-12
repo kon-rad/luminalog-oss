@@ -207,6 +207,37 @@ final class StoryOutlineTests: XCTestCase {
         XCTAssertEqual(StoryOutline.labelLine(try XCTUnwrap(node(root, "year_2025"))), "2025 · 1 entry")
     }
 
+    func testShortLabelsDropWhatTheRowsAboveSay() throws {
+        let root = try XCTUnwrap(build(fixture))
+        func short(_ id: String) throws -> String { StoryOutline.shortLabel(try XCTUnwrap(node(root, id))) }
+        XCTAssertEqual(try short("all_0"), "All time")
+        XCTAssertEqual(try short("year_2026"), "2026")
+        XCTAssertEqual(try short("quarter_\(2026 * 4 + 2)"), "Q3")
+        XCTAssertEqual(try short(sept.docId), "September")
+        XCTAssertEqual(try short("\(week39.docId)@\(sept.docId)"), "Wk. 21 Sep")
+        XCTAssertEqual(try short("\(week40.docId)@\(sept.docId)"), "Wk. 28 Sep \u{2192} Oct")
+        XCTAssertEqual(try short("\(week40.docId)@\(oct.docId)"), "Wk. 28 Sep, cont.")
+        XCTAssertEqual(try short("day_\(day(2026, 10, 1))"), "Thu 1")
+        XCTAssertEqual(try short("entry_e5"), "20:00")
+    }
+
+    func testTrailNamesTheOpenSectionsAboveTheTopRow() throws {
+        let root = try XCTUnwrap(build(fixture))
+        let expanded = StoryOutline.defaultExpanded(root, today: day(2026, 10, 2))
+        let rows = StoryOutline.visibleRows(root, expanded: expanded)
+        let weekInOct = "\(week40.docId)@\(oct.docId)"
+        // A collapsed row: its open ancestors only.
+        XCTAssertEqual(StoryOutline.trail(rows, topId: weekInOct, expanded: expanded).map(\.id),
+                       ["all_0", "year_2026", "quarter_\(2026 * 4 + 3)", oct.docId])
+        // An open row: itself too.
+        XCTAssertEqual(StoryOutline.trail(rows, topId: oct.docId, expanded: expanded).map(\.id),
+                       ["all_0", "year_2026", "quarter_\(2026 * 4 + 3)", oct.docId])
+        // A sibling further down climbs past the rows it follows.
+        XCTAssertEqual(StoryOutline.trail(rows, topId: "year_2025", expanded: expanded).map(\.id), ["all_0"])
+        XCTAssertTrue(StoryOutline.trail(rows, topId: "missing", expanded: expanded).isEmpty)
+        XCTAssertTrue(StoryOutline.trail(rows, topId: nil, expanded: expanded).isEmpty)
+    }
+
     // MARK: - Home rows
 
     private func homeRows(_ summaries: [PeriodSummary], entries: [JournalEntry]? = nil,

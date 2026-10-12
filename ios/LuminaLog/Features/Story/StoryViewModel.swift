@@ -88,6 +88,12 @@ final class StoryViewModel: ObservableObject {
         rebuild((try? await loadSummaries()) ?? [])
     }
 
+    /// A reconciler batch saved summaries: redraw with them, keeping the expansion.
+    func summariesChanged() async {
+        guard root != nil, !consentOff else { return }
+        rebuild((try? await loadSummaries()) ?? [])
+    }
+
     func toggle(_ id: String) {
         if expanded.contains(id) { expanded.remove(id) } else { expanded.insert(id) }
         rows = StoryOutline.visibleRows(root, expanded: expanded)

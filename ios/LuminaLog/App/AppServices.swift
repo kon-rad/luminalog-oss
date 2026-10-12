@@ -1,5 +1,6 @@
 import Foundation
 import ReownAppKit
+import UIKit
 
 /// Dependency container holding one implementation per service protocol.
 /// Built once at launch and injected into the SwiftUI environment.
@@ -182,7 +183,10 @@ final class AppServices: ObservableObject {
                 repository: periodSummaries,
                 loadEntries: { [journals] in try await journals.fetchAllEntriesWithSource() },
                 timeZone: { [profiles] in await Self.profileTimeZone(profiles) },
-                hasConsent: { [consentStore] in consentStore.hasConsentedAI }
+                hasConsent: { [consentStore] in consentStore.hasConsentedAI },
+                concurrency: 4,
+                backgroundActivity: UIKitBackgroundActivity(),
+                shouldContinue: { UIApplication.shared.applicationState != .background }
             )
             self.periodSummaryReconciler = reconciler
             (ai as? ProxyAIService)?.memoryContextProvider = { [weak reconciler] timeZone in
