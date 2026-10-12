@@ -29,6 +29,8 @@ struct SettingsView: View {
     @State private var showUserFacts = false
     @State private var showInbox = false
     @State private var showStory = false
+    /// Mirrors `DevFlags.periodSummaries` so the DEBUG developer toggle redraws the Story rows.
+    @AppStorage(DevFlags.periodSummariesKey) private var periodSummariesOn = false
     /// What the Story destination opens. The Story Map plan's "Story map" row sets
     /// `StoryRoute(mode: .map)` before flipping `showStory`.
     @State private var storyRoute = StoryRoute()
@@ -167,7 +169,7 @@ struct SettingsView: View {
                 VStack(spacing: Spacing.l) {
                     profileCard
                     leaderboardRow
-                    if DevFlags.periodSummaries {
+                    if periodSummariesOn {
                         storyRow
                         if DevFlags.storyMap {
                             storyMapRow
@@ -1019,12 +1021,40 @@ struct SettingsView: View {
                 sendMirrorNotificationRow
                 rowDivider
                 hermesBridgeRow
+                rowDivider
+                periodSummariesToggleRow
             }
             .background(
                 RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
                     .fill(Color.cardBackground)
             )
         }
+    }
+
+    /// Turns the parked period summaries (ADR-0168) on or off on this device, together
+    /// with the Story Map that reads them.
+    private var periodSummariesToggleRow: some View {
+        HStack(spacing: Spacing.m) {
+            settingsIcon("books.vertical", tint: .accentWarm)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Period summaries")
+                    .font(.uiBody)
+                    .foregroundStyle(Color.textPrimary)
+                Text("Parked: Your Story, the Map and the voice ladder")
+                    .font(.captionText)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            Spacer()
+            Toggle("Period summaries", isOn: Binding(
+                get: { periodSummariesOn },
+                set: { on in
+                    periodSummariesOn = on
+                    DevFlags.storyMap = on
+                }
+            ))
+            .labelsHidden()
+        }
+        .padding(Spacing.m)
     }
 
     /// Opens the Hermes Bridge developer panel: pair with and talk to the

@@ -34,8 +34,11 @@ struct LuminaLogApp: App {
         // Phase-3 cutover — see ADR-0073). So the Model-1 (ZK) path is the default for
         // EVERY build; the non-ZK path no longer exists on the server.
         UserDefaults.standard.register(defaults: [DevFlags.aiModel1Key: true])
-        UserDefaults.standard.register(defaults: [DevFlags.periodSummariesKey: true])
-        UserDefaults.standard.register(defaults: [DevFlags.storyMapKey: true])
+        // Period summaries are parked (ADR-0168): off by default, along with the Story
+        // screen, the Home recap card and the Story Map that read them. Turn them on
+        // for one device from Settings > Developer (debug builds).
+        UserDefaults.standard.register(defaults: [DevFlags.periodSummariesKey: false])
+        UserDefaults.standard.register(defaults: [DevFlags.storyMapKey: false])
         UserDefaults.standard.register(defaults: [DevFlags.userFactsKey: true])
 
         #if DEBUG

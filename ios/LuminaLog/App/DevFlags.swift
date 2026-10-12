@@ -56,9 +56,10 @@ enum DevFlags {
         set { UserDefaults.standard.set(newValue, forKey: forceOnboardingKey) }
     }
 
-    /// Gates period summaries: the catch-up reconciler and the voice memory ladder.
-    /// Registered ON for every build (see LuminaLogApp.init); set false in
-    /// UserDefaults to stop generation on one device.
+    /// Gates period summaries: the catch-up reconciler, the voice memory ladder, the
+    /// Home "Your story" card and the Settings Story rows. Parked on 2026-10-12
+    /// (ADR-0168): registered OFF for every build (see LuminaLogApp.init). Turn it on
+    /// for one device from Settings > Developer (debug builds).
     static var periodSummaries: Bool {
         get { UserDefaults.standard.bool(forKey: periodSummariesKey) }
         set { UserDefaults.standard.set(newValue, forKey: periodSummariesKey) }
@@ -73,8 +74,9 @@ enum DevFlags {
     }
 
     /// Shows the Story Map: the `Story | Map` segment on the Story screen, the Home
-    /// card's Map button and the Settings "Story map" row. Registered ON for every
-    /// build (see LuminaLogApp.init); set false in UserDefaults to hide it on one device.
+    /// card's Map button and the Settings "Story map" row. Its captions come from period
+    /// summaries, so it is parked with them (ADR-0168): registered OFF for every build
+    /// (see LuminaLogApp.init), and it only shows when `periodSummaries` is also on.
     /// Spec: docs/superpowers/specs/2026-09-28-story-map-design.md.
     static var storyMap: Bool {
         get { UserDefaults.standard.bool(forKey: storyMapKey) }
