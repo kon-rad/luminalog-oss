@@ -28,8 +28,8 @@ export const MANUAL_UPDATED_AT = '2026-10-12'
 
 export const STREAM_LINKS = [
   { id: 'youtube', label: 'YouTube', url: 'https://www.youtube.com/@myargoquest/live' },
-  { id: 'twitch', label: 'Twitch', url: 'https://www.twitch.tv/myargoquest' },
-  { id: 'kick', label: 'Kick', url: 'https://kick.com/myargoquest' },
+  { id: 'twitch', label: 'Twitch', url: 'https://www.twitch.tv/synducer' },
+  { id: 'kick', label: 'Kick', url: 'https://kick.com/konradgnat' },
   { id: 'x', label: 'X', url: 'https://x.com/myargoquest' },
 ] as const
 
