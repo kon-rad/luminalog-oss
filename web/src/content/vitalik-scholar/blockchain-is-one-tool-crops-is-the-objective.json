@@ -1,0 +1,710 @@
+{
+  "slug": "blockchain-is-one-tool-crops-is-the-objective",
+  "title": "Blockchain is one tool, CROPS is the objective: Vitalik at ETHTaipei 2026",
+  "description": "Vitalik Buterin's ETHTaipei 2026 keynote, explained: why he now treats blockchains as one tool among many, what CROPS means, two worked examples, and the Ethereum roadmap that serves it.",
+  "date": "October 12, 2026",
+  "isoDate": "2026-10-12T12:00",
+  "readingTime": "9 min read",
+  "talk": {
+    "title": "KEYNOTE | Blockchain is one tool, CROPS is the objective | Vitalik Buterin | ETHTaipei 2026",
+    "speaker": "Vitalik Buterin",
+    "event": "ETHTaipei 2026",
+    "date": "delivered September 13, 2026, published October 2, 2026",
+    "youtubeId": "UllNPhkn6hg",
+    "duration": "38:41"
+  },
+  "hero": {
+    "src": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/01-title.jpg",
+    "alt": "Vitalik Buterin on the ETHTaipei Genesis Stage beside his title slide, Blockchain is one tool, CROPS is the objective",
+    "width": 1280,
+    "height": 720
+  },
+  "summary100": "Vitalik Buterin's ETHTaipei 2026 keynote argues that blockchains are a means, and CROPS is the end: censorship and capture resistance, open source, privacy and security. He says the 2020-era boom treated putting things on chain as a virtue in itself, and that this style of crypto has hit the end of the road. The goals matter more than ever, because AI brings centralized chokepoints, surveillance and easy deanonymization. Two worked examples, private use of frontier AI and a camera that records only violence, show blockchains as one small but necessary part. He ends with Ethereum's roadmap and how to contribute.",
+  "summary1000": [
+    "Vitalik gave this keynote on the Genesis Stage on day one of ETHTaipei, September 13, 2026, and ETHTaipei published the recording on October 2. The title states the thesis. CROPS stands for censorship and capture resistance, open source, privacy and security. Blockchains are one technology that helps achieve those goals. Other technologies help too, and some uses of blockchains help nobody achieve them. His advice is to start from the goal, not from one technology.",
+    "He then names the mistake of the 2020 and 2021 era: digital monkeys selling for ten million dollars, flashy conferences, Lambos. Back then people treated the blockchain as an end rather than a means. Profiles, identity and the social graph all went on chain because putting them there seemed good in itself. He says NFTs were good because they were on the blockchain, and that if Twitter or Google had launched exactly the same product, everyone in the room would have hated it. DeFi got the same pass even when the oracle was centralized or the bridge was a backdoor multisig. He gives two reasons: number go up, and the lack of any other tools. The blockchain was the one hammer, so everything looked like a nail. That style of crypto has hit the end of the road this year, he says, partly because blockchains are no longer the shiniest technology. AI is.",
+    "The underlying goals, though, are needed more than ever. His slide lists them. He expects large parts of traditional finance to be hacked in the next few years, and blockchains have spent fifteen years making finance open and secure at once. Proprietary AI models are centralized chokepoints: a workflow that depends on OpenAI or Anthropic can be taken away at any moment. Your AI use is watched and may be trained on. Metadata-based deanonymization is getting easy. He cites his own experiment: he wrote an anonymous Ethereum-related document in Chinese, had a local Qwen model translate it, and someone still identified it as his within about two weeks. Signal protects message content but not the graph of who talks to whom, and modern AI can learn a lot from that graph. Add AI-enhanced censorship, info warfare, and cameras, drones and wifi devices everywhere. Even a twenty-year-old who thinks blockchains are stupid cares about some of these.",
+    "He is frank that, in the mainstream technical view, the leading freedom technology today is open-weight AI models, not blockchains. Even so, he argues, blockchains are here to stay and widely underestimated, and so is cryptography. The Ethereum community is now made up of blockchain people, zero-knowledge proof people and fully homomorphic encryption people, and may soon include indistinguishability obfuscation people. Blockchains and cryptography each expand what the other can do.",
+    "Two worked examples show what goal-first design looks like. The first is using frontier AI models with as much privacy as possible. The provider will see your queries, so you cannot get confidentiality, but you can get anonymity. First, a local open-weight model rewrites your request to strip out private details and even your writing style. His punchline is that the provider then sees the same AI slop English everyone else uses. Second, an anonymizing network protects you at the network layer. Third, ZK-API combines zero-knowledge proofs with Ethereum payment channels, so you can pay a provider while no query can be linked to any other. That gives most of the anonymity of Zcash or Railgun without an onchain transaction per payment. The blockchain appears in exactly one place.",
+    "The second example is a camera that detects violence, records and forwards video only in that case, and instantly deletes everything else. That needs an open-weight model running on trusted hardware. For a second line of defense, every forwarded video triggers an onchain transaction, and the camera will not keep recording until it sees proof that the transaction was included. The public gets a verifiable count of how often each camera has forwarded footage: cameras that are, in his words, verifiably not a total panopticon. He lists the jobs blockchains do well: finance, credible commitments, proving that something has not happened (such as which software version developers signed off on), and counting.",
+    "Cryptography also makes blockchains better. He calls the trend the proof singularity: EIP-8288's recursive STARK mempool, signature aggregation for the tens of thousands of validators in the planned lean consensus chain, and aggregation of data availability proofs, so that a whole block can be verified by one proof. AI is speeding this work up, and formal verification is what keeps the speed safe. He says the list of things Ethereum wants to ship by around 2030 has grown five to ten times wider, because bots now write much of the code and formal verification checks it.",
+    "On how people can help, he says to go back to the roots. The goals are the same as they were for Bitcoin users in 2010. He describes the present as an age of corporatist and statist techno-feudalism and permanent info warfare by all against all, so problems worth solving are easy to find. Pick one that involves these properties and work out which technologies it needs. If a blockchain is not one of them, build without one. In his view, someone who shares the goals without using Ethereum is more of an ally than someone who uses Ethereum for incompatible goals.",
+    "His roadmap slide groups the work under scaling, privacy and security. Glamsterdam makes higher gas limits safe. EIP-8288, which he hopes lands in the fork after Hegotá, makes privacy protocols and quantum-safe signatures cheap. FOCIL strengthens inclusion guarantees, frame transactions (EIP-8141) let private transactions skip intermediaries, and Kohaku already sends through Tornado Cash, Privacy Pools and Railgun. Security means formal verification, a light client in every wallet and quantum resistance. He points contributors to AI competitions (better.codes and snark.fast) and frontier cryptography research.",
+    "The Q&A covers perpetual futures as a tool for both gambling and hedging, how to get privacy-preserving cameras adopted (mature products, plus allies who talk about compliance and tech sovereignty), a plan for RISC-V to replace the EVM in consensus so the protocol can shrink, paying for more things in ETH, his preference for personalized stable value over decentralized dollar stablecoins, and open, verifiable hardware."
+  ],
+  "body": [
+    {
+      "type": "h2",
+      "text": "The slide that sums up the last cycle"
+    },
+    {
+      "type": "figure",
+      "src": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/02-blockchain-as-an-end.jpg",
+      "alt": "The 2020-era mindset slide: profiles, identity and the social graph all point into \"the blockchain\", with NFTs and DeFi labelled good simply because they are on chain",
+      "width": 1280,
+      "height": 720,
+      "caption": "Slide 2 of 14. The footnote gives his two reasons: number go up, and no other tools."
+    },
+    {
+      "type": "p",
+      "text": "Most people who were around in 2021 will recognise this diagram. Everything points into one glowing cube, and the arrows are labelled \"put it on the blockchain\". What makes the slide land is that Vitalik includes his own side of the room in the critique. He isn't saying NFTs or DeFi were bad ideas. He's saying the community stopped asking what they were for, and gave a pass to centralized oracles and multisig bridges because the result was technically on chain."
+    },
+    {
+      "type": "clip",
+      "clip": 1
+    },
+    {
+      "type": "h2",
+      "text": "Why the goals got more urgent, not less"
+    },
+    {
+      "type": "figure",
+      "src": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/03-goals-still-needed.jpg",
+      "alt": "Slide listing why the underlying goals are as strongly needed as ever: secure finance, proprietary LLMs as centralized chokepoints, surveillance of AI use, metadata-based deanonymization, trustworthy information, AI-enhanced censorship and universal physical surveillance",
+      "width": 1280,
+      "height": 720,
+      "caption": "Slide 4. Five of the seven items are about AI."
+    },
+    {
+      "type": "p",
+      "text": "The interesting move here is that the case for CROPS no longer rests on crypto at all. Five of the seven needs on this slide come from AI: chokepoints in proprietary models, surveillance of what you ask them, deanonymization from writing style and metadata, censorship and information warfare. The deanonymization story is the one people remember. Vitalik took real precautions, writing in Chinese and translating with a local model, and was still identified. That is a good reason to take the rest of the list seriously."
+    },
+    {
+      "type": "clip",
+      "clip": 2
+    },
+    {
+      "type": "h2",
+      "text": "Two worked examples, one blockchain each"
+    },
+    {
+      "type": "figure",
+      "src": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/05-private-llm-pipeline.jpg",
+      "alt": "Worked example 1: you, then a local open-weight LLM that rewrites the request, then anonymizing networks, then ZK-API (SNARKs plus ETH payment channels), then the frontier LLM provider",
+      "width": 1280,
+      "height": 720,
+      "caption": "Worked example 1. The blockchain shows up once, in the payment step."
+    },
+    {
+      "type": "p",
+      "text": "This is the most useful part of the talk if you build things. In both designs the blockchain does exactly one job. In the AI pipeline it is the payment rail that lets you pay for each query without linking it to the others. The ZK-API design behind it was written up on ethresear.ch by Davide Crapis and Vitalik, and the Ethereum Foundation announced an implementation, zkAPI, on October 1, a few weeks after this talk."
+    },
+    {
+      "type": "clip",
+      "clip": 3
+    },
+    {
+      "type": "figure",
+      "src": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/06-verifiable-camera.jpg",
+      "alt": "Worked example 2: a camera feeds an open-weight LLM on trusted hardware; if violence is detected it records and forwards video with an onchain transaction, otherwise it deletes instantly; onchain records count forwards and register camera keys",
+      "width": 1280,
+      "height": 720,
+      "caption": "Worked example 2. The onchain counter is the second line of defense, after the trusted hardware."
+    },
+    {
+      "type": "p",
+      "text": "In the camera design, the blockchain is a public tally. The trusted hardware is what actually enforces \"delete unless violence\", and the chain only makes the number of exceptions visible to everyone. It is a small role, but it turns a promise into something people can check. An audience member later asks how to get companies like Flock to build cameras this way. Vitalik's answer: the privacy-preserving option has to be as easy to buy as the normal one."
+    },
+    {
+      "type": "clip",
+      "clip": 4
+    },
+    {
+      "type": "h2",
+      "text": "The roadmap, read as a CROPS checklist"
+    },
+    {
+      "type": "figure",
+      "src": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/10-roadmap.jpg",
+      "alt": "Ethereum roadmap update slide in three columns: Scaling (Glamsterdam, EIP-8288, ZK-EVMs), Privacy (FOCIL, Frames, EIP-8288, Kohaku and private reads), Security (formal verification, light clients, quantum resistance, access-layer tools)",
+      "width": 1280,
+      "height": 720,
+      "caption": "Slide 13. H* is the Hegotá fork and I* is the one after it."
+    },
+    {
+      "type": "p",
+      "text": "He calls this section the mandatory roadmap update, but the layout is the point. Scaling, privacy and security sit side by side, and EIP-8288 appears in two columns, because the same recursive STARK machinery makes privacy and quantum-safe signatures cheap. The slide's shorthand is worth decoding: \"H*\" is Hegotá, the fork after Glamsterdam, and \"I*\" is the fork after that. Frames (EIP-8141) are aimed at Hegotá. EIP-8288 is still a draft, and \"hopefully I*\" is a hope, not a schedule."
+    },
+    {
+      "type": "h2",
+      "text": "Allies, not users"
+    },
+    {
+      "type": "p",
+      "text": "The line from this talk that I expect to hear repeated is the ally test. Someone who shares the goals and never touches Ethereum is closer to the mission than someone who uses Ethereum for goals that conflict with it. That is an unusual thing for the most visible person in a blockchain ecosystem to say from a blockchain conference stage, and it follows from the talk's thesis. If CROPS is the objective, the chain has to earn its place in each design."
+    },
+    {
+      "type": "clip",
+      "clip": 5
+    },
+    {
+      "type": "figure",
+      "src": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/11-participating.jpg",
+      "alt": "Participating slide: AI competitions at better.codes and snark.fast, AI-assisted research on frontier cryptography, ongoing work on ArkLib, evm-asm and LeanVM, and taking on a neglected corner",
+      "width": 1280,
+      "height": 720,
+      "caption": "Slide 14, the last slide. The CROPS definition runs along the bottom."
+    },
+    {
+      "type": "p",
+      "text": "The closing slide is practical. Both competitions he names, better.codes and snark.fast, are set up for people working with AI agents. better.codes, for example, asks for machine-checked proofs in Lean, so an AI can search for a proof but only a result that passes the formal checker counts. If you have been waiting for a way into Ethereum research that doesn't start with years of reading, this is close to one."
+    }
+  ],
+  "chapters": [
+    {
+      "start": 0,
+      "title": "Blockchain is one tool, CROPS is the objective",
+      "note": "The thesis, and what CROPS stands for."
+    },
+    {
+      "start": 93,
+      "title": "The 2020-era mindset",
+      "note": "Blockchain as an end, NFTs and DeFi on autopilot, the one hammer."
+    },
+    {
+      "start": 187,
+      "title": "That style of crypto has hit the end of the road",
+      "note": "AI is the shiny technology now."
+    },
+    {
+      "start": 218,
+      "title": "The goals are needed more than ever",
+      "note": "Finance, AI chokepoints, surveillance, deanonymization, censorship."
+    },
+    {
+      "start": 447,
+      "title": "The leading freedom tech is open-weight LLMs",
+      "note": "Why blockchains and cryptography still matter."
+    },
+    {
+      "start": 530,
+      "title": "Worked example 1: private use of frontier LLMs",
+      "note": "Local rewrite, anonymizing networks, ZK-API."
+    },
+    {
+      "start": 691,
+      "title": "Worked example 2: a camera that only records violence",
+      "note": "Trusted hardware and an onchain counter."
+    },
+    {
+      "start": 830,
+      "title": "What blockchains are good for",
+      "note": "Finance, credible commitments, proving something did not happen, counters."
+    },
+    {
+      "start": 878,
+      "title": "The proof singularity",
+      "note": "EIP-8288, signature aggregation, data availability proofs, AI plus formal verification."
+    },
+    {
+      "start": 982,
+      "title": "How can you help? Go back to the roots",
+      "note": "The ally test."
+    },
+    {
+      "start": 1114,
+      "title": "Mandatory Ethereum roadmap update",
+      "note": "Scaling, privacy, security."
+    },
+    {
+      "start": 1292,
+      "title": "Participating",
+      "note": "AI competitions and frontier cryptography research."
+    },
+    {
+      "start": 1449,
+      "title": "Q&A: perpetual futures and Lighter",
+      "note": "Gambling versus hedging, toward a complete market."
+    },
+    {
+      "start": 1612,
+      "title": "Q&A: getting privacy-preserving cameras adopted",
+      "note": "Mature products and bigger coalitions."
+    },
+    {
+      "start": 1828,
+      "title": "Q&A: does the chain need a Turing-complete VM?",
+      "note": "A simpler VM, RISC-V, and a shrinking protocol."
+    },
+    {
+      "start": 1964,
+      "title": "Q&A: stablecoins and ETH",
+      "note": "Pay in ETH, and personalized stable value instead of a decentralized dollar."
+    },
+    {
+      "start": 2245,
+      "title": "Q&A: hardware you can't verify",
+      "note": "Work on open and verifiable hardware."
+    }
+  ],
+  "clips": [
+    {
+      "title": "If Twitter had launched NFTs",
+      "start": 93.6,
+      "end": 182.0,
+      "src": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/clip-1-blockchain-as-an-end.mp4",
+      "poster": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/clip-1-blockchain-as-an-end.jpg",
+      "hook": "The 2020-era mistake: putting everything on the blockchain because it was the one hammer we had."
+    },
+    {
+      "title": "Deanonymized from one document",
+      "start": 287.8,
+      "end": 373.2,
+      "src": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/clip-2-deanonymized-from-one-document.mp4",
+      "poster": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/clip-2-deanonymized-from-one-document.jpg",
+      "hook": "Vitalik wrote an anonymous document in Chinese, machine-translated it, and was still identified within about two weeks."
+    },
+    {
+      "title": "Using frontier AI without giving yourself away",
+      "start": 610.9,
+      "end": 693.6,
+      "src": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/clip-3-private-llm-pipeline.mp4",
+      "poster": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/clip-3-private-llm-pipeline.jpg",
+      "hook": "Local model rewrites the prompt, an anonymizing network hides you, ZK-API pays for each query unlinkably."
+    },
+    {
+      "title": "A camera that is verifiably not a panopticon",
+      "start": 717.2,
+      "end": 800.0,
+      "src": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/clip-4-camera-not-a-panopticon.mp4",
+      "poster": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/clip-4-camera-not-a-panopticon.jpg",
+      "hook": "Trusted hardware plus one onchain counter turns a safety camera into something the public can audit."
+    },
+    {
+      "title": "Allies, not users",
+      "start": 1029.4,
+      "end": 1113.6,
+      "src": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/clip-5-allies-not-users.mp4",
+      "poster": "/vitalik-scholar/blockchain-is-one-tool-crops-is-the-objective/clip-5-allies-not-users.jpg",
+      "hook": "Someone who shares the goals without using our chain is more of an ally than someone who uses it for incompatible goals."
+    }
+  ],
+  "terms": [
+    {
+      "term": "CROPS",
+      "kind": "term",
+      "definition": "Censorship and capture resistance, open source, privacy and security. The Ethereum Foundation's March 2026 mandate set out CROPS (without \"capture\") as the properties it will not trade away; this talk spells out the C to include capture resistance.",
+      "links": [
+        {
+          "label": "The EF mandate (The Block)",
+          "href": "https://www.theblock.co/post/393563/ethereum-foundation-mandate-role-one-of-many-stewards-network"
+        },
+        {
+          "label": "What is CROPS (imToken)",
+          "href": "https://support.token.im/hc/en-us/articles/58631758883993-From-Ethereum-to-AI-What-Is-CROPS-the-Slow-Variable-Vitalik-Keeps-Emphasizing"
+        }
+      ]
+    },
+    {
+      "term": "Open-weight model",
+      "kind": "term",
+      "definition": "An AI model whose trained weights are published, so anyone can run it locally. Vitalik calls open-weight models today's leading freedom tech.",
+      "links": [
+        {
+          "label": "Open-weight model (Wikipedia)",
+          "href": "https://en.wikipedia.org/wiki/Open-weight_model"
+        }
+      ]
+    },
+    {
+      "term": "Zero-knowledge proof (SNARK, STARK)",
+      "kind": "term",
+      "definition": "A proof that a statement is true which reveals nothing else. STARKs are the hash-based kind Ethereum is betting on for quantum safety.",
+      "links": [
+        {
+          "label": "Zero-knowledge proofs (ethereum.org)",
+          "href": "https://ethereum.org/zero-knowledge-proofs/"
+        }
+      ]
+    },
+    {
+      "term": "Fully homomorphic encryption (FHE)",
+      "kind": "term",
+      "definition": "Computing on encrypted data without decrypting it.",
+      "links": [
+        {
+          "label": "Homomorphic encryption (Wikipedia)",
+          "href": "https://en.wikipedia.org/wiki/Homomorphic_encryption"
+        }
+      ]
+    },
+    {
+      "term": "Indistinguishability obfuscation (iO)",
+      "kind": "term",
+      "definition": "Making a program unreadable while it still runs correctly. Diamond iO is a newer lattice-based construction from Ethereum Foundation researchers.",
+      "links": [
+        {
+          "label": "iO (Wikipedia)",
+          "href": "https://en.wikipedia.org/wiki/Indistinguishability_obfuscation"
+        },
+        {
+          "label": "Diamond iO paper",
+          "href": "https://eprint.iacr.org/2025/236"
+        }
+      ]
+    },
+    {
+      "term": "Trusted execution environment (TEE)",
+      "kind": "term",
+      "definition": "Hardware that runs code in isolation and can attest to which code it ran.",
+      "links": [
+        {
+          "label": "TEE (Wikipedia)",
+          "href": "https://en.wikipedia.org/wiki/Trusted_execution_environment"
+        }
+      ]
+    },
+    {
+      "term": "ZK-API",
+      "kind": "term",
+      "definition": "Prepaid, anonymous API credits. You deposit once, then each request carries a zero-knowledge proof that you have credit, and rate-limit nullifiers stop double spending without linking requests.",
+      "links": [
+        {
+          "label": "ZK API Usage Credits (ethresear.ch)",
+          "href": "https://ethresear.ch/t/zk-api-usage-credits-llms-and-beyond/24104"
+        },
+        {
+          "label": "EF launches zkAPI (The Block)",
+          "href": "https://www.theblock.co/news/defi/2026-10-01-ethereum-foundation-lunches-zkapi-417504"
+        }
+      ]
+    },
+    {
+      "term": "Payment channel",
+      "kind": "term",
+      "definition": "Two parties lock funds once and exchange signed updates offchain, settling onchain only at the end.",
+      "links": [
+        {
+          "label": "State channels (ethereum.org)",
+          "href": "https://ethereum.org/developers/docs/scaling/state-channels/"
+        }
+      ]
+    },
+    {
+      "term": "Anonymizing network",
+      "kind": "term",
+      "definition": "A network that hides who is talking to whom, such as Tor or a mixnet.",
+      "links": [
+        {
+          "label": "Mix network (Wikipedia)",
+          "href": "https://en.wikipedia.org/wiki/Mix_network"
+        },
+        {
+          "label": "Tor Project",
+          "href": "https://www.torproject.org/"
+        }
+      ]
+    },
+    {
+      "term": "EIP-8288",
+      "kind": "term",
+      "definition": "Draft proposal (Buterin and Coratger) to aggregate signatures and STARK proofs in the mempool so a block carries one recursive proof.",
+      "links": [
+        {
+          "label": "EIP-8288",
+          "href": "https://eips.ethereum.org/EIPS/eip-8288"
+        }
+      ]
+    },
+    {
+      "term": "Frame transactions (EIP-8141)",
+      "kind": "term",
+      "definition": "A transaction type made of programmable frames for authentication, payment and execution, aimed at the Hegotá fork.",
+      "links": [
+        {
+          "label": "EIP-8141",
+          "href": "https://eips.ethereum.org/EIPS/eip-8141"
+        }
+      ]
+    },
+    {
+      "term": "FOCIL (EIP-7805)",
+      "kind": "term",
+      "definition": "Fork-choice enforced inclusion lists: a committee of validators forces builders to include transactions, which makes censorship harder.",
+      "links": [
+        {
+          "label": "EIP-7805",
+          "href": "https://eips.ethereum.org/EIPS/eip-7805"
+        }
+      ]
+    },
+    {
+      "term": "Glamsterdam and Hegotá",
+      "kind": "term",
+      "definition": "The next two Ethereum hard forks. On Vitalik's slide, \"H*\" is Hegotá and \"I*\" is the fork after it.",
+      "links": [
+        {
+          "label": "Glamsterdam (ethereum.org)",
+          "href": "https://ethereum.org/roadmap/glamsterdam/"
+        },
+        {
+          "label": "Hegotá (ethereum.org)",
+          "href": "https://ethereum.org/roadmap/hegota/"
+        }
+      ]
+    },
+    {
+      "term": "ZK-EVM",
+      "kind": "term",
+      "definition": "An Ethereum execution layer whose blocks come with a validity proof, so nodes can verify without re-executing.",
+      "links": [
+        {
+          "label": "zkEVM (ethereum.org)",
+          "href": "https://ethereum.org/roadmap/zkevm/"
+        }
+      ]
+    },
+    {
+      "term": "Kohaku",
+      "kind": "term",
+      "definition": "The Ethereum Foundation's privacy wallet SDK and reference wallet, with integrations for Railgun, Privacy Pools and Tornado Cash.",
+      "links": [
+        {
+          "label": "Kohaku on GitHub",
+          "href": "https://github.com/ethereum/kohaku"
+        },
+        {
+          "label": "Kohaku roadmap (Cointelegraph)",
+          "href": "https://cointelegraph.com/news/ethereum-devs-unveil-kohaku-wallet-privacy-roadmap"
+        }
+      ]
+    },
+    {
+      "term": "Private reads (ORAM, PIR)",
+      "kind": "term",
+      "definition": "Fetching chain data without revealing what you asked for.",
+      "links": [
+        {
+          "label": "Oblivious RAM (Wikipedia)",
+          "href": "https://en.wikipedia.org/wiki/Oblivious_RAM"
+        },
+        {
+          "label": "Private information retrieval (Wikipedia)",
+          "href": "https://en.wikipedia.org/wiki/Private_information_retrieval"
+        }
+      ]
+    },
+    {
+      "term": "Light client",
+      "kind": "term",
+      "definition": "A node that verifies chain data cheaply instead of trusting an RPC provider. Vitalik wants one in every wallet by default.",
+      "links": [
+        {
+          "label": "Light clients (ethereum.org)",
+          "href": "https://ethereum.org/developers/docs/nodes-and-clients/light-clients/"
+        },
+        {
+          "label": "Helios",
+          "href": "https://github.com/a16z/helios"
+        }
+      ]
+    },
+    {
+      "term": "Social recovery",
+      "kind": "term",
+      "definition": "Recovering a wallet through a set of guardians instead of a single seed phrase.",
+      "links": [
+        {
+          "label": "Why we need social recovery wallets (Vitalik)",
+          "href": "https://vitalik.eth.limo/general/2021/01/11/recovery.html"
+        }
+      ]
+    },
+    {
+      "term": "Formal verification",
+      "kind": "term",
+      "definition": "Machine-checked mathematical proof that code meets its specification.",
+      "links": [
+        {
+          "label": "Formal verification (Wikipedia)",
+          "href": "https://en.wikipedia.org/wiki/Formal_verification"
+        },
+        {
+          "label": "ArkLib",
+          "href": "https://github.com/Verified-zkEVM/ArkLib"
+        }
+      ]
+    },
+    {
+      "term": "RISC-V",
+      "kind": "term",
+      "definition": "An open instruction set that Vitalik proposes as the long-term replacement for the EVM.",
+      "links": [
+        {
+          "label": "Replace the EVM with RISC-V (Ethereum Magicians)",
+          "href": "https://ethereum-magicians.org/t/long-term-l1-execution-layer-proposal-replace-the-evm-with-risc-v/23617"
+        }
+      ]
+    },
+    {
+      "term": "Perpetual futures",
+      "kind": "term",
+      "definition": "Futures contracts with no expiry, kept near spot price by funding payments.",
+      "links": [
+        {
+          "label": "Perpetual futures (Wikipedia)",
+          "href": "https://en.wikipedia.org/wiki/Perpetual_futures"
+        }
+      ]
+    },
+    {
+      "term": "Privacy against AI-era surveillance",
+      "kind": "topic",
+      "definition": "Metadata, writing-style deanonymization and AI-assisted censorship.",
+      "links": [
+        {
+          "label": "Vitalik's anonymity challenge (Cointelegraph)",
+          "href": "https://cointelegraph.com/news/vitalik-buterin-confirms-ai-identified-his-anonymous-ethereum-proposal-contribution"
+        }
+      ]
+    },
+    {
+      "term": "The proof singularity",
+      "kind": "topic",
+      "definition": "Recursive proofs aggregating everything a block does into one proof.",
+      "links": [
+        {
+          "label": "EIP-8288",
+          "href": "https://eips.ethereum.org/EIPS/eip-8288"
+        },
+        {
+          "label": "Lean Ethereum roadmap",
+          "href": "https://leanroadmap.org/"
+        }
+      ]
+    },
+    {
+      "term": "AI-accelerated, formally verified protocol work",
+      "kind": "topic",
+      "definition": "Bots write code, proof checkers keep it honest.",
+      "links": [
+        {
+          "label": "better.codes challenge (EF blog)",
+          "href": "https://blog.ethereum.org/en/2026/08/20/better-codes-challenge"
+        },
+        {
+          "label": "better.codes",
+          "href": "https://better.codes/"
+        },
+        {
+          "label": "snark.fast",
+          "href": "https://snark.fast/"
+        }
+      ]
+    },
+    {
+      "term": "Quantum resistance",
+      "kind": "topic",
+      "definition": "Moving signatures and proofs to schemes that survive quantum computers.",
+      "links": [
+        {
+          "label": "Future-proofing Ethereum (ethereum.org)",
+          "href": "https://ethereum.org/roadmap/future-proofing/"
+        }
+      ]
+    },
+    {
+      "term": "Blockchain as a means, not an end",
+      "kind": "idea",
+      "definition": "Start from the goal and use a blockchain only where it does a job nothing else can.",
+      "links": [
+        {
+          "label": "My techno-optimism (Vitalik)",
+          "href": "https://vitalik.eth.limo/general/2023/11/27/techno_optimism.html"
+        }
+      ]
+    },
+    {
+      "term": "What blockchains are good for",
+      "kind": "idea",
+      "definition": "Finance, credible commitments, proving something has not happened, and public counters.",
+      "links": [
+        {
+          "label": "Credible commitment (Wikipedia)",
+          "href": "https://en.wikipedia.org/wiki/Credible_commitment"
+        }
+      ]
+    },
+    {
+      "term": "Verifiably not a panopticon",
+      "kind": "idea",
+      "definition": "Surveillance tools whose limits the public can audit.",
+      "links": [
+        {
+          "label": "Panopticon (Wikipedia)",
+          "href": "https://en.wikipedia.org/wiki/Panopticon"
+        }
+      ]
+    },
+    {
+      "term": "The ally test",
+      "kind": "idea",
+      "definition": "Shared goals count for more than shared infrastructure.",
+      "links": []
+    },
+    {
+      "term": "Personalized stable value",
+      "kind": "idea",
+      "definition": "Instead of a decentralized dollar, hedge each person's own expected expenses with options and prediction markets.",
+      "links": [
+        {
+          "label": "Options-based synthetic assets (The Block)",
+          "href": "https://www.theblock.co/news/ecosystems/2026-06-02-vitalik-buterin-proposes-options-based-synthetic-assets-to-avoid-liquidations-and-reduce-reliance-on-real-time-oracles-403311"
+        }
+      ]
+    },
+    {
+      "term": "A shrinking protocol",
+      "kind": "idea",
+      "definition": "A simpler VM, the EVM compiled down to RISC-V, and less consensus code over five years.",
+      "links": [
+        {
+          "label": "Replace the EVM with RISC-V (Ethereum Magicians)",
+          "href": "https://ethereum-magicians.org/t/long-term-l1-execution-layer-proposal-replace-the-evm-with-risc-v/23617"
+        }
+      ]
+    }
+  ],
+  "furtherReading": [
+    {
+      "label": "The full talk on YouTube (ETHTaipei)",
+      "href": "https://www.youtube.com/watch?v=UllNPhkn6hg"
+    },
+    {
+      "label": "Vitalik's blog",
+      "href": "https://vitalik.eth.limo/"
+    },
+    {
+      "label": "ZK API Usage Credits: LLMs and Beyond (ethresear.ch)",
+      "href": "https://ethresear.ch/t/zk-api-usage-credits-llms-and-beyond/24104"
+    },
+    {
+      "label": "EIP-8288: In-mempool signature and proof aggregation",
+      "href": "https://eips.ethereum.org/EIPS/eip-8288"
+    },
+    {
+      "label": "EIP-8141: Frame transaction",
+      "href": "https://eips.ethereum.org/EIPS/eip-8141"
+    },
+    {
+      "label": "Raising machine-checked security benchmarks (EF blog, better.codes)",
+      "href": "https://blog.ethereum.org/en/2026/08/20/better-codes-challenge"
+    },
+    {
+      "label": "Kohaku on GitHub",
+      "href": "https://github.com/ethereum/kohaku"
+    },
+    {
+      "label": "Diamond iO (IACR ePrint 2025/236)",
+      "href": "https://eprint.iacr.org/2025/236"
+    },
+    {
+      "label": "Forkcast: Glamsterdam",
+      "href": "https://forkcast.org/upgrade/glamsterdam"
+    },
+    {
+      "label": "Forkcast: Hegotá",
+      "href": "https://forkcast.org/upgrade/hegota"
+    }
+  ]
+}

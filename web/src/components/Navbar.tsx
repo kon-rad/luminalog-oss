@@ -23,6 +23,7 @@ const PRODUCTS_LINKS: LinkItem[] = [
   { label: 'Privacy', href: '/#privacy' },
   { label: 'Open Source', href: 'https://github.com/kon-rad/luminalog-oss', external: true },
   { label: 'Blog', href: '/blog' },
+  { label: 'Vitalik Scholar', href: '/vitalik-scholar' },
   { label: 'Events', href: '/events' },
   { label: 'Courses', href: '/courses' },
   { label: 'Card Game', href: '/card-game' },

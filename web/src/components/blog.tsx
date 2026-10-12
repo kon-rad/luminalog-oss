@@ -27,6 +27,7 @@ function BlogFooter() {
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', fontSize: 14 }}>
             <Link href="/events" style={{ color: 'var(--text2)' }}>Events</Link>
             <Link href="/blog" style={{ color: 'var(--text2)' }}>Blog</Link>
+            <Link href="/vitalik-scholar" style={{ color: 'var(--text2)' }}>Vitalik Scholar</Link>
             <Link href="/privacy" style={{ color: 'var(--text2)' }}>Privacy Policy</Link>
             <Link href="/terms" style={{ color: 'var(--text2)' }}>Terms</Link>
             <a href="mailto:konradmgnat@gmail.com" style={{ color: 'var(--text2)' }}>Support</a>
