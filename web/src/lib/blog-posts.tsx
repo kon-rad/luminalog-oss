@@ -4113,7 +4113,151 @@ function ArgoEncryptionContent() {
   )
 }
 
+/* ── Post: What Argo knows ── */
+function WhatArgoKnowsContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/what-argo-knows-1.jpg"
+        alt="A small box of cream index cards on a dark desk, a few pulled halfway out, lit by a brass lamp"
+        width={2752}
+        height={1536}
+        priority
+      />
+      <P>
+        A good friend remembers that your sister is called Maya, that you moved to a new city in the spring, and that you have been trying to run three mornings a week. You don&apos;t have to explain it again every time you talk.
+      </P>
+      <P>
+        Until now Argo didn&apos;t remember things like that. It could find old entries that sounded related to what you were writing, but it had no plain list of the facts of your life. The next update of Argo for iPhone adds one. It is called <strong>What Argo knows</strong>, and it lives in the Menu tab.
+      </P>
+      <P>
+        This post covers what goes on that list, how Argo learns it, what happens when your life changes, and how much control you have over it. We built it around one rule: you should be able to see everything Argo remembers about you, and correct any of it.
+      </P>
+      <H2>A short list of facts</H2>
+      <P>
+        What Argo knows is a list of durable facts about you, grouped under headings: people, places, work and projects, goals, values, preferences, struggles, commitments, and life events. Each fact is one short sentence written to you, such as &ldquo;Maya is your younger sister.&rdquo; or &ldquo;You live in Forest City.&rdquo;
+      </P>
+      <P>
+        &ldquo;Durable&rdquo; matters here. Argo is told to skip moods, one-off days, and plans for a single afternoon. A bad Tuesday doesn&apos;t make it onto the list. A new job does. It also records only what you actually wrote. It is told never to guess at your feelings, your motives, or a diagnosis. If you write that you have asthma, that can become a fact. If you write that you were short of breath on a hike, it should not turn into one.
+      </P>
+      <P>
+        Tap any fact and you can see the entries it came from, with their dates, and open them. Nothing on the list exists without at least one of your entries behind it.
+      </P>
+      <H2>How Argo learns, without our servers keeping anything</H2>
+      <Figure
+        src="/blog/what-argo-knows-2.jpg"
+        alt="An old brass scale on warm paper, a handwritten letter in one pan and a blank card in the other"
+        width={2400}
+        height={1792}
+      />
+      <P>
+        Argo&apos;s servers can&apos;t read your stored journal (we explained why in <A href="https://myargoquest.com/blog/how-argo-encryption-works">our post on encryption</A>). That rules out the usual approach of a nightly job on our side that reads everything you wrote. Your phone does the work instead.
+      </P>
+      <P>
+        Every so often, when you open the app, your phone looks for entries it hasn&apos;t read yet. It waits until an entry is at least 30 minutes old, so a voice memo has time to finish transcribing and your quick edits land first. Then it takes up to eight of those entries, oldest first, unlocks them, and sends them over an encrypted connection to our server along with the facts you already have. The server passes them to the AI model for that one request. The model answers with a short list of changes, and your phone decides what to do with each one, locks the result, and saves it.
+      </P>
+      <P>
+        The server keeps nothing from that exchange and doesn&apos;t log what you sent. The AI runs on Venice AI, the same private provider as Argo&apos;s other AI features, and your journal is never used to train models.
+      </P>
+      <P>
+        The model can suggest four kinds of change:
+      </P>
+      <UL
+        items={[
+          <>add a new fact</>,
+          <>confirm a fact you already have, which links the new entry as more evidence</>,
+          <>update a fact with more detail, when it is still true in the same way</>,
+          <>mark a fact as no longer true</>,
+        ]}
+      />
+      <P>
+        There is no &ldquo;delete&rdquo; in that list on purpose. The model can&apos;t remove anything from your history. Only you can.
+      </P>
+      <P>
+        The dates come from your entries, not the model. When Argo says a fact started or ended, that date is taken from the entry that showed it, because a date the model writes down could be made up.
+      </P>
+      <P>
+        The first time it runs, Argo works through your existing journal a few entries at a time, in order, over several visits. Settings shows the progress, for example &ldquo;Read 120 of 300 entries&rdquo;.
+      </P>
+      <H2>When your life changes</H2>
+      <Figure
+        src="/blog/what-argo-knows-3.jpg"
+        alt="Two old house keys side by side on a wooden table, one tarnished and one bright, morning light from a window"
+        width={2528}
+        height={1696}
+      />
+      <P>
+        Facts go out of date. You move, change jobs, end a relationship, give up a goal. Most memory systems handle that by overwriting the old fact. We think that throws away part of your story.
+      </P>
+      <P>
+        Argo keeps it. When a newer entry clearly shows that a fact stopped being true, Argo ends it with a date and keeps it in your history, then adds the new fact beside it. So instead of losing &ldquo;You live in Kuching.&rdquo; when you move, you get the old fact marked as ending in June, and &ldquo;You live in Forest City.&rdquo; as a new one. Open a fact&apos;s history and you can see when it was true.
+      </P>
+      <P>
+        The bar for ending a fact is high on purpose. The model is told that doubt, a bad day, or not mentioning something for a while is not enough. It needs an entry, written after the fact began, that says it is over. Argo processes your journal in date order so that this works.
+      </P>
+      <H2>You have the last word</H2>
+      <Figure
+        src="/blog/what-argo-knows-4.jpg"
+        alt="A fountain pen resting on a blank card beside a single fresh stroke of ink"
+        width={2400}
+        height={1792}
+      />
+      <P>
+        Everything on the list can be changed by you. You can:
+      </P>
+      <UL
+        items={[
+          <>edit any fact, in your own words</>,
+          <>add a fact Argo hasn&apos;t picked up</>,
+          <>mark a fact &ldquo;Not true anymore&rdquo;, with the date it ended</>,
+          <>mark it &ldquo;Still true&rdquo; if Argo ended it by mistake</>,
+          <>delete it</>,
+        ]}
+      />
+      <P>
+        Once you have written, edited, or confirmed a fact, Argo will never rewrite it. If a later entry seems to contradict one of your facts, Argo doesn&apos;t change it. It shows you a note under &ldquo;Argo noticed&rdquo; with what your journal now says, and you pick: accept the change, or keep it as is.
+      </P>
+      <P>
+        Deleting sticks. When you delete a fact, Argo remembers that you said no and tells the model never to add it, or anything that means the same thing, again. You won&apos;t find it creeping back a week later from an old entry.
+      </P>
+      <P>
+        There are also two bigger switches. <strong>Learn from my journal</strong> turns the learning on or off. While it&apos;s off, Argo reads nothing new, but you keep the facts you have. <strong>Forget everything</strong> deletes the whole list, including the record of what you deleted, and turns learning off so nothing comes back until you switch it on again.
+      </P>
+      <H2>Where the facts are used</H2>
+      <P>
+        The first place Argo uses this list is voice calls. When you start a call, your phone adds your current facts to the call&apos;s context, up to 30 of them, with the ones you wrote or confirmed first. That is why Argo can ask how the new place is working out without you explaining that you moved.
+      </P>
+      <P>
+        Facts that have ended aren&apos;t sent, and neither are facts you deleted. Text chat will use the list later. We started with voice, where repeating yourself is most tiring.
+      </P>
+      <H2>How it is stored</H2>
+      <P>
+        Like the rest of your journal, every fact is locked on your phone before it is saved. That includes the sentence itself, its name, its proposed changes, and even its category, because an unlocked category would let anyone count how many &ldquo;struggles&rdquo; or &ldquo;people&rdquo; you have. What our database can see is bookkeeping: whether a fact is current or ended, its dates, and the IDs of the entries it came from. It can&apos;t see the words.
+      </P>
+      <P>
+        The code is <A href="https://github.com/kon-rad/luminalog-oss">open source</A>, including the prompt that tells the model what counts as a fact. If you want to check that Argo does what this post says, you can read it.
+      </P>
+      <P>
+        What Argo knows arrives with the next update of Argo for iPhone. Open the Menu tab, tap What Argo knows, and see what it has picked up so far. If something is wrong, change it. That is what the list is for.
+      </P>
+      <P>
+        <em>Argo Writer Agent</em>
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'what-argo-knows',
+    title: 'What Argo knows about you, and how you stay in charge of it',
+    description:
+      "How Argo's new What Argo knows list works: which facts it learns from your journal, how your phone does the work without our servers keeping anything, how it handles change over time, and how you edit, end or delete any fact.",
+    date: 'October 12, 2026',
+    isoDate: '2026-10-12T10:00',
+    readingTime: '7 min read',
+    Content: WhatArgoKnowsContent,
+  },
   {
     slug: 'how-argo-encryption-works',
     title: 'How Argo keeps your journal private: keys, encryption, and the honest exceptions',
