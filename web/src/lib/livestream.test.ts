@@ -105,6 +105,16 @@ describe('stream stats', () => {
     expect(hoursStreamed(sessions, '2026-10-12')).toBe(2)
   })
 
+  it('counts a multistream once: overlapping sessions on different platforms are a union', () => {
+    const sessions = [
+      { ...session('2026-10-13T15:40:00Z', 60), platform: 'twitch' },
+      { ...session('2026-10-13T15:41:00Z', 89), platform: 'kick' }, // ends 17:10
+      { ...session('2026-10-13T15:40:00Z', 30), platform: 'youtube' },
+      session('2026-10-14T02:00:00Z', 30), // separate stream
+    ]
+    expect(hoursStreamed(sessions, '2026-10-12')).toBe(2)
+  })
+
   it('formats durations', () => {
     expect(formatDuration(45)).toBe('45 min')
     expect(formatDuration(135)).toBe('2 h 15 min')

@@ -10,6 +10,7 @@ import {
   MANUAL,
   MANUAL_UPDATED_AT,
   MISSION,
+  PLATFORM_LABEL,
   SOLANA_ADDRESS,
   STREAM_LINKS,
   challengeWindow,
@@ -93,21 +94,23 @@ function fmtDay(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
 }
 
-/* Viewers over the live (or last) stream, plus every stream of the challenge as a table. */
+/* Viewers over the live (or last) stream across every platform, plus every stream of the challenge as a table. */
 function ViewersSection({ stats, since }: { stats: StreamStats; since: string }) {
   const from = Date.parse(`${since}T00:00:00Z`)
   const sessions = stats.sessions.filter((s) => Date.parse(s.started_at) >= from)
   if (sessions.length === 0 && !stats.series) return null
-  const current = stats.series && stats.sessions.find((s) => s.video_id === stats.series?.video_id)
+  const series = stats.series
+  const peak = series ? Math.max(...series.points.map((p) => p.v)) : 0
+  const minutes = series ? (Date.parse(series.end) - Date.parse(series.start)) / 60_000 : 0
 
   return (
     <section style={{ background: 'var(--bg)', paddingBottom: 56 }}>
       <div className="wrap">
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <h2 className="serif" style={{ fontSize: 28, fontWeight: 600, color: 'var(--text)', textAlign: 'center', marginBottom: 20 }}>
-            Viewers on YouTube
+            Viewers
           </h2>
-          {stats.series && stats.series.points.length > 0 && (
+          {series && series.points.length > 0 && (
             <div className="card" style={{ padding: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                 <div>
@@ -115,18 +118,16 @@ function ViewersSection({ stats, since }: { stats: StreamStats; since: string })
                     {stats.live ? 'WATCHING NOW' : 'LAST STREAM'}
                   </div>
                   <span className="serif" style={{ fontSize: 36, fontWeight: 600, color: 'var(--text)' }}>
-                    {(stats.live ? stats.live.viewers : current?.peak_viewers ?? 0).toLocaleString('en-US')}
+                    {(stats.live ? stats.live.viewers : peak).toLocaleString('en-US')}
                   </span>
                   {!stats.live && <span style={{ marginLeft: 8, fontSize: 15, color: 'var(--text3)' }}>peak</span>}
                 </div>
-                {current && (
-                  <span style={{ fontSize: 13, color: 'var(--text3)' }}>
-                    {fmtDay(current.started_at)} · {formatDuration(current.minutes)}
-                    {current.peak_viewers !== null && ` · peak ${current.peak_viewers.toLocaleString('en-US')}`}
-                  </span>
-                )}
+                <span style={{ fontSize: 13, color: 'var(--text3)' }}>
+                  {fmtDay(series.start)} · {formatDuration(minutes)} · peak {peak.toLocaleString('en-US')}
+                  {' · '}{series.platforms.map((p) => PLATFORM_LABEL[p] ?? p).join(' + ')}
+                </span>
               </div>
-              <ViewersChart points={stats.series.points} live={Boolean(stats.live)} />
+              <ViewersChart points={series.points} live={Boolean(stats.live)} labels={PLATFORM_LABEL} />
             </div>
           )}
           {sessions.length > 0 && (
@@ -136,6 +137,7 @@ function ViewersSection({ stats, since }: { stats: StreamStats; since: string })
                 <thead>
                   <tr style={{ color: 'var(--text3)', fontSize: 12, textAlign: 'left' }}>
                     <th style={{ padding: '6px 0', fontWeight: 600 }}>Date (UTC)</th>
+                    <th style={{ padding: '6px 0', fontWeight: 600 }}>Platform</th>
                     <th style={{ padding: '6px 0', fontWeight: 600 }}>Length</th>
                     <th style={{ padding: '6px 0', fontWeight: 600, textAlign: 'right' }}>Peak</th>
                     <th style={{ padding: '6px 0', fontWeight: 600, textAlign: 'right' }}>Average</th>
@@ -147,6 +149,7 @@ function ViewersSection({ stats, since }: { stats: StreamStats; since: string })
                       <td style={{ padding: '8px 0', color: 'var(--text2)' }}>
                         {fmtDay(s.started_at)}{s.ended_at === null && s.source === 'collector' ? ' (live)' : ''}
                       </td>
+                      <td style={{ padding: '8px 0', color: 'var(--text2)' }}>{PLATFORM_LABEL[s.platform] ?? s.platform}</td>
                       <td style={{ padding: '8px 0', color: 'var(--text)' }}>{formatDuration(s.minutes)}</td>
                       <td style={{ padding: '8px 0', textAlign: 'right', color: 'var(--text2)' }}>{s.peak_viewers?.toLocaleString('en-US') ?? 'not tracked'}</td>
                       <td style={{ padding: '8px 0', textAlign: 'right', color: 'var(--text2)' }}>{s.avg_viewers?.toLocaleString('en-US') ?? 'not tracked'}</td>
@@ -155,7 +158,7 @@ function ViewersSection({ stats, since }: { stats: StreamStats; since: string })
                 </tbody>
               </table>
               <p style={{ marginTop: 10, fontSize: 12, color: 'var(--text3)', lineHeight: 1.55 }}>
-                Concurrent viewers are sampled once a minute from the public YouTube live page. Streams before tracking started show their length only.
+                Concurrent viewers are sampled once a minute from the public YouTube, Twitch and Kick pages; the chart adds them up. Streams before tracking started show their length only.
               </p>
             </div>
           )}
@@ -193,7 +196,7 @@ export default async function LivestreamPage() {
       current: stats ? hoursStreamed(stats.sessions) : 0,
       target: 120,
       unit: 'hours',
-      source: stats ? 'Logged automatically from the YouTube stream, every minute' : 'Stream log unreachable just now; retries every minute',
+      source: stats ? 'Logged automatically from YouTube, Twitch and Kick, every minute. A multistream counts once.' : 'Stream log unreachable just now; retries every minute',
       unavailable: !stats,
     }, period.daysLeft),
   ]
@@ -243,7 +246,13 @@ export default async function LivestreamPage() {
               style={{ marginTop: 20, display: 'inline-flex', gap: 8, alignItems: 'center' }}
             >
               <span aria-hidden style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--danger)' }} />
-              Live now on YouTube · {stats.live.viewers.toLocaleString('en-US')} watching
+              Live now · {stats.live.viewers.toLocaleString('en-US')} watching
+              {stats.live.platforms.length > 1 && (
+                <span style={{ color: 'var(--text3)' }}>
+                  ({stats.live.platforms.map((p) => `${PLATFORM_LABEL[p.platform] ?? p.platform} ${p.viewers.toLocaleString('en-US')}`).join(', ')})
+                </span>
+              )}
+              {stats.live.platforms.length === 1 && ` on ${PLATFORM_LABEL[stats.live.platforms[0].platform] ?? stats.live.platforms[0].platform}`}
             </a>
           )}
         </div>

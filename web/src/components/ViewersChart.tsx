@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-/* Concurrent viewers over one stream: a single-series line with a light area,
- * a recessive grid, and a crosshair tooltip on hover or touch. One series, so
- * no legend: the section title names it. */
+/* Concurrent viewers over one stream, summed across platforms: a single-series
+ * line with a light area, a recessive grid, and a crosshair tooltip on hover or
+ * touch that breaks the total down by platform. One series, so no legend. */
 
-interface Point { t: string; v: number }
+interface Point { t: string; v: number; by?: Record<string, number> }
 
 const H = 200
 const PAD = { top: 14, right: 16, bottom: 26, left: 40 }
@@ -20,7 +20,7 @@ function niceMax(v: number): number {
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-export default function ViewersChart({ points, live }: { points: Point[]; live: boolean }) {
+export default function ViewersChart({ points, live, labels = {} }: { points: Point[]; live: boolean; labels?: Record<string, string> }) {
   const box = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(640)
   const [hover, setHover] = useState<number | null>(null)
@@ -96,13 +96,18 @@ export default function ViewersChart({ points, live }: { points: Point[]; live: 
         <div
           style={{
             position: 'absolute', top: 0, pointerEvents: 'none',
-            left: Math.min(Math.max(x(hp.t) - 75, 0), width - 150), width: 150, whiteSpace: 'nowrap',
+            left: Math.min(Math.max(x(hp.t) - 90, 0), width - 180), width: 180, whiteSpace: 'nowrap',
             padding: '4px 8px', borderRadius: 8, fontSize: 12, textAlign: 'center',
             background: 'var(--surface)', border: '1px solid var(--hairline2)', color: 'var(--text)',
           }}
           suppressHydrationWarning
         >
           <strong>{hp.v.toLocaleString('en-US')}</strong> watching · {time(hp.t)}
+          {hp.by && Object.keys(hp.by).length > 1 && (
+            <div style={{ color: 'var(--text2)' }}>
+              {Object.entries(hp.by).map(([p, n]) => `${labels[p] ?? p} ${n.toLocaleString('en-US')}`).join(' · ')}
+            </div>
+          )}
         </div>
       )}
     </div>

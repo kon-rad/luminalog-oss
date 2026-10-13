@@ -229,8 +229,8 @@ export async function walletSnapshot(
 
 /* ── Stream stats: viewers and hours ──────────────────────────────────────── */
 
-/* A JSON file written every minute by a private collector that reads the public
- * YouTube /live page (no API key) into its own database. Hours streamed come
+/* A JSON file written every minute by a private collector that reads YouTube,
+ * Twitch and Kick's public pages (no API keys) into its own database. Hours streamed come
  * from here, not from a constant. The URL is a server-only env var, so the host
  * stays out of this public repo; unset means "no stats" and the page says so. */
 const STREAM_STATS_URL = process.env.LIVESTREAM_STATS_URL
@@ -247,13 +247,26 @@ export interface StreamSession {
   source: 'collector' | 'manual'
 }
 
+export interface LivePlatform {
+  platform: string
+  video_id: string
+  title: string | null
+  viewers: number
+  since: string
+  url: string
+}
+
 export interface StreamStats {
   generated_at: string
-  live: { platform: string; video_id: string; title: string | null; viewers: number; since: string; url: string } | null
+  /* Every platform live right now and their total; url is the first platform's. */
+  live: { viewers: number; since: string; url: string; title: string | null; platforms: LivePlatform[] } | null
   sessions: StreamSession[]
-  series: { platform: string; video_id: string; points: { t: string; v: number }[] } | null
+  /* The live (or last) stream, summed across platforms per minute. */
+  series: { start: string; end: string; platforms: string[]; points: { t: string; v: number; by: Record<string, number> }[] } | null
   poll_error: string | null
 }
+
+export const PLATFORM_LABEL: Record<string, string> = { youtube: 'YouTube', twitch: 'Twitch', kick: 'Kick', x: 'X' }
 
 /* null when the droplet can't be reached: the page then says so instead of showing 0 h. */
 export async function streamStats(f: Fetch = fetch, url = STREAM_STATS_URL): Promise<StreamStats | null> {
@@ -268,12 +281,29 @@ export async function streamStats(f: Fetch = fetch, url = STREAM_STATS_URL): Pro
   }
 }
 
-/* Hours of every session that started on or after the challenge's first day (UTC, like challengeWindow). */
+/* Hours on air since the challenge's first day (UTC, like challengeWindow). A multistream
+ * runs one session per platform over the same hours, so this is the union of the
+ * session intervals, never their sum. */
 export function hoursStreamed(sessions: StreamSession[], start = CHALLENGE_START): number {
   const from = Date.parse(`${start}T00:00:00Z`)
-  return sessions
-    .filter((s) => Date.parse(s.started_at) >= from)
-    .reduce((sum, s) => sum + s.minutes, 0) / 60
+  const spans = sessions
+    .map((s) => {
+      const a = Date.parse(s.started_at)
+      return [a, a + s.minutes * 60_000] as const
+    })
+    .filter(([a]) => a >= from)
+    .sort((x, y) => x[0] - y[0])
+  let total = 0
+  let cur: [number, number] | null = null
+  for (const [a, b] of spans) {
+    if (cur && a <= cur[1]) cur[1] = Math.max(cur[1], b)
+    else {
+      if (cur) total += cur[1] - cur[0]
+      cur = [a, b]
+    }
+  }
+  if (cur) total += cur[1] - cur[0]
+  return total / 3_600_000
 }
 
 export function formatDuration(minutes: number): string {
