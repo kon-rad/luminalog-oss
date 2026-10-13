@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { challengeWindow, formatValue, fromHexUnits, goal, walletSnapshot } from './livestream'
+import {
+  challengeWindow, formatDuration, formatValue, fromHexUnits, goal, hoursStreamed, streamStats, walletSnapshot,
+  type StreamSession,
+} from './livestream'
 
 describe('challengeWindow', () => {
   it('counts day 1 on the start date and ends after 30 days', () => {
@@ -34,7 +37,9 @@ describe('formatValue', () => {
     expect(formatValue(12.5, 'usd')).toBe('$12.50')
     expect(formatValue(1000, 'usd')).toBe('$1,000')
     expect(formatValue(1234, 'followers')).toBe('1,234')
-    expect(formatValue(7.6, 'hours')).toBe('8 h')
+    expect(formatValue(7.64, 'hours')).toBe('7.6 h')
+    expect(formatValue(0, 'hours')).toBe('0 h')
+    expect(formatValue(42.6, 'hours')).toBe('43 h')
   })
 })
 
@@ -86,5 +91,33 @@ describe('walletSnapshot', () => {
     expect(s.errors).toEqual(['prices'])
     expect(s.totalUsd).toBe(13)
     expect(s.holdings.find((h) => h.asset === 'ETH')?.usd).toBeNull()
+  })
+})
+
+describe('stream stats', () => {
+  const session = (started_at: string, minutes: number): StreamSession => ({
+    platform: 'youtube', video_id: null, title: null, started_at, ended_at: null,
+    minutes, peak_viewers: null, avg_viewers: null, source: 'collector',
+  })
+
+  it('sums the hours of sessions that started on or after the challenge start', () => {
+    const sessions = [session('2026-10-13T02:00:00Z', 90), session('2026-10-12T00:00:00Z', 30), session('2026-10-11T23:59:00Z', 600)]
+    expect(hoursStreamed(sessions, '2026-10-12')).toBe(2)
+  })
+
+  it('formats durations', () => {
+    expect(formatDuration(45)).toBe('45 min')
+    expect(formatDuration(135)).toBe('2 h 15 min')
+    expect(formatDuration(180)).toBe('3 h')
+  })
+
+  it('returns null rather than throwing when the droplet is unreachable or returns junk', async () => {
+    const down = (async () => { throw new Error('ECONNREFUSED') }) as unknown as typeof fetch
+    expect(await streamStats(down, 'https://stats.test/x.json')).toBeNull()
+    expect(await streamStats(down, undefined)).toBeNull()
+    const junk = (async () => new Response('<html>', { status: 200 })) as typeof fetch
+    expect(await streamStats(junk, 'https://stats.test/x.json')).toBeNull()
+    const ok = (async () => Response.json({ generated_at: 'x', live: null, sessions: [], series: null, poll_error: null })) as typeof fetch
+    expect(await streamStats(ok, 'https://stats.test/x.json')).toMatchObject({ sessions: [] })
   })
 })

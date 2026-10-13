@@ -21,8 +21,6 @@ export const MANUAL = {
   otherRevenueUsd: 0,
   /* Followers gained on X since CHALLENGE_START. */
   xFollowersGained: 0,
-  /* Hours streamed since CHALLENGE_START. */
-  hoursStreamed: 0,
 }
 export const MANUAL_UPDATED_AT = '2026-10-12'
 
@@ -72,6 +70,8 @@ export interface Goal {
   pct: number
   /* What's still needed per remaining day to finish on time; null once met or over. */
   perDayNeeded: number | null
+  /* The source couldn't be read this round: show a dash, not a wrong number. */
+  unavailable?: boolean
 }
 
 export function goal(
@@ -93,8 +93,11 @@ export function formatValue(value: number, unit: Goal['unit']): string {
       maximumFractionDigits: value < 100 ? 2 : 0,
     })
   }
-  const n = Math.round(value).toLocaleString('en-US')
-  return unit === 'hours' ? `${n} h` : n
+  if (unit === 'hours') {
+    // Tenths while the total is small, so the first hours of streaming visibly move.
+    return `${value < 10 ? (Math.round(value * 10) / 10).toString() : Math.round(value).toLocaleString('en-US')} h`
+  }
+  return Math.round(value).toLocaleString('en-US')
 }
 
 /* ── Live wallet balances ─────────────────────────────────────────────────── */
@@ -222,4 +225,60 @@ export async function walletSnapshot(
     errors,
     fetchedAt: now.toISOString(),
   }
+}
+
+/* ── Stream stats: viewers and hours ──────────────────────────────────────── */
+
+/* A JSON file written every minute by a private collector that reads the public
+ * YouTube /live page (no API key) into its own database. Hours streamed come
+ * from here, not from a constant. The URL is a server-only env var, so the host
+ * stays out of this public repo; unset means "no stats" and the page says so. */
+const STREAM_STATS_URL = process.env.LIVESTREAM_STATS_URL
+
+export interface StreamSession {
+  platform: string
+  video_id: string | null
+  title: string | null
+  started_at: string
+  ended_at: string | null
+  minutes: number
+  peak_viewers: number | null
+  avg_viewers: number | null
+  source: 'collector' | 'manual'
+}
+
+export interface StreamStats {
+  generated_at: string
+  live: { platform: string; video_id: string; title: string | null; viewers: number; since: string; url: string } | null
+  sessions: StreamSession[]
+  series: { platform: string; video_id: string; points: { t: string; v: number }[] } | null
+  poll_error: string | null
+}
+
+/* null when the droplet can't be reached: the page then says so instead of showing 0 h. */
+export async function streamStats(f: Fetch = fetch, url = STREAM_STATS_URL): Promise<StreamStats | null> {
+  if (!url) return null
+  try {
+    const res = await f(url, { ...CACHE, signal: AbortSignal.timeout(6000) })
+    if (!res.ok) return null
+    const body = (await res.json()) as StreamStats
+    return Array.isArray(body.sessions) ? body : null
+  } catch {
+    return null
+  }
+}
+
+/* Hours of every session that started on or after the challenge's first day (UTC, like challengeWindow). */
+export function hoursStreamed(sessions: StreamSession[], start = CHALLENGE_START): number {
+  const from = Date.parse(`${start}T00:00:00Z`)
+  return sessions
+    .filter((s) => Date.parse(s.started_at) >= from)
+    .reduce((sum, s) => sum + s.minutes, 0) / 60
+}
+
+export function formatDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+  const m = Math.round(minutes % 60)
+  if (h === 0) return `${m} min`
+  return m === 0 ? `${h} h` : `${h} h ${m} min`
 }

@@ -3,6 +3,7 @@ import Navbar from '@/components/Navbar'
 import SiteFooter from '@/components/SiteFooter'
 import AutoRefresh from '@/components/AutoRefresh'
 import TipMethods, { type TipMethod } from '@/components/TipMethods'
+import ViewersChart from '@/components/ViewersChart'
 import {
   CHALLENGE_DAYS,
   EVM_ADDRESS,
@@ -12,10 +13,14 @@ import {
   SOLANA_ADDRESS,
   STREAM_LINKS,
   challengeWindow,
+  formatDuration,
   formatValue,
   goal,
+  hoursStreamed,
+  streamStats,
   walletSnapshot,
   type Goal,
+  type StreamStats,
 } from '@/lib/livestream'
 
 /* Rebuilt at most once a minute (ISR): every visitor and the stream overlay
@@ -61,7 +66,7 @@ function GoalCard({ g, index }: { g: Goal; index: number }) {
       <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', lineHeight: 1.35 }}>{g.title}</h3>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <span className="serif" style={{ fontSize: 36, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>
-          {formatValue(g.current, g.unit)}
+          {g.unavailable ? '-' : formatValue(g.current, g.unit)}
         </span>
         <span style={{ fontSize: 15, color: 'var(--text3)' }}>of {formatValue(g.target, g.unit)}</span>
       </div>
@@ -76,18 +81,94 @@ function GoalCard({ g, index }: { g: Goal; index: number }) {
         <div style={{ width: `${Math.max(g.pct, g.current > 0 ? 1.5 : 0)}%`, height: '100%', background: 'var(--accent)', borderRadius: 999 }} />
       </div>
       <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.5 }}>
-        {met ? 'Goal met.' : `${g.pct.toFixed(g.pct < 10 ? 1 : 0)}%`}
-        {g.perDayNeeded !== null && ` · ${formatValue(g.perDayNeeded, g.unit)} a day to finish on time`}
+        {g.unavailable ? 'Unavailable just now' : met ? 'Goal met.' : `${g.pct.toFixed(g.pct < 10 ? 1 : 0)}%`}
+        {!g.unavailable && g.perDayNeeded !== null && ` · ${formatValue(g.perDayNeeded, g.unit)} a day to finish on time`}
       </div>
       <div style={{ marginTop: 'auto', fontSize: 12, color: 'var(--text3)' }}>{g.source}</div>
     </div>
   )
 }
 
+function fmtDay(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+}
+
+/* Viewers over the live (or last) stream, plus every stream of the challenge as a table. */
+function ViewersSection({ stats, since }: { stats: StreamStats; since: string }) {
+  const from = Date.parse(`${since}T00:00:00Z`)
+  const sessions = stats.sessions.filter((s) => Date.parse(s.started_at) >= from)
+  if (sessions.length === 0 && !stats.series) return null
+  const current = stats.series && stats.sessions.find((s) => s.video_id === stats.series?.video_id)
+
+  return (
+    <section style={{ background: 'var(--bg)', paddingBottom: 56 }}>
+      <div className="wrap">
+        <div style={{ maxWidth: 720, margin: '0 auto' }}>
+          <h2 className="serif" style={{ fontSize: 28, fontWeight: 600, color: 'var(--text)', textAlign: 'center', marginBottom: 20 }}>
+            Viewers on YouTube
+          </h2>
+          {stats.series && stats.series.points.length > 0 && (
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--accentDeep)' }}>
+                    {stats.live ? 'WATCHING NOW' : 'LAST STREAM'}
+                  </div>
+                  <span className="serif" style={{ fontSize: 36, fontWeight: 600, color: 'var(--text)' }}>
+                    {(stats.live ? stats.live.viewers : current?.peak_viewers ?? 0).toLocaleString('en-US')}
+                  </span>
+                  {!stats.live && <span style={{ marginLeft: 8, fontSize: 15, color: 'var(--text3)' }}>peak</span>}
+                </div>
+                {current && (
+                  <span style={{ fontSize: 13, color: 'var(--text3)' }}>
+                    {fmtDay(current.started_at)} · {formatDuration(current.minutes)}
+                    {current.peak_viewers !== null && ` · peak ${current.peak_viewers.toLocaleString('en-US')}`}
+                  </span>
+                )}
+              </div>
+              <ViewersChart points={stats.series.points} live={Boolean(stats.live)} />
+            </div>
+          )}
+          {sessions.length > 0 && (
+            <div className="card" style={{ marginTop: 16, padding: 20, overflowX: 'auto' }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Every stream this challenge</h3>
+              <table style={{ width: '100%', marginTop: 12, fontSize: 14, borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ color: 'var(--text3)', fontSize: 12, textAlign: 'left' }}>
+                    <th style={{ padding: '6px 0', fontWeight: 600 }}>Date (UTC)</th>
+                    <th style={{ padding: '6px 0', fontWeight: 600 }}>Length</th>
+                    <th style={{ padding: '6px 0', fontWeight: 600, textAlign: 'right' }}>Peak</th>
+                    <th style={{ padding: '6px 0', fontWeight: 600, textAlign: 'right' }}>Average</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessions.map((s) => (
+                    <tr key={`${s.platform}-${s.started_at}`} style={{ borderTop: '1px solid var(--hairline)' }}>
+                      <td style={{ padding: '8px 0', color: 'var(--text2)' }}>
+                        {fmtDay(s.started_at)}{s.ended_at === null && s.source === 'collector' ? ' (live)' : ''}
+                      </td>
+                      <td style={{ padding: '8px 0', color: 'var(--text)' }}>{formatDuration(s.minutes)}</td>
+                      <td style={{ padding: '8px 0', textAlign: 'right', color: 'var(--text2)' }}>{s.peak_viewers?.toLocaleString('en-US') ?? 'not tracked'}</td>
+                      <td style={{ padding: '8px 0', textAlign: 'right', color: 'var(--text2)' }}>{s.avg_viewers?.toLocaleString('en-US') ?? 'not tracked'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p style={{ marginTop: 10, fontSize: 12, color: 'var(--text3)', lineHeight: 1.55 }}>
+                Concurrent viewers are sampled once a minute from the public YouTube live page. Streams before tracking started show their length only.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default async function LivestreamPage() {
   const now = new Date()
   const period = challengeWindow(now)
-  const wallet = await walletSnapshot()
+  const [wallet, stats] = await Promise.all([walletSnapshot(), streamStats()])
 
   const goals = [
     goal({
@@ -109,10 +190,11 @@ export default async function LivestreamPage() {
     goal({
       id: 'hours',
       title: `Stream for over 120 hours in ${CHALLENGE_DAYS} days`,
-      current: MANUAL.hoursStreamed,
+      current: stats ? hoursStreamed(stats.sessions) : 0,
       target: 120,
       unit: 'hours',
-      source: `Updated by hand, ${MANUAL_UPDATED_AT}`,
+      source: stats ? 'Logged automatically from the YouTube stream, every minute' : 'Stream log unreachable just now; retries every minute',
+      unavailable: !stats,
     }, period.daysLeft),
   ]
 
@@ -152,6 +234,18 @@ export default async function LivestreamPage() {
           <p style={{ marginTop: 14, fontSize: 14, color: 'var(--text3)' }}>
             {period.start} to {period.end} · {period.daysLeft} {period.daysLeft === 1 ? 'day' : 'days'} left
           </p>
+          {stats?.live && (
+            <a
+              href={stats.live.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-ghost"
+              style={{ marginTop: 20, display: 'inline-flex', gap: 8, alignItems: 'center' }}
+            >
+              <span aria-hidden style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--danger)' }} />
+              Live now on YouTube · {stats.live.viewers.toLocaleString('en-US')} watching
+            </a>
+          )}
         </div>
       </section>
 
@@ -163,6 +257,8 @@ export default async function LivestreamPage() {
           </div>
         </div>
       </section>
+
+      {stats && <ViewersSection stats={stats} since={period.start} />}
 
       {/* ── WATCH ── */}
       <section style={{ background: 'var(--bg)', paddingBottom: 56 }}>
