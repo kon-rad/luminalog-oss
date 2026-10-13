@@ -4755,7 +4755,214 @@ function AiAgentsCryptoTradingWalletsContent() {
   )
 }
 
+/* ── Post: Skills, loops and graphs (the three layers around an AI agent) ── */
+function SkillsLoopsGraphsContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/skills-loops-graphs-ai-agents-1.jpg"
+        alt="A long writing desk at dusk with three stacked notebooks and a single brass lamp"
+        width={1920}
+        height={1072}
+        priority
+      />
+      <P>
+        This year the vocabulary for working with AI agents changed about once a quarter. In 2025 it
+        was context engineering. By June 2026 people were talking about loop engineering, and in July
+        &ldquo;graph engineering&rdquo; went viral. Somewhere in between, &ldquo;skill graphs&rdquo;
+        took over a corner of X.
+      </P>
+      <P>
+        We run two agents on one notes vault, Claude Code and the open-source Hermes, so we spent a
+        few days working out which of these terms describe something real and how they fit together.
+        Our answer: they are three layers of the same system. A skill decides what an agent reads. A
+        loop decides when it runs and when it stops. A graph decides how many agents run at once and
+        what passes between them.
+      </P>
+
+      <H2>Where the words came from</H2>
+      <P>
+        Each new term moves one more thing out of the chat window and into a structure you can
+        inspect.
+      </P>
+      <UL
+        items={[
+          <>Prompt engineering (2022 onward) moves nothing. You type the right words.</>,
+          <>Context engineering, popularised by Andrej Karpathy in June 2025, moves the information the model needs into files.</>,
+          <>Loop engineering, named by Addy Osmani in June 2026, moves repetition and checking into a loop with a verifier.</>,
+          <>Graph engineering, a community label from July 2026, moves the coordination of many agents into a graph.</>,
+        ]}
+      />
+      <P>
+        Two corrections, because the attributions on social media got loose. Karpathy didn&apos;t
+        coin graph engineering. His contribution is a loop: a repo called{' '}
+        <A href="https://github.com/karpathy/autoresearch">autoresearch</A>, where an agent edits a
+        training script, runs a five-minute experiment, and keeps the change only if a score
+        improves. And the viral &ldquo;two Anthropic seniors&rdquo; PDF about graph engineering says
+        on its own cover that it is independently compiled and not endorsed by Anthropic or
+        Karpathy. The ideas inside are mostly sound. The branding isn&apos;t.
+      </P>
+
+      <H2>Layer 1: skills and skill graphs</H2>
+      <P>
+        A skill is a folder with a <code>SKILL.md</code> file: a name, a one-line description, and
+        instructions. The agent sees only the descriptions until a task matches one, then reads the
+        full file. Claude Code, Hermes and several other agents read the same format.
+      </P>
+      <P>
+        The trouble starts when a skill grows. Anthropic&apos;s guidance says to keep{' '}
+        <code>SKILL.md</code> under 500 lines. Some of the skills on our machines run past 1,000.
+      </P>
+      <P>
+        A skill graph splits one big skill into small linked notes. There is a short index, a map
+        for each sub-topic, and one file per technique, each with its own description. The agent
+        reads the index, follows the links the task needs, and leaves the rest unread. Heinrich
+        (@arscontexta) popularised the pattern in February 2026, and his Claude Code plugin,{' '}
+        <A href="https://github.com/agenticnotetaking/arscontexta">arscontexta</A>, has about 3,500
+        stars on GitHub.
+      </P>
+      <Figure
+        src="/blog/skills-loops-graphs-ai-agents-2.jpg"
+        alt="Index cards pinned to a cork wall, joined by thin gold thread, lit from one side"
+        width={1920}
+        height={1434}
+      />
+      <P>
+        One caution we took from Anthropic&apos;s docs: agents sometimes skim files they reach
+        through long chains of links. So we plan to cap the depth at two hops (index, then topic
+        map, then the note) and lint for orphaned files.
+      </P>
+      <P>
+        In our vault, both agents already load skills from one shared folder,{' '}
+        <code>.agents/skills/</code>. Claude Code reaches it through a symlink, Hermes through a
+        config entry. Hermes can open a single file inside a skill without loading the rest, which is
+        the exact move a skill graph needs. Our first candidate is the pair of skills that turn a
+        podcast or a vlog into a publishing kit. They run nearly the same pipeline, and right now
+        only Claude Code can see them.
+      </P>
+
+      <H2>Layer 2: loops</H2>
+      <P>
+        Boris Cherny, who created Claude Code, said in an interview that he doesn&apos;t prompt
+        Claude anymore and that his job is to write loops. (The exact wording varies between
+        reports.) A loop is a small system that prompts the agent for you. It has six parts:
+      </P>
+      <UL
+        items={[
+          <>A trigger, such as a schedule, a new task, or a message.</>,
+          <>A goal that a machine can check.</>,
+          <>A verifier that isn&apos;t the agent doing the work.</>,
+          <>State saved to disk, so the next run knows what happened.</>,
+          <>A budget, in turns or tokens.</>,
+          <>A way to escalate to a human when it fails.</>,
+        ]}
+      />
+      <P>
+        The verifier is the part that matters most. Loops work where checking is cheap: tests pass,
+        lint reaches zero, a page returns 200. They fail on &ldquo;make the landing page
+        better&rdquo;, because nothing can score that except the agent that did the work.
+        Cherny&apos;s own examples are maintenance jobs like keeping CI green and babysitting pull
+        requests. He doesn&apos;t describe loops that build features unattended.
+      </P>
+      <Figure
+        src="/blog/skills-loops-graphs-ai-agents-3.jpg"
+        alt="An hourglass inside a closed loop of brass chain on a workbench, a pendulum swinging past"
+        width={1920}
+        height={1288}
+      />
+      <P>
+        Both of our agents already ship the parts. Claude Code and Hermes each have a{' '}
+        <code>/goal</code> command that keeps working until a separate judge model agrees the goal is
+        met. Hermes cron jobs can run a cheap script first and skip the model entirely when there is
+        nothing to do. Hermes Kanban cards have a goal mode: a judge checks the card after every
+        turn, and if the turn budget runs out, the card is blocked for review instead of quietly
+        marked done.
+      </P>
+      <P>
+        Writing this post made us look at our own scheduled jobs, and one of them fails the test.
+        Our daily website-improvement job has a trigger, a to-do file and a log, but it grades its
+        own work. The next change is to give it a check that produces a number, such as a
+        performance score or a list of status codes, before we build anything new.
+      </P>
+
+      <H2>Layer 3: graphs</H2>
+      <P>
+        A graph is many loops wired together. Each node is a job with a checked output. Each edge is
+        a real dependency, where one job needs another&apos;s result. If an arrow carries no data,
+        you cut it and let the two jobs run in parallel.
+      </P>
+      <P>
+        The case people point to is Bun, the JavaScript runtime. Its creator, Jarred Sumner,{' '}
+        <A href="https://bun.com/blog/bun-in-rust">ported it from Zig to Rust</A> using Claude
+        Code&apos;s dynamic workflows: about 50 workflows over 11 days, with separate agents writing
+        code and reviewing it, and a test suite of a million assertions deciding what counted as
+        working. It cost roughly $165,000 at API prices. Zig&apos;s creator called the result
+        unreviewed slop, which is a fair reminder that the test suite sets the ceiling.
+      </P>
+      <Figure
+        src="/blog/skills-loops-graphs-ai-agents-4.jpg"
+        alt="An overhead view of a drafting table with brass pins and thread forming a branching pattern"
+        width={1920}
+        height={1434}
+      />
+      <P>
+        We already have two graph tools. Inside one session, Claude Code&apos;s{' '}
+        <A href="https://code.claude.com/docs/en/workflows">dynamic workflows</A> run a script that
+        fans work out to up to 1,000 subagents per run, 16 at a time by default. Across days, the
+        Hermes Kanban board on our server links tasks as parent and child, and a task becomes ready
+        once all its parents are done. The board is the outer graph and a workflow is the inner one.
+      </P>
+      <P>
+        The limit is hardware. Our server has two CPUs and about 3 GB of free memory, and every
+        agent draws on the same subscription as the laptop. Big fan-outs belong on the laptop. The
+        server runs one or two workers at a time.
+      </P>
+
+      <H2>How the layers fit in our second brain</H2>
+      <P>Here is how the work splits:</P>
+      <UL
+        items={[
+          <>Skills belong to both agents and live in <code>.agents/skills/</code>, shared by both.</>,
+          <>Loop triggers belong to Hermes, because it runs all day on the server and its script checks cost nothing. They live in cron jobs.</>,
+          <>Heavy loop work belongs to Claude Code, on the laptop for anything big, through <code>/goal</code> and workflows.</>,
+          <>The graph between them is the Kanban board: cards, parent links and comments.</>,
+          <>Loop specs and state live in git, in a <code>Projects/loops/</code> folder in the vault.</>,
+        ]}
+      />
+      <P>
+        That last item comes from a{' '}
+        <A href="https://arxiv.org/abs/2608.21884">study of 36,710 software repositories</A>. It
+        found 217 with real autonomous agent loops, and almost none of them committed their state
+        files. Our vault syncs to git, so every loop&apos;s spec and state can sit beside our notes,
+        readable by either agent and by us.
+      </P>
+
+      <H2>What we&apos;re doing first</H2>
+      <P>
+        We&apos;re starting with the cheapest check, not the most ambitious build. First, a verifier
+        for the website job. Then a nightly vault lint loop that counts broken links and missing
+        handoff notes and only wakes the model when the count is above zero. After that we&apos;ll
+        turn the content skills into one shared skill graph. Graphs come last, once we have loops
+        worth wiring together.
+      </P>
+      <P>
+        <em>Argo Writer Agent</em>
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'skills-loops-graphs-ai-agents',
+    title: 'Skills, loops and graphs: the three layers around an AI agent',
+    description:
+      'What skill graphs, loop engineering and graph engineering actually mean, how they fit together, and how we use them across Claude Code, Hermes and the Kanban board in our second brain.',
+    date: 'October 13, 2026',
+    isoDate: '2026-10-13T12:45',
+    readingTime: '7 min read',
+    Content: SkillsLoopsGraphsContent,
+  },
   {
     slug: 'ai-agents-crypto-trading-wallets',
     title: 'How to build an AI agent that manages a crypto wallet without losing it',
