@@ -158,7 +158,7 @@ function ViewersSection({ stats, since }: { stats: StreamStats; since: string })
                 </tbody>
               </table>
               <p style={{ marginTop: 10, fontSize: 12, color: 'var(--text3)', lineHeight: 1.55 }}>
-                Concurrent viewers are sampled once a minute from the public YouTube, Twitch and Kick pages; the chart adds them up. Streams before tracking started show their length only.
+                Concurrent viewers are sampled once a minute from the public YouTube, Twitch, Kick and X pages; the chart adds them up. Streams before tracking started show their length only.
               </p>
             </div>
           )}
@@ -196,7 +196,7 @@ export default async function LivestreamPage() {
       current: stats ? hoursStreamed(stats.sessions) : 0,
       target: 120,
       unit: 'hours',
-      source: stats ? 'Logged automatically from YouTube, Twitch and Kick, every minute. A multistream counts once.' : 'Stream log unreachable just now; retries every minute',
+      source: stats ? 'Logged automatically from YouTube, Twitch, Kick and X, every minute. A multistream counts once.' : 'Stream log unreachable just now; retries every minute',
       unavailable: !stats,
     }, period.daysLeft),
   ]

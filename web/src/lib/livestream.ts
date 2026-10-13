@@ -229,7 +229,7 @@ export async function walletSnapshot(
 
 /* ── Stream stats: viewers and hours ──────────────────────────────────────── */
 
-/* A JSON file written every minute by a private collector that reads YouTube,
+/* A JSON file written every minute by a private collector that reads YouTube, X,
  * Twitch and Kick's public pages (no API keys) into its own database. Hours streamed come
  * from here, not from a constant. The URL is a server-only env var, so the host
  * stays out of this public repo; unset means "no stats" and the page says so. */
