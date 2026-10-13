@@ -25,7 +25,7 @@ export const MANUAL = {
 export const MANUAL_UPDATED_AT = '2026-10-12'
 
 export const STREAM_LINKS = [
-  { id: 'youtube', label: 'YouTube', url: 'https://www.youtube.com/@myargoquest/live' },
+  { id: 'youtube', label: 'YouTube', url: 'https://www.youtube.com/@ArgoPodcast/live' },
   { id: 'twitch', label: 'Twitch', url: 'https://www.twitch.tv/synducer' },
   { id: 'kick', label: 'Kick', url: 'https://kick.com/konradgnat' },
   { id: 'x', label: 'X', url: 'https://x.com/myargoquest' },
