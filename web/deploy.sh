@@ -12,6 +12,13 @@ SSH_KEY="${LUMINALOG_DEPLOY_SSH_KEY:?set LUMINALOG_DEPLOY_SSH_KEY, e.g. ~/.ssh/y
 REMOTE_DIR="/root/luminalog/luminalog-web"
 SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# Keepalives on every ssh/rsync connection. `next build` runs for minutes with
+# no output; without these, a router dropping the idle connection leaves both
+# ends waiting forever after the build ends, so PM2 never restarts and the new
+# build never goes live (seen 2026-10-13). With them, a live connection stays
+# open and a dead one fails within about 3 minutes.
+SSH_OPTS="-o ServerAliveInterval=30 -o ServerAliveCountMax=6"
+
 # Refresh the past-events archive before the rsync, so a finished event reaches
 # the site on the next deploy rather than waiting for someone to notice.
 #
@@ -135,11 +142,11 @@ rsync -avz --delete \
   --exclude .git \
   --exclude '.env.local' \
   "$SRC_DIR/" \
-  -e "ssh -i $SSH_KEY" \
+  -e "ssh $SSH_OPTS -i $SSH_KEY" \
   "$SERVER:$REMOTE_DIR/"
 
 echo "==> Installing deps and building on server..."
-ssh -i "$SSH_KEY" "$SERVER" "
+ssh $SSH_OPTS -i "$SSH_KEY" "$SERVER" "
   set -e
   cd $REMOTE_DIR
   npm install --production=false
@@ -147,7 +154,7 @@ ssh -i "$SSH_KEY" "$SERVER" "
 "
 
 echo "==> Restarting PM2..."
-ssh -i "$SSH_KEY" "$SERVER" "
+ssh $SSH_OPTS -i "$SSH_KEY" "$SERVER" "
   set -e
   cd $REMOTE_DIR
   if pm2 list | grep -q luminalog-web; then
