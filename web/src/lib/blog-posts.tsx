@@ -5400,7 +5400,233 @@ function ArdourMcpAgentMusicContent() {
   )
 }
 
+/* ── Post: Giving our second brain a voice that never leaves the laptop ── */
+const voicePre: React.CSSProperties = {
+  margin: '20px 0 24px',
+  padding: '16px 18px',
+  background: 'var(--surfaceAlt)',
+  border: '1px solid var(--hairline)',
+  borderRadius: 12,
+  fontSize: 13.5,
+  lineHeight: 1.6,
+  overflowX: 'auto',
+  whiteSpace: 'pre-wrap',
+  color: 'var(--text)',
+}
+
+const VOICE_INSTALL = `uv tool install --python 3.12 'mlx-audio[server,tts]' \\
+  --with 'misaki[en]' --with 'spacy>=3.8,<4' \\
+  --with 'en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl'`
+
+const VOICE_FIRST_CLIP = `mlx_audio.tts.generate --model mlx-community/Kokoro-82M-bf16 --text 'Hello from my laptop.' --voice af_heart`
+
+const VOICE_SERVER = `mlx_audio.server --host 127.0.0.1 --port 8880 --log-dir ~/Library/Logs/tts
+curl -s -X POST http://127.0.0.1:8880/v1/audio/speech -H 'Content-Type: application/json' \\
+  -d '{"model":"mlx-community/Kokoro-82M-bf16","input":"It works.","voice":"af_heart"}' -o test.mp3`
+
+const VOICE_HOOK = `"hooks": { "Stop": [ { "hooks": [ { "type": "command", "command": "python3 /path/to/stop_speak.py", "timeout": 10 } ] } ] }`
+
+function LocalVoiceKokoroContent() {
+  return (
+    <>
+      <P>
+        Our second brain is a few thousand markdown notes, a Postgres index and a small web app
+        that runs on a MacBook. This week it learned to talk. Every note now has a Listen button,
+        and when Claude Code finishes a long job on that Mac it says so out loud, so you can walk
+        away from the screen and still hear when the work is done.
+      </P>
+      <P>
+        All of the speech comes from a model running on the laptop itself. The note text never
+        goes to a cloud voice service, which matters when the notes include health, money and
+        journal material.
+      </P>
+      <Figure
+        src="/blog/local-voice-kokoro-second-brain-1.jpg"
+        alt="A warm desk at night, a laptop glowing softly while sound seems to rise from it"
+        width={2752}
+        height={1536}
+        priority
+      />
+
+      <H2>The voice: Kokoro on Apple silicon</H2>
+      <P>
+        The model is Kokoro-82M, an open text-to-speech model under the Apache 2.0 license. It
+        has 82 million parameters, small enough to run comfortably on a 14-inch M4 MacBook Pro
+        with 16 GB of memory. We use the voice called <code>af_heart</code>. In Kokoro&apos;s
+        naming the <code>a</code> means American English and the <code>f</code> means female;
+        &ldquo;heart&rdquo; is the voice itself. It is also the voice our Friendly desk robot
+        already speaks with, so the robot, the notes app and the coding agent now sound like the
+        same person.
+      </P>
+      <P>
+        It runs through <A href="https://github.com/Blaizzy/mlx-audio">mlx-audio</A>, an
+        open-source library built on Apple&apos;s MLX framework. mlx-audio includes a small server
+        that speaks the same API shape as OpenAI&apos;s speech endpoint, so anything that can call{' '}
+        <code>POST /v1/audio/speech</code> can use the local voice by changing one URL.
+      </P>
+      <P>
+        On our M4 the numbers came out like this. The first request after a restart takes about
+        13 seconds while the model loads. After that a sentence comes back in under half a second.
+        A long planning note that reads out to 15 minutes of audio rendered in 79 seconds. The
+        server process used about 213 MB of memory.
+      </P>
+      <P>
+        Kokoro is not the most natural voice available. On the{' '}
+        <A href="https://artificialanalysis.ai/text-to-speech/leaderboard">
+          Artificial Analysis speech leaderboard
+        </A>{' '}
+        it sits well below the best paid voices. For reading notes and announcing finished tasks
+        it is good enough, and it keeps working when an API account runs out of credit.
+      </P>
+
+      <H2>Listen to any note</H2>
+      <Figure
+        src="/blog/local-voice-kokoro-second-brain-2.jpg"
+        alt="A pair of headphones resting on an open notebook in lamplight"
+        width={2400}
+        height={1792}
+      />
+      <P>
+        Open a note in the second brain app and there is a Listen link next to Download and Edit.
+        Press it and the app turns the markdown into speakable text: it drops the frontmatter,
+        code blocks, link URLs and table pipes, and ends headings and list items with a full stop
+        so the voice pauses in the right places. Then it sends the text to the local server and
+        plays the MP3 in a normal audio player, so you can pause, scrub and change speed.
+      </P>
+      <P>
+        A five-minute note took about 21 seconds to render the first time. The audio is cached,
+        so the second listen starts at once.
+      </P>
+      <P>
+        We made one rule strict on purpose. If the local voice server is down, the Listen button
+        shows an error. It does not fall back to a cloud voice, because the whole point is that
+        private notes stay on the machine.
+      </P>
+
+      <H2>Hearing when Claude is done</H2>
+      <Figure
+        src="/blog/local-voice-kokoro-second-brain-3.jpg"
+        alt="A person raising both arms at a window at dusk, away from a laptop resting on the desk"
+        width={2528}
+        height={1696}
+      />
+      <P>
+        Long agent tasks have an awkward rhythm. You start something that will take eight
+        minutes, switch to another window, and come back twenty minutes later. Now, when a Claude
+        Code task on this Mac runs longer than two minutes, the laptop says something like
+        &ldquo;Claude finished in secondbrain after 6 minutes,&rdquo; followed by the first
+        sentence of Claude&apos;s reply.
+      </P>
+      <P>
+        This is a Claude Code Stop hook: a small script Claude Code runs every time it finishes a
+        turn. The script reads the session transcript, measures the time since your last message,
+        and stays silent for anything short. If two sessions finish at the same moment, the
+        messages queue instead of talking over each other.
+      </P>
+      <P>
+        A Voice switch in the second brain app&apos;s header turns this on or off for this Mac.
+        It writes one small settings file, and the hook reads that file on every turn, so the
+        change applies to the next task without a restart.
+      </P>
+      <P>
+        The same voice now powers two more tools:{' '}
+        <A href="https://github.com/mbailey/voicemode">VoiceMode</A>, an MCP server for spoken
+        conversations with Claude Code, and the Hermes agent when it runs on the Mac. Hermes on
+        our cloud server still uses its old cloud voice, because a laptop that travels and sleeps
+        can&apos;t serve a Telegram bot.
+      </P>
+
+      <H2>How to set it up yourself</H2>
+      <Figure
+        src="/blog/local-voice-kokoro-second-brain-4.jpg"
+        alt="Hands on a dark keyboard in warm, low light"
+        width={2400}
+        height={1792}
+      />
+      <P>
+        You need a Mac with Apple silicon (M1 or later) and <code>uv</code>. These are the steps
+        we followed, including the parts that tripped us up.
+      </P>
+      <P>
+        <strong>1. Install mlx-audio with the extras Kokoro needs.</strong> The server lives in
+        the <code>server</code> extra, and Kokoro&apos;s English phonemizer, misaki, needs spaCy
+        and its small English model. Pin spaCy below version 4: letting uv pick pre-release
+        packages pulled a spaCy development build that crashed on load.
+      </P>
+      <pre style={voicePre}><code>{VOICE_INSTALL}</code></pre>
+      <P>
+        <strong>2. Generate a first clip.</strong> The first run downloads the model and the
+        voice file. The voices come from a second repository, so this run needs internet access.
+      </P>
+      <pre style={voicePre}><code>{VOICE_FIRST_CLIP}</code></pre>
+      <P>
+        <strong>3. Run the server on localhost.</strong> Bind it to 127.0.0.1 so nothing else on
+        your network can reach it. If you run it from launchd, set a working directory and a log
+        directory: the server creates a <code>logs</code> folder where it starts, and under
+        launchd that is the read-only root of the disk.
+      </P>
+      <pre style={voicePre}><code>{VOICE_SERVER}</code></pre>
+      <P>
+        <strong>4. Add the spoken alert to Claude Code.</strong> In{' '}
+        <code>~/.claude/settings.json</code>, add a Stop hook that runs your script. The script
+        reads the hook&apos;s JSON from standard input, opens the <code>transcript_path</code> it
+        points to, finds the timestamp of your last real message (not tool results or system
+        messages), and if more than two minutes have passed, starts a detached process that posts
+        a short sentence to the server and plays it with <code>afplay</code>. Make it exit 0 on
+        every error, so speech can never block Claude from stopping.
+      </P>
+      <pre style={voicePre}><code>{VOICE_HOOK}</code></pre>
+      <P>
+        <strong>5. Give it an off switch.</strong> Have the hook read a small JSON file such as{' '}
+        <code>{'{"autoSpeak": true, "minTaskSeconds": 120}'}</code> before doing anything else.
+        Any interface can flip that file: a button in your own app, a shell alias, or another
+        agent.
+      </P>
+      <P>
+        <strong>6. If you use VoiceMode,</strong> point it at the server with{' '}
+        <code>VOICEMODE_TTS_BASE_URLS=http://127.0.0.1:8880/v1</code>. VoiceMode assumes port
+        8880 is a different Kokoro server and sends the model name <code>tts-1</code>, which
+        mlx-audio rejects, so also set{' '}
+        <code>VOICEMODE_TTS_MODELS_KOKORO=mlx-community/Kokoro-82M-bf16</code>. VoiceMode also
+        needs the PortAudio library (<code>brew install portaudio</code>).
+      </P>
+      <P>
+        One more thing we found while setting up: VoiceMode had been launched with{' '}
+        <code>uvx --refresh</code> in our Claude Code config, and each session left a stuck
+        process behind. Eight of them were holding uv&apos;s cache lock, which is also why
+        VoiceMode never connected. Installing it once with <code>uv tool install voice-mode</code>{' '}
+        and pointing the config at that binary fixed both.
+      </P>
+
+      <H2>What comes next</H2>
+      <P>
+        The next step is a cloned voice, so course voiceovers can be read in the author&apos;s own
+        voice. The plan is to try Qwen3-TTS, another Apache 2.0 model that can copy a voice from a
+        short recording. A second Mac with more memory will eventually take over the server role
+        so our cloud agents can use the same voice over a private network.
+      </P>
+      <P>
+        For now the change is small and practical: the notes can read themselves aloud, and the
+        laptop tells you when the agent is done.
+      </P>
+      <P>
+        <em>Argo Writer Agent</em>
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'local-voice-kokoro-second-brain',
+    title: 'Giving our second brain a voice that never leaves the laptop',
+    description:
+      'How we added local text-to-speech to our second brain with Kokoro-82M on a MacBook: a Listen button on every note, spoken alerts when Claude Code finishes, and a step-by-step guide to set it up yourself.',
+    date: 'October 14, 2026',
+    isoDate: '2026-10-14T21:00',
+    readingTime: '7 min read',
+    Content: LocalVoiceKokoroContent,
+  },
   {
     slug: 'ardour-mcp-ai-agent-lane-8-style-track',
     title: 'Making a Lane 8-style track with Ardour and an AI agent',

@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import AppStoreButton from '@/components/AppStoreButton'
 import SocialLinks from '@/components/SocialLinks'
+import CopyToAgents from '@/components/CopyToAgents'
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Shared presentational helpers for the blog (/blog and /blog/[slug]).
@@ -48,11 +49,14 @@ export function BlogPostLayout({
   title,
   date,
   readingTime,
+  agent,
   children,
 }: {
   title: string
   date: string
   readingTime: string
+  /** The post as markdown, for the top-right "Copy to agents" button. */
+  agent?: { markdown: string; markdownUrl: string }
   children: React.ReactNode
 }) {
   return (
@@ -62,7 +66,10 @@ export function BlogPostLayout({
         {/* Header */}
         <section style={{ borderBottom: '1px solid var(--hairline)', background: 'var(--surfaceAlt)' }}>
           <div className="wrap" style={{ padding: '72px 0 48px', maxWidth: 760 }}>
-            <Link href="/blog" className="eyebrow" style={{ marginBottom: 18 }}>← All writing</Link>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
+              <Link href="/blog" className="eyebrow">← All writing</Link>
+              {agent && <CopyToAgents markdown={agent.markdown} markdownUrl={agent.markdownUrl} />}
+            </div>
             <h1 className="serif" style={{ marginTop: 14, fontSize: 'clamp(32px,4.6vw,48px)', fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1.08, color: 'var(--text)' }}>{title}</h1>
             <p style={{ marginTop: 18, fontSize: 14.5, color: 'var(--text3)' }}>{date} · {readingTime}</p>
           </div>

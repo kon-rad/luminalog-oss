@@ -13,6 +13,11 @@ const nextConfig = {
     // required at runtime from node_modules (bundling their .node binaries fails).
     serverComponentsExternalPackages: ['onnxruntime-node', '@huggingface/transformers'],
   },
+  async rewrites() {
+    // Agents read posts as markdown: /blog/<slug>.md -> app/blog-md/[slug]/route.ts.
+    // afterFiles, so /blog/index.md and /blog/SKILL.md (their own routes) win.
+    return [{ source: '/blog/:slug.md', destination: '/blog-md/:slug' }]
+  },
   async redirects() {
     // The course moved under /courses and was later renamed. Keep old links working.
     return [
