@@ -4952,7 +4952,204 @@ function SkillsLoopsGraphsContent() {
   )
 }
 
+/* ── Post: Five AI partners and one button (Argo Fund) ── */
+function ArgoFundCommitteeContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/argo-fund-ai-investment-committee-1.jpg"
+        alt="Rows of numbered bank deposit boxes"
+        width={1920}
+        height={1280}
+        caption="Photo: Tim Evans / Unsplash"
+        priority
+      />
+      <P>
+        AI agents can already trade. You can hand one a wallet tonight and it will happily swap
+        tokens for you while you sleep. The hard part is not getting an agent to trade. It&apos;s
+        deciding how much you trust it, and building a system where that trust has edges you can see.
+      </P>
+      <P>
+        Last week, at the TOKEN2049 hackathon, I tried to answer that with a lot of machinery: a
+        transaction guardian running as a Chainlink CRE workflow, onchain simulation, two AI
+        reviewers, a custom Safe module. It was a good hackathon build. When the event was over I
+        asked a simpler question: what is the smallest system I would actually trust with my own
+        money tomorrow? This post is the answer. I call it Argo Fund.
+      </P>
+
+      <H2>A committee, not a bot</H2>
+      <P>
+        Argo Fund isn&apos;t one agent. It&apos;s an investment committee of five, each with a
+        written identity and a worldview built to disagree with the others:
+      </P>
+      <UL
+        items={[
+          <><strong>Wren Hollis, the Tidewatcher.</strong> Macro and liquidity. Crypto floats on the tide of global money, so Wren starts every meeting by asking whether the tide is coming in or going out.</>,
+          <><strong>Kaito Brandt, the Ledger Reader.</strong> Onchain fundamentals only. Fees, revenue, unlocks. Kaito&apos;s question: who is actually paying to use this?</>,
+          <><strong>Odalys Fen, the Warden.</strong> Risk. She thinks about exploits, depegs and liquidity first, and she can block a trade, but only by citing the clause of the fund&apos;s rules it breaks.</>,
+          <><strong>Juno Achebe, the Signal Hunter.</strong> Momentum and the technology frontier: onchain AI agents, restaking, tokenized real-world assets. Every idea has to name its exit.</>,
+          <><strong>Basile Marr, the Heretic.</strong> The contrarian. For every motion, Basile writes the story of how it goes wrong six months from now, and votes no on any consensus nobody has challenged.</>,
+        ]}
+      />
+      <P>
+        Every morning a research agent writes up the market and one deeper topic. Then the
+        committee meets. Each partner writes a view without seeing the others, there&apos;s one
+        round of rebuttals, and they vote. A trade passes with three of five. Changing the
+        fund&apos;s rules takes four.
+      </P>
+      <Figure
+        src="/blog/argo-fund-ai-investment-committee-2.jpg"
+        alt="A team meeting around a long table"
+        width={1920}
+        height={1125}
+        caption="Photo: Walls.io / Unsplash"
+      />
+      <P>
+        Everything is written down in plain markdown. A constitution holds the strategy and the
+        rules, and the committee amends it by vote. Every meeting has minutes with each
+        partner&apos;s view and vote. A trade log records what was bought, why, and how the vote
+        went. I can open any trade and read exactly how five different minds got there.
+      </P>
+
+      <H2>Principles first</H2>
+      <P>
+        The model I keep coming back to is Ray Dalio&apos;s <em>Principles</em>: write down how you
+        decide, apply it the same way every time, and after every mistake ask which principle
+        failed. I don&apos;t think an AI committee has an edge at predicting prices. I do think
+        it&apos;s unusually good at applying written principles consistently. It doesn&apos;t panic
+        at 3 am, it doesn&apos;t revenge-trade, and it remembers every reason it ever gave.
+      </P>
+      <P>
+        So the strategy is a barbell. Most of the fund sits in a long-term core (ETH, bitcoin and a
+        USDC reserve). A smaller frontier sleeve backs new protocols and technologies, and only with
+        a research note that says who pays for the thing today, what the token captures, what kills
+        the thesis, and where we get out. Every week a review agent scores the fund against simply
+        holding USDC, simply holding ETH, and a 50/50 split, and scores each partner&apos;s calls. If
+        the committee can&apos;t beat a plain 50/50 hold after six months, the honest conclusion is
+        to change the process.
+      </P>
+
+      <H2>Who holds which key</H2>
+      <Figure
+        src="/blog/argo-fund-ai-investment-committee-3.png"
+        alt="Diagram of the server, the Safe on Base, the deck and the savings vault, with which device holds which key"
+        width={1920}
+        height={1080}
+      />
+      <P>
+        The fund&apos;s money lives in a Safe on Base: a shared wallet with three owners, where any
+        two must sign.
+      </P>
+      <UL
+        items={[
+          <><strong>The agent</strong>, on my server. It proposes trades and pays the gas, but it can never move money on its own.</>,
+          <><strong>The deck</strong>, the Raspberry Pi 4 I wear. Its key signs when I press the approve button.</>,
+          <><strong>My phone wallet</strong>, kept out of the daily flow. It&apos;s the backup if the deck is lost and the recovery key if the server is ever compromised.</>,
+        ]}
+      />
+      <P>
+        That&apos;s the whole security model for now. I deliberately launched without trading
+        limits, because the fund starts with 100 USDC and the two-signature rule plus my own press is
+        enough at that size. The rule checks are an empty hook in the code, ready to fill in as the
+        fund grows.
+      </P>
+
+      <H2>The button</H2>
+      <Figure
+        src="/blog/argo-fund-ai-investment-committee-4.jpg"
+        alt="A Raspberry Pi 4 board on a dark table"
+        width={1920}
+        height={1280}
+        caption="Photo: Jainath Ponnala / Unsplash"
+      />
+      <P>
+        When a trade passes, it appears on panel six of the deck&apos;s kiosk: the trade, the vote
+        count, and one line from each partner explaining their vote.
+      </P>
+      <Figure
+        src="/blog/argo-fund-ai-investment-committee-5.png"
+        alt="The Fund panel on the kiosk, showing a proposed trade and how each of the five partners voted"
+        width={1920}
+        height={1080}
+        caption="The kiosk's Fund panel, with demo data."
+      />
+      <P>
+        When I press approve, the deck asks the server for a fresh quote, rebuilds the
+        transaction&apos;s hash on its own and signs only if it matches. It also refuses to sign any
+        transfer out of the fund that isn&apos;t going to my savings. The server then adds the
+        agent&apos;s signature and sends the trade. Nothing is quoted ahead of time and left to go
+        stale; the price I approve is the price of that moment.
+      </P>
+
+      <H2>The savings vault</H2>
+      <Figure
+        src="/blog/argo-fund-ai-investment-committee-6.jpg"
+        alt="A Raspberry Pi Zero held between two fingers"
+        width={1920}
+        height={1080}
+        caption="Photo: Harrison Broadbent / Unsplash"
+      />
+      <P>
+        Profits and withdrawals leave the fund for one place only: a savings vault on a Raspberry Pi
+        Zero that will never touch a network. Anyone can send money to it. Spending from it is a
+        ceremony. The Zero only answers requests from my own deck, over a USB cable, after the two
+        devices have paired by exchanging keys. It only signs payments to a short list of my own
+        addresses written on its SD card. And it shows the amount and destination on its own small
+        screen, then waits for a press on its own button. A hijacked deck can ask, but it can&apos;t
+        sign, and it can only ever send money back to me.
+      </P>
+      <P>
+        That vault is designed but not built yet. The fund side is ready: withdrawals already go
+        only to the savings address, and the deck already refuses anything else.
+      </P>
+
+      <H2>Copy trading, as evidence</H2>
+      <P>
+        I also looked at copy trading, and came away wary. In one study I found cited, almost every
+        copied trader was profitable on their own books, but fewer than half made money for the
+        people copying them. You enter later, at a worse price, without seeing their hedges or their
+        exit plan. So the committee doesn&apos;t copy anyone. Instead, the research agent keeps a
+        small watchlist of wallets with long, steady track records. When several of them
+        independently buy the same thing, it becomes a reason to research, never a trade on its own.
+      </P>
+
+      <H2>What&apos;s live</H2>
+      <P>
+        The code is built and tested end to end on a copy of the Base network: the Safe is created
+        by script, two real swaps execute with two signatures, withdrawals land in a savings address,
+        and signatures from anyone who isn&apos;t an owner are rejected. The next step is the real
+        launch with 100 USDC, then a few weeks of watching the committee argue before I trust it
+        with more. I plan to open-source the skills and the five partners so anyone can run their
+        own committee.
+      </P>
+      <P>
+        This is an experiment in process, transparency and learning, run with an amount I can
+        afford to lose. It isn&apos;t financial advice. But I&apos;ll learn more about DeFi from
+        reading five AI partners argue every morning than I would from any course, and that alone
+        makes it worth running.
+      </P>
+      <P>
+        Earlier in this series:{' '}
+        <A href="/blog/ai-agents-crypto-trading-wallets">
+          How to build an AI agent that manages a crypto wallet without losing it
+        </A>
+        .
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'argo-fund-ai-investment-committee',
+    title: 'Five AI partners and one button: how I built an agentic portfolio manager',
+    description:
+      'Argo Fund is an investment committee of five AI partners who research, debate and vote, a Safe on Base that needs two signatures, an approve button on my wearable, and an offline savings vault on a Raspberry Pi Zero.',
+    date: 'October 14, 2026',
+    isoDate: '2026-10-14T18:00',
+    readingTime: '6 min read',
+    Content: ArgoFundCommitteeContent,
+  },
   {
     slug: 'skills-loops-graphs-ai-agents',
     title: 'Skills, loops and graphs: the three layers around an AI agent',
