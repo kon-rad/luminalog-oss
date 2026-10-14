@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { BlogIndexLayout } from '@/components/blog'
-import { posts } from '@/lib/blog-posts'
+import { allPosts } from '@/lib/blog-feed'
+
+/* Re-read the published-updates feed each minute (see lib/blog-feed.tsx). */
+export const revalidate = 60
 
 export const metadata: Metadata = {
   title: 'Writing, Argo',
@@ -14,8 +17,8 @@ export const metadata: Metadata = {
   },
 }
 
-export default function BlogIndexPage() {
-  const sorted = [...posts].sort((a, b) => (a.isoDate < b.isoDate ? 1 : -1))
+export default async function BlogIndexPage() {
+  const sorted = await allPosts()
 
   return (
     <BlogIndexLayout>
