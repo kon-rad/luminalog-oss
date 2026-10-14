@@ -133,8 +133,13 @@ echo "==> Syncing $SRC_DIR -> $SERVER:$REMOTE_DIR ..."
 # which is the difference between a deploy from a fresh clone being a no-op for
 # the demo day assets and it wiping 76 MB of video off production. Protect does
 # not block transfer: when the file IS present locally it still ships normally.
+#
+# The third rule does the same for event covers. The Luma sync writes new ones
+# into public/events/ untracked, so a deploy from another checkout (a clone on a
+# server, a worktree) would otherwise delete covers it has never seen.
 rsync -avz --delete \
   --filter='protect public/demo-day/launch-film.mp4' \
+  --filter='protect public/events/***' \
   --filter='protect public/demo-day/argo-final-demo-day.pptx' \
   --exclude node_modules \
   --exclude .next \
