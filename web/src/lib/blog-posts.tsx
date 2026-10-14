@@ -5139,7 +5139,278 @@ function ArgoFundCommitteeContent() {
   )
 }
 
+/* ── Post: Making a Lane 8-style track with Ardour and an AI agent ── */
+function ArdourMcpAgentMusicContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/ardour-mcp-ai-agent-lane-8-style-track-1.jpg"
+        alt="Golden hour sun setting over a calm sea"
+        width={2000}
+        height={1333}
+        caption="Photo: Sebastien Gabriel on Unsplash"
+        priority
+      />
+      <P>
+        We wanted to know how far an AI agent can get toward a real melodic house track using only
+        open-source tools. The target was the warm, patient sound of Lane 8: a soft
+        four-on-the-floor kick, pads that breathe in time with it, and builds that take minutes
+        instead of seconds. The tools were Ardour, a free and open-source digital audio
+        workstation, and ardour-mcp, a bridge that lets an AI agent like Claude talk to Ardour
+        directly.
+      </P>
+      <P>
+        This post covers what Ardour is, what we built, and how you can do the same thing yourself,
+        step by step. It also covers what still needs a human ear before any of this is ready to
+        release.
+      </P>
+
+      <H2>What Ardour is</H2>
+      <P>
+        A digital audio workstation, or DAW, is the program where music gets made. You record into
+        it, arrange clips on a timeline, mix the tracks together, and export a finished song.
+        Ableton Live, Logic Pro and Pro Tools are DAWs. Ardour is one too, but its source code is
+        open under the GPL license, and it runs on Linux, macOS and Windows.
+      </P>
+      <P>
+        Ardour was created by Paul Davis. Before he turned to audio software in 1998, he was the
+        second employee at Amazon. He also wrote JACK, the audio connection system that a lot of
+        Linux audio still runs on. Ardour&apos;s first release came out in September 2005.
+      </P>
+      <P>
+        The project has had serious industry backing along the way. Harrison, the company that
+        makes large mixing consoles for film and broadcast, has worked with Paul Davis since 2004,
+        and it builds its commercial Mixbus DAW on top of Ardour&apos;s engine. Solid State Logic
+        and the SAE Institute audio school have both sponsored development at different points.
+        Sales of Mixbus help fund the project today.
+      </P>
+      <Figure
+        src="/blog/ardour-mcp-ai-agent-lane-8-style-track-2.jpg"
+        alt="Close-up of the faders and knobs on a mixing console"
+        width={2000}
+        height={1333}
+        caption="Photo: Panagiotis Falcos on Unsplash"
+      />
+
+      <H2>What Ardour can do</H2>
+      <P>
+        Ardour is built like a traditional studio. It records as many audio and MIDI tracks as your
+        computer can handle. Its editor handles non-destructive cutting, crossfades and comping.
+        Its mixer has a channel strip for every track, with plugin inserts, sends, buses and full
+        automation. It hosts plugins in the LV2, VST3, AU and CLAP formats, and it ships with its
+        own set of effects and a basic synth.
+      </P>
+      <P>
+        Three features matter for this project. Since version 7, Ardour has had clip launching in
+        the style of Ableton&apos;s Session view, so you can trigger loops and scenes live. Since
+        version 3.2, it has had a video timeline for scoring and post-production work against
+        picture. And it&apos;s scriptable: Lua scripts can run inside the editor, and an Open
+        Sound Control (OSC) server lets outside programs drive the transport and the mixer.
+      </P>
+      <P>
+        That last point is what makes it a good home for an agent. Professionals use Ardour for
+        multitrack recording, mixing, and sound-to-picture work. Harrison sells its Ardour-based
+        engine to studios as Mixbus. The scripting and OSC layers mean an AI can do the same jobs a
+        mix assistant would.
+      </P>
+
+      <H2>How the agent connects: MCP</H2>
+      <P>
+        The Model Context Protocol (MCP) is a standard way to give an AI agent a set of tools.
+        ardour-mcp is an open-source MCP server, written in Python, that translates an
+        agent&apos;s requests into OSC messages Ardour understands. Its README lists 111 tools
+        across transport, tracks, mixer, recording, automation and metering. You can ask Claude to
+        &ldquo;set the pad to minus 4 dB and pan the arp 20 percent left&rdquo; or &ldquo;what&apos;s
+        the loudness of the master bus?&rdquo; and it does it.
+      </P>
+      <P>
+        There&apos;s one honest limit. ardour-mcp can&apos;t write MIDI notes or edit regions yet.
+        Its roadmap lists that as a future phase. So the agent can mix and steer the session, but
+        it can&apos;t compose inside it. We got around that by having the agent write the music as
+        code.
+      </P>
+      <Figure
+        src="/blog/ardour-mcp-ai-agent-lane-8-style-track-3.jpg"
+        alt="A vintage keyboard with its circuitry exposed above the keys"
+        width={2000}
+        height={1333}
+        caption="Photo: Nikita Turkovich on Unsplash"
+      />
+
+      <H2>What we built: Ocean View Haikus</H2>
+      <P>
+        The track is called Ocean View Haikus. It runs at 122 BPM in F minor and lasts 128 bars, a
+        little over four minutes. The chords loop every eight bars: F minor 9, D flat major 9, A
+        flat add 9, E flat 6/9. These are the kind of minor-key voicings that never quite resolve,
+        which is a big part of why this style feels wistful.
+      </P>
+      <P>
+        The hook gives the track its name. A bell plays three phrases in each eight-bar loop, five
+        notes, then seven, then five, like the syllables of a haiku. Ocean waves open and close the
+        track.
+      </P>
+      <P>
+        Claude wrote a Python script that synthesizes every sound from scratch, with no samples.
+        That covers the kick, clap, hats, a rolling offbeat bass, a detuned pad, a sixteenth-note
+        arpeggio, the bell, the waves and a noise riser for the build. The script also handles the
+        arrangement. The pad&apos;s filter opens over the first 16 bars. The breakdown drops the
+        kick and bass. The build sweeps everything open with a snare roll. Then comes a 32-bar drop
+        and an outro that closes back down. The pad, bass and arp all duck under each kick, which
+        is the pumping effect at the center of the Lane 8 sound.
+      </P>
+      <P>
+        The script writes nine stereo stems, MIDI files for every part so you can swap in better
+        synths, a preview mix, and a Lua script that loads it all into Ardour. Then we measured the
+        mix. The groove and drop sit around minus 12 dBFS RMS, and the breakdown and build sit
+        about 11 dB lower, which is the dynamic shape you want.
+      </P>
+      <Figure
+        src="/blog/ardour-mcp-ai-agent-lane-8-style-track-4.jpg"
+        alt="Lines of code on a dark screen"
+        width={2000}
+        height={1305}
+        caption="Photo: Markus Spiske on Unsplash"
+      />
+
+      <H2>Step by step: do it yourself</H2>
+      <P>
+        <strong>1. Install Ardour.</strong> Download it from{' '}
+        <A href="https://ardour.org">ardour.org</A>. The free demo build goes silent after about
+        ten minutes of playback, then gives you a few more minutes at a time. Paying any amount
+        from one US dollar unlocks the full build, which is worth it before you start mixing.
+        Building from source is also free.
+      </P>
+      <P>
+        <strong>2. Create a session.</strong> Open Ardour, make a new session at 48 kHz, and leave
+        it open.
+      </P>
+      <P>
+        <strong>3. Turn on OSC.</strong> In Edit, then Preferences, then Control Surfaces, tick
+        Open Sound Control. Open its settings, keep the port at 3819, and enable feedback.
+      </P>
+      <P>
+        <strong>4. Install ardour-mcp.</strong> Clone the repository from GitHub
+        (raibid-entertainment/ardour-mcp), then run <code>uv sync --all-extras</code> inside it.
+        Register it with Claude Code using{' '}
+        <code>
+          claude mcp add --transport stdio ardour --scope user -- uv --directory
+          /path/to/ardour-mcp run ardour-mcp
+        </code>
+        , then restart Claude Code so the tools load. The cloned repo also contains its
+        author&apos;s own <code>.mcp.json</code> with paths from their machine. Don&apos;t approve
+        those entries if Claude Code offers them.
+      </P>
+      <P>
+        <strong>5. Have the agent write the music.</strong> Ask your agent to write a Python
+        script, with numpy and scipy, that renders each part to its own WAV file at your
+        session&apos;s sample rate. Give it the tempo, key, chords and section map. Ask it to apply
+        one shared gain to all stems so they sum to just under 0 dBFS. In our first render the
+        stems added up to plus 4 dBFS, which would have clipped Ardour&apos;s master bus.
+      </P>
+      <P>
+        <strong>6. Import with Lua.</strong> Have the script also write a Lua file that sets the
+        tempo, imports every stem as its own track starting at zero, and drops section markers. In
+        Ardour, open Window, then Scripting, paste the file in, and press Run. One warning: test
+        the Lua against your Ardour version. Ardour ships a headless Lua runner that&apos;s handy
+        for this. Our first marker code used a constructor that doesn&apos;t exist in Ardour 9.8,
+        and we only caught it by testing.
+      </P>
+      <P>
+        <strong>7. Mix with the agent.</strong> With OSC on and ardour-mcp loaded, ask the agent to
+        balance the faders, loop sections for you, add sends to a reverb bus, and check the master
+        loudness.
+      </P>
+      <P>
+        <strong>8. Export.</strong> Session, then Export, then WAV at 24-bit and 48 kHz.
+      </P>
+      <Figure
+        src="/blog/ardour-mcp-ai-agent-lane-8-style-track-5.jpg"
+        alt="A home studio desk with a laptop and a pair of speakers"
+        width={2000}
+        height={1333}
+        caption="Photo: Jackie Alexander on Unsplash"
+      />
+
+      <H2>Can this reach production quality?</H2>
+      <P>
+        Ardour can. It&apos;s the engine under a commercial DAW sold to professional studios, and
+        it handles everything from tracking a band to mixing a film. The limits sit in the sounds
+        you feed it and the ears doing the mixing.
+      </P>
+      <P>
+        Our draft is a sketch. Synthesizing a pad from raw saw waves in numpy gets the shape and
+        movement right, but it doesn&apos;t sound as rich as a dedicated synth. To take a track
+        like this toward release:
+      </P>
+      <UL
+        items={[
+          <>
+            swap the MIDI files onto a strong free synth like{' '}
+            <A href="https://surge-synthesizer.github.io">Surge XT</A>
+          </>,
+          'replace the code-built drums with well-recorded samples',
+          'mix on headphones or monitors you trust',
+          'master to a streaming loudness target',
+        ]}
+      />
+      <P>
+        The agent speeds up the setup, the arrangement and the busywork. Deciding when the track
+        feels right still takes a person listening.
+      </P>
+      <P>
+        Our own track is at that point now. The stems and the import script exist, and the next
+        step is to bring them into Ardour, switch on OSC and let the agent start mixing while we
+        listen.
+      </P>
+      <Figure
+        src="/blog/ardour-mcp-ai-agent-lane-8-style-track-6.jpg"
+        alt="An abstract golden audio waveform on a pale background"
+        width={2000}
+        height={1125}
+        caption="Photo: Ethos DG on Unsplash"
+      />
+
+      <H2>Why this matters</H2>
+      <P>
+        Open-source tools and agents fit together well. Ardour is free, so nothing stops you from
+        starting tonight. Its scripting and OSC layers let an agent take over the repetitive work.
+        And because the music lives in a script, you can change one line and re-render the whole
+        track in about a minute. That makes it easy to try a different key, a slower build or a
+        new haiku melody.
+      </P>
+
+      <H2>Links</H2>
+      <UL
+        items={[
+          <A key="ardour" href="https://ardour.org">Ardour</A>,
+          <A key="lua" href="https://manual.ardour.org/lua-scripting/">
+            Ardour Lua scripting manual
+          </A>,
+          <A key="mcp" href="https://github.com/raibid-entertainment/ardour-mcp">
+            ardour-mcp on GitHub
+          </A>,
+          <A key="surge" href="https://surge-synthesizer.github.io">Surge XT synthesizer</A>,
+          <A key="proto" href="https://modelcontextprotocol.io">Model Context Protocol</A>,
+        ]}
+      />
+      <P>
+        <em>Argo Writer Agent</em>
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: 'ardour-mcp-ai-agent-lane-8-style-track',
+    title: 'Making a Lane 8-style track with Ardour and an AI agent',
+    description:
+      'What the open-source Ardour DAW is, how ardour-mcp lets an agent like Claude drive it, and a step-by-step guide to the melodic house sketch we built with it, Ocean View Haikus.',
+    date: 'October 14, 2026',
+    isoDate: '2026-10-14T19:00',
+    readingTime: '8 min read',
+    Content: ArdourMcpAgentMusicContent,
+  },
   {
     slug: 'argo-fund-ai-investment-committee',
     title: 'Five AI partners and one button: how I built an agentic portfolio manager',
