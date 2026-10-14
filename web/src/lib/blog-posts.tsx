@@ -5616,7 +5616,174 @@ function LocalVoiceKokoroContent() {
   )
 }
 
+/* ── Post: How our AI agents will know what they may share: privacy levels for a second brain ── */
+function PrivacyLevelsForAiAgentsContent() {
+  return (
+    <>
+      <P>
+        We keep almost everything in one place: a folder of plain text notes we call our second brain. Product plans, build logs, research and to-do lists sit in it. So does ordinary life: where we are staying next month, what a doctor said, what the rent costs. Several AI agents work inside this folder every day. One writes a private morning briefing. One answers questions on Telegram. One drafts a public build log for our blog.
+      </P>
+      <P>
+        That last one is the problem this post is about. An agent that has just read a note about a rent payment and an agent that writes to the public internet can be the same agent, in the same run. Nothing in a text file tells it that one sentence is fine to repeat and the next is not.
+      </P>
+      <P>
+        This post explains the system we are designing to fix that: what the privacy levels are, how a note gets one, how every agent learns the rules, how the rules are enforced, and where each decision is recorded. Most of it is a design today. The last section says exactly which parts already run.
+      </P>
+      <H2>Why a single &quot;private&quot; switch isn&apos;t enough</H2>
+      <P>
+        The obvious answer is a checkbox: private or public. It breaks quickly. A note about a product we haven&apos;t launched yet is fine for our agents to read, should never reach the blog, and becomes public the day we launch. A note about a health appointment is fine for the morning briefing, should never reach the blog, and should never be sent to an outside AI service either. Those are two different kinds of secret, and one switch can&apos;t describe either.
+      </P>
+      <P>
+        Governments solved this problem decades ago, so we borrowed from them. The US classification system answers three separate questions about every document:
+      </P>
+      <UL items={[
+        <><strong>How bad would a leak be?</strong> That is the level.</>,
+        <><strong>What kind of secret is it?</strong> That is the compartment.</>,
+        <><strong>Where may it go?</strong> That is the release control.</>,
+      ]} />
+      <P>
+        Our design keeps those three questions apart.
+      </P>
+      <H2>Question one: the levels</H2>
+      <P>
+        A level is a single word on a ladder. Higher means a leak would hurt more, so fewer people and machines may see it. We use five:
+      </P>
+      <UL items={[
+        <><strong>public:</strong> anyone. The blog, X, any AI service.</>,
+        <><strong>shared:</strong> our own devices and agents, the outside AI models they use, and our logged-in dashboards. This is the default when nothing else is said.</>,
+        <><strong>private:</strong> our agents and the morning briefing, but not hardware we wear in public or show on a livestream.</>,
+        <><strong>confidential:</strong> Konrad only. Never sent to an outside AI model, never served by our website, and encrypted when stored.</>,
+        <><strong>secret:</strong> Konrad only, and readable only on a machine that holds the decryption key.</>,
+      ]} />
+      <P>
+        If you know the government words, the mapping is rough but useful. The US order that defines classification, Executive Order 13526, uses three levels: Confidential (a leak would cause damage), Secret (serious damage) and Top Secret (exceptionally grave damage). Our <code>private</code> sits near their Confidential, our <code>confidential</code> near their Secret, and our <code>secret</code> near Top Secret. Security teams also use the Traffic Light Protocol (TLP), a set of sharing labels from CLEAR to RED. Our <code>public</code> matches TLP:CLEAR, <code>shared</code> is close to GREEN and <code>private</code> to AMBER.
+      </P>
+      <H2>Question two: compartments</H2>
+      <P>
+        A level says how much to protect something. It doesn&apos;t say what the thing is. Compartments do. In intelligence work, a compartment is a named category of secret that only people with a specific need may enter, on top of their level. We use the same idea for the kinds of information a life and a company produce:
+      </P>
+      <UL items={[
+        <><strong>personal-health:</strong> health, sleep and body data.</>,
+        <><strong>personal-finance:</strong> personal money, tax and rent.</>,
+        <><strong>personal-location:</strong> where we live, accommodation and travel plans.</>,
+        <><strong>personal-relationships:</strong> people, family and dating.</>,
+        <><strong>guests:</strong> details about the guests at a home we rent out.</>,
+        <><strong>money:</strong> company revenue, fees and wallets.</>,
+        <><strong>unreleased:</strong> product plans before launch.</>,
+        <><strong>credentials:</strong> anything that looks like a key or password. It should never be in a note at all.</>,
+      ]} />
+      <P>
+        Each compartment does two jobs. It sets a <strong>floor</strong>: a <code>personal-finance</code> note can never be below <code>confidential</code>, whatever level someone types. And it carries a <strong>rule</strong>: <code>personal-location</code> is never public until the trip is over, and never with an exact address. A compartment can only raise the protection, never lower it.
+      </P>
+      <P>
+        Compartments also let us draw one clean line. Personal life is a separate domain from the company. Health, money, housing, travel and relationships carry a <code>personal-</code> compartment, and the company reports never include them.
+      </P>
+      <H2>Question three: release controls</H2>
+      <P>
+        The last question is where something may travel. We have three controls:
+      </P>
+      <UL items={[
+        <><strong>release-reviewed:</strong> a human has read this exact text and cleared it for the public. Every public post needs it.</>,
+        <><strong>no-external-model:</strong> never send this to an outside AI service. It is implied by <code>confidential</code> and above, and by the finance and relationship compartments.</>,
+        <><strong>konrad-only:</strong> no agent reads it unless Konrad allows it for that session. It is implied by <code>secret</code>.</>,
+      ]} />
+      <H2>How a note gets its marking</H2>
+      <P>
+        A marking is a few lines at the top of a note, in the same front matter where notes already keep a title or tags:
+      </P>
+      <UL items={[
+        <><code>privacy: private</code> sets the level.</>,
+        <><code>compartments: [personal-location]</code> names the kind of secret.</>,
+        <><code>declassify_on: 2026-11-07</code> says when it becomes shareable, for example a launch day.</>,
+        <><code>classified_by: konrad</code> says who decided.</>,
+      ]} />
+      <P>
+        Nobody will mark thousands of notes by hand, so markings are inherited. A note without a marking takes its folder&apos;s default from one small settings file: the health folder defaults to <code>private</code> with <code>personal-health</code>, the finance folder to <code>personal-finance</code>, which lifts it to <code>confidential</code>. A folder without a default falls back to <code>shared</code>.
+      </P>
+      <P>
+        Some notes mix levels, like a weekly plan that is mostly work with one line about a flight. For those we borrow <strong>portion marks</strong>, the government practice of marking each paragraph separately. A comment line opens a private block inside an otherwise shared note and another closes it. Anything inside the block is treated at the higher level.
+      </P>
+      <P>
+        In the design, the same fields also go on our project tracker. Every division, project and feature can carry a level and compartments, and inherits them from the level above when blank. Each row also gets a separate <strong>public summary</strong>, the only text from the tracker that may ever be published. The internal notes on a row, like &quot;waiting on Konrad to approve the budget&quot;, will stay internal by construction, because the public feed will never read them.
+      </P>
+      <H2>The two rules that do the real work</H2>
+      <P>
+        When information from two levels meets, the result takes the higher one. If a report includes nine shared rows and one private row, the whole report is private, unless that row is replaced by its public summary. Security engineers call this the <strong>high-water mark</strong>: like a bathtub line, the level only rises.
+      </P>
+      <P>
+        The second rule comes from the Bell-LaPadula model, a security model written for the US Department of Defense in the 1970s. It has two properties. <strong>No read up:</strong> a reader may not read above its level. <strong>No write down:</strong> a writer that has read something at a high level may not write at a lower level, because whatever it read could leak into what it writes.
+      </P>
+      <P>
+        No write down is the rule that matters most for us. An AI agent that has read a private briefing carries that context into everything it writes next. Asking it to &quot;be careful&quot; is a suggestion, not a control. So the agent that writes a public post must never have read anything above <code>public</code> in the first place. We call this the <strong>clean room</strong>: the public writer gets a feed built only from public material, and the publishing script will refuse any draft whose sources were above <code>public</code>. Our daily build log is the first thing that will move into the clean room.
+      </P>
+      <H2>How every agent learns the rules</H2>
+      <P>
+        We run more than one agent: Claude Code and Hermes, on a laptop and on a server, answering Telegram messages and running scheduled jobs. If each had its own instructions, they would drift apart. So the rules live in one file, <code>AGENTS.md</code>, at the root of the vault.
+      </P>
+      <P>
+        Hermes reads <code>AGENTS.md</code> directly. Claude Code reads its own <code>CLAUDE.md</code>, so ours is a few lines ending in <code>@AGENTS.md</code>, which Claude Code treats as an import. Whatever harness runs the agent, it loads the same rulebook. When the privacy design is built, its rules go into that file: what each level means, that markings are inherited, that personal compartments never appear in company reports, and that only the clean room writes public text.
+      </P>
+      <P>
+        Written rules are still only suggestions. An agent mostly follows them and, on a bad day, doesn&apos;t. So each rule that matters also gets a machine check.
+      </P>
+      <H2>Who enforces it</H2>
+      <P>
+        In the design, enforcement sits in four places, each a small program rather than an instruction:
+      </P>
+      <UL items={[
+        <><strong>The guard.</strong> Both agents run the same guard script before every file read and shell command. It is a hook: a small program that runs before the agent&apos;s action and can stop it. Today it blocks agents from reading files that hold keys, and from force-pushing over shared history. The design extends it to block reads of <code>confidential</code> and <code>secret</code> notes unless Konrad allows them.</>,
+        <><strong>The search index.</strong> Our notes are split into chunks and turned into embeddings (lists of numbers that let a search find notes by meaning). Making them can mean sending text to an outside service. The design sends only <code>public</code> and <code>shared</code> text out, handles <code>private</code> text on our own machine or skips it, and never indexes anything higher.</>,
+        <><strong>The surfaces.</strong> Each place that shows information gets a ceiling. The logged-in dashboard shows up to <code>confidential</code> with a visible marking chip on each row. The morning briefing and Telegram stop at <code>private</code>. The small screen on our wearable stops at <code>shared</code>, because it is worn in public and on livestreams. The public feed shows only <code>public</code>.</>,
+        <><strong>Encryption at rest.</strong> <code>confidential</code> and <code>secret</code> notes will be encrypted in the repository with git-crypt, so a leaked copy of the repository shows only scrambled text.</>,
+      ]} />
+      <H2>Where every decision is recorded</H2>
+      <P>
+        A marking you can&apos;t audit is a marking you can&apos;t trust. So the design adds two logs that only ever grow. Nothing in them is edited or deleted:
+      </P>
+      <UL items={[
+        <><strong>Classification changes:</strong> every time a marking changes, what it was, what it became, who changed it, when, and why. This is our version of the &quot;Classified by&quot; and &quot;Declassify on&quot; lines printed on a government document.</>,
+        <><strong>Disclosures:</strong> every time something goes public, the channel, the address, who approved it, and a fingerprint of each source it was built from.</>,
+      ]} />
+      <P>
+        Once a week an agent will compare the disclosures with today&apos;s markings. If something published last week has since been marked private, it gets flagged for a human to look at.
+      </P>
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Built and running today:
+      </P>
+      <UL items={[
+        <>One rulebook, <code>AGENTS.md</code>, loaded by every agent we run.</>,
+        <>The guard script that runs before every shell command and file read or edit, blocking reads of key files and force pushes.</>,
+        <>A human approval before anything is published: every post an agent drafts stays a draft until Konrad says yes.</>,
+      ]} />
+      <P>
+        Designed, not built yet, in this order:
+      </P>
+      <UL items={[
+        <>Markings on the project tracker, with a &quot;view as public&quot; preview on the dashboard and the wearable&apos;s screen capped at <code>shared</code>.</>,
+        <>The clean room for the daily build log, with the disclosure log.</>,
+        <>Markings and folder defaults for every note, then the guard, search index and encryption rules above.</>,
+      ]} />
+      <P>
+        If you are building your own second brain with agents, the shortest useful version is this: give every note a level and a kind, let folders supply the default, put the rules in one <code>AGENTS.md</code> that every agent loads, and never let the agent that writes in public read anything private first.
+      </P>
+      <P>
+        We are building this in the open. Follow along at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "privacy-levels-for-ai-agents",
+    title: "How our AI agents will know what they may share: privacy levels for a second brain",
+    description: "How we are designing privacy levels, compartments and release rules so every AI agent in our second brain knows what it may read, repeat and publish.",
+    date: "October 14, 2026",
+    isoDate: "2026-10-14T14:10",
+    readingTime: "10 min read",
+    Content: PrivacyLevelsForAiAgentsContent,
+  },
   {
     slug: 'local-voice-kokoro-second-brain',
     title: 'Giving our second brain a voice that never leaves the laptop',
