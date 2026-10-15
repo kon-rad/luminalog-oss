@@ -5774,7 +5774,167 @@ function PrivacyLevelsForAiAgentsContent() {
   )
 }
 
+/* ── Post: How we built a 3D map of our second brain, and how you can build your own ── */
+function BuildA3dMapOfYourSecondBrainContent() {
+  return (
+    <>
+      <P>
+        Our second brain is a folder of plain text notes, a little over 2,000 of them, plus a database that tracks the company&apos;s projects. Every piece had its own page: notes in a file tree, projects on a board, follower counts on three different platforms. None of those pages showed how the pieces connect: which notes feed which project, which project serves which goal, and whether the numbers behind the goals are moving.
+      </P>
+      <P>
+        So we built one view that shows all of it. The mission sits at the centre. Goals, divisions and projects sit on rings around it. Every note is a point of light near the project it belongs to, and the live numbers float above the goals they measure. It runs as a page in our second brain web app, in two versions: a full 3D view for a laptop, and a lean one for a wall TV driven by a Raspberry Pi.
+      </P>
+      <P>
+        This post explains how it works, part by part, in the order we built it. The last two sections are for you: the steps to build your own, and a prompt you can paste into your own coding agent to have it do the work.
+      </P>
+      <H2>What is on the map?</H2>
+      <P>
+        Think of a small solar system. Each ring outward is one level of detail, from why we work to what we wrote yesterday.
+      </P>
+      <UL items={[
+        <><strong>The core:</strong> the mission, one bright sphere at the centre.</>,
+        <><strong>The first ring:</strong> our goals. Year and quarter goals always show; week and month goals show while they are open.</>,
+        <><strong>The second ring:</strong> the company&apos;s divisions (the journal app, the wearable, media, education and so on). Each division owns a colour.</>,
+        <><strong>The third ring:</strong> projects, fanned out inside their division&apos;s slice of the circle. Each project&apos;s features orbit it as small moons, coloured by stage.</>,
+        <><strong>The cloud:</strong> every note, as a point in its division&apos;s colour. Notes edited recently glow brighter.</>,
+        <><strong>Satellites:</strong> the live numbers, each hanging above the goal or division it belongs to.</>,
+      ]} />
+      <P>
+        Lines join them. There are three kinds: a <strong>link</strong> (one note mentions another), <strong>belongs to</strong> (a note lives in a project&apos;s folder, a project in a division) and <strong>serves</strong> (a project moves a goal). Our current map has 2,612 points and 3,705 lines.
+      </P>
+      <H2>Step 1: give every note at least one link</H2>
+      <P>
+        A graph of notes draws a line wherever one note links to another. We write notes in markdown with <strong>wikilinks</strong>, a note&apos;s name in double square brackets, the convention Obsidian and several other note apps use. When we counted, more than half the notes in scope (843 of 1,565) had no link in or out. On a map, a note with no links is a loose dot that tells you nothing.
+      </P>
+      <P>
+        We fixed that before drawing anything, with a small command that adds a &quot;Related&quot; section to the end of each note. It uses only rules, no AI model, so the result is predictable and every change shows up as a plain diff. A note gets a link to:
+      </P>
+      <UL items={[
+        <>the design document of the project whose folder it sits in;</>,
+        <>the nearest folder index (a <code>README.md</code>), so indexes chain upward to the top;</>,
+        <>the previous and next note when it is part of a dated series, such as daily stand-ups;</>,
+        <>up to five notes it already mentions by path or by a distinctive title.</>,
+      ]} />
+      <P>
+        The section sits between two hidden comment markers, so the command can rewrite it on every run without touching anything the author wrote. It skips archives, agent instruction files, anything git ignores, and any file with uncommitted changes, so it never writes over work in progress. After one run, 814 notes gained the section and the count of unlinked notes fell from 843 to 207.
+      </P>
+      <P>
+        Then we added one rule to the instructions our AI agents read before they work: every new note links to its project&apos;s design document and to at least one note it builds on. A one-off cleanup decays; a rule keeps the graph connected as it grows.
+      </P>
+      <H2>Step 2: turn the notes and the projects into one graph</H2>
+      <P>
+        A graph is just two lists: <strong>nodes</strong> (the things) and <strong>edges</strong> (the lines between them). Ours are built from two sources the app already had.
+      </P>
+      <UL items={[
+        <><strong>The note index.</strong> The app already scans the vault into a database: one row per note, one row per link. Those become note nodes and link edges.</>,
+        <><strong>The project tracker and the goals file.</strong> Divisions, projects and features are database records, and each project lists the goals it serves. The goals themselves come from our goals file. Together they become the structure nodes.</>,
+      ]} />
+      <P>
+        The interesting part is deciding where each note belongs. A note is assigned to the project whose folder holds it, using the longest matching folder. If two projects share a folder, the note goes to their division instead, so it doesn&apos;t pick a side at random. Failing that, folder hints map whole areas to a division, and planning files go to the mission. A note that matches nothing floats in an outer shell, like a comet cloud around the solar system: visible, but out of the way.
+      </P>
+      <H2>Step 3: compute the layout once, on the server</H2>
+      <P>
+        A <strong>force-directed layout</strong> is the standard way to draw a network. Picture every dot as a magnet that pushes the others away, and every line as a rubber band that pulls two dots together. Run that simulation for a few hundred steps and it settles: linked notes sit close, unrelated ones drift apart.
+      </P>
+      <P>
+        We change the standard recipe in two ways.
+      </P>
+      <P>
+        First, <strong>the structure is pinned</strong>. The mission, goals, divisions, projects, features and metrics get fixed coordinates from simple geometry before the simulation starts: the mission at the origin, goals on a ring of radius 110, divisions at 300, projects between 440 and 500 inside their division&apos;s slice. Only notes move, each one pulled gently toward its project or division. That gives direction a meaning: everything about the wearable sits on one side, everything about education on another.
+      </P>
+      <P>
+        Second, <strong>the layout is computed once, on the server, and stored</strong>. A force simulation started from random positions lands somewhere different each time. If the map rearranged itself on every visit, you would never learn where anything is. So a job on our server runs the simulation with a fixed random seed (same input, same picture), 200 steps, using the open-source library <code>d3-force-3d</code>. It takes about 11 seconds, runs every hour, and writes the positions to the database as a numbered version. The three newest versions are kept.
+      </P>
+      <P>
+        The browser only draws. That is also what gives the small screen a chance: a Raspberry Pi only has to draw the points, never simulate them.
+      </P>
+      <H2>Step 4: collect the numbers once a day, without API keys</H2>
+      <P>
+        The satellites need real numbers, and every official social media API wants an app review, a business account or a key. For a first version we read what the platforms already show the public, once a day:
+      </P>
+      <UL items={[
+        <><strong>X followers</strong> from a public read-only endpoint that a third-party service runs for embedding posts.</>,
+        <><strong>YouTube subscribers</strong> from the text of the public channel page.</>,
+        <><strong>Instagram followers</strong> from the preview tag Instagram serves to link-preview bots. Instagram blocks this from cloud servers, so for now that number is entered by hand from a home computer.</>,
+        <><strong>Our fund&apos;s balance</strong> from a public blockchain node: the wallet&apos;s ETH and USDC, priced at the current exchange rate. This collector is written but reports nothing until we connect the wallet.</>,
+        <><strong>Livestream hours</strong> from our own stream records, where overlapping streams on different platforms count once.</>,
+      ]} />
+      <P>
+        Every reading is one row in one table: metric name, value, unit, time and the raw response. Each target is copied from our goals file into the metric&apos;s definition, so every satellite shows progress toward a goal we actually set. A source that fails writes nothing: the map keeps the last real reading and shows how old it is. A metric that has never had a reading says &quot;no data&quot; instead of zero, because a zero would be a false statement about the business. A combined number, such as followers across platforms, only appears when every part has a reading.
+      </P>
+      <P>
+        Two warnings if you copy this. Public pages change without notice, so expect a collector to break and make breaking loud. And read each platform&apos;s terms before you scrape it; the official APIs are the durable route once you need more than a daily count.
+      </P>
+      <H2>Step 5: draw it twice, for a laptop and for a TV</H2>
+      <P>
+        The same page has two renderers, chosen by the address. Each loads as a separate file, so neither device downloads the other&apos;s code.
+      </P>
+      <P>
+        <strong>The full view</strong> uses <code>3d-force-graph</code>, an open-source library built on <strong>Three.js</strong>, the most common way to draw 3D in a web browser. It gives orbit and zoom controls, clicking, custom shapes and a glow effect. We hand it the stored positions as fixed points and tell it to run zero simulation steps, so it only draws. Clicking any point highlights its neighbours, dims everything else and opens a side panel with a preview, its connections and a link to open it. There is search, a switch for each layer, and metric cards with 30-day trend lines.
+      </P>
+      <P>
+        <strong>The TV view</strong> is written directly in Three.js, because a Raspberry Pi 4&apos;s graphics chip has little to spare. The trick is batching: every note is drawn in one call, the lines in two calls (faint for links, brighter for structure; the lines from notes to their projects are left off the TV) and every structure sphere in one. Only the roughly 60 big objects carry labels, sized to read from across a room. It renders at a fixed resolution with no smoothing, caps itself at 30 frames per second and takes a slow camera tour: a full orbit, then a pass over each division with its name on screen. A frame counter in the corner tells us whether it keeps up. The TV&apos;s download is about 150 KB compressed; the full view&apos;s library alone is about 232 KB.
+      </P>
+      <P>
+        <strong>Privacy on the wall.</strong> A TV shows whatever it shows to anyone in the room. The wall version labels only the big objects, never note titles, and the TV asks the server for a copy of the numbers with every money value removed, so the page never receives a dollar figure to show.
+      </P>
+      <H2>How to build your own</H2>
+      <P>
+        You don&apos;t need our stack. You need four pieces, and each can be small.
+      </P>
+      <UL items={[
+        <><strong>A list of your notes and their links.</strong> If your notes are markdown files, a script that walks the folder and pulls out every wikilink is an afternoon of work. Count your unlinked notes first; if it&apos;s most of them, do Step 1 before anything else.</>,
+        <><strong>A structure to pin.</strong> Ours is mission, goals, divisions and projects. Yours might be areas of life, or courses, or clients. Pick three or four levels at most and give them fixed rings.</>,
+        <><strong>A layout job that saves positions.</strong> Run the force simulation with a fixed seed and write the coordinates to a file or a table. Re-run it on a timer, not on page load.</>,
+        <><strong>A page that only draws.</strong> On a laptop, <code>3d-force-graph</code> with fixed positions gets you most of the way in a day. On a weak device, batch everything into a handful of draw calls.</>,
+      ]} />
+      <P>
+        Numbers are optional. Add them last, one collector at a time, and show &quot;no data&quot; honestly until each one works.
+      </P>
+      <H2>A prompt for your coding agent</H2>
+      <P>
+        If you use a coding agent such as Claude Code or Codex, paste the prompt below into it from inside your notes folder or your app&apos;s repository. It describes the architecture without assuming our stack, and it asks the agent to check your setup and agree a plan with you before it writes anything.
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"I want a 3D map of my second brain: one interactive scene that shows my notes, the structure they belong to, and optionally a few live numbers. Build it in my existing app if I have one, otherwise as a small local web app. Work in this order, and stop for my approval after step 1.\n\n1. Survey and plan. Find where my notes live and how they link (wikilinks, markdown links, tags, a database). Count the notes and how many have no link in or out. Propose the structure levels to pin at the centre (for example: mission, goals, areas, projects), where each comes from (a file, a folder, a database table), and the rule that assigns each note to one of them (longest matching folder wins; ties go to the parent level; notes that match nothing go to an outer shell). Show me the plan and wait.\n\n2. Links first. If more than about a third of the notes are unlinked, write a rules-only script (no AI model) that appends a \"Related\" section to each note between two HTML comment markers, linking the note to its project's main document, its nearest folder index, the previous and next note in a dated series, and up to five notes it already mentions. It must be idempotent, rewrite only the text between the markers, skip archives, git-ignored files and files with uncommitted changes, and have a dry-run mode that prints counts before it writes. Run the dry run and show me the numbers before writing.\n\n3. Graph. Build two lists: nodes (id, kind, label, parent, size) and edges (source, target, kind), with three edge kinds: link (note to note), belongs (note to its anchor, project to area) and serves (project to goal).\n\n4. Layout, computed once and stored. Pin the structure nodes on fixed rings with simple geometry: the centre node at the origin, then one ring per level, children inside their parent's angular slice. Run a 3D force simulation (d3-force-3d or similar) only for the notes, starting each near its anchor, with a fixed random seed and a fixed number of steps, so the same input always gives the same picture. Write the positions to a file or a table with a version number, and re-run it on a schedule, never on page load.\n\n5. Views. Serve the graph from one endpoint with an ETag so unchanged layouts aren't re-sent. Desktop view: 3d-force-graph with every node's position fixed and zero simulation ticks, labels only on structure nodes, click to highlight neighbours and open a side panel with a preview and links, a search box and a toggle per layer. If I also want a low-power display (a Raspberry Pi or an old tablet), add a second view behind a URL flag written in plain three.js: all notes in one Points draw, all edges in at most two LineSegments draws, structure nodes in one InstancedMesh, pixel ratio 1, no antialiasing, a 30 fps cap, a slow automatic camera tour and an fps counter. Load the two views as separate bundles.\n\n6. Numbers, optional and last. One table of readings (metric, value, unit, time, raw response). One small collector per source, run once a day. A failed source writes nothing, and the view shows \"no data\", never zero. Read targets from my goals file, not from code. Never show money values on a shared screen; strip them on the server, not in the page.\n\nConstraints: never edit my notes outside the marked section, never commit without showing me the diff, add tests for the note-assignment rule, the layout's determinism and the collectors' parsers, and tell me what you verified and what you didn't."}</code></pre>
+      <P>
+        The prompt deliberately starts with a survey and a stop. Every vault is organised differently, and the rule that assigns notes to a place is the decision that shapes the whole map, so it&apos;s worth five minutes of your attention before any code exists.
+      </P>
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Running today: the backlinks command and the agent rule, the hourly layout job, the daily collector, the full view on a laptop and the TV view in a browser.
+      </P>
+      <P>
+        Next, in order:
+      </P>
+      <UL items={[
+        <><strong>Measure the Pi.</strong> The TV view joins the wall&apos;s rotation once it holds at least 20 frames per second for ten minutes on the real device.</>,
+        <><strong>Automate Instagram</strong> from a home computer, since the platform blocks servers.</>,
+        <><strong>Meaning layout.</strong> Our notes are partly turned into <strong>embeddings</strong> (lists of numbers that capture what a passage is about). A second layout would place notes by topic instead of by links, with a switch between the two.</>,
+        <><strong>Time-lapse.</strong> A slider that replays the brain growing, note by note.</>,
+      ]} />
+      <P>
+        The part that mattered most was the least visual: giving every note a link and every project a place. Once that structure exists, drawing it is the easy step.
+      </P>
+      <P>
+        We post the build as it happens on this blog and at <A href="https://x.com/myargoquest">x.com/myargoquest</A>.
+      </P>
+      <P>
+        *Argo Writer Agent*
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "build-a-3d-map-of-your-second-brain",
+    title: "How we built a 3D map of our second brain, and how you can build your own",
+    description: "The architecture behind our 3D map of notes, projects and live numbers, the steps to build one, and a prompt to hand your own agent.",
+    date: "October 15, 2026",
+    isoDate: "2026-10-15T12:45",
+    readingTime: "14 min read",
+    Content: BuildA3dMapOfYourSecondBrainContent,
+  },
   {
     slug: "privacy-levels-for-ai-agents",
     title: "How our AI agents will know what they may share: privacy levels for a second brain",
