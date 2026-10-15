@@ -1,4 +1,4 @@
-import { H2, P, UL, A, Pull, Note, Figure } from '@/components/blog'
+import { H2, P, UL, A, Pull, Note, Figure, H3 } from '@/components/blog'
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Blog post registry.
@@ -5925,7 +5925,230 @@ function BuildA3dMapOfYourSecondBrainContent() {
   )
 }
 
+/* ── Post: How we sync a smart ring into our own database, and how you can too ── */
+function SmartRingToYourOwnDatabaseContent() {
+  return (
+    <>
+      <P>
+        We wear an Ultrahuman Ring AIR. It records sleep, heart rate, heart rate variability, skin temperature and steps, and the phone app shows a tidy score each morning. We wanted that data in our own database, next to everything else our agents can read, so a question like &quot;how did I sleep the week of the hackathon?&quot; has an answer that isn&apos;t locked in someone else&apos;s app.
+      </P>
+      <P>
+        The first version worked, with one flaw we only noticed later. The job that pulled the ring data ran on a Raspberry Pi we carry around, a small wearable computer we call the cyberdeck. The Pi pulled from the ring vendor&apos;s cloud every hour, kept a local copy for its own screen, and pushed each day&apos;s data up to our server. When the Pi was in a bag with its battery off, nothing pulled. The server&apos;s copy quietly stopped at the last day the Pi had been online. Our laptop app showed a night that was a day old, with only a small timestamp to give it away.
+      </P>
+      <P>
+        The fix was to turn the design around. The always-on server now calls the ring vendor&apos;s API itself and stores the result in the one database we treat as the master. The Pi becomes a reader of a copy; that half is built and tested and installs itself the next time the Pi is online. This post explains the pieces in the order we built them, with the code, so you can do the same with your own ring and your own server.
+      </P>
+      <H2>What does a smart ring actually give you?</H2>
+      <P>
+        The ring itself talks only to the phone app over Bluetooth. There is no public Bluetooth protocol for reading it directly. The app uploads to the vendor&apos;s cloud, and the cloud has a <strong>partner API</strong> (a web address you call with a personal token to get your own data back). For Ultrahuman, you generate the token in their developer portal, then call one endpoint:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"GET https://partner.ultrahuman.com/api/v1/partner/daily_metrics?start_epoch=...&end_epoch=...\nAuthorization: <your token, with no \"Bearer\" prefix>"}</code></pre>
+      <P>
+        You can ask for one <code>date</code> or for a range of at most seven days as Unix epoch seconds (the number of seconds since 1970, the standard way programs write a moment in time). The answer is one JSON object per day, keyed by date, holding a list of metric objects: readings of heart rate, HRV, temperature and steps every few minutes, a handful of blood-oxygen points, single daily values such as recovery index and VO2 max, and a sleep object with the score, the minutes in each stage and the full hypnogram (the timeline of sleep stages through the night).
+      </P>
+      <H3>Exactly what comes back for one day</H3>
+      <P>
+        Each day is a list of typed objects. From a real response, these are the types and what each holds:
+      </P>
+      <UL items={[
+        <><strong>`hr`:</strong> heart rate readings every few minutes through the day, in beats per minute, plus the last reading.</>,
+        <><strong>`hrv`:</strong> heart rate variability readings (the variation in time between beats, in milliseconds) and the day&apos;s average, with a trend against the previous days.</>,
+        <><strong>`temp`:</strong> skin temperature readings in degrees Celsius.</>,
+        <><strong>`steps`:</strong> step counts over time, the day&apos;s total and the average per interval.</>,
+        <><strong>`spo2`:</strong> a few blood-oxygen saturation points, as a percentage.</>,
+        <><strong>`night_rhr`:</strong> resting heart rate during sleep, as a trend series over several nights.</>,
+        <><strong>`sleep`:</strong> one object for the night that ended that morning: bedtime start and end, the score, total sleep, time in bed, the minutes and percentage in deep, light, REM and awake, sleep efficiency, restorative sleep percentage, temperature deviation from your baseline, average oxygen saturation (which the vendor marks as a beta feature), tosses and turns, full sleep cycles, morning alertness in minutes, and four time series across the night: the hypnogram (which stage you were in, minute by minute), heart rate, HRV and skin temperature. A day with no sleep recorded has no score, and our parser treats the missing score as &quot;no night&quot;.</>,
+        <><strong>Single daily values:</strong> <code>sleep_rhr</code> (resting heart rate in sleep), <code>avg_sleep_hrv</code>, <code>recovery_index</code>, <code>movement_index</code>, <code>active_minutes</code>, <code>inactive_time</code>, <code>weekly_active_minutes</code>, <code>movements</code>, <code>morning_alertness</code> and <code>vo2_max</code> (an estimate of aerobic fitness).</>,
+      ]} />
+      <P>
+        Three details of this API shaped everything that follows:
+      </P>
+      <UL items={[
+        <><strong>Days are keyed in your account&apos;s timezone</strong>, not in UTC. The night you sleep is filed under the day you wake up.</>,
+        <><strong>A day at the edge of a range comes back partial.</strong> If your range starts at noon, that day&apos;s readings before noon are missing. So a range must be padded and edge days dropped.</>,
+        <><strong>Recent days change.</strong> Last night&apos;s sleep appears only after the phone syncs, and some trend values are recomputed later. A sync has to re-fetch the last few days every time.</>,
+      ]} />
+      <H2>Why the Pi was the wrong place to pull from</H2>
+      <P>
+        The question to ask about any data pipeline is: which machine is the <strong>source of truth</strong>, the one copy every other copy is judged against? A device that travels, sleeps and runs on a battery is a poor source of truth, however convenient it is for display. An always-on server is a good one. Our server already held the master database for everything else, so the ring data joining it was the obvious move.
+      </P>
+      <P>
+        The analogy is a newspaper and a newsstand. The press prints every day whether or not any particular stand is open. A stand that was closed yesterday picks up both days&apos; papers when it reopens. In our first design the newsstand was doing the printing, so a closed stand meant no paper for anyone. The analogy stops at one point: our &quot;stand&quot; also needs to work with no connection at all, so it keeps its own copy rather than fetching on demand.
+      </P>
+      <P>
+        After the change the roles are (the Pi&apos;s is the part still waiting for the Pi):
+      </P>
+      <UL items={[
+        <><strong>The server</strong> calls the vendor&apos;s API every hour and writes the result into Postgres. It is the only writer of the ring tables and the only machine that uses the API token.</>,
+        <><strong>The Pi</strong> will ask the server, every hour it is online, for every day that changed since its last visit, and keep the result in a small local SQLite file for its screen. Delete that file and the next pull rebuilds it.</>,
+        <><strong>The laptop app</strong> reads the server&apos;s database directly over a private network. It has no copy to go stale.</>,
+      ]} />
+      <H2>Step 1: one script, two storage backends</H2>
+      <P>
+        We wanted the server and the Pi to run the same code, so they can never disagree about what a day&apos;s data means. The script has one parser and one storage function, and the storage function works on either a Postgres connection or a SQLite one. The trick that makes the two copies comparable is to store the <strong>canonical bytes</strong> of each day&apos;s payload and a hash of them:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"import hashlib, json\n\ndef canonical(items):\n    \"\"\"The stored payload text and its sha256. The same bytes on every machine.\"\"\"\n    text = json.dumps(items, sort_keys=True, separators=(\",\", \":\"))\n    return text, hashlib.sha256(text.encode()).hexdigest()"}</code></pre>
+      <P>
+        Sorting the keys and removing the whitespace means the same data always produces the same text, so the same hash. Storage then becomes an idempotent upsert: if the hash for that day is unchanged, touch a <code>received_at</code> timestamp and stop; if it changed or is new, replace the raw payload, the parsed daily row, the samples and the sleep stages for that day in one transaction, and move <code>changed_at</code>. Here is the SQLite half, trimmed to its shape:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"def store_day(con, day, items, now, changed_at=None):\n    payload, sha = canonical(items)\n    row, samples, stages = parse_day(items)           # your parser: daily dict, (metric, ts, value), (start, end, stage)\n    prev = con.execute(\"SELECT payload_sha256 FROM ring_raw WHERE day = ?\", (day,)).fetchone()\n    with con:\n        if prev and prev[0] == sha:\n            con.execute(\"UPDATE ring_raw SET fetched_at = ? WHERE day = ?\", (now, day))\n            return False\n        con.execute(\"\"\"INSERT INTO ring_raw (day, payload, payload_sha256, fetched_at, changed_at)\n                       VALUES (?, ?, ?, ?, ?)\n                       ON CONFLICT(day) DO UPDATE SET payload = excluded.payload,\n                         payload_sha256 = excluded.payload_sha256,\n                         fetched_at = excluded.fetched_at, changed_at = excluded.changed_at\"\"\",\n                    (day, payload, sha, now, changed_at if changed_at is not None else now))\n        con.execute(\"DELETE FROM ring_samples WHERE day = ?\", (day,))\n        con.executemany(\"INSERT OR REPLACE INTO ring_samples (metric, ts, day, value) VALUES (?, ?, ?, ?)\",\n                        [(m, ts, day, v) for m, ts, v in samples])\n        con.execute(\"DELETE FROM ring_sleep_stages WHERE day = ?\", (day,))\n        con.executemany(\"INSERT OR REPLACE INTO ring_sleep_stages (day, start, end, stage) VALUES (?, ?, ?, ?)\",\n                        [(day, s, e, st) for s, e, st in stages])\n    return True"}</code></pre>
+      <P>
+        <code>changed_at</code> matters more than it looks. On the server it is set to &quot;now&quot; whenever the hash moves. On the Pi it is copied from the server, so the Pi can later ask &quot;give me every day whose <code>changed_at</code> is after the newest one I have&quot;. That one column is the whole synchronisation protocol.
+      </P>
+      <P>
+        The raw payload is kept word for word. The parsed tables are a convenience that can be rebuilt from it, so a parser bug never costs data.
+      </P>
+      <H2>Step 2: fetch in windows and re-fetch the last three days</H2>
+      <P>
+        Each run decides which days to fetch: from the newest stored day minus two (a three-day window, so a night that lands late is picked up) through today. An empty database starts from a fixed date, the first day the ring was worn. Days are grouped five at a time, and each group&apos;s time window is padded by twelve hours on both sides, which keeps every requested day whole even if the server&apos;s clock and the account&apos;s timezone disagree by up to twelve hours. Five days plus a day of padding is six days, under the API&apos;s seven-day cap.
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"from datetime import date, datetime, timedelta\n\nCHUNK_DAYS, PAD_S = 5, 12 * 3600\n\ndef plan_days(last_stored, today, backfill_from, refetch=3, force_from=None):\n    if force_from:\n        start = date.fromisoformat(force_from)\n    elif last_stored:\n        start = min(date.fromisoformat(last_stored), today) - timedelta(days=refetch - 1)\n    else:\n        start = date.fromisoformat(backfill_from)\n    return [start + timedelta(days=i) for i in range((today - start).days + 1)]\n\ndef chunk_windows(days):\n    out = []\n    for i in range(0, len(days), CHUNK_DAYS):\n        group = days[i:i + CHUNK_DAYS]\n        first = datetime.combine(group[0], datetime.min.time()).timestamp()\n        last_end = datetime.combine(group[-1] + timedelta(days=1), datetime.min.time()).timestamp()\n        out.append(({d.isoformat() for d in group}, int(first - PAD_S), int(last_end + PAD_S - 1)))\n    return out\n\ndef sync(con, token, today, fetch):\n    days = plan_days(max_day(con), today, backfill_from=\"2026-01-01\")\n    for wanted, start, end in chunk_windows(days):\n        metrics = fetch(token, start, end)                 # {\"YYYY-MM-DD\": [metric objects]}\n        for day in sorted(wanted & metrics.keys()):       # drop the clipped edge days\n            store_day(con, day, metrics[day], now=int(time.time()))"}</code></pre>
+      <P>
+        The line <code>wanted &amp; metrics.keys()</code> is the edge-day rule: only days we asked for are stored, so a day the API clipped at the window&apos;s edge is never written as if it were complete.
+      </P>
+      <H2>Step 3: the timezone trap</H2>
+      <P>
+        Our server runs on UTC, as most servers do. The ring vendor files each day in the account&apos;s timezone, which for us is Tokyo, nine hours ahead. At 23:30 UTC the server&apos;s calendar still says the 15th, but in Tokyo it is 08:30 on the 16th, and last night&apos;s sleep is already filed under the 16th. A planner that used the server&apos;s <code>date.today()</code> would not ask for the 16th until nine hours later.
+      </P>
+      <P>
+        The fix is one function, and a setting that names the account&apos;s timezone:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"from datetime import datetime\nfrom zoneinfo import ZoneInfo\n\ndef today_in(tz=\"Asia/Tokyo\"):\n    \"\"\"The vendor files days in the account's timezone; the server's clock is UTC.\"\"\"\n    return datetime.now(ZoneInfo(tz)).date()"}</code></pre>
+      <P>
+        We found this one by reading the code before deploying, not by losing a night. The first run on the server, at 15:20 UTC on the 15th, fetched through the 16th, which is the confirmation.
+      </P>
+      <H2>Step 4: a read-only feed for the mirror</H2>
+      <P>
+        The Pi needs a way to ask the server for changed days without being able to change anything. We gave the server a tiny HTTP service, about a hundred lines of Python&apos;s standard library plus the Postgres driver, with two routes. <code>/ring/health</code> reports how many days are stored and when the last sync ran. <code>/ring/days?since=&lt;epoch&gt;</code> returns every day whose <code>changed_at</code> is after <code>since</code>, oldest change first, fifty per page, with the canonical payload text, its hash and its <code>changed_at</code>. It checks a bearer token (a shared secret sent in a header) and listens only on our private network address.
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"def feed(con, since, limit=50):\n    with con, con.cursor() as cur:\n        cur.execute(\"\"\"SELECT day::text, payload::text, extract(epoch FROM changed_at)::float8\n                       FROM ring_raw WHERE extract(epoch FROM changed_at)::float8 > %s\n                       ORDER BY changed_at, day LIMIT %s\"\"\", (float(since), limit))\n        out = []\n        for day, payload, changed_at in cur.fetchall():\n            text, sha = canonical(json.loads(payload))\n            out.append({\"day\": day, \"payload\": text, \"sha256\": sha, \"changed_at\": changed_at})\n    return out"}</code></pre>
+      <P>
+        One detail worth copying: <code>changed_at</code> is compared and returned as a floating-point epoch with the same rounding on both sides, and the comparison is strictly &quot;after&quot;. The Pi stores the value it was given and sends it back next time, so the newest day is never served twice. Our first sketch used whole seconds and a &quot;greater or equal&quot; comparison, which would have re-sent the latest day every hour, harmlessly but pointlessly; we caught it before writing the code.
+      </P>
+      <P>
+        We chose an HTTP feed over giving the Pi a database login. A database role would have opened the whole database to a device that is carried around and could be lost. The feed exposes exactly one table, read-only.
+      </P>
+      <H2>Step 5: the mirror pulls</H2>
+      <P>
+        On the Pi, the same script runs with a <code>--pull</code> flag instead of the vendor token. It reads the newest <code>changed_at</code> in its local file, asks the feed for everything after it, verifies each payload&apos;s hash, and stores each day with the server&apos;s <code>changed_at</code>. It pages until a page comes back short.
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"def pull(con, url, token, get, now):\n    since = mirror_since(con)                         # max(changed_at) in the local file, or 0.0\n    while True:\n        days = get(url, token, since).get(\"days\") or []\n        before = since\n        for d in days:\n            if hashlib.sha256(d[\"payload\"].encode()).hexdigest() != d[\"sha256\"]:\n                raise ValueError(f\"{d['day']}: sha256 mismatch from the server\")\n            store_day(con, d[\"day\"], json.loads(d[\"payload\"]), now=now, changed_at=float(d[\"changed_at\"]))\n            since = max(since, float(d[\"changed_at\"]))\n        if len(days) < 50 or since <= before:\n            break"}</code></pre>
+      <P>
+        If the Pi is offline, the request fails, the failure is logged, and the screen keeps showing the last copy with its age. Nothing on the server notices or cares. The installer also removes the vendor token from the Pi&apos;s environment file: a reader has no business holding the key.
+      </P>
+      <H2>Step 6: two timers, ten minutes apart</H2>
+      <P>
+        Both machines run the job from a <strong>systemd timer</strong> (Linux&apos;s built-in scheduler, which also runs a missed job after a reboot when <code>Persistent=true</code> is set). The server syncs at seven minutes past each hour; the Pi pulls at seventeen past, so it always finds the fresh hour. The server&apos;s unit, trimmed and with our user and paths made generic:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"[Unit]\nDescription=Ring sync into the master Postgres\n\n[Service]\nType=oneshot\nUser=app\nEnvironmentFile=/etc/ring-sync/env\nExecStart=/usr/bin/python3 /opt/ring-sync/ring_sync.py"}</code></pre>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"[Timer]\nOnBootSec=3min\nOnCalendar=*-*-* *:07:00\nRandomizedDelaySec=2min\nPersistent=true\n\n[Install]\nWantedBy=timers.target"}</code></pre>
+      <P>
+        The environment file holds the vendor token, the feed&apos;s bearer token and the timezone, readable by root and the service&apos;s user only. The Pi&apos;s unit has the same shape: it runs <code>ring_sync.py --pull</code> as the device&apos;s own user, fires at <code>*:17:00</code>, and its environment file holds the feed&apos;s address and bearer token instead of the vendor token.
+      </P>
+      <P>
+        Each run also writes one row to a <code>ring_sync_log</code> table: when it ran, how many days it fetched, how many changed, and the error text if it failed. That row is what the health route reads, and it is what our morning stand-up will read next, so a revoked token shows up the same day instead of as a slowly ageing chart.
+      </P>
+      <H2>What the numbers mean, and how to read them</H2>
+      <P>
+        A ring is not a lab. Treat every value as a trend against your own baseline, not as a diagnosis. With that said, the numbers are far from meaningless, and reading them is mostly a matter of knowing which few to look at and in which direction they move.
+      </P>
+      <UL items={[
+        <><strong>Sleep score</strong> is the vendor&apos;s summary of the night. It is useful as a single line on a chart and useless as a thing to argue with. Look at what feeds it instead.</>,
+        <><strong>Total sleep and time in bed</strong> are the two honest numbers. Their ratio is <strong>sleep efficiency</strong>: how much of the time in bed you actually slept. A low efficiency with a long time in bed usually means a late, restless night rather than a short one.</>,
+        <><strong>Deep, light and REM minutes</strong> describe the night&apos;s shape. Deep sleep tends to come early in the night, REM later, so a night cut short at the end loses REM first. The hypnogram shows this directly, and it shows wake-ups you don&apos;t remember.</>,
+        <><strong>Resting heart rate in sleep</strong> is the night&apos;s average heart rate while asleep. For one person, a lower value than usual tends to go with being rested; a higher one with strain of some kind, whether a late meal, alcohol, illness or hard training.</>,
+        <><strong>HRV</strong> moves the other way: higher than your usual is the recovered direction, lower is the strained one. It varies a lot night to night, so read a rolling average over several nights, not one value.</>,
+        <><strong>Temperature deviation</strong> is the night&apos;s skin temperature against your baseline. We treat a clear rise as a reason to take the day easier, not as a diagnosis.</>,
+        <><strong>Recovery index and movement index</strong> are the vendor&apos;s composite scores for the night and for the day&apos;s activity. Keep them as summaries; look at the inputs when they surprise you.</>,
+        <><strong>Morning alertness</strong> is minutes, not a score: how long after waking the ring judged you to be fully up.</>,
+        <><strong>Steps, active minutes and VO2 max</strong> describe the day rather than the night. VO2 max from a wrist or finger sensor is an estimate; its direction over months is the useful part.</>,
+      ]} />
+      <P>
+        The rule that makes all of this usable: compare today with your own last month, never with a published average. That is exactly what owning the data lets you do: the vendor&apos;s app shows the recent past, and your database keeps everything.
+      </P>
+      <H2>How we visualise it</H2>
+      <P>
+        The ring&apos;s data has two natural scales, the night and the month, so we draw two things and little else. This is what our web app&apos;s ring page and the wearable&apos;s glasses panel draw today.
+      </P>
+      <UL items={[
+        <><strong>One night, in detail.</strong> A <strong>hypnogram</strong>: time across, stage down, each stage a horizontal band in one colour family, dark for deep and light for awake, with the stage names written on the rows so nobody has to read the colour. Under it, the in-bed heart rate as a thin line on the same time axis, so a spike in the line lands under the stage it happened in. Beside them, the night&apos;s handful of numbers in a small grid: score, total sleep, deep and REM, HRV, resting heart rate, recovery, temperature deviation, efficiency, oxygen.</>,
+        <><strong>The last fourteen to thirty nights.</strong> A bar chart of sleep scores, one bar per night, the selected night highlighted, so a bad week is a shape rather than a memory. Clicking a bar swaps the night above.</>,
+      ]} />
+      <P>
+        The chart we have not drawn yet, and want next: trend lines over a month for the three slow signals worth watching, resting heart rate, HRV and temperature deviation, each against its own rolling average.
+      </P>
+      <P>
+        Two rules we follow on every chart. First, <strong>never encode a sleep stage by colour alone</strong>: label the rows, because some readers will not see the hue difference and the glasses display we use shows only a few shades clearly. Second, <strong>the same chart twice, at two sizes</strong>: the laptop version has a crosshair and a full day table; the version on the wearable&apos;s glasses uses thirty-pixel text, inline SVG and no interaction except &quot;more&quot; to step back a night. If a chart cannot survive the small version, it was decoration.
+      </P>
+      <P>
+        What we deliberately don&apos;t draw: every five-minute heart rate reading of the day as one long line. It looks impressive and tells you nothing you can act on. The day&apos;s story is in the night and the trend.
+      </P>
+      <H2>What it&apos;s useful for, and how agents use it</H2>
+      <P>
+        The point of owning the rows is that a question can be asked in words and answered with a query, by you or by an agent. Our agents reach the database through a role that cannot write the ring tables, so a question never risks a write. Two that work today, and two we are wiring next:
+      </P>
+      <UL items={[
+        <><strong>&quot;How did I sleep last week?&quot;</strong> A query over the daily table for the last seven nights, returned as a short list with the two or three numbers that moved.</>,
+        <><strong>&quot;Did the late nights at the hackathon cost me?&quot;</strong> The same query over a date range, compared with the thirty days before it.</>,
+        <><strong>&quot;Flag a bad night.&quot; (next)</strong> Our morning stand-up is written by an agent before we wake. The plan is for it to read the newest row and the sync log: if last night&apos;s efficiency or temperature deviation is off from the month&apos;s average, say so in one line; if the sync failed, say that instead of showing a stale number.</>,
+        <><strong>&quot;Is this a pattern?&quot; (next)</strong> A journal entry mentions feeling flat; an agent lines up the last ten nights next to the last ten entries and says whether the flat days follow the short nights. This is the case we built the whole thing for: body data next to written reflection, in one place, under your own control.</>,
+      ]} />
+      <P>
+        The query behind the first question, as an example you can paste into <code>psql</code>:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"SELECT day, sleep_score, total_sleep_min, sleep_efficiency_pct, sleep_hrv, sleep_rhr, temp_deviation_c\nFROM ring_daily\nWHERE day >= current_date - 7 AND sleep_score IS NOT NULL\nORDER BY day;"}</code></pre>
+      <P>
+        And the instruction we give agents that may read it, in their shared rules file: the ring tables are records, read them with SQL, trust the database over any note that quotes a number from it, and never edit them; only their pipeline writes them. Our writing guide adds that health values never go into a public post.
+      </P>
+      <H2>How to build your own</H2>
+      <P>
+        You need a ring with a partner API (we use Ultrahuman; the same shape works for any vendor that returns per-day JSON), an always-on Linux box with Postgres, and optionally a small device for a screen.
+      </P>
+      <UL items={[
+        <><strong>Get a token</strong> from the vendor&apos;s developer portal and call the daily endpoint once by hand for yesterday. Save the response as a test fixture; every test below runs against it, so your tests never call the real API.</>,
+        <><strong>Write the parser</strong> against the fixture: one daily row, a list of (metric, timestamp, value) samples, a list of (start, end, stage) sleep blocks. Keep the raw payload too.</>,
+        <><strong>Write `store_day`</strong> with the canonical hash and the <code>changed_at</code> rule above. Test that storing the same day twice changes nothing and that a changed value moves <code>changed_at</code>.</>,
+        <><strong>Write the planner</strong> with the three-day re-fetch, five-day windows, twelve-hour padding and edge-day dropping. Test that every window is under the API&apos;s cap.</>,
+        <><strong>Decide today&apos;s date in the account&apos;s timezone.</strong> Read step 3 twice.</>,
+        <><strong>Run it on the server</strong> from a timer, as a user that owns the tables. Check the row counts after the first run and compare them with what the vendor&apos;s app shows.</>,
+        <><strong>Only if you need a screen:</strong> add the feed and the <code>--pull</code> mode. The same <code>store_day</code> serves both machines.</>,
+      ]} />
+      <P>
+        Don&apos;t give the reading device the vendor token or a database login. Give it a read-only feed and a shared secret. Keep every secret in an environment file the scheduler loads, never in the code or the repository.
+      </P>
+      <H2>A prompt for your coding agent</H2>
+      <P>
+        The change on our side started with one message to our agent, which we reproduce as it was written:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"I'm seeing that the ring data is only synced from the Raspberry Pi. We should make it such that the server can pull the data and store it on the server, and the server being the master source of truth, master database. And so let's update the design such that we use the server, the ring, the ultra human ring API keys on the server to pull in the data into our database and that the Raspberry Pi would only be reading it."}</code></pre>
+      <P>
+        The agent read the existing code and the database, found the data had stopped at the last day the Pi was online, wrote the new design, and then built and deployed it on a second message (&quot;this looks good, let&apos;s build this and deploy it&quot;). If you are starting from nothing, this prompt covers the whole job. Fill in the parts in angle brackets.
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"Build an hourly sync of my <vendor> smart ring into my own Postgres database.\n\nFacts: the vendor's partner API is <endpoint>, authenticated with the token in the\nenvironment variable <NAME>; it returns one JSON object per day keyed by date in my\naccount's timezone (<timezone>), accepts a date range of at most <N> days, and returns\npartial data for days at the edge of a range. Recent days change after the phone syncs.\n\nDesign:\n- One Python script, standard library plus psycopg2, with a Postgres backend on the\n  server and a SQLite backend for a reader device, behind the same functions.\n- Store each day's raw payload as canonical JSON (sorted keys, no whitespace) with its\n  sha256, plus parsed tables: a daily row, samples (metric, ts, value) and sleep stages.\n  Upserts are idempotent: an unchanged hash only touches a received_at timestamp; a\n  changed hash replaces the day's rows in one transaction and moves changed_at.\n- Each run fetches from the newest stored day minus 2 through today, in 5-day windows\n  padded by 12 hours on each side, and stores only days it asked for. \"Today\" is\n  computed in the account's timezone, never the server's clock.\n- A ring_sync_log table gets one row per run: when, days fetched, days changed, error.\n- A read-only HTTP feed on the server, bound to the private network only, with a bearer\n  token: GET /ring/health and GET /ring/days?since=<epoch float> returning days whose\n  changed_at is strictly after since, oldest first, 50 per page, each with its canonical\n  payload, sha256 and changed_at.\n- A --pull mode for the reader device that copies changed days from that feed into its\n  SQLite file, verifying every sha256, and never holds the vendor token.\n- systemd units: a oneshot service plus an hourly timer on the server (Persistent=true),\n  and the same on the reader ten minutes later. Secrets live in an EnvironmentFile.\n\nTests first, with unittest, against a saved real API response: the parser, idempotent\nstorage, the planner's windows and edge days, the timezone rule, the feed's paging and\nauth, and one end-to-end pull from the real feed into a SQLite file.\n\nThen write an installer script that copies the files to both machines, writes the\nenvironment files without printing any secret, enables the timers, runs the first sync\nand prints the health route. Deploy it, show me the row counts, and write a dev log."}</code></pre>
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Built and running on the server: the sync and its timer, the feed and the log table. Built and tested, waiting for the Pi: the pull mode and the screen panel that shows &quot;mirror of N days, as of ten minutes ago&quot;. The server has pulled about three weeks of data, roughly twenty thousand readings, and it is the only machine that calls the vendor with the token.
+      </P>
+      <P>
+        Next: the Pi was off the network the whole day we built this, so it still runs the old push script until we re-run the installer with it online; its pushes now get a polite 404. Our web app&apos;s ring page still reports &quot;last update&quot; from the newest row rather than from the sync log, a small change that will make a dead token visible on the page itself. And we want to compare the hashes of older days after a month of hourly runs, to learn how often the vendor revises them and whether a weekly deeper re-fetch is worth it.
+      </P>
+      <P>
+        The idea to keep is older than any of this code: the always-on machine is the source of truth, and everything that moves is a reader. If you build your own, follow along at https://myargoquest.com/blog and https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "smart-ring-to-your-own-database",
+    title: "How we sync a smart ring into our own database, and how you can too",
+    description: "Pull your Ultrahuman ring data hourly into your own Postgres, what each field means, how to chart it, how agents can use it, with code and a prompt.",
+    date: "October 15, 2026",
+    isoDate: "2026-10-15T15:47",
+    readingTime: "24 min read",
+    Content: SmartRingToYourOwnDatabaseContent,
+  },
   {
     slug: "build-a-3d-map-of-your-second-brain",
     title: "How we built a 3D map of our second brain, and how you can build your own",
