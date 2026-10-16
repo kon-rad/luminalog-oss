@@ -6283,7 +6283,145 @@ function WhereOurAgentsTokensGoContent() {
   )
 }
 
+/* ── Post: How an AI agent can improve its own harness without a grader ── */
+function SelfImprovingAgentHarnessContent() {
+  return (
+    <>
+      <P>
+        Every time one of our agents fails a task in a new way, a person opens a file and adds a rule. &quot;Reopen the file after you write it.&quot; &quot;Don&apos;t search the web for facts already in the workspace.&quot; &quot;Run the tests before you say done.&quot; The rule goes into the agent&apos;s instructions, and the next run is a little better. Over a year this is how an agent setup actually gets good: not through a better model, but through a few hundred small edits to the scaffolding around it.
+      </P>
+      <P>
+        The problem is that the person is the bottleneck. They see a failure, guess a fix, type it in, and never run the old and new version side by side to check the guess. Nobody keeps a record of which fixes worked. And the fixes that help on one kind of task rarely get carried to the next.
+      </P>
+      <P>
+        On 2026-10-09, researchers at Google Cloud AI Research published a paper called Harness²: Recursive Agent Harnessing for an Open World (https://arxiv.org/abs/2610.14224). It describes a system in which the agent does this editing work itself, at the moment a new task arrives, with no answer key to check against, and then learns from each round of editing so the next round is better. This post explains how it works, what the numbers say, where it breaks, how to build a small version of it, and what we are changing in our own setup because of it.
+      </P>
+      <H2>What is a harness?</H2>
+      <P>
+        A harness is everything around the model that is not the model: the system prompt, the rules it must not break, its memory file, the skills it can load, the tools it can call and the guidance on using them, the helper scripts it can run, the sub-agents it can delegate to, and any hooks (small programs that run around each tool call and can stop it) that enforce behaviour instead of asking for it. The paper&apos;s phrase is &quot;Agent = Model + Harness&quot;, and its starting point is that an agent&apos;s capability depends on the harness as well as the model. In its experiments, a weaker model with an improved harness scored higher than a stronger model with its stock one.
+      </P>
+      <P>
+        The paper splits the harness into eight files. A system prompt, a guardrails file, a memory file and a tool-guidance file that the model sees on every call. A skills folder and a scripts folder that cost nothing until invoked. A sub-agents folder for work that needs its own context window. And a plugin folder for code that runs inside the tool loop, &quot;outside the model&apos;s discretion&quot;. Because each is a file, a harness change is a diff, and a diff is something another agent can write.
+      </P>
+      <P>
+        An analogy: the model is a new employee with good general ability, and the harness is the onboarding binder, the checklists, the templates and the locked cabinets. Changing the binder is cheaper than hiring someone smarter. The analogy stops working at one point, which is the whole subject of the paper: here the binder rewrites itself.
+      </P>
+      <H2>Why is editing without a grader hard?</H2>
+      <P>
+        Earlier work on automatic harness improvement used a training set with known answers. Try a change, score it, keep it if the score goes up. That works until deployment, where the tasks are new and there is no score. The paper calls this the open-world setting: tasks &quot;are typically unseen during the harness design phase and novel at test time, leaving no ground-truth verifiers&quot;.
+      </P>
+      <P>
+        The obvious shortcut is to ask a model whether the new output looks better. The paper is careful not to do this. Model judgments and execution traces &quot;can guide revision without establishing correctness&quot;, and the authors reserve the benchmark scores strictly for evaluation. Their editing sessions are not even allowed to see a rubric: a guard &quot;refuses to hand over any working directory that contains a grader verdict, rubric, or score&quot;.
+      </P>
+      <P>
+        So the question becomes: what evidence can you trust when you have no answer key?
+      </P>
+      <H2>How does one improvement step work?</H2>
+      <P>
+        The paper&apos;s answer is a three-part step it calls Propose, Probe, Compose. It works on one task.
+      </P>
+      <P>
+        <strong>Propose.</strong> First the agent runs the task once with the current harness. This is the reference run, and the paper says what it is for: &quot;The reference reveals how the harness behaves, not whether its deliverable is correct.&quot; Then two separate editing sessions each read the task, the harness and the full trajectory, and each proposes an edited harness. One session owns how the agent works: planning, tool use, context management, finishing. The other owns the domain: the knowledge, procedures and constraints of this kind of task. The editing prompt&apos;s central rule is one sentence: &quot;Every edit must trace to a moment in a trajectory.&quot;
+      </P>
+      <P>
+        <strong>Probe.</strong> Each edited harness is run on the same task, with the same model and the same environment. Now there are three trajectories. Comparing each candidate with the reference shows whether the edit removed the failure it targeted, changed nothing, or broke something else. The paper calls this a behavioral contrast, and insists it is evidence about behaviour, not proof of correctness.
+      </P>
+      <P>
+        <strong>Compose.</strong> A third session reads the reference, both candidates, their diffs and all three runs, and builds the final harness. It may merge the supported edits, fix a conflict between them, adopt one candidate whole, or keep the original. &quot;Each decision is tied to a concrete observation rather than a presumed score gain.&quot; The composed harness runs once more, and that run&apos;s deliverable is what the task returns.
+      </P>
+      <P>
+        The step can be widened or deepened. With a budget of k, the parallel form runs k reference runs, proposes and probes k pairs of candidates, and runs k composers over the whole pool. The sequential form chains k steps, each seeing everything before it. When several deliverables exist, a selector picks one. The selector is deliberately blind: it compares the anonymised outputs against the task request &quot;without access to its originating harness or synthesizing new content&quot;, and never sees a score.
+      </P>
+      <P>
+        The control condition is the part to remember. The authors also tried letting an editor rewrite the harness directly, from the task alone, with no reference run and no probing. That made things worse than not editing at all: the Code score fell from 73.4 to 63.2. Edits that never ran are guesses, and guesses typed into an instruction file are a tax on every later run.
+      </P>
+      <H2>How does the system get better at improving?</H2>
+      <P>
+        This is the second recursion, and the one most self-improvement setups skip. Each task starts from the same base harness, so nothing task-specific leaks forward. What does carry forward is the experience of improving.
+      </P>
+      <P>
+        After a task finishes, a reflector session reviews the whole record: the reference run, both candidates, the probes, the composer&apos;s decisions and the selection. It writes two things into a library: the adopted harness itself, executable files and all, and a short <code>EXPERIENCE.md</code> that records the situation, the recurring weakness, the lesson, and the evidence. The rule for what gets kept is strict: &quot;Lessons are retained only when supported by execution contrasts; selecting an output alone does not establish transferability.&quot; If the evidence is thin, nothing is written.
+      </P>
+      <P>
+        The next task&apos;s editors read the library&apos;s index before proposing. They may copy a skill or script from an earlier entry, but the prompt warns them that &quot;an earlier task&apos;s mapping or threshold is a hypothesis here, not a fact&quot; and must be re-verified against the current trajectory.
+      </P>
+      <P>
+        The paper measured what this is worth. Removing the library cost about three points on one benchmark. A library built while solving one benchmark still helped on a different one. And the more exploration a task did, the more useful the library it left behind: a library built at a budget of five candidate pairs per task kept helping later tasks even when those tasks did no probing at all.
+      </P>
+      <H2>What do the numbers say?</H2>
+      <P>
+        The paper tests on three professional benchmarks: WorkBuddy-Bench (code, web and office deliverables), JobBench (long professional tasks judged against a rubric) and Harvey&apos;s Legal Agent Benchmark. The models being improved are Gemini 3.5 Flash and GLM-5, each frozen inside two off-the-shelf coding-agent harnesses, OpenCode and Codex. The editor is Claude Opus 4.8. Each number is the mean of three runs with the tasks in a different order.
+      </P>
+      <UL items={[
+        <><strong>One step helps everywhere.</strong> A single Propose, Probe, Compose step improved every model and harness combination on every benchmark. The largest one-step gain was 11.5 points for GLM-5 on WorkBuddy-Bench and 11.8 percentage points on the legal benchmark.</>,
+        <><strong>More budget, more gain.</strong> Scores rose with every step of budget from one to five. At a budget of five, parallel recursion added a further 2.9 to 3.9 points on WorkBuddy-Bench and up to 6.7 on the legal benchmark. On the two domains plotted, both recursive forms at a budget of two already beat every plotted baseline at five.</>,
+        <><strong>The editor does not have to be a stronger model.</strong> Using the same model as editor and executor, all five models tested improved, including Claude Opus 5, which gained between 3.0 and 5.5 points depending on the benchmark.</>,
+        <><strong>The value lives in skills and scripts, not prompt text.</strong> When the authors removed parts of a finished harness, dropping the skills cost 5.3 points on average, dropping the scripts 3.7, and dropping the edited prompt text only 1.5. About half of all edits the editors made were skills and scripts.</>,
+        <><strong>A memory of past strategies can hurt.</strong> The ReasoningBank baseline, which keeps the harness fixed and prepends distilled lessons from similar past tasks, fell as much as 6.6 points below the unmodified harness on coding tasks.</>,
+        <><strong>It costs real compute.</strong> Every step adds two candidate runs, a composed run and several editing sessions. The paper&apos;s compute plot measures total spend per task in millions of tokens, and the authors are plain about the cost in their limitations section.</>,
+      ]} />
+      <H2>Where does it break?</H2>
+      <P>
+        The appendix lists nine cases where the improved harness scored below the reference, and they are more instructive than the wins.
+      </P>
+      <P>
+        The blind selector sometimes picks the wrong output. On one coding task it chose an output that scored 55 over one that scored 95, describing it as &quot;the complete, plainest implementation&quot;. On a legal task it chose the most precise answer when the criteria rewarded coverage.
+      </P>
+      <P>
+        A wrong edit can poison every candidate. In one case the editor wrote a rule saying a certain behaviour &quot;must not be &apos;fixed&apos;&quot;, and the rule was wrong; every candidate inherited it and all of them scored lower. In another, the editor wrote its own checker script, the script reported PASS three times, and the bug was in the editor&apos;s own assumption. The paper&apos;s sentence on this one is worth keeping: &quot;A checker written by the editor cannot catch the editor&apos;s assumption.&quot;
+      </P>
+      <P>
+        And sometimes an edit simply buys nothing. One task gained a correct PDF-filling skill with a verifying script, which consumed 85 of 132 steps, and the grading criteria never looked at those PDFs.
+      </P>
+      <H2>How would you build a small version?</H2>
+      <P>
+        Everything in the paper is files and sessions, so a minimal version needs no framework. The authors&apos; code is on GitHub at https://github.com/google-research/harness2 under the Apache 2.0 licence if you want the full pipeline. The shape of a small one:
+      </P>
+      <UL items={[
+        <><strong>Make the harness files.</strong> Eight files or folders, with a one-line placeholder in each empty one. The placeholder is what lets an editing session discover that the lever exists.</>,
+        <><strong>Record every run.</strong> Each run writes its full tool-call trajectory and its deliverable to disk, as files an editor can read. Nothing about the step works without this.</>,
+        <><strong>Reference run.</strong> Run the task once with the current harness.</>,
+        <><strong>Two scoped editors.</strong> One prompt owns how the agent works, the other owns the domain. Each must point every edit at a line in the trajectory and choose the cheapest component that fixes it: a script for mechanical repetition, a skill for a triggered multi-step procedure, always-on prose only for ordinary sequencing, and a hook only when there is repeated evidence that clear prose is being ignored.</>,
+        <><strong>Probe.</strong> Run each edited harness on the same task.</>,
+        <><strong>Compose.</strong> A third session keeps only edits with a visible difference between runs, then runs the result.</>,
+        <><strong>Select blind.</strong> If there is more than one deliverable, a session that cannot see the harnesses or any score picks one.</>,
+        <><strong>Reflect and store.</strong> Write the adopted harness and an experience note (situation, lesson, evidence) into a library with an index. Skip the entry when the evidence is weak.</>,
+        <><strong>Keep the grader out.</strong> Whatever scores the work, whether tests, a rubric or a person, never enters an editing session.</>,
+        <><strong>Reset.</strong> The next task starts from the base harness, with only the library changed.</>,
+      ]} />
+      <P>
+        A prompt fragment the editors in the paper use, in plain words: trace the workflow, find the earliest observed divergence, match it to the cheapest effective component, never prescribe blind repetition, and remember that &quot;a successful write call does not establish usability&quot;, so the deliverable must be reopened or mechanically checked.
+      </P>
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        We run a company of AI agents on a shared task board, and our harness already has the paper&apos;s eight parts: shared instruction files, a guard hook that blocks a short list of dangerous commands, a finish hook that demands a dev-log entry, shared skills, verifier scripts that a dispatcher runs after a card completes, a read-only fact-checking sub-agent, and memory files. We also already split instructions the way the paper splits editors: an engine file for how agents work, and local files for the domain.
+      </P>
+      <P>
+        What we do not have is either recursion. Every one of our harness rules was written by a person after an incident, and none was tested against the version before it. Our retries tell the agent to &quot;make it pass&quot; with the failing output attached, a single candidate with no contrast. And we keep no record of which fixes worked, so lessons live in commit messages.
+      </P>
+      <P>
+        Because of this paper we are making four changes, in this order. First, an experience library: one note per adopted harness change, citing the run that showed the problem and the run that showed the fix worked, with an index that any session proposing a harness change must read first. Second, an evidence rule: our finish hook will refuse a change to the instruction files, skills or hooks that does not come with such an entry. Third, probing on failed cards only: when a verifier fails, the dispatcher will open two scoped retries, one for procedure and one for domain, run the verifier on both, and let a harness-blind selector choose if both pass. Fourth, moving procedures out of the always-on instruction text into skills with scripts, since that is where the paper found the value.
+      </P>
+      <P>
+        Two things we are deliberately not doing. We will not let an agent edit the guard that blocks irreversible actions; the paper&apos;s own failure table shows what a wrong rule does when every candidate inherits it. And we are auditing our memory files to keep only facts, since a memory of strategies was the baseline that fell furthest below doing nothing.
+      </P>
+      <P>
+        The takeaway is smaller than &quot;agents that improve themselves&quot;. It is that an instruction you add without running it is a guess, and a system that records which guesses were right is the one that gets better. The paper is at https://arxiv.org/abs/2610.14224. We post what we build at https://myargoquest.com/blog and https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "self-improving-agent-harness",
+    title: "How an AI agent can improve its own harness without a grader",
+    description: "What Google's Harness² paper shows about agents editing their own prompts, skills and hooks at test time, and how to build a small version yourself.",
+    date: "October 16, 2026",
+    isoDate: "2026-10-16T15:51",
+    readingTime: "13 min read",
+    Content: SelfImprovingAgentHarnessContent,
+  },
   {
     slug: "where-our-agents-tokens-go",
     title: "Where the tokens go: how we label every model call our AI agents make",
