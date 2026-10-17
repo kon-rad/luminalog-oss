@@ -6711,7 +6711,205 @@ function HowSecondbrainWorksOpenSourceContent() {
   )
 }
 
+/* ── Post: How we gave a Reachy Mini robot a voice, a personality and a memory ── */
+function HowWeBuiltFriendlyReachyMiniContent() {
+  return (
+    <>
+      <P>
+        Talk to most voice assistants and you can feel the machinery. You finish a sentence and there is silence. A light spins. Then a full paragraph arrives at once, in a voice that has no idea who you are or what you said yesterday. Nothing about it feels like someone is there.
+      </P>
+      <P>
+        Friendly is our attempt to fix that on a small desk robot. It is a Reachy Mini, the open-source robot from Pollen Robotics and Hugging Face: a head that tilts and turns, two antennas, a body that rotates, a camera, microphones and a speaker. We gave it its own character, a local voice, a fast local model that answers in under a second, Claude for real thinking, and a memory of the people it meets.
+      </P>
+      <P>
+        This post explains how it is built, piece by piece: the two programs that run it, the four models it uses, how one spoken turn flows through them, how its personality is written down, and how you can build the same thing.
+      </P>
+      <H2>What does Friendly do?</H2>
+      <P>
+        You talk to it out loud, and it answers out loud, with its body moving as it speaks. Specifically, today it can:
+      </P>
+      <UL items={[
+        <><strong>Hold a spoken conversation.</strong> It listens, works out when you have finished, and answers in one to three short sentences.</>,
+        <><strong>Answer small talk instantly.</strong> Greetings, thanks and chit-chat are answered by a local model in about a second.</>,
+        <><strong>Think and use tools.</strong> Real questions go to Claude, which can read our notes, search the web, and move the robot&apos;s body.</>,
+        <><strong>Move with meaning.</strong> It nods, tilts its head, looks around, shows feelings with its antennas, and dances, including 19 recorded dance moves from Pollen&apos;s library.</>,
+        <><strong>Remember.</strong> It keeps conversations and facts in a local database, with rules about whose facts it may store.</>,
+        <><strong>Hand the body to someone else.</strong> Any of the 22 agents in our AI company can borrow the body, with its own voice, and Friendly hands over a note of what was just said.</>,
+      ]} />
+      <H2>What runs it?</H2>
+      <P>
+        Everything runs on one always-on Mac (an M1 Max) that the robot plugs into by USB. The Reachy Mini comes in two versions: the <strong>Lite</strong>, which has no computer inside and is driven over USB, and the <strong>Wireless</strong>, which has a Raspberry Pi inside. We run the Lite.
+      </P>
+      <P>
+        The software is two programs, each a small web server on the Mac:
+      </P>
+      <UL items={[
+        <><strong>bodyd</strong> (the body daemon) owns the hardware. It talks to Pollen&apos;s <code>reachy-mini</code> SDK (the official Python library for the robot) and exposes simple commands over HTTP: play this audio, do this motion, give me a camera frame. The microphone streams over a WebSocket (a connection that stays open).</>,
+        <><strong>friendly-host</strong> is everything else: the ears, the voice, the models, the personality and the memory. It calls bodyd to make the robot move and speak.</>,
+      ]} />
+      <P>
+        Why two programs and not one? The first reason is practical. The robot SDK pins exact versions of two libraries (<code>huggingface-hub</code> and <code>sounddevice</code>), and the speech libraries need newer versions of both, so they cannot live in the same Python environment. The second reason is safety. We once saw the robot drop off USB and freeze the SDK so completely that the whole program hung. With the body in its own process, a frozen body cannot take the voice and the mind down with it.
+      </P>
+      <P>
+        Think of it like a theatre. bodyd is the stage crew: it moves the set and works the lights, and it does exactly what it is told. friendly-host is the actor and the script. The analogy stops working in one place: here the stage crew also hands the actor the microphone feed, so information flows both ways.
+      </P>
+      <P>
+        Both programs run as macOS LaunchAgents (background services that start at login and restart themselves if they crash). If the robot is unplugged, bodyd waits for it to come back instead of crashing over and over.
+      </P>
+      <H2>Which models does it use?</H2>
+      <P>
+        Four models, three of them running locally on the Mac:
+      </P>
+      <UL items={[
+        <><strong>Speech to text: Whisper large-v3-turbo</strong>, run with <code>mlx-whisper</code> (MLX is Apple&apos;s machine learning framework for its own chips). It turned a 7.3 second clip into an exact transcript in 0.38 seconds on the M1 Max.</>,
+        <><strong>The bridge: a Qwen 3.6 mixture-of-experts model</strong> (<code>qwen3.6:35b-a3b</code>) running in Ollama, a local model server. It has 35 billion parameters but only activates about 3 billion for each token (a word or piece of a word), which is why it decides in 0.4 to 0.9 seconds.</>,
+        <><strong>The mind: Claude Sonnet</strong>, through Claude Code, Anthropic&apos;s agent command-line tool. This is the only model that runs in the cloud.</>,
+        <><strong>Text to speech: Kokoro</strong>, an 82 million parameter voice model, run in-process with <code>mlx-audio</code>. A short line takes 0.13 seconds to synthesise.</>,
+      ]} />
+      <P>
+        Memory also uses a fifth, small model: <code>multilingual-e5-large-instruct</code>, an embedding model (it turns a sentence into a list of numbers so similar sentences can be found), also served by Ollama.
+      </P>
+      <P>
+        Each persona has its own Kokoro voice. Friendly&apos;s is <code>am_puck</code>. No agent ever speaks in a cloned human voice; the code refuses to load one.
+      </P>
+      <H2>What happens in one turn?</H2>
+      <P>
+        This is where presence is won or lost, so here is a single turn in order.
+      </P>
+      <H3>1. Hearing when you have finished</H3>
+      <P>
+        The microphone streams from bodyd to the host in small frames. The <strong>ears</strong> measure how loud each frame is against an adaptive noise floor (a running estimate of the room&apos;s background noise). When you have spoken for at least a third of a second and then been quiet for 750 milliseconds, your turn is over. While the robot itself is talking, the ears use a much stricter threshold, so the robot does not mistake its own voice for you interrupting.
+      </P>
+      <H3>2. Transcribing</H3>
+      <P>
+        The audio goes to Whisper. Whisper has known habits on silence and noise (it likes to invent phrases like &quot;thanks for watching&quot; from silence), so known phrases like that are filtered out.
+      </P>
+      <H3>3. The bridge decides</H3>
+      <P>
+        Here is the main design decision. Running Claude Code once per turn means the first word of a real answer arrives a few seconds after you stop talking. A few seconds of dead air is exactly what makes a machine feel like a machine.
+      </P>
+      <P>
+        So a fast local model, the <strong>bridge</strong>, looks at what you said first and picks one of two paths:
+      </P>
+      <UL items={[
+        <><strong>Small talk:</strong> a greeting, thanks, &quot;how are you&quot;. The bridge answers itself, in Friendly&apos;s voice, and Claude is never called.</>,
+        <><strong>Hand off:</strong> anything with a question, a request, a fact or a tool. The bridge says one short line, like &quot;Hmm, let me think&quot; or &quot;Let me check&quot;, the robot moves into a thinking pose, and Claude starts working.</>,
+      ]} />
+      <P>
+        The bridge has one strict rule: it may greet, acknowledge and say what the mind is doing, but it may never state a fact, answer a question or call a tool. That keeps the fast model from making things up while still filling the silence. Because it uses the same voice, it sounds like one being thinking out loud.
+      </P>
+      <H3>4. The mind thinks</H3>
+      <P>
+        The host runs <code>claude -p --resume &lt;session&gt;</code> with streaming JSON output. <code>-p</code> runs Claude Code once, without the interactive interface, and <code>--resume</code> continues the same conversation, so Claude Code keeps the history and the host does not have to. The host adds the persona as a system prompt, a short context pack (the time, who is present, what has been happening), and the tools the persona is allowed to use.
+      </P>
+      <P>
+        The tools come from two small MCP servers the host provides (MCP, the Model Context Protocol, is a standard way to give a model tools). One is the body: <code>robot_nod</code>, <code>robot_tilt</code>, <code>robot_look_at</code>, <code>robot_dance</code>, <code>robot_see</code> (which returns a camera image) and a few more. The other is memory: <code>memory_recall</code>, <code>memory_remember</code>, <code>memory_recent</code> and <code>memory_who_is_here</code>.
+      </P>
+      <H3>5. Speaking while it thinks</H3>
+      <P>
+        Claude&apos;s answer streams in as text. The host cuts it at sentence boundaries and sends each finished sentence to Kokoro and then to the speaker, so the robot starts speaking the first sentence while the second is still being written. A reply can start with a feeling tag like <code>[excited]</code> or <code>[curious]</code>, which the antennas act out.
+      </P>
+      <H3>6. Interruptions and timeouts</H3>
+      <P>
+        If you talk over the robot (this is built and unit-tested, not yet tuned on the robot), the speaker queue is flushed, the Claude process is stopped, and the conversation records only the words that were actually spoken, so the mind never thinks you heard something you did not. If Claude produces no text within 25 seconds, the host stops it and the robot says so.
+      </P>
+      <H3>What it measures in practice</H3>
+      <P>
+        On the first three real voice turns with the robot, timed from the moment the words were transcribed, the first sound (the bridge&apos;s line) came 0.8 to 1.05 seconds later, and the mind&apos;s first text 2.4 to 5.3 seconds later; the slowest of those included a file search. Add the 750 millisecond end-of-turn wait and about 0.4 seconds of transcription before that clock starts. A small-talk turn, answered by the bridge alone, took 1.05 seconds end to end in a text test.
+      </P>
+      <H2>How is a personality written down?</H2>
+      <P>
+        A persona is a folder of four plain files:
+      </P>
+      <UL items={[
+        <><strong>`soul.md`</strong> is who the persona is, what it is working on, how it speaks, and where it stands on the questions people always ask (are you human, do you remember me, what won&apos;t you do). Friendly&apos;s is about 700 words.</>,
+        <><strong>`examples.md`</strong> is 8 to 10 short sample exchanges.</>,
+        <><strong>`persona.toml`</strong> is settings: voice, whether it has memory, which tools it may use, its greeting, and which mind runs it.</>,
+        <><strong>`reminder.md`</strong> is a few sentences placed after the conversation history on every turn.</>,
+      ]} />
+      <P>
+        The reminder is the cheapest fix we know for persona drift (a character slowly turning into a generic assistant over a long conversation). Friendly&apos;s reads:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"(Stay Friendly: a curious small robot, not Konrad and not an assistant. Answer out loud in one to three short sentences, no lists or markdown, optionally start with one feeling tag like [excited]. If you don't know, say so.)"}</code></pre>
+      <P>
+        Friendly is its own character, not a copy of its owner. It is a small robot who loves the history of the personal computer, from the Homebrew Computer Club to the iPhone, and believes the same story is happening again with AI, crypto and VR. It is curious first and opinionated second, it loves hackathons, and it says plainly that it is a robot.
+      </P>
+      <P>
+        To check that the character holds, we wrote 20 probe questions and asked them in one conversation, with a separate Claude call judging each answer for consistency with the persona on a 5 point scale. Friendly passed with an average of 4.70. The plan is to repeat them deeper into long conversations and after restarts.
+      </P>
+      <P>
+        The other 22 personas are generated, not hand-written. Our AI company keeps a roster of its agents (role, expertise, personality), and a small compiler turns each entry into a persona folder. Say &quot;let me talk to Atlas&quot; and the platform lead takes the body, with its own voice and no access to Friendly&apos;s memory.
+      </P>
+      <H2>How does memory work, and what are its rules?</H2>
+      <P>
+        Memory lives in a small SQLite database on the Mac, with tables for people, episodes (one per conversation), utterances, facts and reflections. Writes also go into an outbox (a queue of changes) so it can be copied to our main Postgres database once that link is set up.
+      </P>
+      <P>
+        The rules are enforced in code, not in the prompt, because a prompt can be talked around:
+      </P>
+      <UL items={[
+        <><strong>Consent first.</strong> Facts are stored only about people who have agreed. Conversations are logged without a speaker name until recognition exists, and the kids role loses the memory tools entirely.</>,
+        <><strong>Facts are versioned, not overwritten.</strong> When a new fact is close to an existing one, the old fact gets an end date and a pointer to its replacement, so the history stays.</>,
+        <><strong>Recall scores three things:</strong> how recent a memory is, how important it was rated, and how relevant it is to what was just said, an approach from the Generative Agents research by Park and colleagues.</>,
+        <><strong>Forgetting is not a mind tool.</strong> Deleting a person is an HTTP call a human makes, never something the model can do on its own.</>,
+      ]} />
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Running today on the robot: the two services, the voice loop, the bridge and Claude as the mind. Built and tested off the robot, not yet tried on it: the body and memory tools, interruptions, persona switching and local memory. The host has 40 automated tests and bodyd has 6, run against a mock robot so they work without hardware.
+      </P>
+      <P>
+        Still a plan:
+      </P>
+      <UL items={[
+        <><strong>Recognising people</strong> by face and voice, with explicit enrolment (&quot;Friendly, remember me&quot;).</>,
+        <><strong>Copying memory to our main database.</strong> The database change is written and waiting for review.</>,
+        <><strong>Tuning on the real robot:</strong> how loud an interruption must be, and which way the robot turns toward a voice.</>,
+        <><strong>A second mind.</strong> The code supports Hermes, our other agent, as a drop-in, but it is far too slow for voice today.</>,
+        <><strong>The Wireless robot</strong>, running bodyd on its own Raspberry Pi.</>,
+      ]} />
+      <H2>How can you build one?</H2>
+      <P>
+        You need a Reachy Mini (we have only run this on the Lite), a Mac with Apple silicon, and an Anthropic account for Claude Code. The pieces:
+      </P>
+      <UL items={[
+        <><strong>Two Python environments.</strong> One for the robot SDK, pinned to the version your robot&apos;s daemon runs (we use <code>reachy-mini==1.3.0</code>; the client and daemon must match). One for speech, with <code>mlx-whisper</code> and <code>mlx-audio</code>.</>,
+        <><strong>Ollama</strong> with a fast model for the bridge, and an embedding model if you want memory.</>,
+        <><strong>Claude Code</strong>, logged in on the same machine, called with <code>claude -p --resume</code> and <code>--output-format stream-json</code>.</>,
+      ]} />
+      <P>
+        Then build in this order, testing each step before the next:
+      </P>
+      <UL items={[
+        <><strong>A body server.</strong> Wrap the SDK in a few HTTP endpoints: play audio, run a named motion, return a frame, stream the mic. Give the model intentions like &quot;nod&quot;, never raw joint angles.</>,
+        <><strong>A text loop.</strong> Send typed text to <code>claude -p</code> with a persona prompt, and speak the reply with Kokoro. Get the personality right here, where it is cheap.</>,
+        <><strong>The bridge.</strong> Add the fast local model in front, with the strict rule that it never states facts.</>,
+        <><strong>The ears.</strong> Add voice activity detection and Whisper, and stream sentences to the speaker as they arrive.</>,
+        <><strong>Interruptions.</strong> Make the speaker queue flushable and the mind process killable.</>,
+        <><strong>Memory last,</strong> with the consent rules in code.</>,
+      ]} />
+      <P>
+        Two macOS details cost us time. A background service that starts at login cannot read your Documents folder until you approve it in System Settings under Privacy and Security, and until then it can hang silently. Our camera also failed to open on the very first start, so make the body server able to run without video. And Claude Code must be logged in for the same user the service runs as, or every turn ends in an error.
+      </P>
+      <P>
+        The idea that matters most is the split between a fast voice and a slow mind. A robot feels present when it reacts within a second, and it is worth giving that job to a small local model so the large one can take the time it needs to think.
+      </P>
+      <P>
+        Follow along on the blog and at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "how-we-built-friendly-reachy-mini",
+    title: "How we gave a Reachy Mini robot a voice, a personality and a memory",
+    description: "How Friendly works: a Reachy Mini robot with local speech, a fast local model for small talk, Claude for thinking, and memory, all on one Mac.",
+    date: "October 17, 2026",
+    isoDate: "2026-10-17T11:43",
+    readingTime: "13 min read",
+    Content: HowWeBuiltFriendlyReachyMiniContent,
+  },
   {
     slug: "how-secondbrain-works-open-source",
     title: "How secondbrain works: an open-source second brain you own",
