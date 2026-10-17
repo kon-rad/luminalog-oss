@@ -6457,7 +6457,270 @@ function ArgoBuildLogDay4Content() {
   )
 }
 
+/* ── Post: How secondbrain works: an open-source second brain you own ── */
+function HowSecondbrainWorksOpenSourceContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/how-secondbrain-works-open-source-1.jpg"
+        alt="A glowing constellation of linked notes floating above a laptop, a Raspberry Pi and a home server"
+        width={1600}
+        height={893}
+        priority
+      />
+      <P>
+        Most people&apos;s knowledge is scattered across a dozen apps. Notes in one, tasks in another, health data in a third, chat history with an AI model in a fourth. Each app holds a slice, none of them talk to each other, and none of them are yours in any lasting sense. If a company shuts a service down or changes its terms, the slice goes with it.
+      </P>
+      <P>
+        AI agents make this more pressing. An agent that can read your notes, plan your week and write code for you is only as good as what it can see, and only as safe as the rules it works under. Give it everything and you&apos;ve handed a stranger your diary. Give it nothing and it&apos;s a chatbot with amnesia.
+      </P>
+      <P>
+        Today we made the engine behind our own second brain public: <A href="https://github.com/kon-rad/secondbrain">github.com/kon-rad/secondbrain</A>, MIT licensed. This post explains how it works from the bottom up: where the notes live, how search works, how agents are kept in line, how the data is backed up, and how the same system shows up on a laptop, a server, a TV and a computer you wear.
+      </P>
+      <H2>What is secondbrain, in one paragraph?</H2>
+      <P>
+        <strong>secondbrain is a set of parts that turn a folder of markdown notes into a private, searchable memory that you and your AI agents share.</strong> The folder is a git repo you own. The parts are a web app that indexes and searches it, a small rulebook and two hooks that every agent follows, a set of shared agent skills, and a starter template. The engine is public. Your notes never enter it.
+      </P>
+      <H2>Where do my notes live?</H2>
+      <P>
+        In plain markdown files, in a git repo you control. A markdown file is a text file with light formatting: <code>#</code> for a heading, <code>**</code> for bold, a note&apos;s name in double square brackets for a link to another note. Any editor can open it, it diffs cleanly in git, and it will still be readable in fifty years.
+      </P>
+      <P>
+        The folders follow PARA, adapted from a method by Tiago Forte that sorts everything by how actionable it is (his R stands for Resources; we use Research):
+      </P>
+      <UL items={[
+        <><strong>Projects:</strong> things with a finish line (&quot;ship the garden sensor&quot;).</>,
+        <><strong>Areas:</strong> ongoing responsibilities with no finish line (&quot;health&quot;, &quot;home lab&quot;).</>,
+        <><strong>Research:</strong> topics you&apos;re learning about.</>,
+        <><strong>Archives:</strong> anything finished or paused.</>,
+      ]} />
+      <P>
+        The engine sits inside your vault as a git submodule at <code>.secondbrain/</code>. A submodule is a pointer from one git repo to a specific commit of another. Think of it as a bookmark into someone else&apos;s library: your repo records which version of the engine you use, and you move the bookmark when you want an update. The engine&apos;s code lives in its own public repo; your notes live in yours. Nothing flows from your vault into the engine.
+      </P>
+      <Figure
+        src="/blog/how-secondbrain-works-open-source-2.jpg"
+        alt="Diagram: the private vault holds notes and rules; the public engine (app, harness, skills, template) is pinned inside it as a submodule"
+        width={1600}
+        height={900}
+      />
+      <P>
+        Setting one up takes four commands:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"mkdir my-vault && cd my-vault && git init\ngit submodule add https://github.com/kon-rad/secondbrain.git .secondbrain\n.secondbrain/bin/secondbrain-vault init .\ncp .env.example .env"}</code></pre>
+      <P>
+        <code>init</code> copies the PARA template, writes your agent rules and links the shared skills. The <code>.env</code> file holds your keys and settings; it&apos;s gitignored, so it never reaches a remote.
+      </P>
+      <H2>How does the app find anything?</H2>
+      <P>
+        The app is a TypeScript web server (Express) with a React front end, backed by Postgres. It reads your vault, stores an index of every note in the database, and gives you three ways to search it.
+      </P>
+      <P>
+        The first thing to understand is that <strong>the index is disposable</strong>. Markdown is the source of truth for anything written in prose. The app&apos;s index (which files exist, which notes link to which, which tags they carry) is rebuilt from the files. Drop the database, rescan, and you&apos;ve lost nothing.
+      </P>
+      <Figure
+        src="/blog/how-secondbrain-works-open-source-3.jpg"
+        alt="Screenshot: a note in the app, with its folder tree on the left and the notes that link to it listed underneath"
+        width={1440}
+        height={900}
+      />
+      <P>
+        Search comes in three modes:
+      </P>
+      <UL items={[
+        <><strong>Keyword:</strong> Postgres full-text search. It understands quoted phrases and <code>-exclusions</code>, and it&apos;s the mode to use when you remember the exact words.</>,
+        <><strong>Semantic:</strong> each note is cut into chunks of about 400 tokens along its headings, and each chunk is turned into an embedding (a list of 1,024 numbers that captures what the text means). The <code>pgvector</code> extension stores those numbers and finds the chunks closest in meaning to your question. This finds notes that never use your words.</>,
+        <><strong>Hybrid:</strong> both, merged by reciprocal rank fusion. Instead of trying to put a keyword score and a similarity score on the same scale, which are unrelated numbers, it merges the two ranked lists by position. If the embedding service is down, hybrid falls back to keyword and says so.</>,
+      ]} />
+      <Figure
+        src="/blog/how-secondbrain-works-open-source-4.jpg"
+        alt="Screenshot: a keyword search for “backup” returning two notes with highlighted snippets"
+        width={1440}
+        height={900}
+      />
+      <P>
+        Embeddings can come from a hosted model or from Ollama on your own hardware, in which case nothing leaves your network. We chose to keep vectors in the same Postgres as everything else, so a deleted note drops its vectors in the same transaction and there&apos;s no second database to drift out of sync.
+      </P>
+      <H2>What does Postgres hold, if the notes are the truth?</H2>
+      <P>
+        Some data isn&apos;t prose. A gear inventory, the readings from a smart ring, a project&apos;s stage, a message between two agents: these are records, and records belong in tables. So the system has three layers, and each has exactly one way to be written:
+      </P>
+      <UL items={[
+        <><strong>Markdown vault:</strong> the truth for all prose. You (or an agent) edit the file; git moves it.</>,
+        <><strong>Postgres records:</strong> the truth for structured data. Each kind is written only by its own command-line tool or pipeline, never by hand-typed SQL.</>,
+        <><strong>Derived index and vectors:</strong> the truth for nothing. Rebuilt from markdown by the scanner and the embedder.</>,
+      ]} />
+      <Figure
+        src="/blog/how-secondbrain-works-open-source-5.jpg"
+        alt="Diagram: three layers, markdown, Postgres records and the derived index, each with its own read and write path"
+        width={1600}
+        height={900}
+      />
+      <P>
+        The rule that holds this together is <strong>never write one fact in two layers</strong>. A record that needs a long explanation keeps a <code>notes_path</code> pointing at a markdown note, instead of copying the prose into the table.
+      </P>
+      <P>
+        The app also has a database page: you type a question in plain language, a model writes the SQL, you can edit it, and it runs read-only.
+      </P>
+      <Figure
+        src="/blog/how-secondbrain-works-open-source-6.jpg"
+        alt="Screenshot: the database page, with the schema on the left and a plain-language question box on the right"
+        width={1440}
+        height={900}
+      />
+      <P>
+        Everything past browsing and searching is a module you switch on by name in <code>MODULES</code>: a project tracker, a message board for a company of agents, a ledger of what your agents cost, a 3D map of how your notes connect, a player for your own video episodes, read-aloud with a local voice, livestream stats, smart ring data, and an agents page with a kanban board, chats and cron history. A module that&apos;s off mounts no routes and shows no link.
+      </P>
+      <H2>How do agents work in it without causing damage?</H2>
+      <Figure
+        src="/blog/how-secondbrain-works-open-source-7.jpg"
+        alt="Illustration: robot workers carrying notes through a vault, checked by a gatekeeper at the entrance"
+        width={1600}
+        height={893}
+      />
+      <P>
+        The agents are the ones you already use. Claude Code and Hermes are supported today; anything that reads an <code>AGENTS.md</code> file can follow the rules. The engine gives them three things.
+      </P>
+      <P>
+        <strong>One rulebook.</strong> <code>AGENTS.md</code> at the vault root tells every agent where files go, how to write a research note, how to handle keys, and what to leave behind when it finishes. It&apos;s compiled from two halves: shared rules from the engine and your own rules from <code>AGENTS.local.md</code>. Claude Code&apos;s <code>CLAUDE.md</code> just imports it, so two agents can&apos;t drift apart.
+      </P>
+      <P>
+        <strong>Two hooks.</strong> A hook is a small program the agent runtime runs at a fixed moment, which can stop the agent&apos;s action. The engine ships two, and both agents run the same files:
+      </P>
+      <UL items={[
+        <><strong>The guard</strong> runs before every shell command and every file read or write. It blocks reading or printing your <code>.env</code>, force-pushing to git, <code>rsync --delete</code> without a dry run, and anything you list in your own <code>guard.local.json</code> (a protected folder, a file that must not be deleted). When it blocks, the reason starts with <code>guard:</code>, and the rule is that the agent tells you what it was trying to do instead of working around it.</>,
+        <><strong>The dev-log gate</strong> runs when an agent tries to finish. If the session changed a skill, a script, server config or a hook and there&apos;s no dev log entry dated today, it sends the agent back once to write one.</>,
+      ]} />
+      <Figure
+        src="/blog/how-secondbrain-works-open-source-8.jpg"
+        alt="Diagram: the guard checks each tool call and either allows it or blocks it; the dev-log gate sends an agent back once if it changed code without a dev log"
+        width={1600}
+        height={900}
+      />
+      <P>
+        The gate matters more than it looks. An agent&apos;s work is only useful to the next agent (or to you, next week) if someone wrote down what changed, why, and how it was tested. Every project keeps a dev log whose README starts with a six-line Resume block (task, outputs, completed, decisions, open issues, next action), which is the handoff between sessions.
+      </P>
+      <P>
+        <strong>Shared skills.</strong> A skill is a folder with a <code>SKILL.md</code> file: a written procedure an agent loads when the task matches. The engine ships a few that work for anyone, such as <code>fact-check</code> (verify every claim in a finished document against its sources) and <code>ingest</code> (turn a link into a summarized note). Your own skills live next to them in your vault.
+      </P>
+      <P>
+        The analogy: the vault is a workshop, the agents are skilled contractors, <code>AGENTS.md</code> is the posted house rules, and the hooks are the lock on the cabinet with the keys plus a sign-out sheet at the door. The analogy stops working in one place: the guard only watches the agent&apos;s own tools. A script the agent writes can still read whatever your user account can, which is why the keys that matter most should live under a separate account.
+      </P>
+      <H2>What does it borrow from other open-source projects?</H2>
+      <Figure
+        src="/blog/how-secondbrain-works-open-source-9.jpg"
+        alt="Diagram: the projects secondbrain borrows from, and what it takes from each"
+        width={1600}
+        height={900}
+      />
+      <P>
+        Very little here is new on its own. The vault idea comes from the Obsidian and PARA communities. The search is Postgres and <code>pgvector</code>. The newest borrowing is the agent company module.
+      </P>
+      <P>
+        <A href="https://github.com/paperclipai/paperclip">Paperclip</A> is an open-source project that runs a company of AI agents with an org chart, budgets, a task board and heartbeats. Its heartbeat protocol is the best-tested answer we found to &quot;how do always-on agents work&quot;: an agent wakes when it&apos;s assigned a task, when someone comments on its task, or on a schedule you set (never on a passing mention), checks the task out so two agents don&apos;t do the same work, reports what it did, and escalates to its manager when stuck. Timers are off by default. We adapted that checklist into the shared <code>org-member</code> skill, which is in the public engine.
+      </P>
+      <P>
+        What we chose differently is where it lives. Paperclip is its own app with its own database and its own UI. We wanted the message board, the tracker and the usage ledger to be tables in the same Postgres as the notes, shown in the same app, so there is one place to look. From CrewAI we took the role, goal and personality fields; from Agency Swarm, reporting lines as explicit edges; from Workora and MCP Agent Mail, channels, direct messages and a human whose messages are the only ones that carry authority. A message between agents is information, never permission: no message can approve a deploy, a payment or a post.
+      </P>
+      <H2>Where does it run?</H2>
+      <P>
+        The same app runs in two modes. <strong>Local</strong> mode binds only to your own machine and has no login, because the machine is the boundary. <strong>Server</strong> mode puts it behind Caddy (a web server that handles HTTPS) with a password and an authenticator code, rescans on a timer, and is what your other devices talk to. One deploy script installs Node, Postgres with <code>pgvector</code>, Caddy and the timers on a fresh server; set <code>DEPLOY_DB_BACKUP=1</code> and it adds the nightly backup.
+      </P>
+      <Figure
+        src="/blog/how-secondbrain-works-open-source-10.jpg"
+        alt="Diagram: a laptop, a server, a home lab, a Pi TV kiosk, a Pi wearable and object storage, all joined on a private network"
+        width={1600}
+        height={900}
+      />
+      <P>
+        This is how we run it ourselves:
+      </P>
+      <UL items={[
+        <><strong>A laptop</strong> where we write and run agents.</>,
+        <><strong>A small cloud server</strong> holding the one Postgres database everything reads and writes, the scheduled agents, and the nightly backup.</>,
+        <><strong>A home lab</strong>: an M1 Max laptop with 64 GB of memory on a shelf. It runs Ollama for local models and embeddings, a local text-to-speech server, and the home copy of the backups. Embeddings and speech already run here; next, model calls that should stay private will go here instead of to a hosted API.</>,
+        <><strong>A Raspberry Pi behind a TV</strong>, running the <code>tv-kiosk</code> add-on.</>,
+        <><strong>A Raspberry Pi you wear</strong>, the Exo, described below.</>,
+      ]} />
+      <P>
+        The server, the home lab and the Pis join one private network with Tailscale, so the database and the home lab are never exposed to the public internet.
+      </P>
+      <H3>The TV kiosk</H3>
+      <Figure
+        src="/blog/how-secondbrain-works-open-source-11.jpg"
+        alt="Illustration: a living room TV showing a glowing map of connected notes, with a small Pi behind it"
+        width={1600}
+        height={893}
+      />
+      <P>
+        The <code>addons/tv-kiosk</code> folder turns a Raspberry Pi 4 into a screen that shows your second brain all day. <code>flash.sh</code> writes the operating system to an SD card with your Wi-Fi, SSH key and the list of pages already set. On first boot the Pi installs itself, joins your private network and opens Chromium full screen, rotating through the pages you chose and reloading each so the numbers are fresh. The map, TV and agent-board pages each have a lean <code>?kiosk=1</code> view made for this. You change what it shows over SSH:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"ssh tv@sb-tv sb-tv url https://your-app/map?kiosk=1 https://your-app/projects"}</code></pre>
+      <H3>The wearable</H3>
+      <Figure
+        src="/blog/how-secondbrain-works-open-source-12.jpg"
+        alt="Illustration: a person in a city at dusk wearing display glasses and earbuds, pressing a key on a sling to talk"
+        width={1600}
+        height={893}
+      />
+      <P>
+        The second brain is half of a pair. The other half is <A href="https://exo.myargoquest.com">Exo</A>, a modular wearable built around a Raspberry Pi: display glasses, earbuds and a few keys on a sling. You hold a key and talk to your own agents. The wearable is a thin client: it carries nothing worth stealing, and everything it hears or measures lands in your vault and your database. A smart ring and body sensors feed the <code>ring</code> module, so your sleep and heart data sit next to your notes, in a table you own. Exo is still being built; secondbrain runs the same without it.
+      </P>
+      <H2>How is my data backed up?</H2>
+      <Figure
+        src="/blog/how-secondbrain-works-open-source-13.jpg"
+        alt="Illustration: a closed laptop on a bookshelf acting as a home server, with threads of light reaching a data center and a TV"
+        width={1600}
+        height={893}
+      />
+      <P>
+        There are two kinds of data, so there are two kinds of backup.
+      </P>
+      <P>
+        <strong>The notes ride git.</strong> Every change is a commit, and every clone (your laptop, the server, the home lab) is a full copy with its whole history.
+      </P>
+      <P>
+        <strong>The database is dumped every night.</strong> The engine ships a job (<code>secondbrain-db-backup</code>) that runs at 03:30 UTC, makes a compressed <code>pg_dump</code>, checks it can be read back, encrypts it and uploads it to Backblaze B2 object storage. It keeps the 14 newest daily dumps and the 8 newest Sunday dumps, and it only deletes old ones after tonight&apos;s upload is verified.
+      </P>
+      <P>
+        At home, the M1 Max pulls the newest dump every day onto an encrypted disk volume, and pulls the vault into its own git clone. Nothing pushes to it, so nothing else has write access to that copy. The same job can also run a restore test: rebuild the dump in a scratch Postgres and compare row counts with the live database. <strong>A backup only counts once a restore works.</strong> The home-lab pull is our own setup, not part of the engine yet.
+      </P>
+      <Figure
+        src="/blog/how-secondbrain-works-open-source-14.jpg"
+        alt="Diagram: three copies, the live database and repo, the encrypted nightly dump in B2, and the home lab copy with a restore test"
+        width={1600}
+        height={900}
+      />
+      <H2>What&apos;s built and what&apos;s next?</H2>
+      <P>
+        Built and running every day: the vault template, the app with keyword, semantic and hybrid search, the database page, the modules listed above, server mode with login, the guard and the dev-log gate for Claude Code and Hermes, the shared skills, the TV kiosk add-on, and the nightly database backup.
+      </P>
+      <P>
+        Not in the public engine yet: the compiler that turns one <code>org.yaml</code> file into a whole roster of agents, the dispatcher that wakes them, and the home-lab backup pull. These run in our own vault today and will move into the engine once they work for someone who isn&apos;t us. The Exo wearable is in development.
+      </P>
+      <H2>How can I try it or help?</H2>
+      <P>
+        You need Node 22, Python 3.11 and Postgres 15 or newer with <code>pgvector</code>. Make a vault with the four commands above, then follow <code>app/README.md</code> to start the app and run your first scan. Your agents will read <code>AGENTS.md</code> on their own.
+      </P>
+      <P>
+        To contribute, read <code>CONTRIBUTING.md</code>. Open an issue before anything bigger than a bug fix, write the test first for behavior changes, and run the app tests, the Python tests and <code>scripts/check-public.sh</code>, which checks that nothing personal (names, hosts, paths from your machine) slipped into the change. A skill you propose must work for anyone. AI coding agents are welcome as contributors: they follow <code>AGENTS.md</code>, open pull requests like anyone else, and never merge their own.
+      </P>
+      <P>
+        The idea underneath all of this is simple: your memory, your agents&apos; memory and your body&apos;s data should sit in one place that you own, in formats that will outlive any app, with rules you write. The repo is at <A href="https://github.com/kon-rad/secondbrain">github.com/kon-rad/secondbrain</A>, and we post what we build at <A href="https://x.com/myargoquest">x.com/myargoquest</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "how-secondbrain-works-open-source",
+    title: "How secondbrain works: an open-source second brain you own",
+    description: "Inside the secondbrain engine: a markdown vault, a Postgres index, rules and hooks for AI agents, and the devices it runs on.",
+    date: "October 17, 2026",
+    isoDate: "2026-10-17T15:37",
+    readingTime: "13 min read",
+    Content: HowSecondbrainWorksOpenSourceContent,
+  },
   {
     slug: "argo-build-log-day-4",
     title: "Argo build log, Day 4: Voronoi case redesign and two new blog posts",
