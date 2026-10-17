@@ -6412,7 +6412,61 @@ function SelfImprovingAgentHarnessContent() {
   )
 }
 
+/* ── Post: Argo build log, Day 4: Voronoi case redesign and two new blog posts ── */
+function ArgoBuildLogDay4Content() {
+  return (
+    <>
+      <P>
+        Argo is a private AI journal where you write your life and an AI reads every entry to show you patterns you would miss on your own. The mission by the start of 2027 is a million dollars a month in recurring revenue, 100,000 followers across Instagram and YouTube, and a modular wearable built and shown in public. Today the work showed the value of shipping in public, every day: the Exo case was redesigned on stream, two blog posts went live on the Argo site, and the Exo site published its own build guide.
+      </P>
+      <H2>Highlights</H2>
+      <UL items={[
+        <>The Exo Pi case was redesigned from the ground up: the alien carapace tapered walls became a straight-walled Voronoi network with a compound-eye fan ring, engraved nodes, hex vents and faceted strap lugs.</>,
+        <>Two new Argo blog posts went live, one on how an AI agent can debug its own harness and one on tracing every token that every model call spends.</>,
+        <>The Exo site published its eighth build log post, taking the Pi case from its first Python model to a print-ready file.</>,
+        <>The build was live for 323 minutes across X, Twitch, YouTube and Kick.</>,
+      ]} />
+      <H2>The journal app</H2>
+      <P>
+        Two new posts went live on the Argo blog. The first shows how an AI agent can improve its own coding harness without a human grader, running tests against itself and patching the tools it uses. It was inspired by Google&apos;s Harness2 paper, but the version we built is simpler and runs in every agent session. The second traces where every token goes: each model call our agents make carries a label for the agent, the action, the task and the project, so the usage dashboard attributes cost correctly. Both posts carry the full code and prompts that produced them.
+      </P>
+      <H2>Exo, the wearable</H2>
+      <P>
+        The Pi case got a full redesign. Yesterday&apos;s tapered carapace walls gave way to straight vertical walls with 8 mm rounded corners, making the case simpler to print and more stable to wear. The lid carries a dragonfly-wing Voronoi network with nodes engraved into the surface, a compound-eye fan ring with hex spiracle vents, and faceted strap lugs built into the base. The whole thing was designed, coded and rendered in a single session on stream.
+      </P>
+      <P>
+        The GPIO ribbon hatch was split into two clamping halves with a 1.2 mm ribbon gap, so the extender cable is held firmly without a separate clip. The camera bracket was replaced with a pod that mounts on the front of the case. The ring-sync pipeline was also cleaned up: the old push-based upload was dropped, and the data now pulls from a droplet mirror, which is simpler and more reliable.
+      </P>
+      <P>
+        The brooch wearable got its own case, modelled in the deck&apos;s style: a 55 by 56.4 by 19.8 mm shell with a back plate and three key caps for the buttons.
+      </P>
+      <H2>On stream</H2>
+      <P>
+        The build was live for 323 minutes across four platforms, focused entirely on the Exo case redesign. X carried the main audience with 23 average viewers and a peak of 33. Every revision, every measurement check and every design decision was made in the open.
+      </P>
+      <H2>Next</H2>
+      <UL items={[
+        <>Print the redesigned case in PLA and verify the Pi fits the straight-walled layout.</>,
+        <>Continue the Arkiv social archive hackathon, due Sunday.</>,
+        <>Start the Instagram video series for the Exo build.</>,
+      ]} />
+      <P>
+        Follow the build at https://myargoquest.com/blog
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "argo-build-log-day-4",
+    title: "Argo build log, Day 4: Voronoi case redesign and two new blog posts",
+    description: "The Exo case gets a straight-walled Voronoi redesign, two new blog posts go live, and the build runs 323 minutes on stream.",
+    date: "October 17, 2026",
+    isoDate: "2026-10-17T02:42",
+    readingTime: "3 min read",
+    Content: ArgoBuildLogDay4Content,
+  },
   {
     slug: "self-improving-agent-harness",
     title: "How an AI agent can improve its own harness without a grader",
