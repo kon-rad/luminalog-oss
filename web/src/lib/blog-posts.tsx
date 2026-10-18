@@ -7065,7 +7065,137 @@ function HowWeBuiltFriendlyReachyMiniContent() {
   )
 }
 
+/* ── Post: Inside Hermes Agent: memory, skills, and learning to improve itself ── */
+function InsideHermesAgentMemorySkillsSelfImprovementContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/inside-hermes-agent-memory-skills-self-improvement-1.jpg"
+        alt="Diagram of Hermes Agent's architecture: the messaging gateway, agent core, persistent memory, skills library, subagents, terminal backends, and the curator"
+        width={1920}
+        height={1080}
+        priority
+        caption="One gateway, one memory, one tool registry: how the pieces of the Hermes Agent harness fit together."
+      />
+      <P>
+        Most AI assistants reset the moment you close the window. You explain your project again, repeat your preferences again, and watch it make the same mistake it made last week, because nothing it learned ever left that one conversation. Hermes Agent, built by Nous Research, is an attempt to fix that at the architecture level rather than papering over it with a bigger context window.
+      </P>
+      <P>
+        It is not a coding copilot bolted to an editor, and it is not a chat widget in front of one model. It is an agent process you run yourself, on a laptop or a five-dollar server, that keeps a bounded memory of you, writes its own reusable procedures as it works, and reaches you through whichever app you actually use. We wanted to understand what that means in practice, where it came from, and how its claims hold up against the rest of the field. This is what we found.
+      </P>
+      <H2>Where Hermes Agent came from</H2>
+      <P>
+        The <code>hermes-agent</code> repository was created inside Nous Research in July 2025, according to the project&apos;s GitHub metadata, and spent roughly eight months developed privately before anything shipped publicly. Nous Research is the same lab behind the Hermes family of language models and the Psyche distributed training project, so the agent inherited a specific point of view: it should work with any model, not just the lab&apos;s own.
+      </P>
+      <P>
+        It went public in early 2026 and has shipped date-stamped releases at a fast pace since, reaching v0.22 by October 2026. The project&apos;s own release notes (self-reported, not independently audited) describe tens of thousands of commits and thousands of contributors across the year, which signals a large, very active open-source community rather than a single-vendor product. Each release has a theme: the &quot;Pantheon&quot; releases in mid-2026 added Bot Mode, where several named agents with their own identities work together in a group chat; the &quot;Threshold&quot; release in October 2026 added guided first-run setup, one-click local models, and a plugin catalog of 600 reviewed community add-ons. The whole thing is MIT licensed, which means the code is free to read, run, and modify.
+      </P>
+      <H2>What kind of agent is this, exactly</H2>
+      <P>
+        At the center is a single agent loop that can talk to over twenty messaging platforms, including Telegram, Discord, Slack, WhatsApp, Signal, email, and iMessage, all through one gateway process with one shared memory and one tool registry. You are not running twenty bots. You are running one agent that happens to have twenty doors.
+      </P>
+      <P>
+        Where it actually executes commands is configurable too. Hermes supports seven terminal backends: your local machine, a Docker container, a remote server over SSH, and serverless options like Daytona, Modal, and Vercel Sandbox that hibernate when idle and cost close to nothing between uses. That separation between &quot;where the agent lives&quot; and &quot;where it runs commands&quot; is what lets someone talk to the same agent from their phone while it executes on a cloud sandbox they never log into directly.
+      </P>
+      <P>
+        It can also delegate. The <code>delegate_task</code> tool spawns isolated subagents with their own context and terminal session for parallel work, and a separate <code>execute_code</code> tool lets the agent write a Python script that calls its own tools programmatically, so a ten-step pipeline becomes one script instead of ten back-and-forth turns with the model. Both exist for the same reason: keep the main conversation&apos;s context small while still doing large amounts of work.
+      </P>
+      <Figure
+        src="/blog/inside-hermes-agent-memory-skills-self-improvement-2.jpg"
+        alt="Screenshot of the official Hermes Agent homepage at hermes-agent.nousresearch.com"
+        width={1920}
+        height={1080}
+        caption="Hermes Agent's own site: install via terminal, or deploy it to the cloud."
+      />
+      <H2>How it remembers you across sessions</H2>
+      <P>
+        Memory in Hermes is deliberately small and deliberately curated, not a growing transcript. Two files do the work: <code>MEMORY.md</code>, capped at 2,200 characters, holds the agent&apos;s own notes about your environment, your conventions, and things it has learned; <code>USER.md</code>, capped at 1,375 characters, holds a profile of you specifically, your preferences and communication style. Both live on disk and get loaded into the system prompt as a frozen snapshot at the start of a session.
+      </P>
+      <P>
+        That cap is the interesting design choice. Most systems let memory grow until it has to be summarized away. Hermes just refuses the write: when an addition would exceed the limit, the memory tool returns an error, and the agent has to consolidate or remove something else in the same turn before it can save the new fact. Nothing gets silently dropped, and nothing balloons into an unreadable pile of old notes.
+      </P>
+      <P>
+        The frozen-snapshot part matters for day-to-day use. A session loads memory once, at the start, and that copy never changes even if the agent updates the file mid-session, which preserves the cached, cheaper version of the prompt the model has already processed. A fact saved mid-conversation is on disk immediately but will not show up in that same conversation. It shows up the next time a session starts. On the command line that happens naturally, since every invocation is a new session. In a long-running chat like Telegram, a conversation can technically run for weeks without ever restarting, which is convenient but means memory updates stay invisible and the agent rarely reaches for older history. The practical fix is to start a fresh session at a natural boundary, a finished task or a new topic, so the agent re-reads the updated snapshot instead of carrying an ever-longer thread.
+      </P>
+      <P>
+        For anything that falls outside those two small files, there is <code>session_search</code>: a full-text index over past conversations with LLM summarization, so the agent can go dig up something specific from three weeks ago without needing it memorized in the permanent notes.
+      </P>
+      <H2>How it teaches itself new skills</H2>
+      <P>
+        Memory holds facts. Skills hold procedures. A skill in Hermes is a <code>SKILL.md</code> document, plain markdown with a short frontmatter description, stored in <code>~/.hermes/skills/</code>, that the agent loads only when a task matches its description. This is a progressive disclosure pattern: the agent&apos;s prompt only ever carries short descriptions of every skill it has, and the full procedure, plus any supporting scripts or reference files, loads on demand. That is how an installation can carry dozens of skills without bloating every single prompt.
+      </P>
+      <P>
+        The format is compatible with the open agentskills.io standard, which means a skill written for one compliant agent generally works in another without changes, and skills can be browsed and installed from a public Skills Hub the same way you would install a package. You can also chain several at once: typing more than one <code>/skill-name</code> at the start of a message loads all of them before the rest of your text becomes the instruction.
+      </P>
+      <P>
+        The self-improvement part is <code>/learn</code> and the agent&apos;s own background habit of writing skills after it solves something complicated. <code>/learn</code> takes a request like &quot;read the official project guide, focus on testing, skip the deprecated commands&quot; and turns it into a reviewable <code>SKILL.md</code> in one ordinary agent turn: it gathers the sources, extracts the procedure, and calls the same <code>skill_manage</code> tool a human would use to author a skill by hand. Nothing here retrains a model. It is closer to an engineer turning a one-off fix into a documented runbook, except the agent does the documenting itself, and the result is a file you can open, edit, or delete.
+      </P>
+      <H2>Keeping skills from piling up</H2>
+      <P>
+        A system that writes its own documents eventually has too many of them, so Hermes runs a background maintenance pass called the curator. It tracks how often each agent-created skill is viewed, used, and edited, and moves ones that go quiet through active, stale, and archived states on a schedule (14 and 30 days of disuse by default). This happens automatically, with no model call, and nothing is ever deleted outright; archiving just moves a file into a recoverable folder.
+      </P>
+      <P>
+        An optional, off-by-default mode goes further: the curator forks a background copy of the agent that reviews the whole skill library and proposes merging near-duplicate skills or patching ones that have drifted. A related research project, built separately on top of Hermes, uses an evolutionary optimization method called GEPA to rewrite a skill&apos;s instructions across many trial runs and keep whichever version performs best, with every change still going through a pull request and a human review rather than landing automatically. The common thread across all of this: skills are allowed to improve, but nothing self-modifies without a checkpoint a person can inspect.
+      </P>
+      <H2>What matters most if you use it day to day</H2>
+      <P>
+        Strip away the feature list and a handful of things decide whether this actually feels like an assistant that learns, instead of one that forgets politely:
+      </P>
+      <UL items={[
+        <><strong>Start new sessions on purpose.</strong> The memory snapshot only refreshes when a session starts, so the single most useful habit is closing out finished work instead of letting one chat thread run forever.</>,
+        <><strong>Watch what gets saved, not what gets said.</strong> A model can say &quot;I&apos;ll remember that&quot; without ever calling the memory tool. If a fact does not survive into a new session, check the file; it likely was never written.</>,
+        <><strong>Skills are editable text, not a black box.</strong> Anything the agent writes for itself lives as a markdown file you can open and correct, the same way you would review a colleague&apos;s notes.</>,
+        <><strong>Context files still do most of the steering.</strong> Project-level files like <code>AGENTS.md</code> or <code>CLAUDE.md</code> shape behavior for everything under that folder, on top of whatever the agent has learned generally, so day-to-day correctness still depends on writing those down clearly.</>,
+        <><strong>Checkpoints are your undo button.</strong> The agent snapshots a working directory before it changes files, so a bad edit is a rollback, not a crisis.</>,
+      ]} />
+      <H2>How it compares to other agent tools</H2>
+      <P>
+        Put next to Claude Code or OpenAI&apos;s Codex CLI, the biggest structural difference is which problem each one is built to solve. Claude Code and Codex CLI are, at their core, terminal coding agents tied closely to one model provider each, tuned hard for one job: get very good at editing a codebase inside a single session. Hermes Agent works with whichever model you point it at, and it is built to persist: it keeps running as a long-lived process with its own memory and skill library across completely unrelated tasks and conversations, coding being only one of them.
+      </P>
+      <P>
+        Open-source platforms like OpenHands sit somewhere else again: they run agents inside a sandboxed container with strong isolation and browser access, oriented toward autonomous software engineering tasks rather than being a general always-on assistant you talk to from a phone. And compared to the earlier generation of autonomous agents like AutoGPT, the honest difference is reliability over raw autonomy: AutoGPT was built to chase an open-ended goal and often lost the thread doing it; Hermes trades some of that open-endedness for a memory and skills system meant to make repeated, structured work get more consistent the longer it runs.
+      </P>
+      <P>
+        None of this makes one approach strictly better. A developer who lives in one codebase all day and wants the single best coding experience for one model provider is usually better served by a dedicated coding agent. Someone who wants one assistant that follows them across a terminal, a phone, and a handful of long-running projects, and that should remember yesterday&apos;s context without being told again, is the use case Hermes is actually built around.
+      </P>
+      <Figure
+        src="/blog/inside-hermes-agent-memory-skills-self-improvement-3.jpg"
+        alt="Screenshot of the NousResearch/hermes-agent GitHub repository page"
+        width={1920}
+        height={1080}
+        caption="The project is open source and MIT licensed on GitHub."
+      />
+      <H2>What agent benchmarks actually measure</H2>
+      <P>
+        It&apos;s worth naming what these benchmarks test, because the number alone says less than it looks like it does. SWE-bench and its curated subset, SWE-bench Verified, give an agent a real GitHub issue and a repository and check whether its patch makes a failing test suite pass; it is a binary score, so fixing nine of ten tests scores zero. Terminal-Bench drops an agent into a raw Docker terminal with a natural-language task and an automated checker script, testing whether it can actually operate a Unix system rather than reason about one abstractly. GAIA asks general, multi-step questions that require web search, file parsing, and tool use, graded by exact-match answers rather than code correctness.
+      </P>
+      <P>
+        The detail that gets lost in most leaderboard screenshots is that these scores are never produced by a model alone. A recent academic analysis of the field found that holding a model fixed and changing only the surrounding harness, the software that builds the context, mediates tool calls, and decides when to retry, shifted Terminal-Bench scores by over ten percentage points in documented cases. The same model can rank above or below a competitor purely because of the scaffolding around it.
+      </P>
+      <P>
+        That caveat applies directly here. Nous Research publishes its own comparison, the Hermes Index, which runs several models through the Hermes Agent harness itself on four suites: its own Hermes Bench, Terminal-Bench 4.0, a Terminal-Bench science variant, and a skills-focused suite. As of its October 2026 publication, Claude Opus 5.5 led that index, followed by GPT-6.1 Sol and GPT-6 Astra. On the public Terminal-Bench 4.0 leaderboard, the same Claude Opus 5.5 model scores noticeably higher when run through Claude Code, its first-party harness, than it does through Hermes Agent&apos;s own run of the same suite (which also excludes four GPU-dependent tasks, so the two numbers are not a clean apples-to-apples comparison). The honest takeaway is not that one harness is better or worse; it is that the index exists to help someone choose which model to run inside Hermes, not to settle an argument about which agent tool is fastest overall. Anyone comparing agent benchmarks across different products should ask what harness produced each number before trusting the ranking.
+      </P>
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Everything described above, the memory files, the skills system, the curator, the seven terminal backends, the twenty-plus messaging platforms, is shipped and running in the current release. The parts still actively moving are the self-improvement research: automated skill optimization through evolutionary search is a separate, opt-in project layered on top of the core agent, not something that runs by default, and every change it proposes still goes through a human-reviewed pull request rather than landing on its own.
+      </P>
+      <P>
+        The project is open source under the MIT license, so the honest way to check any of this is to read the code or run it yourself rather than take a benchmark screenshot at face value. We&apos;ll keep an eye on how the memory and skills design holds up as we lean on it for our own work.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "inside-hermes-agent-memory-skills-self-improvement",
+    title: "Inside Hermes Agent: memory, skills, and learning to improve itself",
+    description: "What Hermes Agent is, how it got here, how its memory and skills system work, and what its benchmark numbers actually mean next to other agent tools.",
+    date: "October 18, 2026",
+    isoDate: "2026-10-18T16:12",
+    readingTime: "12 min read",
+    Content: InsideHermesAgentMemorySkillsSelfImprovementContent,
+  },
   {
     slug: "how-our-company-of-ai-bots-works",
     title: "How our company of AI bots works: one roster, one message board, one task board",
