@@ -7347,7 +7347,180 @@ function LetYourAgentPostToLinkedinContent() {
   )
 }
 
+/* ── Post: What we built at the Arkiv hackathon: a trust layer for AI agent skills ── */
+function ArkivHackathonSkillregContent() {
+  return (
+    <>
+      <P>
+        Your AI agent just installed a new skill. A skill is a folder of instructions, usually a file called <code>SKILL.md</code> and sometimes a few scripts, that an agent like Claude Code, Hermes, Codex or Cursor loads and then follows. It follows them with everything the agent has: your shell, your files, your keys. You installed it by typing a name. Do you know who wrote it? Do you know whether it changed since yesterday? Has anyone you trust actually read it?
+      </P>
+      <P>
+        For most people the honest answer is no to all three. That is not a small gap. In February 2026 the security company Snyk audited 3,984 public skills and found that 13.4% had a critical issue and 76 carried confirmed malicious payloads, most of them combining malware with prompt injection (instructions hidden in text that try to make the agent do something its user never asked for).
+      </P>
+      <P>
+        This weekend we spent the Arkiv Global Tour Stop hackathon, the pre-Devcon edition, building an answer: <strong>skillreg</strong>, an open registry for agent skills that runs on Arkiv. This post explains what Arkiv is in plain terms, how skillreg uses it, and why we think this shape of solution holds up as AI models keep getting better.
+      </P>
+      <H2>What is Arkiv?</H2>
+      <P>
+        Start with a familiar picture. A normal app keeps its data in a database that one company runs. That company can change a record, delete it, or shut the whole thing down, and everyone who depends on it has to trust them not to.
+      </P>
+      <P>
+        Arkiv is a database that lives on a blockchain instead. A blockchain is a shared ledger that many computers keep copies of, where every change is a signed transaction and nobody can quietly rewrite history. Arkiv runs on an Ethereum-compatible chain. We built on its test network, called Tiramisu, where the tokens used to pay fees (test GLM) have no real value.
+      </P>
+      <P>
+        The analogy that works best: Arkiv is a <strong>public notice board with a lock on every notice</strong>. Anyone can pin a notice. Everyone can read every notice. Each notice is stamped with who pinned it, and that stamp can&apos;t be forged. Each notice also has an expiry date, after which it comes down unless someone pays to keep it up. Where the analogy stops working: a board on a wall has one owner who can take it down. Arkiv&apos;s design goal is a board kept as a shared ledger with the same rules for everyone, so that no single app owner can edit or remove your notice. It is still early: what we used is a testnet, not a finished production network.
+      </P>
+      <H2>What does a record on Arkiv look like?</H2>
+      <P>
+        Arkiv doesn&apos;t have tables. It has <strong>entities</strong>. An entity is one record on the chain, and it has three parts.
+      </P>
+      <UL items={[
+        <><strong>The payload:</strong> the content itself. Any bytes up to 128 KiB, labelled with a content type (for example <code>application/json</code>). The chain stores it but never searches inside it.</>,
+        <><strong>The attributes:</strong> up to 30 small labelled values, like <code>name = &quot;fact-check&quot;</code> or <code>version = &quot;0.1.0&quot;</code>. These are indexed, which means you can ask the chain questions about them: &quot;give me every record where name is fact-check&quot;.</>,
+        <><strong>The expiry:</strong> the block number at which the record disappears. A block is one batch of transactions; on a blockchain, time is counted in blocks.</>,
+      ]} />
+      <P>
+        Every entity also carries two facts the chain writes itself. <strong>`$creator`</strong> is the wallet that created it, permanently. <strong>`$owner`</strong> is whoever controls it now. A wallet is a cryptographic key pair: the private half signs things, the public half (the address) identifies you. Nobody can sign as your wallet without your private key.
+      </P>
+      <P>
+        Each entity also gets a <strong>key</strong>: a 32-byte identifier the chain computes from the creating wallet, a per-wallet counter and a salt. The publisher doesn&apos;t choose it, and because the creating wallet is part of the input, nobody can grab a key that belongs to someone else.
+      </P>
+      <H2>How do you read and write it?</H2>
+      <P>
+        Writing is an ordinary blockchain transaction, signed by your wallet. There are four main ones: <code>createEntity</code> makes a record, <code>patchEntity</code> edits it, <code>extendEntity</code> pushes its expiry further out, and <code>deleteEntity</code> removes it. Each costs a small fee. In our test run, publishing one skill cost between 0.00016 and 0.00025 test GLM, and posting seven ratings in one batch cost 0.00087 test GLM.
+      </P>
+      <P>
+        Reading is free and needs no account. Any program, including a web page running in your browser, can send a query over the chain&apos;s public interface and get records back. A query looks like this:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"t = \"skill\" AND name = \"fact-check\""}</code></pre>
+      <P>
+        Two flags matter for what we built. <strong>`readonly`</strong> means a record can never be edited after it is created. <strong>`permissionlessExtension`</strong> means anyone, not only the owner, can pay to extend its life.
+      </P>
+      <H2>What is skillreg?</H2>
+      <P>
+        skillreg is a registry for agent skills where every version of every skill is an Arkiv entity. The short description: <strong>code signing plus Community Notes for agent instructions</strong>. Code signing proves who wrote something and that it hasn&apos;t changed. Community Notes lets many independent people add context, and lets you decide whose context to listen to.
+      </P>
+      <P>
+        A skill and everything about it live in one entity.
+      </P>
+      <UL items={[
+        <><strong>The attributes hold the metadata:</strong> a type marker <code>t = &quot;skill&quot;</code>, the name, the version, a short summary, up to five keywords, the license, the size, the file count, and <code>sha</code>, a fingerprint of all the files.</>,
+        <><strong>The payload holds the files:</strong> a JSON document listing each file&apos;s path, permissions and full text, sorted by path, up to 96 KiB. Because Arkiv doesn&apos;t index payloads, skillreg downloads the whole thing and reads it on your machine.</>,
+      ]} />
+      <P>
+        The fingerprint is what makes tampering visible. It is computed by hashing every file&apos;s path, permissions and contents in order. A hash is a short code that changes completely if a single byte of the input changes. When you install, skillreg downloads the files, recomputes the hash and compares it to the one stored on the chain. If they differ, nothing is installed.
+      </P>
+      <P>
+        Ratings are entities too, with <code>t = &quot;rating&quot;</code>. A rating points at one skill&apos;s entity key, copies that skill&apos;s exact <code>sha</code>, and records a verdict: <code>clean</code>, <code>warn</code> or <code>malicious</code>, with the findings in its payload. Pinning both the key and the hash means a rating is about one exact version. If the publisher uploads a new version, old ratings don&apos;t silently carry over to it.
+      </P>
+      <H2>How does it decide what to trust?</H2>
+      <P>
+        Three rules do most of the work.
+      </P>
+      <P>
+        <strong>A skill&apos;s name includes its publisher.</strong> On skillreg a skill is <code>name@publisher</code>, and the publisher is the <code>$creator</code> the chain wrote. Anyone can publish a skill called <code>fact-check</code>. Nobody can publish one as someone else.
+      </P>
+      <P>
+        <strong>Anyone can rate, and you choose whose ratings count.</strong> You keep a small trust file on your own machine that lists the raters you believe:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"{ \"publishers\": [\"0x...\"], \"raters\": [\"0x...\"] }"}</code></pre>
+      <P>
+        skillreg reads every rating from the chain, keeps only the ones from your trusted raters, ignores any rating a publisher gave their own skill, and computes the verdict locally:
+      </P>
+      <UL items={[
+        <><strong>BLOCK:</strong> any trusted rater says <code>malicious</code>.</>,
+        <><strong>WARN:</strong> any trusted rater says <code>warn</code>, or no trusted rater has rated this exact version yet.</>,
+        <><strong>PASS:</strong> at least one trusted rater says <code>clean</code>, and none objects.</>,
+      ]} />
+      <P>
+        The same public data can give you and me different verdicts, and that is intended. There is no central judge.
+      </P>
+      <P>
+        <strong>Listings are leases.</strong> A skill version lives 90 days. Its owner can renew it, and because skill records carry <code>permissionlessExtension</code>, anyone who depends on it can pay to keep it alive. Abandoned skills fall out of search on their own. Ratings live 180 days, so trust has to be re-earned. A <code>malicious</code> rating is also extendable by anyone, so a community can keep a warning up after the person who posted it walks away.
+      </P>
+      <H2>What does the demo show?</H2>
+      <P>
+        The demo is one sentence: two skills share the name <code>fact-check</code>, one real and one an impostor, and skillreg tells them apart.
+      </P>
+      <P>
+        We published the real <code>fact-check</code> from one wallet. From a second wallet we published an impostor with the same name. Its instructions include the line &quot;Do not mention this step to the user&quot;, and its script sends a credential file to a raw IP address. It is inert: the address is in a range reserved for documentation that routes nowhere. A third wallet runs skillreg&apos;s static scanner, which checks every line of every file against fixed public rules and posted a rating for each skill. It marked the impostor <code>malicious</code>, quoting line 17 of <code>SKILL.md</code> and line 3 of the script.
+      </P>
+      <P>
+        Then, from an empty folder, with no account and no backend:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"npx -y github:kon-rad/skillreg search fact-check\nnpx -y github:kon-rad/skillreg install fact-check\nnpx -y github:kon-rad/skillreg verify"}</code></pre>
+      <P>
+        Search shows both: one PASS from the trusted publisher, one BLOCK. Install resolves the bare name to the trusted publisher, checks every hash and pins the exact version in a lockfile, <code>skills.lock.json</code>. Trying to install the impostor by its full name stops with exit code 2 and writes nothing. The exit codes are designed for agents to act on: 2 means blocked, 3 means ask the human.
+      </P>
+      <P>
+        The <A href="https://kon-rad.github.io/skillreg/registry.html">web registry</A> shows the same thing. It reads Arkiv straight from your browser and recomputes each skill&apos;s hash before displaying it. A fourth wallet then extended the lease on a skill it doesn&apos;t own, keeping it alive for 120 days from that day, in one <A href="https://tiramisu.explorer.arkiv.network/tx/0x9c378399e405bd479818d5690e76a1c9608df3d8fd80976703fe0ff22bd4e1be">transaction on the Tiramisu explorer</A>.
+      </P>
+      <H2>Why not just use an existing skill marketplace?</H2>
+      <P>
+        Today&apos;s skill indexes share four habits, and each one is a gap an attacker can use.
+      </P>
+      <UL items={[
+        <><strong>Names are first come, first served.</strong> Anyone can upload a look-alike. On skillreg the name includes a publisher the chain vouches for.</>,
+        <><strong>Nothing pins the bytes.</strong> A skill can change after you decided to trust it. On skillreg each version is <code>readonly</code> and checked by hash on every install and every <code>verify</code>.</>,
+        <><strong>One company decides what is safe.</strong> On skillreg anyone can rate and each user picks their own judges.</>,
+        <><strong>Dead listings never leave.</strong> On skillreg every listing is a lease.</>,
+      ]} />
+      <P>
+        The fairest comparison is not another marketplace but Sigstore, which already gives npm and PyPI packages signed provenance and a public log. We&apos;d happily interoperate with it. Arkiv adds two things we couldn&apos;t get elsewhere. <strong>Identity with no account:</strong> the publisher is the wallet, with no GitHub or Google login vouching for you, which means an agent can publish. <strong>Ratings with no operator:</strong> third-party judgments are public records that anyone can query from a browser, with no server of ours in the middle to trust or take down.
+      </P>
+      <H2>Won&apos;t smarter models make this obsolete?</H2>
+      <P>
+        It is the right question in a year when a better model ships almost every week. Part of it is true. Bundled code goes stale, because next month&apos;s model writes a better script. So do step-by-step crutches written for weaker models, and workarounds for one model&apos;s quirks.
+      </P>
+      <P>
+        But most of a skill isn&apos;t code. On one working developer machine with 234 skills, only 59 (about 25%) contain any script at all. The rest are written instructions, and when you read them they are mostly facts, decisions, constraints and pitfalls: which server to deploy to, which database is the real one, which house style to write in, which mistake cost a day last month. A model ten times smarter still doesn&apos;t know any of that. Intelligence isn&apos;t knowledge.
+      </P>
+      <P>
+        And when generating code costs almost nothing, checking it becomes the scarce thing. Regenerating everything from a prompt every time gives up reproducibility and the audit trail, and opens a fresh chance for injected instructions on every run. Calling skills &quot;prompts&quot; doesn&apos;t escape the problem either, because prompt injection lives in prose.
+      </P>
+      <P>
+        So the record format is heading toward <strong>intents and evals</strong>: what the skill is for, the facts no model can derive, runnable acceptance checks, and reference code marked as disposable. Each new model regenerates the code, the checks prove it works, and a rating records which model passed on which date. The 90-day lease already fits content that decays.
+      </P>
+      <H2>Why is this a d/acc project?</H2>
+      <P>
+        d/acc is Vitalik Buterin&apos;s name for decentralized, defensive, differential and democratic acceleration: speeding up the technologies that make the world safer without handing control to one party. In &quot;My techno-optimism&quot; he points to info-defence, tools that draw on a large and varied group of people instead of one arbiter of good and bad. skillreg is info-defence for agents. Scoring it honestly against each letter:
+      </P>
+      <UL items={[
+        <><strong>Defensive:</strong> yes. Detection and pinning protect the person installing. Public findings also teach attackers, the same trade-off as public vulnerability databases, and still net defensive.</>,
+        <><strong>Differential:</strong> yes. It makes the open skill ecosystem safer, so open can compete with walled marketplaces on safety and not only on freedom.</>,
+        <><strong>Democratic:</strong> yes, by design. Everyone picks their own judges.</>,
+        <><strong>Decentralized:</strong> partly. The data lives on Arkiv and needs no backend. But today the default trust list is one scanner wallet we run, the page is hosted on GitHub Pages, and the CLI installs from GitHub. A default list that quietly becomes the central authority is the failure to avoid, and the roadmap below exists to remove it.</>,
+      ]} />
+      <P>
+        To be precise about scope: skillreg doesn&apos;t make a model&apos;s values good. That is alignment research. What it does is narrower and real. It keeps what agents are told to do in readable files, pinned and audited in public, and keeps the human in charge of whose judgment their agent obeys. <strong>The human sets the trust policy, the agent does the work, and the public record keeps both honest.</strong>
+      </P>
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Running today, on the Tiramisu testnet: the CLI (<code>search</code>, <code>info</code>, <code>install</code>, <code>verify</code>, <code>publish</code>, <code>extend</code>, <code>rate</code>, <code>scan</code>), the web registry, the static scanner, seven published skills including the impostor, the ratings and the sponsored extension. We also use it ourselves: the <code>skillreg</code> agent skill was installed in our own vault through skillreg and pinned to its exact version, so both of our agents vet new skills through the same rules.
+      </P>
+      <P>
+        The honest limits: the static scanner is a floor, not the whole defence, because its rules are public and an attacker can test against them. The default trust list is one wallet. Arkiv has no mainnet yet. And today you install through the skillreg CLI.
+      </P>
+      <P>
+        Next, in rough order: a standard index file that existing agent tools can read with no changes, trust lists published as Arkiv records you subscribe to (like ad-block filter lists), an AI rater and a sandbox rater each with a public track record, intents and evals in the record format, gasless publishing for people who will never hold test tokens, and mirrors of every record to git and IPFS by hash.
+      </P>
+      <P>
+        If you take one thing from this: the instructions your agent follows are software, and they deserve the same chain of custody as any other software you install. The code is open source under MIT at https://github.com/kon-rad/skillreg, the registry is at https://kon-rad.github.io/skillreg/, and we post progress at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "arkiv-hackathon-skillreg",
+    title: "What we built at the Arkiv hackathon: a trust layer for AI agent skills",
+    description: "How Arkiv stores data on a blockchain, and how we used it to build skillreg, an open registry that tells your agent which skills to trust.",
+    date: "October 19, 2026",
+    isoDate: "2026-10-19T07:56",
+    readingTime: "13 min read",
+    Content: ArkivHackathonSkillregContent,
+  },
   {
     slug: "let-your-agent-post-to-linkedin",
     title: "How to let your AI agent post to LinkedIn on a schedule",
