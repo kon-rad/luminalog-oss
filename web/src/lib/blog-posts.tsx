@@ -7511,7 +7511,248 @@ function ArkivHackathonSkillregContent() {
   )
 }
 
+/* ── Post: The third copy: an old MacBook as an encrypted home backup ── */
+const backupPre: React.CSSProperties = {
+  margin: '20px 0 24px',
+  padding: '16px 18px',
+  background: 'var(--surfaceAlt)',
+  border: '1px solid var(--hairline)',
+  borderRadius: 12,
+  fontSize: 13.5,
+  lineHeight: 1.6,
+  overflowX: 'auto',
+  whiteSpace: 'pre',
+  color: 'var(--text)',
+}
+
+const BACKUP_B2_SERVER_KEY = "rclone config create b2 b2 account <keyID> key <applicationKey>"
+
+const BACKUP_CRON = "# /etc/cron.d/db-backup  (03:30 UTC every night)\n30 3 * * * postgres  f=/var/backups/db/$(date -u +\\%F).dump && pg_dump -Fc mydb -f \"$f\" && rclone copy \"$f\" b2:my-backups/db/ && find /var/backups/db -name '*.dump' -mtime +3 -delete"
+
+const BACKUP_MAC_PREP = "sudo pmset -a sleep 0 disksleep 0 womp 1\nbrew install rclone postgresql@16"
+
+const BACKUP_B2_READONLY = "rclone config create b2 b2 account <readOnlyKeyID> key <readOnlyKey>\nrclone ls b2:my-backups/db/     # should list your dumps"
+
+const BACKUP_VOLUME_CREATE = "mkdir -p ~/.config/backup && chmod 700 ~/.config/backup\n( umask 077; LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 40 > ~/.config/backup/volume.pass )\n\ndiskutil apfs list | grep \"APFS Container Reference\"   # usually disk3 on Apple silicon\nsudo diskutil apfs addVolume disk3 APFS Backups -stdinpassphrase < ~/.config/backup/volume.pass\n\ndiskutil info Backups | grep -E \"FileVault|Mount Point\"  # FileVault: Yes, /Volumes/Backups"
+
+const BACKUP_VOLUME_UNLOCK = "diskutil apfs unlockVolume Backups -stdinpassphrase < ~/.config/backup/volume.pass"
+
+const BACKUP_PBCOPY = "pbcopy < ~/.config/backup/volume.pass   # paste into your password manager, then copy something else"
+
+const BACKUP_SCRIPT = "#!/bin/bash\nset -euo pipefail\nexport PATH=/opt/homebrew/opt/postgresql@16/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin\nVOL=/Volumes/Backups\nPASS=$HOME/.config/backup/volume.pass\nDEST=$VOL/db\nREMOTE=b2:my-backups/db\nKEEP=14\nLOG=$HOME/Library/Logs/home-backup.log\nlog() { printf '%s %s\\n' \"$(date -u '+%F %TZ')\" \"$*\" | tee -a \"$LOG\" >&2; }\ndie() { log \"FAILED: $*\"; exit 1; }\n\n# 1. Unlock the volume if it's locked (it is after every reboot).\nif ! mount | grep -q \" on $VOL \"; then\n  diskutil apfs unlockVolume Backups -stdinpassphrase < \"$PASS\" >/dev/null 2>&1 || true\nfi\nmount | grep -q \" on $VOL \" || die \"Backups volume not mounted\"\nmkdir -p \"$DEST\"\n\n# 2. Fetch the newest dump unless we already have it. Copy to .part first so a\n#    half-finished download never looks like a good backup.\nnewest=$(rclone lsf \"$REMOTE\" | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}\\.dump$' | sort | tail -1)\n[ -n \"$newest\" ] || die \"no dumps in $REMOTE\"\nif [ -s \"$DEST/$newest\" ]; then\n  log \"already have $newest\"\nelse\n  rclone copyto \"$REMOTE/$newest\" \"$DEST/$newest.part\" && mv \"$DEST/$newest.part\" \"$DEST/$newest\"\n  log \"pulled $newest ($(stat -f %z \"$DEST/$newest\") bytes)\"\nfi\n\n# 3. Keep the newest KEEP dumps. (macOS head has no \"-n -N\"; this works on both.)\nls -1 \"$DEST\" | grep -E '\\.dump$' | sort -r | tail -n +$((KEEP + 1)) | while read -r old; do\n  rm -f \"$DEST/$old\"; log \"pruned $old\"\ndone\n\n# 4. Optional: mirror your notes repo too.\n# (cd ~/notes && git pull -q --ff-only) && log \"notes pulled\"\n\nlog \"done\""
+
+const BACKUP_PLIST = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\"><dict>\n  <key>Label</key><string>com.me.home-backup</string>\n  <key>ProgramArguments</key><array><string>/bin/bash</string><string>/Users/YOU/bin/home-backup.sh</string></array>\n  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>30</integer></dict>\n  <key>StandardOutPath</key><string>/Users/YOU/Library/Logs/home-backup-launchd.log</string>\n  <key>StandardErrorPath</key><string>/Users/YOU/Library/Logs/home-backup-launchd.log</string>\n</dict></plist>"
+
+const BACKUP_LAUNCHCTL = "launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.me.home-backup.plist\nlaunchctl list | grep home-backup"
+
+const BACKUP_RESTORE = "initdb -D ~/pgscratch -U postgres --auth=trust\npg_ctl -D ~/pgscratch -o \"-p 5433 -k /tmp\" -l ~/pgscratch/pg.log start\ncreatedb -h /tmp -p 5433 -U postgres restore_test\npg_restore -h /tmp -p 5433 -U postgres -d restore_test --no-owner --no-privileges -j 4 \\\n  \"/Volumes/Backups/db/$(ls /Volumes/Backups/db | sort | tail -1)\" 2> ~/pgscratch/restore.err\ngrep -c . ~/pgscratch/restore.err        # 0 is what you want\npsql -h /tmp -p 5433 -U postgres -d restore_test -c \"select count(*) from my_important_table\"\npg_ctl -D ~/pgscratch stop"
+
+function OldMacbookHomeBackupContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/old-macbook-encrypted-home-backup-1.jpg"
+        alt="Diagram: a cloud server dumps Postgres to Backblaze B2 at 03:30 UTC, and an old MacBook at home pulls the newest dump onto an encrypted Backups volume at 04:30 UTC, plus a git pull of the notes"
+        width={1920}
+        height={1080}
+        priority
+        caption="Three copies: the live server, the B2 bucket, and an encrypted volume on an old MacBook that pulls once a day."
+      />
+      <P>
+        Our second brain runs on a small cloud server: a Postgres database with every note,
+        inventory record and agent conversation, plus a git repo of markdown notes. Every night the
+        server dumps the database to Backblaze B2. That&apos;s two copies. The classic 3-2-1 rule asks
+        for three, with one of them somewhere you physically control.
+      </P>
+      <P>
+        We had a 2021 16-inch MacBook Pro with an M1 Max sitting in a drawer. This week it became our
+        home server: local models, a voice clone, and the third copy of everything. This post covers
+        the backup part, step by step, so you can do the same with any spare Mac.
+      </P>
+      <P>
+        The whole thing is one shell script, one launchd file and one encrypted disk volume. It took
+        an afternoon, including two failed runs that taught us something.
+      </P>
+
+      <H2>What you end up with</H2>
+      <P>
+        <strong>The Mac pulls; nothing pushes to it.</strong> If the Mac is off for a week, the server
+        doesn&apos;t care. The next run fetches the newest dump.
+      </P>
+      <P>
+        <strong>The backups sit on their own encrypted volume</strong> with their own key, separate
+        from your login password.
+      </P>
+      <P>
+        <strong>Every so often the Mac proves the backup works</strong> by restoring it into a scratch
+        database and counting rows.
+      </P>
+      <P>
+        You need a Mac on macOS 13 or later, a server running Postgres, a B2 account (or any S3-style
+        storage rclone supports), and Homebrew.
+      </P>
+
+      <H2>Step 1: Dump the database to B2 every night</H2>
+      <P>
+        On the server, install rclone and give it a B2 key. In the B2 web console, create an
+        application key restricted to your backup bucket.
+      </P>
+      <pre style={backupPre}><code>{BACKUP_B2_SERVER_KEY}</code></pre>
+      <P>Then a nightly job. A cron line is enough:</P>
+      <pre style={backupPre}><code>{BACKUP_CRON}</code></pre>
+      <P>
+        <code>-Fc</code> is Postgres&apos;s custom format: compressed, and <code>pg_restore</code> can
+        restore it in parallel. Our dump is about 1 GB with 60 tables. Set a lifecycle rule on the
+        bucket so old dumps expire. We keep 14 daily and 8 weekly.
+      </P>
+
+      <H2>Step 2: Prepare the Mac to stay on</H2>
+      <P>On the Mac:</P>
+      <pre style={backupPre}><code>{BACKUP_MAC_PREP}</code></pre>
+      <P>
+        Use the same major version of Postgres as your server. Install Tailscale or similar if you
+        want to reach the Mac from anywhere, and keep it plugged in. If your macOS has a battery
+        charge limit, set it to 80%.
+      </P>
+      <P>
+        Give the Mac its own B2 key, <strong>read-only</strong>, scoped to the backup bucket. Create it
+        in the B2 console (&ldquo;Read Only&rdquo; access), then:
+      </P>
+      <pre style={backupPre}><code>{BACKUP_B2_READONLY}</code></pre>
+      <P>
+        We&apos;ll be honest: our first version copied the server&apos;s full keys to the Mac. A
+        read-only key means a compromised Mac can&apos;t delete your cloud copy. Do better than we did.
+      </P>
+
+      <H2>Step 3: Create an encrypted volume with its own key</H2>
+      <P>
+        APFS lets you add a volume to the Mac&apos;s existing disk container. It shares free space
+        with the system, so you don&apos;t have to resize anything. Generate a random passphrase into
+        a file only your user can read, then create the volume from it:
+      </P>
+      <pre style={backupPre}><code>{BACKUP_VOLUME_CREATE}</code></pre>
+      <Figure
+        src="/blog/old-macbook-encrypted-home-backup-2.jpg"
+        alt="Terminal on the M1 Max: diskutil info shows the Backups volume mounted at /Volumes/Backups with FileVault Yes and Locked No, and ls lists three nightly dump files of about 1 GB each"
+        width={1920}
+        height={1080}
+        caption="Our Backups volume on the M1 Max: FileVault on, unlocked by the job, about 1 GB per nightly dump."
+      />
+      <P>
+        The passphrase never appears on screen or in your shell history. To unlock the volume later:
+      </P>
+      <pre style={backupPre}><code>{BACKUP_VOLUME_UNLOCK}</code></pre>
+      <P>
+        <strong>You will see a prompt.</strong> After every reboot, macOS shows &ldquo;Enter a
+        password to unlock the disk Backups&rdquo;. Your login password won&apos;t work, because the
+        volume has its own key. Press Cancel and let the job unlock it, or run the unlock command
+        above. This caught us out the first time the Mac restarted. If you want to unlock it by hand
+        someday, put the passphrase in your password manager:
+      </P>
+      <pre style={backupPre}><code>{BACKUP_PBCOPY}</code></pre>
+
+      <H2>Step 4: The pull script</H2>
+      <P>
+        Save this as <code>~/bin/home-backup.sh</code>:
+      </P>
+      <pre style={backupPre}><code>{BACKUP_SCRIPT}</code></pre>
+      <P>
+        <code>chmod +x ~/bin/home-backup.sh</code>, run it once by hand, and check{' '}
+        <code>ls /Volumes/Backups/db</code>.
+      </P>
+
+      <H2>Step 5: Schedule it with launchd</H2>
+      <P>
+        Save as <code>~/Library/LaunchAgents/com.me.home-backup.plist</code>, replacing{' '}
+        <code>YOU</code> with your username. Schedule it an hour or so after the server&apos;s dump.
+      </P>
+      <pre style={backupPre}><code>{BACKUP_PLIST}</code></pre>
+      <pre style={backupPre}><code>{BACKUP_LAUNCHCTL}</code></pre>
+      <P>
+        The hour is in the Mac&apos;s local time. Ours runs at 12:30 local time (UTC+8), which is
+        04:30 UTC, an hour after the 03:30 UTC dump.
+      </P>
+
+      <H2>Step 6: Prove it restores</H2>
+      <P>
+        A backup you&apos;ve never restored is a hope, not a backup. Start a throwaway Postgres on a
+        spare port and restore into it:
+      </P>
+      <pre style={backupPre}><code>{BACKUP_RESTORE}</code></pre>
+      <P>
+        Run the same <code>count(*)</code> on the server and compare. Ours restored a 1.06 GB dump in
+        56 seconds with zero errors, and the counts matched the live database row for row. The one
+        exception was a single row written after the dump ran.
+      </P>
+      <Figure
+        src="/blog/old-macbook-encrypted-home-backup-3.jpg"
+        alt="Backup log from the M1 Max: pulled 2026-10-17.dump (1,063,208,257 bytes), restore took 56 s, restored row counts inventory_items 68, vault_files 6079, vault_chunks 88414"
+        width={1920}
+        height={1080}
+        caption="The log from our restore test on October 17, 2026."
+      />
+      <P>Two things broke on the way there, and they&apos;ll probably hit you too:</P>
+      <P>
+        <strong>Extensions.</strong> Our database uses pgvector. Without it in the scratch Postgres,
+        the restore produced 35 errors and our embeddings table never came back. At the time,
+        Homebrew&apos;s pgvector only shipped for Postgres 17 and 18, so for 16 we built it from
+        source (<code>make &amp;&amp; make install</code> with <code>PG_CONFIG</code> pointing at
+        Homebrew&apos;s <code>postgresql@16</code>). Install every extension your server uses before
+        you trust a restore.
+      </P>
+      <P>
+        <strong>Roles.</strong> A dump made with grants references your server&apos;s roles.{' '}
+        <code>--no-owner --no-privileges</code> skips most of it, and creating the roles in the
+        scratch database first silences the rest, so the error count means something.
+      </P>
+
+      <H2>The honest trade-offs</H2>
+      <P>
+        <strong>The key file sits next to the volume.</strong> If someone can read your user&apos;s
+        files, they can unlock your backups. What protects you is FileVault on the boot disk: if the
+        Mac is stolen while it&apos;s off, both the key file and the volume are encrypted. The
+        separate volume key mostly buys you a clean upgrade path. Delete the key file and keep the
+        passphrase only in your password manager, and the backups stay locked until you unlock them
+        by hand. The cost is that the job can&apos;t run unattended after a reboot.
+      </P>
+      <P>
+        <strong>A laptop isn&apos;t a server.</strong> With FileVault on, a reboot stops everything
+        until someone types the password and logs in, because LaunchAgents wait for a login. Our Mac
+        rebooted seven minutes after its first scheduled backup run, and sat waiting. That&apos;s
+        fine for us: the cloud server and B2 keep running, and the Mac catches up. If you need it
+        unattended, you trade away disk encryption or move to LaunchDaemons.
+      </P>
+      <P>
+        <strong>Pulling beats pushing.</strong> Give the server no credentials for the Mac, and give
+        the Mac a key that can only read. Then a breach on either side can&apos;t erase the
+        other&apos;s copy.
+      </P>
+      <Figure
+        src="/blog/old-macbook-encrypted-home-backup-4.jpg"
+        alt="Diagram of who holds which key: the cloud server writes dumps to B2 and has no credentials for the Mac; B2 keeps 14 daily and 8 weekly dumps; the MacBook reads with a read-only key and cannot delete the cloud copy"
+        width={1920}
+        height={1080}
+        caption="Pulling beats pushing: each side holds only the access it needs."
+      />
+      <P>
+        That&apos;s the whole system: a cron line on the server, a short script and a plist on the
+        Mac, and one encrypted volume. An old laptop in a drawer is a better third copy than no third
+        copy.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "old-macbook-encrypted-home-backup",
+    title: "The third copy: turning an old MacBook into an encrypted home backup",
+    description: "Six steps to make a spare Mac pull your nightly Postgres dump from B2 onto an encrypted volume, and prove it restores. Standard tools: pg_dump, rclone, diskutil, launchd.",
+    date: "October 19, 2026",
+    isoDate: "2026-10-19T17:30",
+    readingTime: "9 min read",
+    Content: OldMacbookHomeBackupContent,
+  },
   {
     slug: "arkiv-hackathon-skillreg",
     title: "What we built at the Arkiv hackathon: a trust layer for AI agent skills",
