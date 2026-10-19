@@ -7186,7 +7186,177 @@ function InsideHermesAgentMemorySkillsSelfImprovementContent() {
   )
 }
 
+/* ── Post: How to let your AI agent post to LinkedIn on a schedule ── */
+function LetYourAgentPostToLinkedinContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/let-your-agent-post-to-linkedin-1.jpg"
+        alt="Architecture of the social module: you or your agent call the routes, which store accounts with encrypted tokens and queued posts in Postgres; a timer runs the scheduler every minute, which publishes through the LinkedIn provider and sends Telegram reminders"
+        width={1920}
+        height={1080}
+        priority
+        caption="The social module lives on your own server. Only the provider file knows anything about LinkedIn."
+      />
+      <P>
+        Our agents already write a lot: dev logs, blog posts, build notes, summaries of what shipped this week. Almost none of it reaches LinkedIn, because the last step is still a person copying text out of a markdown file, opening a browser tab, pasting, and clicking Post. That step is small, and it is exactly the kind of small step that never happens on a busy day.
+      </P>
+      <P>
+        The obvious fix is a scheduling service, and those work well. But each one asks you to hand a third party the keys to your accounts, and each one keeps your posts in its own database instead of next to the notes they came from. We wanted the queue to live in the same place as everything else we write: our own server, our own Postgres, our own open-source Second Brain engine.
+      </P>
+      <P>
+        So we built a small <code>social</code> module for the engine. LinkedIn is the first platform it supports. This post explains how it works, piece by piece, then gives you the prompts to have your own coding agent build the same thing, and the steps to connect your LinkedIn account to it.
+      </P>
+      <H2>What are the pieces?</H2>
+      <P>
+        Five small parts do all the work. Each one has one job.
+      </P>
+      <UL items={[
+        <><strong>Provider:</strong> the code that knows how to talk to one platform. It can build a login link, trade a login for keys, refresh those keys, and publish a post. LinkedIn is the first provider; X, YouTube, Instagram and Facebook would each be one more file of the same shape.</>,
+        <><strong>Account:</strong> one row in the database for one connected profile, holding its keys in encrypted form and the date they expire.</>,
+        <><strong>Post queue:</strong> one row per post, with the text, the time it should go out, and a status that moves from <code>queued</code> to <code>publishing</code> to <code>posted</code> (or <code>failed</code>, or <code>canceled</code>).</>,
+        <><strong>Scheduler:</strong> a tiny program the server runs every minute. It looks for posts whose time has come and hands each one to its account&apos;s provider.</>,
+        <><strong>Notifier:</strong> a message to our Telegram when a person has to do something, such as logging in to LinkedIn again.</>,
+      ]} />
+      <P>
+        A useful picture is the outbox at a small office. You write a letter, put it in the tray with a date on it, and the clerk checks the tray every minute and mails whatever is due. The clerk holds a key to the mailroom (the account), and knows which carrier handles which address (the provider). The analogy stops working at the key: a real clerk keeps one key forever, while these keys expire and have to be renewed, which turns out to be the most interesting part of the whole design.
+      </P>
+      <H2>How does connecting an account work?</H2>
+      <P>
+        LinkedIn, like most platforms, uses <strong>OAuth</strong> (a standard way for one app to get limited permission to act on your account without ever seeing your password). The flow has four steps.
+      </P>
+      <UL items={[
+        <><strong>The login link.</strong> You open <code>/api/social/accounts/linkedin/connect</code> on your own server. It sends you to LinkedIn&apos;s consent screen, asking for three permissions: <code>openid</code> and <code>profile</code> (who you are) and <code>w_member_social</code> (post on your behalf).</>,
+        <><strong>The state check.</strong> Before redirecting, the server makes a random one-time value called <code>state</code> and remembers it for ten minutes. LinkedIn sends it back unchanged. If it doesn&apos;t match, the server refuses the login. This stops another website from tricking your browser into connecting the wrong account.</>,
+        <><strong>The trade.</strong> After you click Allow, LinkedIn sends your browser back with a short-lived code. The server trades that code for an <strong>access token</strong> (a long string that acts as the key; whoever holds it can post as you).</>,
+        <><strong>The name tag.</strong> The server asks LinkedIn who the key belongs to and stores your person id in the form LinkedIn uses for authors, <code>urn:li:person:&lt;id&gt;</code>.</>,
+      ]} />
+      <P>
+        Think of it as a valet key for a car. It can start the engine and drive, but it can&apos;t open the glovebox, and it stops working after a set time. Here the valet key can post, and nothing else.
+      </P>
+      <H2>Where do the keys live?</H2>
+      <P>
+        An access token is a bearer credential: anyone holding the string can use it. So the module never writes one to the database in readable form. Before saving, it encrypts the token with <strong>AES-256-GCM</strong> (a standard encryption method that also detects tampering), using one secret key that lives only in the server&apos;s environment file, never in the code and never in the database.
+      </P>
+      <P>
+        What lands in the database looks like three chunks of hex separated by colons: a random starting value, a tamper-check tag, and the scrambled token. If someone copied the database without the environment file, they would have nothing they could post with. If someone edited a stored token, decryption would fail instead of quietly handing back garbage.
+      </P>
+      <P>
+        The secret key is generated once with a single command:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"openssl rand -hex 32"}</code></pre>
+      <Figure
+        src="/blog/let-your-agent-post-to-linkedin-2.jpg"
+        alt="A post moves from queued to publishing to posted, returns to queued after an error, and becomes failed after three attempts; below, a LinkedIn key runs from day 0 to expiry on day 60 with a Telegram reminder from day 53"
+        width={1920}
+        height={1080}
+        caption="One post's states, and one LinkedIn key's 60 days."
+      />
+      <H2>How does a post actually go out?</H2>
+      <P>
+        Every minute, a server timer runs <code>cli-social</code>. Here is what happens to one post on that pass.
+      </P>
+      <UL items={[
+        <><strong>Pick due posts.</strong> It selects queued posts whose scheduled time is now or earlier, oldest first.</>,
+        <><strong>Claim it.</strong> It marks the post <code>publishing</code>, so a second run can&apos;t send the same post twice.</>,
+        <><strong>Check the key.</strong> If the access token expires within two minutes, it asks the provider to refresh it first and saves the new one, still encrypted.</>,
+        <><strong>Publish.</strong> The LinkedIn provider sends the text to LinkedIn&apos;s current Posts API at <code>https://api.linkedin.com/rest/posts</code>, with a <code>Linkedin-Version</code> header naming the API version by month. LinkedIn answers with the new post&apos;s id in a response header called <code>x-restli-id</code>, not in the body, which is easy to miss.</>,
+        <><strong>Record the result.</strong> On success the row becomes <code>posted</code>, with the post&apos;s id and link. On failure it goes back to <code>queued</code> with the error saved, and after three failed attempts it becomes <code>failed</code> and stays there for a person to look at.</>,
+      ]} />
+      <P>
+        The module rejects posts longer than 3,000 characters. A post can be canceled any time before it starts publishing.
+      </P>
+      <P>
+        We chose a database table and a once-a-minute timer over a full job system. A job system earns its complexity at thousands of jobs; a handful of posts a day needs a table you can read with one query.
+      </P>
+      <H2>Why does LinkedIn make you log in again every 60 days?</H2>
+      <P>
+        This is the part we designed around from the start, because it decides whether &quot;scheduled&quot; really means unattended.
+      </P>
+      <P>
+        A LinkedIn access token lasts 60 days. Many platforms also hand out a <strong>refresh token</strong> (a second, longer-lived key whose only job is to get new access tokens without asking you again). LinkedIn gives refresh tokens only to apps it has approved as Marketing Developer Platform partners. A standard self-service app, the kind anyone can make in a few minutes, gets no refresh token at all. The field is simply missing from the response.
+      </P>
+      <P>
+        So the module treats &quot;no refresh token&quot; as a normal state, not an error. On every pass, the scheduler also looks for accounts whose access token expires within seven days and has nothing to renew it, and sends one Telegram message: this account needs reauthorization, or scheduled posts will stop. It sends that message at most once every 24 hours per account. Reconnecting is the same login flow as before, and the account row is updated in place, so the queue keeps its history.
+      </P>
+      <H2>Why one shape for every platform?</H2>
+      <P>
+        Every platform has its own login quirks and its own posting endpoint, but the scheduler and the web routes shouldn&apos;t care. Each provider fills in the same four-method contract, so adding a platform means writing one new file:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"interface SocialProvider {\n  id: 'linkedin' | 'x' | 'youtube' | 'instagram' | 'facebook';\n  authUrl(state: string, redirectUri: string): string;\n  exchangeCode(code: string, redirectUri: string): Promise<ConnectedAccount>;\n  refresh(account: StoredAccount): Promise<TokenPair>;\n  publish(account: StoredAccount, post: QueuedPost): Promise<{ remoteId: string; url?: string }>;\n}"}</code></pre>
+      <P>
+        <code>refresh</code> is allowed to say &quot;I can&apos;t&quot;, by throwing a specific <code>NoRefreshTokenError</code>, because for LinkedIn that is the expected answer.
+      </P>
+      <H2>How can your agent build this?</H2>
+      <P>
+        The whole module is small enough for a coding agent such as Claude Code or Codex to build in one session, if you give it the design first and ask for tests against a real database. These are the three prompts we would use, in order. Paste each one into your agent from the root of your app&apos;s repository.
+      </P>
+      <P>
+        The first asks for a plan, not code, so you can correct the shape before anything is written:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"Read this repository and propose a design for a \"social\" module that\npublishes scheduled posts to LinkedIn. Do not write code yet.\n\nRequirements:\n- A SocialProvider interface with authUrl, exchangeCode, refresh and\n  publish, so X, YouTube, Instagram and Facebook can be added later as\n  one file each.\n- Two Postgres tables: social_accounts (one connected profile, tokens\n  encrypted at rest, expiry dates, a nullable refresh token) and\n  social_posts (body, scheduled_for, status queued/publishing/posted/\n  failed/canceled, attempt_count, last_error, remote_id, remote_url).\n- LinkedIn OAuth with scopes \"openid profile w_member_social\", a\n  one-time state value checked on the callback, and the author id from\n  the OpenID userinfo endpoint as urn:li:person:<sub>.\n- Publishing through POST https://api.linkedin.com/rest/posts with the\n  Linkedin-Version and X-Restli-Protocol-Version headers. The new\n  post id comes back in the x-restli-id response header.\n- A standard LinkedIn app gets a 60-day access token and no refresh\n  token. Treat that as normal and plan a reminder before expiry.\n- Follow this repo's existing patterns for migrations, routes,\n  config and background jobs. Name the files you would add or change."}</code></pre>
+      <P>
+        The second builds it, test first:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"Build the social module from the design we agreed. Text-only posts.\n\n- Encrypt access and refresh tokens with AES-256-GCM using a 32-byte\n  hex key from the SOCIAL_TOKEN_ENC_KEY environment variable. Refuse\n  to store tokens if the key is missing.\n- Read LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET and\n  SOCIAL_REDIRECT_BASE_URL from config. Add all four variables to the\n  example env file.\n- Routes: list, connect, callback and disconnect for accounts; list,\n  queue and cancel for posts. Reject post bodies over 3,000 characters.\n- Write tests against a real local Postgres, not mocked queries.\n  Fake only the HTTP calls to LinkedIn. Cover: encryption round trip\n  and tamper rejection, the full connect and callback flow, a bad state\n  value, queue and cancel, and publishing a post.\n- Run the whole test suite and the type checker. Show me the output."}</code></pre>
+      <P>
+        The third adds the scheduler and the reminder:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"Add the scheduler for the social module.\n\n- A command that runs once and exits: publish every due queued post,\n  claiming each as \"publishing\" first so it can't be sent twice.\n- Before publishing, refresh the access token if it expires within two\n  minutes. If there is no refresh token, fail the attempt with a clear\n  error. Retry failed posts up to three attempts, then mark \"failed\".\n- In the same run, find accounts whose access token expires within 7\n  days with nothing to renew it, and send one notification per account\n  per 24 hours through our existing notification helper.\n- Add a server timer that runs the command every minute.\n- Test the happy path, a token refresh, the missing refresh token, the\n  three-attempt limit, and that the reminder is sent only once a day."}</code></pre>
+      <P>
+        Two habits make these prompts work. Ask for the plan before the code, and ask the agent to paste real test output rather than tell you the tests pass.
+      </P>
+      <H2>How do you connect your LinkedIn account?</H2>
+      <P>
+        Once the module runs on your server, connecting takes about ten minutes. You need a LinkedIn Company Page you administer, because LinkedIn asks you to associate a developer app with one.
+      </P>
+      <UL items={[
+        <><strong>Create the app.</strong> Go to <A href="https://www.linkedin.com/developers/apps">LinkedIn Developers</A>, click Create app, give it a name, choose your Company Page, and upload a logo. Then verify the app: on its Settings tab, click Verify to get a one-time link, and open that link as the page&apos;s admin to approve it.</>,
+        <><strong>Add two products.</strong> On the app&apos;s Products tab, request &quot;Sign In with LinkedIn using OpenID Connect&quot; and &quot;Share on LinkedIn&quot;. Both are self-service and are granted without a review.</>,
+        <><strong>Register your redirect address.</strong> On the Auth tab, add your server&apos;s callback address as an authorized redirect URL, for example <code>https://your-brain.example.com/api/social/accounts/linkedin/callback</code>. It must match exactly, including <code>https</code>.</>,
+        <><strong>Copy the credentials.</strong> On the same tab, copy the Client ID and the Client Secret.</>,
+        <><strong>Set the server&apos;s environment.</strong> Add <code>LINKEDIN_CLIENT_ID</code>, <code>LINKEDIN_CLIENT_SECRET</code>, <code>SOCIAL_REDIRECT_BASE_URL</code> (your server&apos;s address, no trailing slash) and <code>SOCIAL_TOKEN_ENC_KEY</code> (the output of <code>openssl rand -hex 32</code>) to the server&apos;s environment file. Keep that file out of git.</>,
+        <><strong>Turn the module on.</strong> Add <code>social</code> to the <code>MODULES</code> setting, run the database migrations, restart the app, and enable the every-minute timer.</>,
+        <><strong>Connect.</strong> Signed in to your second brain, open <code>https://your-brain.example.com/api/social/accounts/linkedin/connect</code>. LinkedIn shows its consent screen; click Allow. You land back on your server, which shows the connected account&apos;s id and name.</>,
+        <><strong>Queue a test post.</strong> Send <code>POST /api/social/posts</code> with the account id, a short <code>body</code>, and a <code>scheduledFor</code> time a minute or two ahead. Within a minute of that time the post&apos;s status changes to <code>posted</code> with a link to it on LinkedIn.</>,
+      ]} />
+      <P>
+        Expect a Telegram reminder about 53 days later. When it comes, open the connect link again.
+      </P>
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        <strong>Built and tested:</strong> the provider contract, the LinkedIn provider, encrypted token storage, the connect, queue and cancel routes, the every-minute scheduler with retries, and the reauthorization reminder. It is covered by 37 new tests that run against a real Postgres database, with LinkedIn&apos;s side simulated, and the server&apos;s type check is clean.
+      </P>
+      <P>
+        <strong>Not done yet:</strong>
+      </P>
+      <UL items={[
+        <><strong>A first post to real LinkedIn.</strong> Every LinkedIn call so far has been simulated in tests. Registering our app and sending a live post is the next step, and the steps above are the ones we will follow.</>,
+        <><strong>Images.</strong> LinkedIn needs a separate three-step upload for each image. The module currently refuses posts with media, with a clear error, rather than dropping the image silently.</>,
+        <><strong>A compose page.</strong> For now you queue posts through the API, or ask your agent to.</>,
+        <><strong>Company Pages.</strong> Posting as a company uses a different author id and a different permission. Personal profiles come first.</>,
+        <><strong>No more 60-day logins.</strong> That needs LinkedIn&apos;s partner approval, which we have not applied for.</>,
+      ]} />
+      <P>
+        The module is going into our open-source Second Brain engine at <A href="https://github.com/kon-rad/secondbrain">github.com/kon-rad/secondbrain</A>.
+      </P>
+      <P>
+        The useful idea to take away is the contract: once every platform is four methods behind one interface, the queue, the scheduler and the reminders are written once, and the hard, platform-specific part is a single file you can read in five minutes. We&apos;ll write up the first live post, and images, here on the blog and on <A href="https://x.com/myargoquest">X</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "let-your-agent-post-to-linkedin",
+    title: "How to let your AI agent post to LinkedIn on a schedule",
+    description: "How our second brain connects a LinkedIn account, keeps its keys encrypted, and publishes queued posts, plus the prompts to build your own.",
+    date: "October 19, 2026",
+    isoDate: "2026-10-19T15:51",
+    readingTime: "12 min read",
+    Content: LetYourAgentPostToLinkedinContent,
+  },
   {
     slug: "inside-hermes-agent-memory-skills-self-improvement",
     title: "Inside Hermes Agent: memory, skills, and learning to improve itself",
