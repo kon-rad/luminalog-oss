@@ -7747,6 +7747,14 @@ function OldMacbookHomeBackupContent() {
 function KeychainAiCompanionSecondBrainContent() {
   return (
     <>
+      <Figure
+        src="/blog/keychain-ai-companion-second-brain-1.jpg"
+        alt="3D illustration of the ghost companion case: a clear dome-headed figure on three rounded feet, with the screen showing a pixel face, pink cheek lights, a camera eye, yellow side buttons as arms, a yellow belly button and a hexagonal speaker grille, the battery and circuit boards visible through the plastic"
+        width={1600}
+        height={1000}
+        priority
+        caption="The ghost case, drawn from the design notes. A concept illustration; nothing has been printed yet."
+      />
       <P>
         An AI that knows you well usually lives in a browser tab. To ask it something, you stop, find the tab, type, and wait. Most of the day it is somewhere else. Everything it knows about you sits on a company&apos;s servers, under that company&apos;s rules.
       </P>
@@ -7792,8 +7800,21 @@ function KeychainAiCompanionSecondBrainContent() {
       </P>
       <H2>What does the case look like?</H2>
       <P>
-        A ghost. The first case concept is a small clear figure with a dome head, straight sides and three rounded feet, so the same body stands on a desk or hangs from your keys. It is designed in code with build123d, a Python library for 3D models, and these pictures are renders of that model: nothing has been printed yet, and every size is an estimate until the parts are measured.
+        A ghost. The first case concept is a small clear figure with a dome head, straight sides and three rounded feet, so the same body stands on a desk or hangs from your keys. It is designed in code with build123d, a Python library for 3D models. The pictures here are 3D illustrations drawn from that design: nothing has been printed yet, and every size is an estimate until the parts are measured.
       </P>
+      <Figure
+        src="/blog/keychain-ai-companion-second-brain-2.jpg"
+        alt="Front view of the clear ghost case: the OLED face high in the dome, two pink cheek lights and the camera eye beneath it, TALK and MARK buttons poking out of the sides, APPROVE as a belly button and the hex speaker grille above the feet"
+        width={1600}
+        height={1000}
+      />
+      <Figure
+        src="/blog/keychain-ai-companion-second-brain-3.jpg"
+        alt="The ghost companion in the dark, its screen glowing with a pixel face, its cheek lights lit pink and its buttons glowing violet through the clear shell"
+        width={1600}
+        height={1000}
+        caption="At night the face and cheek lights glow through the clear shell."
+      />
       <UL items={[
         <><strong>A face.</strong> The OLED sits behind a window high in the dome, so the pet&apos;s face is the ghost&apos;s face.</>,
         <><strong>Cheeks and a heart.</strong> Two small lights sit just under the screen, and the camera sits on the centre line below them, where a heart would be.</>,
