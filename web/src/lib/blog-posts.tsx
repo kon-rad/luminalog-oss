@@ -7743,7 +7743,178 @@ function OldMacbookHomeBackupContent() {
   )
 }
 
+/* ── Post: Designing a keychain AI companion that runs on your own Second Brain ── */
+function KeychainAiCompanionSecondBrainContent() {
+  return (
+    <>
+      <P>
+        An AI that knows you well usually lives in a browser tab. To ask it something, you stop, find the tab, type, and wait. Most of the day it is somewhere else. Everything it knows about you sits on a company&apos;s servers, under that company&apos;s rules.
+      </P>
+      <P>
+        We want the opposite: a companion that is with you all day, small enough to hang from your keys, that you can press and ask a question out loud. It answers in a voice you recognise, from your own notes, using software and hardware you own. When you put it on your desk, it becomes a small pet that shows you what is waiting for you.
+      </P>
+      <P>
+        This post explains the plan for that device and how it connects to the Second Brain, the open-source notes system we run our company on. It is a plan with a bench prototype path, not a product; the last section says what already runs.
+      </P>
+      <H2>What does it do?</H2>
+      <P>
+        The keychain has one job a stranger can name in a sentence: <strong>you ask it about your own notes, and it answers in your agent&apos;s voice.</strong> Around that job sit a few smaller features.
+      </P>
+      <UL items={[
+        <><strong>It talks.</strong> Press and hold the TALK button, ask a question, let go. Within about a second it says a short line such as &quot;Let me look&quot;, then speaks the real answer sentence by sentence.</>,
+        <><strong>It hears you before it is back online.</strong> Between presses it sleeps. The moment the button goes down it starts recording while Wi-Fi reconnects, so your first word is not lost.</>,
+        <><strong>It shows a pet.</strong> A small black-and-white screen shows a face with a mood and a hunger badge, explained below.</>,
+        <><strong>It plays any of our agents.</strong> Our company runs on 22 AI agents, each with a role, such as research, design or infrastructure. Say &quot;let me talk to Vega&quot; and the head of research answers, in its team&apos;s voice and with its team&apos;s face on the screen.</>,
+        <><strong>It can see and recognise, when asked.</strong> The camera is off by default. Squeeze TALK and MARK together and it takes one picture to recognise a person who has agreed to be remembered. The plan also has it recognise its owner&apos;s voice.</>,
+      ]} />
+      <H2>What is inside it?</H2>
+      <P>
+        The heart is the <strong>Seeed XIAO ESP32S3 Sense</strong>, a board about the size of a thumbnail (21 by 17.8 mm). The ESP32-S3 is a low-cost chip with Wi-Fi built in; this board adds 8 MB of PSRAM (extra working memory, enough to hold several minutes of recorded speech) and a small camera board with a built-in microphone. We already use the same board in Exo, the wearable we are building, and its microphone works on our bench.
+      </P>
+      <P>
+        Around it, the plan adds:
+      </P>
+      <UL items={[
+        <><strong>A speaker and an amplifier.</strong> The board has no speaker, so a <strong>MAX98357A</strong> amplifier drives a small 8 ohm speaker of about 15 to 20 mm. It draws 2.4 mA when idle, so the firmware switches it fully off between answers.</>,
+        <><strong>A screen.</strong> Day one uses a 0.96 inch OLED with 128 by 64 pixels, which we already have. A later version moves to a <strong>Sharp memory LCD</strong>, which keeps its picture on about 2 microamps (per a SparkFun board note). It could keep the pet&apos;s face visible while the chip sleeps, if the chip&apos;s low-power coprocessor can keep the screen&apos;s refresh signal running; that is not proven yet.</>,
+        <><strong>A battery.</strong> A flat lithium-polymer cell, 5 by 30 by 30 mm, 400 to 500 mAh, with a protection circuit. It is the same cell planned for the Exo wearable, charged through the board&apos;s USB-C port.</>,
+        <><strong>Three buttons.</strong> TALK, for questions; MARK, which saves the moment; and APPROVE, which answers yes when an agent asks before doing something. In the ghost case below, TALK and MARK sit on the sides like two small arms and APPROVE is a belly button on the front.</>,
+      ]} />
+      <H3>How long does the battery last?</H3>
+      <P>
+        Standby decides the battery life, not talking, and the camera board is the problem. Seeed&apos;s own figures for this board: in deep sleep it draws 14 microamps alone, but 3 mA with the camera board attached. Staying connected to Wi-Fi costs about 44 mA.
+      </P>
+      <P>
+        On a 500 mAh cell that is roughly seven days asleep, but about 11 hours if it stays connected, which is why it sleeps between presses. With a short sync every 30 minutes and ten one-minute conversations a day, our estimate is about four days per charge. <strong>These runtimes are calculations from Seeed&apos;s published figures, not measurements;</strong> measuring them is part of the build.
+      </P>
+      <P>
+        The fix for the 3 mA is a switch that cuts the camera&apos;s power during sleep. That needs our own circuit board, a later version where standby could stretch to months.
+      </P>
+      <H2>What does the case look like?</H2>
+      <P>
+        A ghost. The first case concept is a small clear figure with a dome head, straight sides and three rounded feet, so the same body stands on a desk or hangs from your keys. It is designed in code with build123d, a Python library for 3D models, and these pictures are renders of that model: nothing has been printed yet, and every size is an estimate until the parts are measured.
+      </P>
+      <UL items={[
+        <><strong>A face.</strong> The OLED sits behind a window high in the dome, so the pet&apos;s face is the ghost&apos;s face.</>,
+        <><strong>Cheeks and a heart.</strong> Two small lights sit just under the screen, and the camera sits on the centre line below them, where a heart would be.</>,
+        <><strong>Arms and a belly button.</strong> TALK and MARK poke through the side walls at shoulder height; APPROVE is a single key low on the front.</>,
+        <><strong>A speaker grille</strong> of small hexagonal holes in the skirt between the feet.</>,
+        <><strong>Feet that stand.</strong> The tips of the three feet are trimmed flat, so it stands upright on a table on its own.</>,
+        <><strong>No screws.</strong> The back plate snaps on with ten small tabs that catch behind a ledge inside the wall.</>,
+        <><strong>Clear plastic</strong>, so the board and the lights show through.</>,
+      ]} />
+      <P>
+        The outline is about 47 by 58 mm and 18 mm thick. For a keychain, the same electronics take a back shell with a key ring loop instead of the stand; that choice lives in the case model, not the circuit. The first printed case passes if it lasts three days in a pocket on one charge and survives a one-metre drop onto wood.
+      </P>
+      <H2>What software runs it?</H2>
+      <H3>The firmware</H3>
+      <P>
+        Rather than write firmware from scratch, the plan forks <strong>xiaozhi-esp32</strong>, an open-source voice assistant firmware for ESP32 chips under the MIT licence, with over 31,000 stars on GitHub. It already streams speech as <strong>Opus</strong> (a compressed audio format) over a <strong>WebSocket</strong> (a network connection that stays open), 16 kHz up and up to 24 kHz back. It supports push-to-talk, a wake word, small screens and Wi-Fi setup from a phone, and its small documented protocol lets the server call tools on the device, such as the volume or the screen, through MCP (the Model Context Protocol, a standard way to give a model tools).
+      </P>
+      <P>
+        Two changes make it ours. xiaozhi has no board definition for the XIAO, so we write one, starting from its breadboard design and swapping in the board&apos;s built-in microphone. And the server address is a build setting called <code>OTA_URL</code>, which by default points at the firmware maker&apos;s cloud. <strong>We point it at our own server, never the default</strong>, because the default would send your voice to someone else&apos;s computer.
+      </P>
+      <H3>The server</H3>
+      <P>
+        The server already exists. We built it for Friendly, our Reachy Mini desk robot, and wrote about it in <A href="https://myargoquest.com/blog/how-we-built-friendly-reachy-mini">How we gave a Reachy Mini robot a voice, a personality and a memory</A>. It is called <code>friendly-host</code> and runs on a Mac with an M1 Max chip. The keychain becomes a second body for the same brain.
+      </P>
+      <P>
+        One spoken turn would flow like this:
+      </P>
+      <UL items={[
+        <>The keychain sends your recorded speech up as Opus.</>,
+        <><strong>Whisper</strong>, a speech-to-text model, runs locally on the Mac. It transcribed a 7.3 second clip in 0.38 seconds.</>,
+        <>A fast local <strong>Qwen</strong> model, the bridge, says a short line within about a second so there is no dead air. It is not allowed to state facts.</>,
+        <>The mind, <strong>Claude Code</strong> (run as <code>claude -p --resume</code>), thinks, uses tools, and streams its answer. Hermes, our other agent harness, can plug in the same way, though it is too slow for voice today.</>,
+        <><strong>Kokoro</strong>, a small local voice model, turns a short sentence into speech in about 0.13 seconds, and the audio streams back to the keychain as Opus.</>,
+      ]} />
+      <P>
+        The new piece is a <strong>device gateway</strong> inside <code>friendly-host</code>: a module that speaks xiaozhi&apos;s protocol on one side and the host&apos;s body interface on the other. The keychain cannot join our private network, so a small cloud server acts as the encrypted front door and passes the connection home. At home, the keychain can talk to the Mac directly.
+      </P>
+      <P>
+        The targets: first sound under 1.5 seconds after you let go, and the mind&apos;s first sentence under 8 seconds (3.8 to 8.7 seconds in our text tests so far).
+      </P>
+      <P>
+        What is open: the firmware (MIT), the Second Brain engine, and the speech models, which are open-weight models anyone can download. <code>friendly-host</code> lives in our private notes today, and the gateway will start there.
+      </P>
+      <H2>How does it connect to your Second Brain?</H2>
+      <P>
+        The Second Brain is a folder of plain markdown notes plus a database that indexes them. The keychain touches neither; it talks to the gateway, and the mind decides what to read and write:
+      </P>
+      <UL items={[
+        <><strong>Search.</strong> Ask &quot;what did I write about the launch?&quot; and the mind calls the Second Brain&apos;s search with <code>mode=hybrid</code>, which matches exact words and also meaning, using embeddings (lists of numbers that place similar sentences close together), then quotes the note back.</>,
+        <><strong>Write-back.</strong> &quot;Remember that the meeting moved to Thursday&quot; becomes a task card for our librarian agent, which writes the markdown note. Every kind of data has one write path, and the keychain follows it.</>,
+        <><strong>Pet state.</strong> The server works out the pet&apos;s stats and sends a tiny message. Hunger counts task cards waiting on you, mood follows progress on today&apos;s goals, growth counts notes added this week, and energy is the battery. The device only draws the sprite it is told to draw.</>,
+        <><strong>Persona switch.</strong> Each of the 22 agents has a persona compiled from our company&apos;s roster file: a description, a voice per team, and on the keychain a face per team. Only Friendly keeps a personal memory; the other agents keep their own working memory and receive a short handover note of what was just said.</>,
+      ]} />
+      <P>
+        Safety rules sit in front of all this. Voice alone may only do reversible things: answer, read, take a note, switch persona. Longer agent work needs a button press, and money never goes through the keychain. Pairing needs a press on the device and the owner&apos;s confirmation; a long squeeze of TALK and MARK revokes its key.
+      </P>
+      <H2>Who can it recognise, and what may it say aloud?</H2>
+      <P>
+        Recognition is not built yet. In the plan, it runs on the home computer, never on the device and never on someone else&apos;s service. Voice and face become embeddings, and only those numbers are kept, in Friendly&apos;s own database; the raw pictures and audio are deleted. Enrolment needs spoken consent. A person counts as verified only when face and voice agree. Forgetting someone is a request a human makes, never a tool the model can call. Children are never enrolled, and the camera opens only on a button press, with an icon and a light while it captures.
+      </P>
+      <P>
+        A speaker in a café is public, so what it may say aloud follows the privacy levels we explained in <A href="https://myargoquest.com/blog/privacy-levels-for-ai-agents">How our AI agents will know what they may share</A>. The rule for the keychain:
+      </P>
+      <UL items={[
+        <><strong>Out of the house:</strong> only <code>public</code> and <code>shared</code> material.</>,
+        <><strong>On home Wi-Fi:</strong> up to <code>private</code>.</>,
+        <><strong>Never,</strong> on the screen or the speaker: <code>confidential</code> and <code>secret</code>.</>,
+      ]} />
+      <P>
+        That gate is mostly still a design. Until it runs, the keychain persona&apos;s instructions will state it and its search tool will filter by folder.
+      </P>
+      <H2>What does a daily companion make possible?</H2>
+      <P>
+        A browser tab gets visited. A companion on your keys gets talked to many times a day, and on a stack you own, those moments add up to something you keep.
+      </P>
+      <UL items={[
+        <><strong>Memory that stays yours.</strong> Every note it takes is a markdown file in a folder you control, and every fact about you sits in a database on a server you control. Change the model or the harness and the memory stays.</>,
+        <><strong>Learning.</strong> Ask about what you read last month, or have it quiz you while you walk. Your own notes become something you can talk to.</>,
+        <><strong>Health.</strong> The energy stat can include a sleep score once a smart ring syncs to your own database. A companion that sees your sleep and your plans together can suggest moving the hard task.</>,
+        <><strong>Creativity.</strong> Ideas arrive on a walk or in a queue. Press, say it, and it is a note.</>,
+        <><strong>Accountability.</strong> The hunger badge is a steady reminder of what is waiting on you, without opening an app.</>,
+        <><strong>Children&apos;s education.</strong> Friendly already has a role for children&apos;s classes, with no memory and no recognition. A device like this could answer a child&apos;s questions patiently without keeping a record of the child.</>,
+      ]} />
+      <P>
+        The risks are real and worth saying plainly. Something that is always kind and always available can become easier to talk to than people, and we would rather it point you toward them. A device that listens needs rules a person can check, which is why the consent rules are already in code, and recognition and the privacy gate will be too, on our own machines. And a companion built from your notes is a mirror: it reflects your goals and your blind spots back at you. It does not replace a friend who sees what you missed.
+      </P>
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Running today:
+      </P>
+      <UL items={[
+        <><strong>The brain.</strong> <code>friendly-host</code> runs the voice loop, local Whisper and Kokoro, the Qwen bridge and Claude Code as the mind, on the Mac. Persona switching across the 22 agents is built and tested; the Hermes adapter is tested only in isolation.</>,
+        <><strong>The agent company and the Second Brain</strong>, including hybrid search and the librarian that turns requests into notes.</>,
+        <><strong>The board.</strong> Our Exo wearable&apos;s bench board, the same XIAO ESP32S3 Sense, records from its microphone.</>,
+      ]} />
+      <P>
+        Still a plan, in this order: a bench build (amplifier, speaker, the xiaozhi port and a first gateway); personas, search, notes and the pet screen on the keychain; power measurements and the first printed case; recognition, built with Friendly&apos;s; the memory LCD and dock mode; and our own circuit board with the camera power switch.
+      </P>
+      <P>
+        If you build your own: the widely used pretrained face models from InsightFace are licensed for non-commercial use only, fine for a personal unit but not for a product.
+      </P>
+      <P>
+        The keychain is a new body, not a new brain. The memory, the voices and the agents already run on a computer we own; the device only has to listen, speak and show a face.
+      </P>
+      <P>
+        Follow along on the blog and at https://x.com/myargoquest. The Second Brain engine is open source at https://github.com/kon-rad/secondbrain.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "keychain-ai-companion-second-brain",
+    title: "Designing a keychain AI companion that runs on your own Second Brain",
+    description: "The plan for a pocket AI companion that also sits on your desk: what it does, the hardware, the case, the software, and how it reaches your own notes.",
+    date: "October 19, 2026",
+    isoDate: "2026-10-19T12:52",
+    readingTime: "13 min read",
+    Content: KeychainAiCompanionSecondBrainContent,
+  },
   {
     slug: "old-macbook-encrypted-home-backup",
     title: "The third copy: turning an old MacBook into an encrypted home backup",
