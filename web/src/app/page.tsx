@@ -39,7 +39,7 @@ export default function Home() {
             <div>
               <a href="#top" className="inline-flex items-center gap-2.5 serif" style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em' }}>
                 <span style={{ width: 32, height: 32, borderRadius: 10, overflow: 'hidden', boxShadow: '0 2px 10px rgba(185,107,51,0.4)', flexShrink: 0, display: 'block' }}>
-                  <Image src="/logo.png" width={32} height={32} alt="" />
+                  <Image unoptimized src="/logo.png" width={32} height={32} alt="" />
                 </span>
                 Argo
               </a>
