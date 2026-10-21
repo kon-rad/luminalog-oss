@@ -8143,7 +8143,126 @@ function KronosCandlestickFoundationModelsContent() {
   )
 }
 
+/* ── Post: How a small model can make an agent's routine choices, and when it shouldn't ── */
+function SmallModelRoutineAgentChoicesContent() {
+  return (
+    <>
+      <P>
+        An AI agent working on a task calls a large language model at every step. Read this file? Run that command? Ask the user, or cancel the order? Each step is a full call to an expensive model, and a long task makes dozens of them. That is why agents are slow and why their bills grow so quickly.
+      </P>
+      <P>
+        A paper published on 15 October 2026 by researchers at the University of Illinois Urbana-Champaign, Princeton and Google starts from a simple observation: most of those calls end in a multiple-choice decision. The harness (the program that runs the agent and gives it tools) already knows the options. It just asks the big model to pick one.
+      </P>
+      <P>
+        The paper, called JevAgentHarness, tests whether a much smaller and cheaper model can make those picks instead. The answer is yes, with conditions, and the conditions are the useful part. This post explains how it works, what the numbers say, and how we plan to use it in the agents that run our second brain.
+      </P>
+      <H2>What is a decision model?</H2>
+      <P>
+        A language model writes text, one word at a time. A <strong>decision model</strong> does something narrower: you give it the situation and a list of options, and it returns a probability for each option. It doesn&apos;t write an answer; it scores the ones you list.
+      </P>
+      <P>
+        Think of a restaurant kitchen. The head chef could decide every order, but most orders are routine: a line cook can plate a standard dish without asking. The chef is needed for the unusual order and the mistake that needs fixing. The analogy stops working in one place: a line cook knows when they are unsure and will ask. A decision model has to be told when it is allowed to decide on its own, and that turns out to be the whole problem.
+      </P>
+      <P>
+        The paper&apos;s main decision model is Jev, a commercial model built for this kind of scoring. In one recorded run, a Jev call took 28% of the time and 2.6% of the price of a call to the language model it replaced.
+      </P>
+      <H2>Where can a small model take over?</H2>
+      <P>
+        The paper lists eight places in an agent&apos;s loop where a choice is made. Three decide what the agent does: which tool to call, which arguments to give it, and (in text games) which action to take. Five control the loop itself: whether to write to memory, what to read back from memory, whether to reflect after a failure, whether to stop, and whether to send this step to a cheaper language model.
+      </P>
+      <P>
+        For each place, the small model can play one of five roles:
+      </P>
+      <UL items={[
+        <><strong>Cascade:</strong> it decides when it is confident, and the big model decides otherwise.</>,
+        <><strong>Replace:</strong> it always decides.</>,
+        <><strong>Assist:</strong> it shortlists a few options and the big model picks.</>,
+        <><strong>Guard:</strong> the big model proposes and the small model approves or sends it back.</>,
+        <><strong>Trigger:</strong> it decides whether an optional step runs at all.</>,
+      ]} />
+      <H2>Why does a confidence threshold matter so much?</H2>
+      <P>
+        This is the paper&apos;s most important result. When the small model made every tool choice on its own (the replace role), agents solved 19.0 percentage points fewer tasks. With a fixed rule of &quot;decide if you are at least 50% sure&quot;, they lost 21.5 points.
+      </P>
+      <P>
+        What worked was a <strong>threshold fitted on the agent&apos;s own runs</strong>. The authors first ran the agent normally while the small model answered every question silently, in what they call shadow mode. Then, for each kind of decision, they measured how often the big model was right, what a call costs, and how much a wrong choice hurts the task. From those three numbers they set the lowest confidence at which handing over is worth it.
+      </P>
+      <P>
+        The fitted thresholds came out very high: 1.00 for tool choices and 0.99 for arguments. In other words, Jev was only trusted when it was practically certain. Even so, Jev handled 27.2% of tool choices and 20.8% of argument choices, which made the agent 14.2% cheaper without changing the outcome of any of 500 tasks.
+      </P>
+      <H2>Why don&apos;t benchmark scores tell you which model to use?</H2>
+      <P>
+        The authors tested several decision models on ordinary quiz-style questions, then put the same models in charge of a running agent. The rankings did not match. The model that scored best on isolated tool-choice questions, at 92.2%, completed only 69.5% of agent tasks. Their own small model scored lower on the quiz, 89.3%, but completed 91.5%.
+      </P>
+      <P>
+        The reason is that an agent makes mistakes, and every mistake leads to a situation no quiz contains. A model that has never seen &quot;the state after I picked the wrong tool&quot; handles it badly. Scoring models on recorded agent runs, step by step, ranked them almost the way real task success did.
+      </P>
+      <H2>How did a 4-billion-parameter model beat the commercial one?</H2>
+      <P>
+        They trained a small open model, Qwen3-4B, on the situations their agent actually reached: 15,694 recorded decision points, 30.9% of them right after a mistake, with Jev&apos;s answers as the teacher&apos;s labels. That training took 2.2 GPU-hours. On new task variants, the agent&apos;s success with this model rose from 13.5% before training to 96.0% after. A second round of reinforcement learning added nothing measurable.
+      </P>
+      <P>
+        With 4B models trained this way (a separate one for the household text games) making routine choices, the paper reports agents that were 81.1% to 89.0% cheaper and up to 2.5 times faster, without losing 3 or more points of task success. Answers took a median of 31 milliseconds, against 809 milliseconds for a call to the language model.
+      </P>
+      <H2>Where does it not work?</H2>
+      <P>
+        The paper is unusually clear about this:
+      </P>
+      <UL items={[
+        <><strong>Irreversible steps.</strong> All 34 tasks the Jev-based setup failed began with a confident wrong choice that could not be undone, usually cancelling an order when it should have asked the customer first.</>,
+        <><strong>New rules.</strong> A trained model that had never seen a new business rule dropped the agent to 3.0% success, against 88.0% for the language model alone. Refitting the threshold restored success, and retraining raised the model&apos;s accuracy on the new rule from 76.5% to 95.3%.</>,
+        <><strong>Coding agents.</strong> A coding agent&apos;s actions are free text, so the small model can only pick which language model writes the next step. Savings there were 7.0% to 10.5%.</>,
+        <><strong>Guards and memory.</strong> Roles that still call the big model, such as approving its proposals, mostly added cost.</>,
+      ]} />
+      <P>
+        The authors released the code under the MIT license. What it ships today is a proxy for coding agents that sends routine steps to a fast model and hard ones to a strong model. It speaks the OpenAI API, and its README lists no Claude Code support.
+      </P>
+      <H2>How we plan to use this in our second brain</H2>
+      <P>
+        Our second brain is a folder of markdown notes that several AI agents read and write. Requests become cards on a kanban board, and named agents wake when a card, a direct message or a mention arrives for them. Each wake resumes the agent&apos;s previous session, which makes even a short wake cost real money.
+      </P>
+      <P>
+        The same week this paper came out, we measured our wakes and found that about one in eight did nothing, a sixth of what our wakes cost: the agent read the message, decided there was nothing for it to do, and stopped. We had planned to put a cheap decision model in front of each wake to ask one question: does this message ask this agent to do anything? In the paper&apos;s terms, that is a trigger. It is the best kind of choice to delegate: one cheap question can save a whole expensive call, and a wrong &quot;skip&quot; can be recovered, because the agent wakes again on the next message.
+      </P>
+      <P>
+        The paper changes how we will do it:
+      </P>
+      <UL items={[
+        <><strong>Shadow mode first.</strong> The gate will answer every wake silently for at least 150 wakes, and we will compare its answers with what the agent actually did before it is allowed to skip anything.</>,
+        <><strong>A threshold per question, from our own numbers.</strong> How often a wake is useful, what a wake costs, and what a missed wake costs come from our usage logs, not from a guess.</>,
+        <><strong>Nothing irreversible.</strong> Deploys, merges, payments and public posts never go through a decision model. For our bots, merges and deploys already wait for a human approval, and they stay that way.</>,
+        <><strong>Watch for drift.</strong> We will track the share of confident answers each week and refit the threshold whenever we change the model behind our agents.</>,
+        <><strong>No coding router yet.</strong> The savings for coding agents are small, the released proxy lists no Claude Code support, and switching models can lose the prompt cache that makes our coding sessions cheap.</>,
+      ]} />
+      <P>
+        All of this is a plan; none of it runs yet.
+      </P>
+      <H2>How to apply this to your own agents</H2>
+      <P>
+        If you run agents, three questions sort out where a small model could help:
+      </P>
+      <UL items={[
+        <><strong>Which of your agent&apos;s calls are really multiple choice?</strong> Tool selection, &quot;is this done?&quot;, &quot;does this need me?&quot; are good candidates. Free-text writing is not.</>,
+        <><strong>Can a wrong answer be undone?</strong> Delegate only the choices where a mistake costs a retry, never the ones that delete, pay or publish.</>,
+        <><strong>Do you have your own logs?</strong> Run any new model silently against your agent&apos;s real decisions before trusting it. A good score on someone else&apos;s benchmark is not evidence for your agent.</>,
+      ]} />
+      <P>
+        The paper is at https://arxiv.org/abs/2610.21412 and the code at https://github.com/JevAgentHarness/JevAgentHarness. We will write up what the shadow test shows. Follow along at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "small-model-routine-agent-choices",
+    title: "How a small model can make an agent's routine choices, and when it shouldn't",
+    description: "A new paper shows when a cheap decision model can take over an AI agent's routine choices safely, and what that means for our agents.",
+    date: "October 19, 2026",
+    isoDate: "2026-10-19T03:36",
+    readingTime: "8 min read",
+    Content: SmallModelRoutineAgentChoicesContent,
+  },
   {
     slug: "kronos-candlestick-foundation-models",
     title: "Kronos and the AI models that read price charts, checked against the evidence",
