@@ -8026,7 +8026,133 @@ function EcosystemNotThePaperContent() {
   )
 }
 
+/* ── Post: Kronos and the AI models that read price charts, checked against the evidence ── */
+function KronosCandlestickFoundationModelsContent() {
+  return (
+    <>
+      <P>
+        A post went around X this week claiming that &quot;someone built an AI that reads candlestick charts the way GPT reads English&quot;, that it &quot;outperforms every model by 93%&quot;, and that it runs free on a laptop. It had over 120,000 views. The model is called Kronos, and it is real. Most of the claims about it are not quite what they sound like.
+      </P>
+      <P>
+        This post explains what Kronos is and how it works, what its headline number actually measures, what other models do the same job, and what the published research says about using any of them to trade. We read the paper, the code, the model cards and the independent tests people have posted, all on 19 October 2026.
+      </P>
+      <H2>What is a foundation model for prices?</H2>
+      <P>
+        A <strong>foundation model</strong> is a large model trained once on a huge, general dataset, then used for many tasks without retraining. GPT is a foundation model for text. A <strong>time-series foundation model</strong> does the same for sequences of numbers over time: electricity demand, web traffic, sales, and prices.
+      </P>
+      <P>
+        The promise is <strong>zero-shot</strong> forecasting: give the model a history it has never seen, and it predicts what comes next without any training on that series. Google, Amazon, Salesforce, Datadog, IBM and, as of last week, Mistral have all released models like this.
+      </P>
+      <P>
+        Most of them are general. They learn patterns that repeat across many kinds of data, such as daily and weekly cycles. Kronos is different because it was trained only on market data.
+      </P>
+      <H2>How does Kronos read a candlestick?</H2>
+      <P>
+        A <strong>candlestick</strong> (also called a K-line) summarises trading over one time period in a few numbers: the opening price, the high, the low, the closing price, and how much was traded. Kronos uses six numbers per candle: those five plus turnover, the money value traded.
+      </P>
+      <P>
+        Kronos turns each candle into words. A small network called a tokenizer compresses the six numbers into a 20-bit code and splits it into two tokens: a coarse one that captures the rough shape of the candle, and a fine one that adds the detail. A GPT-style model then reads the sequence of tokens and predicts the next coarse token, then the next fine one, one candle at a time, the same way a language model predicts the next word.
+      </P>
+      <P>
+        An analogy: it is like describing each day&apos;s weather first as &quot;warm and wet&quot; and then adding &quot;23 degrees, light rain after 4pm&quot;. The model learns to predict the rough description first and the detail second. The analogy stops working in one place: weather follows physics, and prices partly react to the forecasts people make about them.
+      </P>
+      <P>
+        Because the model samples its predictions, you can run it many times and get many possible futures, which gives a spread of outcomes instead of a single line.
+      </P>
+      <P>
+        It was trained by researchers at Tsinghua University on 12.11 billion candles from 45 exchanges, covering stocks, crypto, futures and currencies at time scales from one minute to one week. The paper was accepted at AAAI 2026, a major AI conference. The code is MIT-licensed and has about 41,000 stars on GitHub. Three model sizes can be downloaded: 4.1 million, 24.7 million and 102.3 million parameters. The smallest runs on an ordinary computer&apos;s processor, no graphics card needed.
+      </P>
+      <H2>What does &quot;93% more accurate&quot; actually mean?</H2>
+      <P>
+        This is the claim worth slowing down for. The 93% comes from a measure called <strong>RankIC</strong>, short for rank information coefficient. It asks a simple question: when the model ranks future prices from highest to lowest, how well does that ranking match what really happened? A RankIC of 1 would be a perfect ranking. Zero means no better than chance.
+      </P>
+      <P>
+        In the paper&apos;s price-forecasting test, averaged across 11 markets, the largest Kronos model scored a RankIC of 0.0267. The best competing foundation model scored 0.0138. The first number is 93% higher than the second, which is where the headline comes from. But both are very close to zero. Going from almost no ranking skill to slightly more than almost no ranking skill is a real improvement, and still a long way from a signal you can trade on.
+      </P>
+      <P>
+        Three more details matter:
+      </P>
+      <UL items={[
+        <><strong>The best result came from the largest model, which is not released.</strong> Only the three smaller sizes can be downloaded.</>,
+        <><strong>It doesn&apos;t beat every model.</strong> On the crypto data in the paper, two older models trained from scratch scored a higher RankIC than every Kronos size.</>,
+        <><strong>The live demo has stopped.</strong> It was meant to update a Bitcoin forecast every hour; its last update was on 4 July 2026.</>,
+      ]} />
+      <P>
+        The paper also reports a volatility forecast with 9% lower error than GARCH, a standard statistical model for how much prices swing, and a backtest on Chinese stocks with strong returns. That backtest is on one market, and the repository itself describes its trading pipeline as a demonstration, not a production trading system.
+      </P>
+      <H2>What do independent users find?</H2>
+      <P>
+        Several people have posted their own tests as GitHub issues on the Kronos repository. These are not peer-reviewed, but they are concrete:
+      </P>
+      <UL items={[
+        <>A test on Apple daily prices, with 1,800 rolling forecasts, found every configuration less accurate than simply predicting that tomorrow&apos;s close equals today&apos;s.</>,
+        <>A walk-forward test on eight US stocks at 30-minute candles found direction calls right 45% to 60% of the time, and no stable edge after trading costs.</>,
+        <>A ranking test across 182 US stocks found a correlation of 0.022, not statistically significant, and still not significant after costs.</>,
+        <>One user reported a small but real edge on 15-minute crypto candles.</>,
+      ]} />
+      <P>
+        A bug that let future prices leak into the fine-tuning data was fixed in April 2026. Whether the published model weights were affected has not been answered by the maintainers.
+      </P>
+      <H2>What other models do the same job?</H2>
+      <P>
+        General time-series foundation models, all with downloadable weights:
+      </P>
+      <UL items={[
+        <><strong>Timestral</strong> from Mistral, released on 14 October 2026, leads both public benchmarks (GIFT-Eval and fev-bench) among open-weight models as of 19 October.</>,
+        <><strong>TimesFM</strong> from Google. Version 3 is close behind, but its licence is non-commercial; version 2.5 is Apache-2.0.</>,
+        <><strong>Chronos-2</strong> from Amazon, the most downloaded of these models, Apache-2.0.</>,
+        <><strong>Toto 2.0</strong> from Datadog, with sizes from 4 million to 2.5 billion parameters, Apache-2.0.</>,
+        <><strong>TiRex-2</strong> from NX-AI and <strong>Tiny Time Mixers</strong> from IBM, both small and Apache-2.0.</>,
+        <><strong>Moirai</strong> from Salesforce, with non-commercial weights.</>,
+      ]} />
+      <P>
+        Models trained only on market data, like Kronos:
+      </P>
+      <UL items={[
+        <><strong>KiT</strong>, published in September 2026, generates future candles with a diffusion model and reports a higher RankIC than Kronos. Those are the authors&apos; own numbers, and nobody has replicated them yet.</>,
+        <><strong>FinCast</strong>, presented at CIKM 2025, about a billion parameters, trained on over 20 billion data points, mostly financial.</>,
+      ]} />
+      <P>
+        Then there are the projects with the biggest star counts in &quot;AI for finance&quot;: TradingAgents, Microsoft&apos;s Qlib and RD-Agent, FinGPT and FinRobot. These are mostly language-model or agent frameworks that read news, write analysis or write trading code. Only Qlib, a backtesting platform, and RD-Agent, which writes and tests trading factors, work with price data directly. None of them is a pretrained price model.
+      </P>
+      <H2>Can any of them predict the market?</H2>
+      <P>
+        The best evidence says: not returns, at least not off the shelf. The largest study so far (arXiv 2511.18578) tested Chronos and TimesFM on daily stock returns in 94 countries from 1990 to 2023. Used zero-shot, both did worse than predicting no change at all. Only models pretrained from scratch on financial data caught up with standard machine-learning methods, and those results are before trading costs. A 2026 study on five large US stocks (arXiv 2606.27100) found gains over a random walk &quot;small and sparse&quot;.
+      </P>
+      <P>
+        This is why finance papers report rank correlations rather than profit. Short-term price moves are close to unpredictable, and a model that ranks slightly better than chance can still lose money once you pay fees and spreads.
+      </P>
+      <P>
+        <strong>Volatility is the more promising target.</strong> How much a price will swing is far more predictable than which way it will go. Kronos reports a real improvement over GARCH there, KiT reports volatility rank correlations around 0.66, and a 2026 study (arXiv 2607.05291) found one small model, IBM&apos;s Tiny Time Mixers, beat the standard econometric baseline at every horizon, though narrowly.
+      </P>
+      <H2>How to use these models sensibly</H2>
+      <P>
+        If you want to try Kronos or any of its peers:
+      </P>
+      <UL items={[
+        <><strong>Read the metric, not the percentage.</strong> Ask what is being measured, against which baseline, and how big the number is before the &quot;93%&quot;.</>,
+        <><strong>Always compare against &quot;no change&quot;.</strong> A forecast that can&apos;t beat &quot;tomorrow equals today&quot; after costs is not a trading signal.</>,
+        <><strong>Test on your own data, walking forward in time,</strong> with the costs you would actually pay. Never trust a backtest on a market you don&apos;t trade.</>,
+        <><strong>Start with volatility and risk,</strong> where the evidence for a real signal is strongest, and treat any price-direction signal with suspicion.</>,
+        <><strong>Check the licence</strong> before building on a model: several of the strongest are non-commercial.</>,
+      ]} />
+      <P>
+        Kronos is a genuinely interesting idea, and the candlestick-as-language framing is clever. It is a research model with a small, measurable edge on a narrow metric, not a free replacement for a trading desk. The paper is at https://arxiv.org/abs/2508.02739 and the code at https://github.com/shiyu-coder/Kronos. Follow what we&apos;re researching at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "kronos-candlestick-foundation-models",
+    title: "Kronos and the AI models that read price charts, checked against the evidence",
+    description: "What Kronos and other time-series foundation models actually do, what \"93% more accurate\" really measures, and what the research says about trading with them.",
+    date: "October 19, 2026",
+    isoDate: "2026-10-19T03:31",
+    readingTime: "8 min read",
+    Content: KronosCandlestickFoundationModelsContent,
+  },
   {
     slug: "ecosystem-not-the-paper",
     title: "What a research lab's agent playbook teaches a personal second brain",
