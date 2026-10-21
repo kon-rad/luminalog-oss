@@ -7926,7 +7926,116 @@ function KeychainAiCompanionSecondBrainContent() {
   )
 }
 
+/* ── Post: What a research lab's agent playbook teaches a personal second brain ── */
+function EcosystemNotThePaperContent() {
+  return (
+    <>
+      <P>
+        Tim Dettmers, who runs a machine learning lab at Carnegie Mellon, asked a class of 150 students who was afraid of not getting a job after graduating. About 120 hands went up. His blog post about it, published on 21 September 2026, argues that the fear rests on a wrong assumption: that the future belongs to whoever has the most GPUs.
+      </P>
+      <P>
+        His argument is about academic research, but most of it applies to anyone who works with AI agents (programs that use a language model to plan and carry out multi-step work, such as Claude Code). We run a second brain: a folder of plain-text notes that several agents read, write and act on every day. This post explains the main ideas in his post, looks at the one release we could read in full, and turns them into concrete changes for our setup and yours.
+      </P>
+      <H2>What changed when agents arrived?</H2>
+      <P>
+        Dettmers&apos; starting observation is simple. With agents, a research project that used to take a year of engineering now takes weeks, sometimes days. When each project becomes cheap, a single project stops being impressive.
+      </P>
+      <P>
+        He puts it in one line: <strong>the unit of research is no longer the paper, it is the ecosystem.</strong> A paper here and a paper there, each self-contained, asks the reader to stitch the pieces together. That format made sense when every piece was expensive. Now the hard part is building pieces that build on each other, so that each one makes the next more useful.
+      </P>
+      <P>
+        An analogy: when bricks were hand-made, a single good brick was worth showing off. Once bricks come off a machine, nobody cares about one brick. They care whether you built a house. The analogy stops working in one place: a house is finished, while an ecosystem keeps growing as other people add to it.
+      </P>
+      <H2>What did his lab release?</H2>
+      <P>
+        The post announced an open-source week: two open-source projects and four papers, released together on purpose. The post covers three pieces:
+      </P>
+      <UL items={[
+        <><strong>An agent harness</strong> (the code around a model that gives it tools, memory and rules) that you point at a code repository and leave. He reports it optimised his lab&apos;s Mac inference kernels on its own.</>,
+        <><strong>Local frontier models:</strong> large open models running on a single desktop GPU or a high-memory laptop.</>,
+        <><strong>A local autonomous research system</strong> that proposes problems, runs experiments and reports results with no internet access. In his example it produced four results on a bioinformatics problem in about two hours, without reaching the best known result on the overall problem.</>,
+      ]} />
+      <P>
+        Those numbers are his claims, and we have not tested them. One release we could at least read in full is <strong>CliffCompaction</strong>, published the next day as a paper and an MIT-licensed tool. Dettmers is a co-author, so its figures are his team&apos;s claims too, not an independent check.
+      </P>
+      <H2>What is CliffCompaction, and why does it matter for everyone running agents?</H2>
+      <P>
+        An agent&apos;s context window is its working memory: everything the model can see at once. Long sessions fill it. The usual fix, called compaction, replaces the conversation so far with a shorter version and continues from there. The CliffCompaction paper argues that when that shorter version is a rewrite, and later rewrites are made from earlier ones, drift compounds.
+      </P>
+      <P>
+        CliffCompaction does two things differently, according to its paper:
+      </P>
+      <UL items={[
+        <><strong>It only truncates or drops content, never rewrites it.</strong> What stays is the original text, so nothing is paraphrased into something slightly wrong.</>,
+        <><strong>It never compacts a compaction.</strong> Each pass works from the original content and throws away the previous compacted output, so errors don&apos;t pile up.</>,
+      ]} />
+      <P>
+        It runs as a proxy, a small program that sits between the agent and the model provider, so the agent itself does not change. The paper reports cost cuts of up to 50% under a bounded context while keeping or improving scores on the Terminal-Bench benchmark. Dettmers adds that one partner company measured a 45% drop in its total AI spend. Setup, from the project&apos;s README, is two commands:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"uv tool install cliffcompaction\ncliff enable"}</code></pre>
+      <P>
+        <code>cliff enable</code> defaults to Claude Code. <code>cliff disable</code> reverses it.
+      </P>
+      <H2>What do you do with the money you save?</H2>
+      <P>
+        This is the part of the post most people will skip, and it is the most useful. If each attempt costs half as much, you can run two attempts for the price of one and keep the better result. The paper reports over 10 percentage points more on Terminal-Bench from test-time scaling (spending on extra attempts), for less than the cost of two full-context runs.
+      </P>
+      <P>
+        The general rule: <strong>cheaper attempts are not only a saving, they are a budget for trying twice.</strong> Our view, which we have yet to measure: for hard tasks, two independent tries and a check that picks the better one are worth testing against one careful try.
+      </P>
+      <H2>How should a person work with agents now?</H2>
+      <P>
+        Dettmers gives three habits he now asks of his PhD students:
+      </P>
+      <UL items={[
+        <><strong>Work on the ecosystem.</strong> Judge a piece of work by what it connects to.</>,
+        <><strong>Run many projects in parallel.</strong> An agent can carry one project while you think about another.</>,
+        <><strong>Attack the problem first, understand it as you go.</strong> The old order was basics, then methods, then problems. With agents you can start from the problem and look up what you need along the way. Your attention goes to the hard part.</>,
+      ]} />
+      <P>
+        He frames all three with one sentence: <strong>let go of how you work, not who you are.</strong> Methods are negotiable. Your personality, the people you love and what you hold important are not, and holding those steady is what makes it possible to change everything else quickly.
+      </P>
+      <P>
+        There is one more line worth keeping. His lab built a tool that turned a recorded meeting into research questions checked against the literature. It needed him to copy and paste between two steps by hand, so he stopped using it. The students then asked for it back. His conclusion: <strong>the only evaluation of a research tool he trusts is that people ask for it after you stop giving it to them.</strong>
+      </P>
+      <H2>What we are changing in our second brain</H2>
+      <P>
+        Our setup: a vault of notes in plain markdown, a shared rules file every agent reads, skills (written procedures an agent loads when it needs them), a kanban board where requests become cards, and several agent lanes that pick up cards in parallel. Here is what the post changes, in order of how soon we expect to act on it:
+      </P>
+      <UL items={[
+        <><strong>Trial CliffCompaction on one agent lane for a week.</strong> One lane, its own proxy instance, the other agents untouched. We compare cost per card and how often a card&apos;s checks pass against the week before. This is a plan; we have not run it yet.</>,
+        <><strong>Spend any saving on second attempts.</strong> When a card fails its checks, run two variations and let the checker pick, rather than one retry.</>,
+        <><strong>Measure skills by &quot;asked for again&quot;.</strong> A skill that ran is not the same as a skill that helped. We will look at which skills and outputs get requested again, and review the ones nobody asked for in a month.</>,
+        <><strong>Hunt down manual hand-offs.</strong> Every place a person copies, pastes or forwards between two steps is where a pipeline quietly dies. We plan to list them and remove them one by one.</>,
+        <><strong>Make every new piece name its neighbours.</strong> Notes already have to link to the project they belong to. New skills and tools should say what they build on and what can build on them.</>,
+        <><strong>Keep sources verbatim and summarise once.</strong> We already save some articles as an untouched copy next to a separate analysis note. We want that to be the rule for every saved source, with analysis always written from the original, never from an earlier summary. It is CliffCompaction&apos;s rule applied to notes.</>,
+      ]} />
+      <H2>How to apply this to your own agent setup</H2>
+      <P>
+        If you run agents, three checks take less than an hour:
+      </P>
+      <UL items={[
+        <><strong>Look at your longest sessions.</strong> If they compact often, a truncate-only proxy is cheap to try and easy to remove.</>,
+        <><strong>Find one task you retry by hand</strong> and try two parallel attempts with an automatic check instead.</>,
+        <><strong>List the tools you built in the last three months</strong> and mark which ones you or anyone else asked for again. Drop or fix the rest.</>,
+      ]} />
+      <P>
+        The core idea is Dettmers&apos;: when each piece is cheap, the value is in how the pieces connect and whether people keep coming back for them. Read his full post at https://timdettmers.com/2026/09/21/dlab-open-source-week/ and follow what we build at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "ecosystem-not-the-paper",
+    title: "What a research lab's agent playbook teaches a personal second brain",
+    description: "Tim Dettmers argues agents made the ecosystem, not the paper, the unit of work. What that means for how we run agents and our second brain.",
+    date: "October 19, 2026",
+    isoDate: "2026-10-19T03:24",
+    readingTime: "7 min read",
+    Content: EcosystemNotThePaperContent,
+  },
   {
     slug: "keychain-ai-companion-second-brain",
     title: "Designing a keychain AI companion that runs on your own Second Brain",
