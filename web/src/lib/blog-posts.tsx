@@ -8520,7 +8520,192 @@ function T3codeExplainedContent() {
   )
 }
 
+/* ── Post: A private AI brain for your company, on your own server: a step-by-step guide ── */
+function PrivateCompanyAiBrainContent() {
+  return (
+    <>
+      <P>
+        A law firm wants an AI agent that knows every matter it has worked on: the contracts, the advice given, the deadlines, the house style. That agent would be useful on day one. It would also be the most sensitive system the firm owns, because everything it knows is client information the firm has promised to keep confidential.
+      </P>
+      <P>
+        Most AI tools solve the first half and quietly give up the second. The notes live in someone else&apos;s cloud and the firm&apos;s knowledge becomes a row in a vendor&apos;s database. For a company bound by confidentiality, privilege or data protection law, that trade is often not allowed.
+      </P>
+      <P>
+        We wrote this guide for the Entity Onchain Legal Summit at Devcon VIII in Mumbai, where we have applied to speak. The summit asks who answers for the agents inside an organisation. Our answer starts one step earlier: an organisation can only answer for its agents if it owns what they know and can see what they do. This post shows how to set that up with free, open-source parts, on a server you control.
+      </P>
+      <Figure
+        src="/blog/private-company-ai-brain-1.jpg"
+        alt="The Entity Onchain Legal Summit website showing the date, Wednesday 4 November 2026, the Devcon Legal and Governance Hub in Mumbai, and the tagline a working summit, not a showcase"
+        width={1225}
+        height={753}
+        priority
+        caption="The summit this post was written for. Screenshot: legalsummit.io"
+      />
+      <H2>What does &quot;owning your AI brain&quot; mean?</H2>
+      <P>
+        It means three things stay with you: the knowledge, the agent, and the record of what the agent did. Only one thing has to leave, and only for a moment: the context the agent sends a language model for one task, which can include passages from files it has read.
+      </P>
+      <P>
+        The parts that make this possible:
+      </P>
+      <UL items={[
+        <><strong>Second Brain</strong> (<A href="https://github.com/kon-rad/secondbrain">github.com/kon-rad/secondbrain</A>, MIT licence): a knowledge base made of plain markdown files in a private git repository, plus a web app that searches it and, with an optional module, maps it. Markdown is a text file with light formatting, so any editor can open it and nothing locks you in.</>,
+        <><strong>Hermes Agent</strong> by Nous Research (<A href="https://github.com/NousResearch/hermes-agent">github.com/NousResearch/hermes-agent</A>, MIT licence): an AI agent that runs on your server, reads and writes your files, and works with any model provider that speaks the common OpenAI-style API.</>,
+        <><strong>A private model route:</strong> Venice, OpenRouter with zero data retention, Morpheus, or a model running on your own hardware.</>,
+      ]} />
+      <Figure
+        src="/blog/private-company-ai-brain-2.jpg"
+        alt="Diagram: a dashed box marks your server, holding the vault, the Second Brain app, the Hermes agent, an optional local model and an encrypted disk; only the context for one task at a time goes out to OpenRouter, Venice or Morpheus, and backups leave encrypted"
+        width={1920}
+        height={1080}
+        caption="What stays inside and what leaves. Diagram by Argo."
+      />
+      <P>
+        A useful picture is a company library with a reading room. The books never leave the building. When a researcher needs an outside expert, they copy one page, ask the question and bring the answer back. The analogy stops working in one place: the expert still reads that page, so who that expert is matters.
+      </P>
+      <H2>Why does this matter for legal and regulated work?</H2>
+      <P>
+        Two rules from two systems show the shape of the duty. In the United States, ABA Model Rule 1.6 says a lawyer &quot;shall not reveal information relating to the representation of a client unless the client gives informed consent&quot;, with a few narrow exceptions. In the EU, Article 28 of the GDPR says a controller &quot;shall use only processors providing sufficient guarantees&quot;, under a contract. Pasting client files into a consumer chatbot fits neither comfortably.
+      </P>
+      <P>
+        Owning the stack does not make you compliant by itself. It does change the questions you have to answer. Instead of &quot;where does the vendor keep our data?&quot;, you ask &quot;which model provider sees a prompt, under what terms, and for how long?&quot; That is a much smaller question. None of this is legal advice; your own counsel decides what your rules require.
+      </P>
+      <Figure
+        src="/blog/private-company-ai-brain-3.jpg"
+        alt="Diagram of six setup steps: a server you control with disk encryption, the vault, the app locked with a password and authenticator, Hermes on the same box, a private model route, and encrypted backups"
+        width={1920}
+        height={1080}
+        caption="The setup in order. Diagram by Argo."
+      />
+      <H2>Step 1: where should the brain live?</H2>
+      <P>
+        Start with an Ubuntu machine you can reach over ssh (a secure remote login). It can be a box in your office or a rented cloud server in your own account. The Second Brain deploy script expects &quot;Ubuntu, reachable as root over ssh&quot;.
+      </P>
+      <P>
+        <strong>Turn on disk encryption before anything else.</strong> Second Brain does not encrypt your notes itself: the files are plain markdown and the search index is a normal Postgres database. Encryption at rest is your job, and it is easiest at the start. On your own hardware, choose the disk encryption option in the Ubuntu installer. On a rented server, check what your provider encrypts, and keep the vault on a volume whose key you hold. Then a pulled drive or a stolen snapshot is unreadable.
+      </P>
+      <H2>Step 2: how do you store the knowledge?</H2>
+      <P>
+        The vault is your company&apos;s knowledge base: one private git repository with four top-level folders (Projects, Areas, Research, Archives). The Second Brain engine sits inside it as a git submodule, a pinned pointer to the public code, so the engine never contains your notes. Its README puts it plainly: &quot;Private by construction: the engine never sees your notes.&quot;
+      </P>
+      <P>
+        On your laptop, install git, Node.js 22 or newer, Python 3.9 or newer, and Postgres 15 or newer with the pgvector extension (which lets Postgres search by meaning). Then run:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"mkdir my-vault && cd my-vault && git init\ngit submodule add https://github.com/kon-rad/secondbrain.git .secondbrain\n.secondbrain/bin/secondbrain-vault init .\ncp .env.example .env\ngit add -A && git commit -m \"new vault\""}</code></pre>
+      <P>
+        <code>init</code> lays out the folders and writes <code>AGENTS.md</code>, the rulebook every agent in the vault follows. The <code>.env</code> file holds your keys and is ignored by git. Push the vault only to a <strong>private</strong> remote you control; the engine&apos;s guide says &quot;Never make your vault public.&quot;
+      </P>
+      <H2>Step 3: how does the team reach it, and nobody else?</H2>
+      <P>
+        The app gives your team search over the whole vault, links between notes and, with the map module, a map of how they connect. On a server it always requires a login: a password stored only as a scrypt hash (a one-way scramble that is slow to crack) plus a code from an authenticator app. The deployment guide is blunt: &quot;there is no &apos;auth off&apos; for a server.&quot;
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{".secondbrain/app/bin/secondbrain auth-setup"}</code></pre>
+      <P>
+        This prints a password hash and an authenticator secret; keep them for the server. Add three deploy settings (<code>DEPLOY_HOST</code>, <code>DEPLOY_PUBLIC_HOST</code>, <code>DEPLOY_VAULT_DIR</code>) to your vault&apos;s <code>.env</code>, then run:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{".secondbrain/app/deploy/deploy.sh"}</code></pre>
+      <P>
+        The script installs Node, Postgres with pgvector and Caddy on the server. When it finishes, put the two login lines (and your public address) in the server&apos;s <code>/etc/secondbrain/env</code> and restart the app with <code>systemctl restart secondbrain</code>. Caddy is the web server in front of the app: it serves the app over HTTPS only (plain HTTP just redirects), and the app itself listens only on the machine&apos;s internal address, so Caddy is the single way in. Five failed logins lock an address out for 15 minutes. If your team should not reach the app from the open internet at all, put the server on a private network such as Tailscale or WireGuard.
+      </P>
+      <P>
+        The server&apos;s copy of the vault stays current through a git pull you schedule (a cron job or a timer). The getting-started guide puts a local setup at &quot;About 15 minutes, most of it installing Postgres&quot;, and the server script installs Postgres for you.
+      </P>
+      <P>
+        <strong>Keep search private too.</strong> Keyword search works with no keys at all. Semantic search (finding notes by meaning) needs embeddings, numeric fingerprints of each passage. Run Ollama on the same server with the <code>bge-m3</code> model (<code>DEPLOY_EMBED=1</code> sets it up), set the embeddings provider to <code>ollama</code> on the app&apos;s Sources page, and no text leaves for search. The app&apos;s &quot;ask the database in plain language&quot; box currently uses a hosted model (Together AI), so leave its key unset if that is a concern.
+      </P>
+      <H2>Step 4: where does the agent run?</H2>
+      <P>
+        Hermes is the agent your team talks to. It reads the vault, writes notes, runs tools and remembers what it learned. Install it on the server with one line from its README:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"}</code></pre>
+      <P>
+        Then connect it to the vault&apos;s guardrails. Second Brain ships two hooks, small programs that run around the agent&apos;s actions: a guard that blocks the agent from printing key files or force-pushing (overwriting the shared git history), and a gate that asks for a written log of what changed before the agent calls a job done. Copy the block from <code>.secondbrain/harness/hermes-hooks.example.yaml</code> into <code>~/.hermes/config.yaml</code>, replace the example vault path with yours, and approve each hook once; Hermes then runs both, plus the vault&apos;s shared skills. Check that the hooks fire: if the command in the config and the approved command differ, Hermes skips the hook without a warning.
+      </P>
+      <P>
+        Be precise about what the guard is. The engine&apos;s docs call the hooks &quot;guardrails, not a sandbox&quot;: they stop the agent&apos;s own tools, but a script the agent writes can read anything its Unix user can. Run Hermes as its own user (for example, a dedicated <code>hermes</code> account), and keep anything it must never read under a different one.
+      </P>
+      <H2>Step 5: which model sees the question?</H2>
+      <P>
+        This is where a task&apos;s context leaves the building. Hermes &quot;works with any OpenAI-compatible API endpoint&quot;, so each route is a few lines in <code>~/.hermes/config.yaml</code>, with the key in <code>~/.hermes/.env</code>. <code>hermes model</code> walks you through the same choices interactively.
+      </P>
+      <Figure
+        src="/blog/private-company-ai-brain-4.jpg"
+        alt="Diagram, two by two, comparing four ways to run the model: a local model, Venice private models, OpenRouter with zero data retention and Morpheus, by where it runs, who sees the prompt, who keeps it and the Hermes setting"
+        width={1920}
+        height={1080}
+        caption="Four model routes compared, from each provider's documentation in October 2026. Diagram by Argo."
+      />
+      <H3>Venice: private models</H3>
+      <P>
+        Venice serves open models through its own proxy and says it &quot;does not store or log prompt and response content for normal inference&quot;. Use models marked private (the <code>/models</code> endpoint shows each model&apos;s privacy mode). Models marked anonymized are different: Venice hides who you are, but &quot;Prompt content is still visible to that provider.&quot; For text, Venice also offers end-to-end encrypted models, where &quot;only the verified TEE decrypts&quot; the prompt; a TEE is a sealed area of a processor that even the machine&apos;s operator cannot read. Venice&apos;s no-retention promise for private models is a contractual one, so read its terms as you would any processor&apos;s.
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"model:\n  default: zai-org-glm-5\n  provider: custom\n  base_url: https://api.venice.ai/api/v1\n  key_env: VENICE_API_KEY"}</code></pre>
+      <Figure
+        src="/blog/private-company-ai-brain-5.jpg"
+        alt="Venice's privacy documentation with the sentence saying Venice does not store or log prompt and response content highlighted"
+        width={1575}
+        height={945}
+        caption="Venice's own privacy statement. Screenshot: docs.venice.ai"
+      />
+      <H3>OpenRouter: one key, zero data retention</H3>
+      <P>
+        OpenRouter gives you many models from many providers behind one key. By default it may route to providers that store data. Turn on <strong>Zero Data Retention</strong> in your account&apos;s privacy settings, and OpenRouter will &quot;only allow you to route to endpoints that have a Zero Data Retention policy&quot;. Its docs define that as a provider that &quot;will not store your data for any period of time&quot;. Hermes supports OpenRouter by name:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"model:\n  default: <a model that has ZDR endpoints>\n  provider: openrouter"}</code></pre>
+      <P>
+        Put <code>OPENROUTER_API_KEY</code> in <code>~/.hermes/.env</code>. Set ZDR on the account, not only per request: Hermes&apos;s routing settings include <code>data_collection: deny</code> but no ZDR switch of their own.
+      </P>
+      <Figure
+        src="/blog/private-company-ai-brain-6.jpg"
+        alt="OpenRouter's Zero Data Retention documentation with the definition highlighted: a provider will not store your data for any period of time"
+        width={1575}
+        height={945}
+        caption="OpenRouter's definition of zero data retention. Screenshot: openrouter.ai/docs"
+      />
+      <H3>Morpheus: an open inference marketplace</H3>
+      <P>
+        Morpheus is a decentralized marketplace on Base (a network built on Ethereum) where independent providers &quot;register their models via bids on the blockchain&quot; and users pay for sessions. The quick way in is its hosted gateway, an OpenAI-compatible endpoint that needs &quot;no node, no wallet, just an API key&quot;.
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"model:\n  default: glm-5.1\n  provider: custom\n  base_url: https://api.mor.org/api/v1\n  key_env: MORPHEUS_API_KEY"}</code></pre>
+      <P>
+        The gateway trades control for convenience: you &quot;give up self-custody of the wallet and direct on-chain control of sessions&quot;. For the strongest setup, run your own Morpheus node; checking a provider&apos;s TEE attestation (the hardware&apos;s signed proof that it is running sealed, unmodified code) requires &quot;running your own consumer-side proxy-router&quot;. Which models are available depends on which providers are active at the time.
+      </P>
+      <H3>Or keep the model at home</H3>
+      <P>
+        If even one prompt may not leave, run an open model on a machine you own with Ollama, and point Hermes at it with <code>provider: custom</code> and <code>base_url: http://localhost:11434/v1</code>. Raise <code>context_length</code> in the config, because Ollama&apos;s default is often too small for an agent. You trade model strength and speed for a setup where nothing leaves at all. Many teams mix the two: a local model for the most sensitive matters, a private route for the rest.
+      </P>
+      <H2>Step 6: how do you back it up without giving it away?</H2>
+      <P>
+        The last piece is the long-term memory itself. Your vault is already a git repository, so a backup is a <code>git push</code> to a private remote you control. If that remote is not yours (a hosted git service), encrypt the files before they leave with a tool such as git-crypt or age. The search index in Postgres is disposable: it is rebuilt from the markdown, so losing it costs you a rescan, not your knowledge (records kept by optional modules, such as the project tracker, live only in the database). For those, the engine has an optional nightly database backup (<code>DEPLOY_DB_BACKUP=1</code>) that uploads the dump to Backblaze B2 through b2store, a separate tool that stores it encrypted.
+      </P>
+      <H2>Who answers for the agent?</H2>
+      <P>
+        This is the summit&apos;s question, and owning the stack gives you material to answer it. If each agent commits under its own git identity, every note it writes is a commit with a time and an author, so you can see what it changed and roll it back. The rulebook it follows is a file you wrote and can show an auditor. The guard records what it refused. When an agent changed skills, scripts or config, the dev log gate sends it back once to write an account of what was done and how it was checked. None of this settles liability, but it turns &quot;what did the agent do, and under whose rules?&quot; from a guess into a record.
+      </P>
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Built and running: Argo runs its own company on this stack. Our vault, the Second Brain app and a team of Hermes agents live on our own server; two agent profiles run on an open model on our own hardware with no cloud fallback, and the server&apos;s main agent uses OpenRouter, with a Morpheus route set up as an alternative. Both projects are free and MIT licensed.
+      </P>
+      <P>
+        Not built yet: Second Brain does not encrypt notes itself, so disk and backup encryption are steps you take, as above. The plain-language database box only supports one hosted provider for now, and Hermes has no per-request zero-retention switch of its own. We would like to fix the first two in the engine.
+      </P>
+      <P>
+        You can run a capable agent today without handing over what it knows. The code is at <A href="https://github.com/kon-rad/secondbrain">github.com/kon-rad/secondbrain</A>; follow along at <A href="https://x.com/myargoquest">x.com/myargoquest</A>, or come and argue with us in Mumbai.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "private-company-ai-brain",
+    title: "A private AI brain for your company, on your own server: a step-by-step guide",
+    description: "How to run Second Brain and the Hermes agent on your own server, with private model inference through Venice, OpenRouter or Morpheus.",
+    date: "October 21, 2026",
+    isoDate: "2026-10-21T13:17",
+    readingTime: "13 min read",
+    Content: PrivateCompanyAiBrainContent,
+  },
   {
     slug: "t3code-explained",
     title: "T3 Code explained, the open-source app that runs your coding agents from one place",
