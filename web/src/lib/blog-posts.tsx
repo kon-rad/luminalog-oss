@@ -8253,7 +8253,92 @@ function SmallModelRoutineAgentChoicesContent() {
   )
 }
 
+/* ── Post: Ten open-source agent ops repos, checked, and the ideas worth borrowing ── */
+function TenAgentOpsReposWhatToBorrowContent() {
+  return (
+    <>
+      <P>
+        Running one AI agent is a prompt problem. Running ten of them, every day, against your own files and servers, is an operations problem: who is allowed to do what, how you know a task is really finished, what happens when an agent claims success it didn&apos;t earn, and how you see all of it at a glance.
+      </P>
+      <P>
+        On 19 October 2026 the developer nyk posted a list of ten open-source repositories he described as &quot;the ops layer for agent fleets: control planes, policy gates, memory, quotas&quot;, with more than 18,000 GitHub stars between them. We run a second brain where several agents work on a shared folder of notes, a task board and a small company of named bots, so we read every repository&apos;s README and GitHub record to see what holds up and what we should borrow.
+      </P>
+      <P>
+        This post goes through what each repo actually is, checked against GitHub on the same day, and then the nine ideas we think are worth taking.
+      </P>
+      <H2>Does the list hold up?</H2>
+      <P>
+        The star count does. The ten repositories have 18,291 stars in total, and every per-repo figure in the post matches GitHub. Three repositories hold 92% of them: mission-control, awesome-hermes-agent and council-of-high-intelligence.
+      </P>
+      <P>
+        The description fits less well. Only two of the ten are an ops layer in the sense the post means. The others are useful in their own way, but they are a decision-making skill, two curated link lists, one command-line tool for X written twice in two languages, a marketing dashboard, a Solana web-app template first published in 2022, and a migration script whose own README now recommends the built-in command instead.
+      </P>
+      <P>
+        That is normal for a list that bundles someone&apos;s whole body of work. It is worth knowing before you install anything.
+      </P>
+      <H2>What are the two real ops tools?</H2>
+      <P>
+        <strong>mission-control</strong> is a self-hosted dashboard for agent fleets: a task board with review stages, a registry of agents that report a heartbeat, a cost view, scheduled tasks and approvals. Agents talk to it over a REST API, a command-line tool or an MCP server (a standard way to give an agent tools). The README marks it alpha and says support varies by agent runtime.
+      </P>
+      <P>
+        Its most useful idea is a gate its README calls Aegis: <strong>a task cannot move to done without an approval record</strong>, and a &quot;completion receipt&quot; shows what actually finished, separately from the logs of what ran.
+      </P>
+      <P>
+        <strong>lacp</strong> is a local control plane that wraps command-line coding agents. It sorts commands into risk tiers (safe, review, critical) with short-lived approval tokens for the risky ones, and it installs a set of hooks for Claude Code. A hook is a small program that runs before or after an agent&apos;s action and can stop it. Its hooks include a guard that blocks dangerous commands, a check that validates a file&apos;s header after every write, and a check that runs when the agent says it is finished. A <code>lacp doctor --json</code> command reports the health of the whole setup in one go.
+      </P>
+      <P>
+        One caution: lacp has 306 stars but only 2 forks and 1 open pull request. A tool that people install usually collects more of both. That is not proof of anything, but it is a reason to read the code before relying on it.
+      </P>
+      <H2>What about the rest?</H2>
+      <UL items={[
+        <><strong>council-of-high-intelligence</strong> is a skill (a written procedure an agent loads when needed) that runs a hard decision past personas of historical and modern thinkers, who argue blind, then cross-examine each other. Its best parts are not the personas. Every claim is labelled as a fact, an inference, an assumption or an open question, and every decision goes into an outcome ledger with a prediction, an owner and a review date, so it can later be marked confirmed, revised, reversed or inconclusive.</>,
+        <><strong>awesome-hermes-agent</strong> is a directory of skills, plugins and memory providers for the Hermes agent, with maturity tags. It sells paid featured listings and says so. Its checklist for trusting a community skill is worth copying.</>,
+        <><strong>marketing-dashboard</strong> is a local marketing console with content approval queues. Its three settings that let an agent write back are off by default.</>,
+        <><strong>awesome-agent-cortex</strong> is a broad reading list of the agent stack, including a guide to structuring a notes vault that agents work in.</>,
+        <><strong>xint</strong> and <strong>xint-rs</strong> are the same research tool for X, in TypeScript and in Rust. It can print a machine-readable list of what it is able to do, and its MCP server refuses outside connections unless a token is set.</>,
+        <><strong>openclaw-to-hermes</strong> migrates a setup from one agent framework to another; its own README now points to a built-in command.</>,
+        <><strong>builderz-solana-dapp-scaffold</strong> is a starter template for Solana web apps and has nothing to do with agents.</>,
+      ]} />
+      <H2>Nine ideas worth borrowing</H2>
+      <P>
+        We are not adopting any of these repositories. mission-control would be a second dashboard and a second database next to the one we already run, and lacp wraps agents we already wrap. The mechanisms are the valuable part. In order of how much we think each would help:
+      </P>
+      <UL items={[
+        <><strong>A task can&apos;t be marked done without a receipt.</strong> Our project tracker already refuses to mark a feature live without a passing check. Our task cards have no such rule: a bot can close its own card on its own word. A card should need a check result, a test output, a file path or a link before it closes.</>,
+        <><strong>Check what was written, not only where.</strong> Our guard hook already runs before commands and file writes, but it only checks where the agent is going. A second hook after each write could reject a new note that doesn&apos;t link to its project, at the moment it is written instead of whenever someone notices.</>,
+        <><strong>Ask for evidence when an agent says it&apos;s finished.</strong> We already send an agent back if it changed code without writing a development log. The same check could flag a final message that claims success with no command output, test or file to show for it.</>,
+        <><strong>One health command for the morning briefing.</strong> A single command that reports whether the hooks are installed, the guard rules are loaded, backups ran and the task dispatcher is alive, printed as one line in the daily stand-up.</>,
+        <><strong>Label evidence and keep an outcome ledger.</strong> Fact, inference, assumption or open question on every claim, and a dated prediction on every decision that we come back to and score. This fits our investment committee&apos;s votes and our research notes directly.</>,
+        <><strong>Writes off by default.</strong> Any page in our app that lets an agent change a scheduled job, a skill or a setting should start read-only and be switched on deliberately.</>,
+        <><strong>A trust check before adding a shared skill:</strong> who can trigger it, what tools it gets, where it runs, which credentials it can read, and how to stop it.</>,
+        <><strong>Local-only by default for tool servers.</strong> Any MCP server we run should listen only on the machine itself unless a token is set.</>,
+        <><strong>Heartbeats for named bots.</strong> Show when each bot last woke and which tasks it holds, on the page where we watch the bots.</>,
+      ]} />
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        None of the nine is built yet. The first one, receipts before a card can close, is the one we expect to build first, because it closes a gap we have already hit once: work that moved forward without a check. The two hook ideas are one new hook and one change to a hook we already run. We will write up what changes after we build them.
+      </P>
+      <H2>How to use this list yourself</H2>
+      <P>
+        If you run more than one agent, look at three things in your own setup. Can an agent mark its own work complete with no evidence? Do your checks run only before commands, or also after file writes and at the end of a session? And can you see every agent&apos;s state in one place without opening a terminal? The repositories above each answer one of those questions. Read the code before installing any of them, and take the idea even if you skip the software.
+      </P>
+      <P>
+        The original list is at https://x.com/nykdotdev/status/2112098192963625206. Follow what we build at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "ten-agent-ops-repos-what-to-borrow",
+    title: "Ten open-source agent ops repos, checked, and the ideas worth borrowing",
+    description: "We checked ten open-source repos sold as the ops layer for AI agent fleets. What each does, what holds up, and nine ideas for a second brain.",
+    date: "October 19, 2026",
+    isoDate: "2026-10-19T03:41",
+    readingTime: "7 min read",
+    Content: TenAgentOpsReposWhatToBorrowContent,
+  },
   {
     slug: "small-model-routine-agent-choices",
     title: "How a small model can make an agent's routine choices, and when it shouldn't",
