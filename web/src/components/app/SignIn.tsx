@@ -61,7 +61,7 @@ export default function SignIn() {
       style={{ background: 'var(--bg)' }}
     >
       <div className="flex flex-col items-center gap-4 text-center">
-        <Image src="/logo.png" alt="Argo" width={56} height={56} />
+        <Image unoptimized src="/logo.png" alt="Argo" width={56} height={56} />
         <p className="serif text-2xl font-semibold" style={{ color: 'var(--text)' }}>
           Argo
         </p>

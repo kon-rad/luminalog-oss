@@ -141,7 +141,7 @@ export default function CardGameLanding() {
                     boxShadow: '0 10px 26px rgba(0,0,0,0.45)',
                   }}
                 >
-                  <Image src="/logo.png" width={30} height={30} alt="" style={{ borderRadius: 9 }} />
+                  <Image unoptimized src="/logo.png" width={30} height={30} alt="" style={{ borderRadius: 9 }} />
                 </span>
                 <span
                   className="serif"
