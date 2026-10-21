@@ -8337,7 +8337,7 @@ function T3codeExplainedContent() {
         If you use AI coding agents, you probably have more than one. Claude Code in one terminal, Codex in another, maybe Cursor&apos;s agent too. Each has its own window, its own way of asking for permission, and its own history. When you step away from your desk, all of them stop being reachable. And when an agent makes a mess of your code, undoing exactly what it did is often harder than it should be.
       </P>
       <P>
-        T3 Code is an open-source app built to fix that. It runs on your own computer, takes control of the agents you already have installed and logged in, and gives you one interface for all of them: a desktop app, a web app, and phone apps for iOS and Android. It is built by Theo and Julius and the team at T3 Tools, released under the MIT licence. On 21 October 2026 it had about 28,900 stars on GitHub and shipped version 0.1.1, its latest stable release.
+        T3 Code is an open-source app built to fix that. It runs on your own computer, takes control of the agents you already have installed and logged in, and gives you one interface for all of them: a desktop app, a web app, and phone apps for iOS and Android. It is built by Theo and Julius and the team at T3 Tools, released under the MIT licence. On 21 October 2026 it had 28,908 stars on GitHub and shipped version 0.1.1, its latest stable release.
       </P>
       <P>
         This post explains what T3 Code is for, how it works inside, how to set it up, and the ideas from its design we are bringing into our own agent setup.
@@ -8346,6 +8346,14 @@ function T3codeExplainedContent() {
       <P>
         The team calls it an &quot;agent harness control surface&quot;. A <strong>harness</strong> is the program that wraps a language model and turns it into an agent: it feeds the model your request, runs the tools the model asks for (read a file, run a command), and loops until the work is done. Claude Code and Codex are harnesses. T3 Code is not another one. It sits on top of them and controls them.
       </P>
+      <Figure
+        src="/blog/t3code-explained-1.jpg"
+        alt="The T3 Code README on GitHub, with the line calling it an agent harness control surface highlighted"
+        width={1575}
+        height={945}
+        priority
+        caption="The README's own description. Screenshot: github.com/pingdotgg/t3code"
+      />
       <P>
         The team describes it as a &quot;bring-your-own-subscription&quot; app. T3 Code does not resell model access. If Claude Code is installed and logged in on your machine, T3 Code drives that copy, on your plan. The same goes for Codex, Cursor, Grok Build, OpenCode, Google&apos;s Antigravity, and agents from the ACP Registry (a public list of agents that speak a shared protocol, covered below).
       </P>
@@ -8363,16 +8371,23 @@ function T3codeExplainedContent() {
       <P>
         T3 Code has three layers: a server on your computer, the apps you look at, and adapters that talk to each agent.
       </P>
+      <Figure
+        src="/blog/t3code-explained-2.jpg"
+        alt="Diagram: your phone, web and desktop apps connect over WebSocket to the T3 server on your computer, which runs command, orchestrator, one SQLite transaction and an effect worker, drives your agents through adapters, creates worktrees of your git repository and keeps per-turn checkpoints in it"
+        width={1920}
+        height={1080}
+        caption="T3 Code's shape: the apps are remotes, the server on your machine owns the work. Diagram by Argo from the repo's architecture notes."
+      />
       <H3>The server owns everything</H3>
       <P>
         The server is a Node.js program that runs on the machine where your code lives. It owns the agent processes, the terminals, git and your project files. The apps never touch those directly. A phone or a browser on another machine sends requests to the server and shows what the server sends back.
       </P>
       <P>
-        This is a deliberate rule in the project&apos;s architecture notes: work stays on the machine that owns the workspace, and a remote device can never swap in its own files or credentials. Think of the server as a workshop and the apps as walkie-talkies. You can give instructions from anywhere, but the tools never leave the workshop.
+        The project&apos;s own glossary makes this explicit: an environment is &quot;one running T3 server and the machine, filesystem, provider credentials, and state it owns&quot;. The phone, the browser and the desktop window are only clients of it. Think of the server as a workshop and the apps as walkie-talkies. You can give instructions from anywhere, but the tools never leave the workshop.
       </P>
       <H3>Every request is written down before anything happens</H3>
       <P>
-        This is the most interesting part of the design. When you send a message, the server does not immediately start an agent. It follows four steps:
+        When you send a message, the server does not immediately start an agent. It follows four steps:
       </P>
       <UL items={[
         <><strong>Command:</strong> your request becomes a typed command.</>,
@@ -8383,6 +8398,13 @@ function T3codeExplainedContent() {
       <P>
         The analogy is a restaurant ticket. The waiter writes your order on a ticket and pins it up before the kitchen starts cooking. If the waiter gets interrupted, the ticket is still there. If you repeat your order, the kitchen sees the same ticket and doesn&apos;t cook it twice. The analogy stops where the kitchen does: the database transaction is all-or-nothing, which a pinned ticket isn&apos;t.
       </P>
+      <Figure
+        src="/blog/t3code-explained-3.jpg"
+        alt="Diagram of four steps: command, decision by the orchestrator, one transaction committing events, views, receipt and outbox, then effects run by a worker, with results returning as new commands"
+        width={1920}
+        height={1080}
+        caption="Every message is written down before anything runs. Diagram by Argo."
+      />
       <P>
         Two consequences follow. When the app says your message was received, it means the intent is safely recorded, not that the agent has finished. And sending the same command twice is harmless, because the stored receipt is found and returned. The event log is the source of truth for what every task is doing, and it lives in a SQLite database file on your computer.
       </P>
@@ -8391,15 +8413,15 @@ function T3codeExplainedContent() {
         At the end of every turn, T3 Code captures the state of your files as a <strong>checkpoint</strong>. It stores these as hidden git references (named under <code>refs/t3/</code>), which are like bookmarks inside your repository&apos;s history that don&apos;t show up as commits on your branch. Your branch stays clean, and the app can show you exactly what one turn changed, or restore the files to before it.
       </P>
       <P>
-        Restoring files alone is not enough: the agent also remembers what it did. So a rollback has to deal with the agent&apos;s conversation too. Agents that can rewind their conversation do so; some agents from the ACP Registry instead start a fresh session after the files are restored; and for Google&apos;s Antigravity, which cannot roll back its conversation, T3 Code refuses the rollback before it touches any file.
+        Restoring files alone is not enough: the agent also remembers what it did. So a rollback has to deal with the agent&apos;s conversation too. Agents that can rewind their conversation do so. Some agents from the ACP Registry instead start a fresh session after the files are restored. For Google&apos;s Antigravity, which cannot roll back its conversation, T3 Code refuses the rollback before it touches any file.
       </P>
       <H3>Adapters translate each agent&apos;s language</H3>
       <P>
         Every agent speaks a different protocol, and T3 Code keeps those differences at the edge. For each one there is an <strong>adapter</strong>, a translator that turns the agent&apos;s native messages into T3 Code&apos;s common events:
       </P>
       <UL items={[
-        <><strong>Claude Code</strong> is driven through Anthropic&apos;s Claude Agent SDK, the library version of Claude Code.</>,
-        <><strong>Codex</strong> runs as <code>codex app-server</code>, a mode where Codex takes requests from another program instead of a person.</>,
+        <><strong>Claude Code</strong> is driven through Anthropic&apos;s Claude Agent SDK, a library that lets a program run Claude Code.</>,
+        <><strong>Codex</strong> runs as <code>codex app-server</code>, so T3 Code talks to it program to program.</>,
         <><strong>Cursor</strong> goes through Cursor&apos;s SDK.</>,
         <><strong>Grok Build, Antigravity and Registry agents</strong> use the <strong>Agent Client Protocol</strong> (ACP), a shared protocol many agents implement, with a public registry of agents T3 Code can add.</>,
       ]} />
@@ -8410,6 +8432,13 @@ function T3codeExplainedContent() {
       <P>
         When you start a task, you can choose <strong>New worktree</strong>. A <strong>git worktree</strong> is a second working folder for the same repository, on its own branch. Two agents in two worktrees can edit freely without touching each other&apos;s files. T3 Code puts worktrees in its own folder, can run a setup script when one is created, and can delete them automatically after a set number of idle days or after the task is settled.
       </P>
+      <Figure
+        src="/blog/t3code-explained-4.jpg"
+        alt="Diagram of one repository with two worktrees, one for Claude Code and one for Codex, each with a row of checkpoints saved per turn and an arrow rolling the latest turn back"
+        width={1920}
+        height={1080}
+        caption="Two agents, two worktrees, a checkpoint after every turn. Diagram by Argo."
+      />
       <H3>Handing a task to another agent</H3>
       <P>
         You can switch a conversation from one agent to another. T3 Code does not ask the old agent to summarise. Instead it builds a <strong>portable handoff</strong>: the original request, the most recent messages and command results, and pointers to the rest of the history, which the new agent can read on demand. The default budget is 16,000 tokens (a token is a word or a piece of one). In the project&apos;s words, it is &quot;a budgeted selection, not an agent-written summary&quot;.
@@ -8430,9 +8459,16 @@ function T3codeExplainedContent() {
       <P>
         New tasks start in Full access unless you change the default in Settings. If you are trying it on code you care about, switch the default to Supervised first.
       </P>
+      <Figure
+        src="/blog/t3code-explained-5.jpg"
+        alt="T3 Code's permission modes document on GitHub, with the sentence saying the initial default is Full access highlighted"
+        width={1505}
+        height={945}
+        caption="The default for new threads is Full access. Screenshot: docs/user/permission-modes.md in the T3 Code repo"
+      />
       <H2>How do you set it up?</H2>
       <P>
-        T3 Code controls agents you already have, so start with at least one of them installed and logged in on the machine that will do the work. For example, install Claude Code and run <code>claude auth login</code>, or install the Codex CLI and run <code>codex login</code>.
+        T3 Code controls agents you already have, so start with at least one of them installed and logged in on the machine that will do the work. For example, install Claude Code and run <code>claude auth login</code>, or install the Codex CLI (its command-line tool) and run <code>codex login</code>.
       </P>
       <P>
         Then install T3 Code itself. On macOS or Linux:
@@ -8452,7 +8488,7 @@ function T3codeExplainedContent() {
         <><strong>Start it.</strong> Run <code>t3</code>. It starts the server and opens the web app in your browser. <code>t3 ./my-project</code> starts in a specific folder.</>,
         <><strong>Turn on a provider.</strong> Open Settings, then Providers, and enable the agent you logged in to.</>,
         <><strong>Start a task.</strong> Add your project folder, open a new thread, pick a permission mode, and choose New worktree if the change needs its own branch.</>,
-        <><strong>Review.</strong> After each turn, look at the diff from its checkpoint, and roll back if you don&apos;t like it.</>,
+        <><strong>Review.</strong> After each turn, look at the diff (the line-by-line changes) from its checkpoint, and roll back if you don&apos;t like it.</>,
         <><strong>Keep it running.</strong> <code>t3 service install</code> runs it in the background on macOS and Linux. <code>t3 update</code> moves to a newer release.</>,
         <><strong>Connect your phone.</strong> Install the T3 Code app from the App Store or Google Play. Either run <code>t3 connect</code> to use T3&apos;s tunnel service, or start the server on your private network address with <code>t3 serve --host &lt;your-private-ip&gt;</code> and run <code>t3 pair</code> to get a one-time pairing link and QR code.</>,
       ]} />
@@ -8470,15 +8506,15 @@ function T3codeExplainedContent() {
         <><strong>A separate worktree for every code task, and a snapshot after every bot turn.</strong> With one worktree per card and a hidden-reference checkpoint per turn, a reviewer can see exactly what each turn changed and undo one turn without asking the bot.</>,
         <><strong>Short-lived, task-scoped credentials.</strong> T3 Code gives each agent session a credential for one task that expires on its own. Scoping access to one card and one run means a mistake can only reach what that card needed.</>,
         <><strong>Write the request down first.</strong> When a message arrives, we will record it with its message id as a receipt before filing any card. A repeated message then returns the same card instead of creating a duplicate, and &quot;received&quot; never gets confused with &quot;done&quot;.</>,
-        <><strong>Hand over a brief, not a transcript.</strong> When one bot delegates to another, the helper gets the task and a role line, and reports back one result. The parent task only closes on its own check. This matches recent research we covered on specialist agents, where long hand-off chains lost context.</>,
-        <><strong>Write down what each bot can and can&apos;t do.</strong> T3 Code never routes by name; it routes by declared capability, and an unsupported feature is an explicit decision. We will add the same to our bot list, alongside a record of how each bot has actually performed.</>,
-        <><strong>Make questions durable and every action reversible.</strong> In T3 Code a question from Codex is stored and survives restarts until answered once, and the project&apos;s guide for coding agents states the rule plainly: &quot;A one-way door is a bug.&quot; Our questions to the human in charge should work the same way in our dashboard.</>,
+        <><strong>Hand over a brief, not a transcript.</strong> When one bot delegates to another, the helper gets the task and a role line, and reports back one result. The parent task only closes on its own check. This matches a Princeton and UC Berkeley study of teams of specialist agents that we wrote up recently: long chains of hand-offs lose context.</>,
+        <><strong>Write down what each bot can and can&apos;t do.</strong> T3 Code routes by what each agent declares it can do, and a missing capability is handled by an explicit rule. We will add the same to our bot list, alongside a record of how each bot has actually performed.</>,
+        <><strong>Make questions durable and every action reversible.</strong> In T3 Code a question from Codex is stored and survives restarts until answered once, and the project&apos;s <code>AGENTS.md</code>, its guide for coding agents, states the rule plainly: &quot;A one-way door is a bug.&quot; Our questions to the human in charge should work the same way in our dashboard.</>,
       ]} />
       <P>
         We will also try T3 Code itself, on a laptop, with telemetry off and Supervised mode, as a way to steer coding agents from a phone.
       </P>
       <P>
-        The core lesson is simple: record intent before acting, keep each task in its own space, and make every step reviewable and reversible. T3 Code&apos;s source is at https://github.com/pingdotgg/t3code and its docs are in the repository&apos;s <code>docs</code> folder. We&apos;ll post what we build from these ideas on this blog and at https://x.com/myargoquest.
+        T3 Code&apos;s source is at https://github.com/pingdotgg/t3code and its docs are in the repository&apos;s <code>docs</code> folder. We&apos;ll post what we build from these ideas on this blog and at https://x.com/myargoquest.
       </P>
     </>
   )
@@ -8491,7 +8527,7 @@ export const posts: BlogPost[] = [
     description: "What T3 Code is, how it drives Claude Code, Codex and other agents on your machine, how to set it up, and what we are taking from its design.",
     date: "October 21, 2026",
     isoDate: "2026-10-21T06:33",
-    readingTime: "11 min read",
+    readingTime: "12 min read",
     Content: T3codeExplainedContent,
   },
   {
