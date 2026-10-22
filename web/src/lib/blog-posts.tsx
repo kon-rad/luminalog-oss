@@ -8696,7 +8696,121 @@ function PrivateCompanyAiBrainContent() {
   )
 }
 
+/* ── Post: Why long sessions fill a Claude Max plan ── */
+function WhyLongSessionsFillClaudeMaxPlanContent() {
+  return (
+    <>
+      <P>Our Claude Max plan kept reaching 100% of its limits, far sooner than the work we did seemed to justify. The weekly window hit 100% on 18 October (before the chart below begins), and the five-hour window followed on 21 and 22 October.</P>
+      <P>We checked our usage records and found the pattern behind it: long sessions re-read their entire history on every tool call. This post shows our numbers and ends with what you can change today.</P>
+      <H2>What did the chart show?</H2>
+      <P>Our Second Brain app draws how much of the plan we have used over time. It has two lines: the five-hour window (blue) and the seven-day window (white). These correspond to the plan&apos;s session limit and weekly limit.</P>
+      <Figure
+        src="/blog/why-long-sessions-fill-claude-max-plan-1.jpg"
+        alt="Line chart titled Plan used over time: a blue line for the five-hour plan window that spikes to 100 percent several times, and a white line for the seven-day window that climbs to roughly 70 percent"
+        width={1053}
+        height={288}
+        caption="Plan used over time on our Second Brain usage page. Blue is the five-hour window, white is the seven-day window. Our screenshot."
+      />
+      <P>The blue line swings from near zero to the ceiling and back. That shape tells you the plan filled, but not why. To find the cause, we queried the records behind it: our usage ledger logs model calls with their token counts, so we could ask where the tokens went.</P>
+      <H2>Why does a long session cost more than the words in it?</H2>
+      <P>Two terms first. A <strong>token</strong> is the unit of text a model counts. A <strong>session</strong> is one running conversation with Claude Code, including everything it has read and done so far.</P>
+      <P>Claude Code does not send only your latest message. It sends the whole conversation with every request, and each time Claude uses a tool (reads a file, runs a command), that is another request. The Claude Code docs put it this way:</P>
+      <Figure
+        src="/blog/why-long-sessions-fill-claude-max-plan-2.jpg"
+        alt="The Claude Code cost documentation, with the sentence saying Claude Code sends your full conversation with every request, and each tool use another request, highlighted"
+        width={1085}
+        height={595}
+        caption="The cost docs say it directly. Source: Anthropic, Claude Code docs, Manage costs effectively."
+      />
+      <P>To keep this affordable, the history is stored in a <strong>prompt cache</strong> (a short-term copy of text the model has already processed, so it doesn&apos;t have to be processed again). Reading from the cache is much cheaper per token than reading fresh input: Anthropic&apos;s API pricing (the interface Claude Code uses under the hood) lists cache reads for Opus 5.5 and Sonnet 5.5 at 0.05 times the base input price. That is a large discount, and it is also why this problem hides. Each cheap read looks harmless. The count is what hurts.</P>
+      <P>Think of a lawyer who must re-read the entire case file before answering each question. Reading is fast, but if the file is 300 pages and you ask 200 small questions, most of the effort goes to re-reading. The analogy stops working in one place: the cost is not time but the share of your plan that each re-read uses.</P>
+      <Figure
+        src="/blog/why-long-sessions-fill-claude-max-plan-3.jpg"
+        alt="Four bars for call 1, 10, 50 and 200, each with a growing blue block of old context and a small gold block of new work"
+        width={1920}
+        height={1080}
+        caption="Each call adds a little and re-reads everything before it. Our diagram."
+      />
+      <H2>What did our own numbers say?</H2>
+      <P>Our three machines logged 5,921 model calls across 129 sessions between 19 October 2026 (12:00 UTC) and 22 October (03:50 UTC).</P>
+      <UL items={[
+        <><strong>Cache reads:</strong> 1,118 million tokens.</>,
+        <><strong>Cache writes:</strong> 31.2 million tokens.</>,
+        <><strong>Output:</strong> 5.3 million tokens. This is what Claude produced, including its tool calls and thinking.</>,
+        <><strong>Fresh input:</strong> about 12 thousand tokens.</>,
+      ]} />
+      <P>Cache reads were roughly 210 times the output. Claude was not producing unusually large answers. It was re-reading.</P>
+      <Figure
+        src="/blog/why-long-sessions-fill-claude-max-plan-4.jpg"
+        alt="Bar chart of tokens by type: 1,118 million cache read, 31.2 million cache write, 5.3 million output, 12 thousand fresh input"
+        width={1920}
+        height={1080}
+        caption="Our own ledger, 19 to 22 October 2026 (about 64 hours). Our chart."
+      />
+      <P>The size of the history explains the ratio. The median call carried 171 thousand tokens of context. 2,202 calls (37%) carried more than 200 thousand, and 377 carried more than 400 thousand. The ledger does not record how long each session was open, but we infer that contexts that large come from sessions left running for hours.</P>
+      <P>Usage was also concentrated. The ten biggest of the 129 sessions made up 62% of all cache reads.</P>
+      <P>For the 72 hours to 22 October (a slightly longer window than the one above), the split by where the work ran was clear:</P>
+      <UL items={[
+        <><strong>Interactive sessions on the Mac:</strong> 1,051 million cache-read tokens, about 74% of the total. Almost all of it, 1,049 million, was on Opus 5.5.</>,
+        <><strong>Sessions on our server:</strong> 212 million.</>,
+        <><strong>Our org bots (agents that wake for a task):</strong> 129 million.</>,
+        <><strong>Opus 5.5 overall:</strong> 1,292 million, about 91% of all cache reads. Sonnet 5.5 had 122 million.</>,
+      ]} />
+      <P>Two out of three calls in that window were tool calls running shell commands. That matches how an agent works: read, run, check, run again. Each step is another request carrying the whole history.</P>
+      <Figure
+        src="/blog/why-long-sessions-fill-claude-max-plan-5.jpg"
+        alt="Bars of cache reads by where the session ran and by model: interactive Mac sessions 1,051 million, server sessions 212 million, org bots 129 million, other 21 million; Opus 5.5 1,292 million, Sonnet 5.5 122 million"
+        width={1920}
+        height={1080}
+        caption="Interactive Mac sessions ran almost entirely on Opus. Our chart, 72 hours to 22 October."
+      />
+      <P>One more number: 58 calls wrote more than 100 thousand tokens to the cache at once, adding up to 10 million of the 31.2 million cache-write tokens. In 21 of them, the call read almost nothing from the cache. We infer this means the whole history was processed again from scratch.</P>
+      <H2>What makes it worse?</H2>
+      <P>Several things make a long session drain a plan, and the Claude Code cost docs cover each. Our ledger shows the first clearly and cannot speak to most of the rest.</P>
+      <UL items={[
+        <><strong>Long context.</strong> Shown above, and the largest pattern we can see in our ledger.</>,
+        <><strong>The biggest model.</strong> The docs&apos; cost page advises Sonnet for most coding tasks and Opus for complex ones. Nearly all our cache reads were on Opus.</>,
+        <><strong>A long rules file.</strong> <code>CLAUDE.md</code> loads at the start of every session and so is part of the history on every call. The docs suggest keeping it under 200 lines and moving workflow-specific instructions into skills, which load only when used. We have not measured ours.</>,
+      ]} />
+      <P>The documented causes below we did not measure:</P>
+      <UL items={[
+        <><strong>Cache misses.</strong> Your first message after a break longer than the cache lifetime misses the cache and reprocesses the full context. By default the API&apos;s cache lifetime is 5 minutes (Claude Code can use a longer one), and it is refreshed each time it is used.</>,
+        <><strong>Scheduled tasks.</strong> A recurring task inside a session fires on its schedule even while you are away, and sends your full context each time.</>,
+        <><strong>Subagents.</strong> Every subagent sends its own requests on top of the main conversation&apos;s. Only 35 calls in our window launched a subagent, and we did not count the subagents&apos; own requests.</>,
+        <><strong>Compaction.</strong> <code>/compact</code> has to read the whole conversation to summarize it, so compacting a huge context is itself a huge request.</>,
+      ]} />
+      <H2>What can&apos;t we tell from our numbers?</H2>
+      <P>We can count tokens. We cannot see how Anthropic weights each kind of token against a Max plan limit, so we make no claim about how many cache reads equal one percent of the plan. We also cannot say which single request pushed a window to 100%. The ledger shows the pattern that fills a plan, not the last drop.</P>
+      <H2>What should you do?</H2>
+      <P>You may see advice to create a <code>.claudeignore</code> file to exclude large folders. The Claude Code cost docs do not document one, so we would not count on it. The levers the docs do document are these:</P>
+      <UL items={[
+        <><strong>Clear between unrelated tasks.</strong> <code>/clear</code> costs nothing. The docs say stale context wastes tokens on every following message. Use <code>/rename</code> first if you want to come back with <code>/resume</code>.</>,
+        <><strong>Compact before the context is huge.</strong> The docs&apos; own usage recommendations include &ldquo;compact before you step away&rdquo;. Because <code>/compact</code> reads the whole conversation, compacting a large context is itself a large request.</>,
+        <><strong>Watch your context size.</strong> <code>/usage</code> shows a plan breakdown with recommendations, and <code>/context</code> shows what is taking space. Check your own: our median call carried 171 thousand tokens.</>,
+        <><strong>Match the model to the job.</strong> Use Sonnet for routine edits and keep Opus for hard design problems.</>,
+        <><strong>Write specific requests.</strong> &ldquo;Add input validation to the login function in <code>auth.ts</code>&rdquo; reads a file. &ldquo;Improve this codebase&rdquo; triggers broad scanning.</>,
+        <><strong>Filter output before it enters the conversation.</strong> A hook (a small program that runs before a tool call and can change it) can turn a 10,000-line log into the matching error lines.</>,
+        <><strong>Keep <code>CLAUDE.md</code> short.</strong> Move specialized instructions into skills.</>,
+        <><strong>Count your helpers.</strong> Each subagent sends its own requests, and scheduled tasks send your full context even while you are idle.</>,
+      ]} />
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>Built: the usage ledger and the usage page described above, including the plan-window snapshots. They are what let us find this. Not built: any guard that warns when a session&apos;s context passes a threshold, or that stops a long session automatically. We are writing a list of changes to our own Second Brain to catch this earlier, and we will publish what we ship.</P>
+      <P>A long session hides its cost behind cheap cache reads that add up. Keep the context small and the plan lasts longer.</P>
+      <P>Follow along on the blog or at <A href="https://x.com/myargoquest">https://x.com/myargoquest</A>.</P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "why-long-sessions-fill-claude-max-plan",
+    title: "Why long sessions fill a Claude Max plan, with our own numbers",
+    description: "We kept hitting 100% of our Claude Max plan. Our usage ledger shows why: long sessions re-read their whole history on every tool call. Here is how to avoid it.",
+    date: "October 22, 2026",
+    isoDate: "2026-10-22T12:40",
+    readingTime: "11 min read",
+    Content: WhyLongSessionsFillClaudeMaxPlanContent,
+  },
   {
     slug: "private-company-ai-brain",
     title: "A private AI brain for your company, on your own server: a step-by-step guide",
