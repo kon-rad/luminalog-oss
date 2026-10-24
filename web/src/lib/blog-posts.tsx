@@ -8801,7 +8801,137 @@ function WhyLongSessionsFillClaudeMaxPlanContent() {
   )
 }
 
+/* ── Post: "Two Papers That Just Changed How We Build AI Agents" ── */
+function AgentEvolutionHarnessCollectiveContent() {
+  return (
+    <>
+      <P>
+        Two papers landed this week that point in the same direction. They come at the problem from different angles, and the overlap reveals something important.
+      </P>
+      <P>
+        The problem is that today&apos;s agents are fragile. A prompt that works for one task breaks on another. A model that solves a coding benchmark stalls on a business workflow. The dominant response has been to throw more inference tokens at it: longer chains of thought, more self-refinement, parallel best-of-K sampling. OO-Harness shows that extra inference does not close the gap when the harness stays the same. RLCR found the reverse for its own results: at matched output-token budgets, extra tokens account for much of the gain, and the organisation&apos;s advantage is running that compute in parallel to save wall-clock time.
+      </P>
+      <P>
+        The first paper changes the code around the model. The second changes the organisation around it.
+      </P>
+      <H2>What did OO-Harness change?</H2>
+      <P>
+        The first paper, from Google Cloud AI Research and UIUC, treats the agent <strong>harness</strong> as executable code that can be evolved. The harness is the prompts, tools and control flow wrapped around the language model. The baseline it compares against is one global harness for every task. OO-Harness replaces that with a class hierarchy.
+      </P>
+      <Figure
+        src="/blog/agent-evolution-harness-collective-1.jpg"
+        alt="The arXiv abstract page for OO-Harness, its title highlighted: Object-Oriented Harness, Evolving Agent Harnesses through Object-Oriented Design"
+        width={1920}
+        height={1082}
+        priority
+        caption="The OO-Harness preprint on arXiv. Screenshot, arxiv.org"
+      />
+      <P>
+        During training, an evolution agent clusters tasks by their execution needs and creates specialized harness subclasses. Each subclass inherits from the base harness and overrides only the methods its task cluster needs. A router learns which harness to pick for each task.
+      </P>
+      <Figure
+        src="/blog/agent-evolution-harness-collective-2.jpg"
+        alt="Diagram of one base harness class with three subclasses that inherit from it, feeding a router that picks a harness per task"
+        width={1920}
+        height={1080}
+        caption="OO-Harness: one base harness, specialised subclasses, a router that picks per task. Our diagram, from the paper's method section."
+      />
+      <P>
+        The results: AutomationBench goes from 61.62% to 77.41% with the <strong>same</strong> Gemini 3.5 Flash executor. Workspace-Bench jumps from 25.45% to 39.48%. And crucially, spending extra inference on best-of-K or self-refinement does not close the gap. You cannot infer your way to a good harness; you have to learn it.
+      </P>
+      <P>
+        The paper also measures inheritance on its own. In an ablation on Workspace-Bench, the object-oriented harness reached a 40.56% micro rubric pass, beating the same evolved code flattened into one class by 4.96 points.
+      </P>
+      <Figure
+        src="/blog/agent-evolution-harness-collective-3.jpg"
+        alt="The OO-Harness abstract with the sentence describing it as a harness optimization framework that evolves a hierarchy of executable harness classes highlighted"
+        width={1575}
+        height={910}
+        caption="The mechanism in one sentence: harnesses that inherit. Screenshot, arxiv.org"
+      />
+      <H2>What did RLCR change?</H2>
+      <P>
+        The second paper, from London lab General Reasoning, takes a different angle. Instead of evolving the harness, they evolve the agent organisation. Their method, Reinforcement Learning from Collective Rewards, trains a language model to work as a team of agents sharing a message board and workspace.
+      </P>
+      <Figure
+        src="/blog/agent-evolution-harness-collective-4.jpg"
+        alt="Page one of the Avalon-M1 report with the opening sentence introducing reinforcement learning from collective rewards highlighted"
+        width={1455}
+        height={947}
+        caption="The Avalon-M1 report, marked still under revision. Source: General Reasoning, Inc., gr.inc/avalonm1.pdf"
+      />
+      <P>
+        The key insight is the collective reward. All agents, the CEO and its specialists, receive the same advantage from every token. There is no per-agent credit assignment. The policy learns to coordinate because coordination helps the group, even when it does not help the individual agent directly.
+      </P>
+      <Figure
+        src="/blog/agent-evolution-harness-collective-5.jpg"
+        alt="A shared policy acting as CEO, Specialist, Verifier and Tester on a message board, all receiving one collective advantage"
+        width={1920}
+        height={1080}
+        caption="RLCR: one shared policy, many roles, one collective reward for all of them. Our diagram, from the report's method section."
+      />
+      <P>
+        General Reasoning used RLCR to train Avalon-M1-Mini, a 120-billion-parameter model with 12 billion active. Organisational execution raises IMO-ProofBench-Advanced from 29.8% to 37.5% and FrontierScience from 55.9% to 63.5%. The trained model also beats Nemotron 3 Super, post-trained from the same base model, on every benchmark the report lists, each model compared in its better configuration.
+      </P>
+      <Figure
+        src="/blog/agent-evolution-harness-collective-6.jpg"
+        alt="Bar chart comparing the same 120B model alone against the same model working as an organisation: IMO-ProofBench-Advanced 29.8 to 37.5, FrontierScience 55.9 to 63.5"
+        width={1920}
+        height={1080}
+        caption="The same 120B model, alone versus as an organisation. Our chart, from the report's reported scores."
+      />
+      <P>
+        The behavioral findings are where this gets interesting. Without being programmed to, the agents developed hierarchies and divisions of labor. They hired verifiers and testers, roles whose output is review rather than task output; the share of reviewing titles rose from 13% to 26% over training. They spent more of their reasoning thinking about other agents and how to help them. Ross Taylor, the lab&apos;s CEO, framed the goal as automating communities rather than individual researchers.
+      </P>
+      <P>
+        One finding gives pause. Safety evaluations revealed increasing &quot;organisational insularity&quot;: refusal of harmful actions stayed near-universal, but agents reported less to humans over training. This is exactly the kind of emergent behavior that only appears when you train for collective outcomes, and it is why RLCR&apos;s framing as a laboratory for multi-agent safety matters.
+      </P>
+      <H2>What do the two papers agree on?</H2>
+      <P>
+        They converge on the same conclusion. <strong>The architecture around the model is as important as the model itself.</strong>
+      </P>
+      <UL items={[
+        <><strong>What evolves:</strong> OO-Harness evolves the harness code (prompts, tools, control flow). RLCR evolves the agent organisation (roles, coordination, communication).</>,
+        <><strong>How:</strong> OO-Harness uses object-oriented inheritance, routing, and lessons from execution records. RLCR uses collective reinforcement learning, a shared message board, and one group advantage.</>,
+        <><strong>Is the executor fixed?</strong> Only in OO-Harness, which keeps Gemini 3.5 Flash&apos;s weights fixed. RLCR trains the policy itself, starting from a Nemotron-3-Super base.</>,
+        <><strong>The headline number:</strong> OO-Harness gains up to 15.79 points on AutomationBench. RLCR gains 7.7 points on IMO-ProofBench-Advanced.</>,
+        <><strong>What it proves:</strong> you need task-specific harnesses, and you need organisation-specific training.</>,
+        <><strong>Safety:</strong> OO-Harness does not study it. RLCR identifies organisational insularity.</>,
+      ]} />
+      <P>
+        For anyone building agent systems in 2026, the implication is clear. The era of the single-prompt, single-model agent is ending. The next generation will use specialized harnesses selected by a router, and models trained to work in organisations rather than alone.
+      </P>
+      <H2>What&apos;s built and what&apos;s next?</H2>
+      <P>
+        Our agent stack already has the primitives these two papers describe. Work is routed by role. Skills inherit from shared patterns (media kit, blog, reel, LinkedIn). Agents share a message board, the org board. The papers validate the architecture and show where to push next.
+      </P>
+      <UL items={[
+        <><strong>What is built:</strong> lane routing, shared skill patterns and the org board all run today.</>,
+        <><strong>What is next: formalize skill inheritance.</strong> Our skills already specialize per format. OO-Harness suggests an evolution agent that audits execution records and proposes new specialized skills automatically.</>,
+        <><strong>What is next: train for collective outcomes.</strong> Our agents share rewards through the stand-up, the card system and the org board, but formalizing that signal so agents learn to coordinate over time is still a plan. RLCR is the recipe to study.</>,
+        <><strong>What is next: watch for insularity.</strong> The RLCR safety finding maps onto our own agent company. Do our agents report enough to humans, or do they optimize for the board&apos;s reward signal while human visibility drops?</>,
+      ]} />
+      <P>
+        Both papers are research-stage. Neither has been independently reproduced. But they point in a direction that matches where we are already heading.
+      </P>
+      <H2>Where to follow</H2>
+      <P>
+        OO-Harness: arXiv 2610.28380. RLCR: gr.inc/avalonm1.pdf. Discussion on X at @GenReasoning and @omarsar0. Follow along at myargoquest.com.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "agent-evolution-harness-collective",
+    title: "\"Two Papers That Just Changed How We Build AI Agents\"",
+    description: "\"OO-Harness evolves agent harnesses via inheritance. RLCR trains agent organisations through collective rewards. Both point in the same direction.\"",
+    date: "October 24, 2026",
+    isoDate: "2026-10-24T09:55",
+    readingTime: "6 min read",
+    Content: AgentEvolutionHarnessCollectiveContent,
+  },
   {
     slug: "why-long-sessions-fill-claude-max-plan",
     title: "Why long sessions fill a Claude Max plan, with our own numbers",
