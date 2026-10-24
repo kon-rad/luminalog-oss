@@ -8922,7 +8922,167 @@ function AgentEvolutionHarnessCollectiveContent() {
   )
 }
 
+/* ── Post: How Hermes Agent thinks about security: eight layers, one real boundary ── */
+function HermesAgentDefenseInDepthSecurityContent() {
+  return (
+    <>
+      <P>
+        Every AI agent that can run a shell command carries a basic question: what actually stops it from doing something destructive, whether by accident or because someone fed it a malicious instruction from a web page or document. The same question applies to an agent that writes files or browses the web on your behalf. Most agent frameworks answer with a pile of safety checks layered onto the model and leave it at that.
+      </P>
+      <P>
+        Hermes Agent, the open source agent framework from Nous Research, writes a more honest version of the answer straight into its own security policy. It lists eight layers of defense, and then says plainly that most of them are not boundaries at all. They are speed bumps for a cooperative model that makes an honest mistake, not a cage for a hostile one. The one thing that actually holds against a hostile model sits below the agent entirely.
+      </P>
+      <P>
+        That split, eight layers of heuristics on top of one real boundary, is worth understanding whether you run Hermes Agent, build your own agent, or just want to know how much to trust the one your company already runs.
+      </P>
+      <H2>What are the eight layers?</H2>
+      <P>
+        Hermes Agent&apos;s documentation names them directly:
+      </P>
+      <Figure
+        src="/blog/hermes-agent-defense-in-depth-security-1.jpg"
+        alt="Diagram of Hermes Agent's eight security layers stacked around the one real boundary, OS-level isolation"
+        width={1920}
+        height={1080}
+        priority
+        caption="The eight layers, and the one boundary they all sit on top of"
+      />
+      <UL items={[
+        <><strong>User authorization</strong>, layered allowlists that decide who can even talk to the agent on a messaging platform.</>,
+        <><strong>Dangerous command approval</strong>, a human-in-the-loop check before destructive shell commands run.</>,
+        <><strong>File write safety</strong>, a denylist (plus an optional write sandbox) for every file the agent tries to create or edit.</>,
+        <><strong>Container isolation</strong>, hardened Docker and cloud sandbox settings for running commands.</>,
+        <><strong>MCP credential filtering</strong>, stripping most environment variables and secrets before they reach a subprocess or a connected tool server.</>,
+        <><strong>Context file scanning</strong>, checking project files like <code>AGENTS.md</code> for hidden prompt injection before they enter the system prompt.</>,
+        <><strong>Cross-session isolation</strong>, keeping one conversation&apos;s data and approvals away from another&apos;s, with path-traversal hardening on where scheduled jobs store their state.</>,
+        <><strong>Input sanitization</strong>, validating parameters like a terminal&apos;s working directory against an allowlist so they cannot be used to smuggle in a shell command.</>,
+      ]} />
+      <P>
+        Each one catches a real class of mistake. None of them, on its own or together, is a wall against a model that is actively trying to get around them.
+      </P>
+      <Figure
+        src="/blog/hermes-agent-defense-in-depth-security-2.jpg"
+        alt="Hermes Agent's public Security documentation page, showing the eight-layer defense-in-depth overview"
+        width={1920}
+        height={1571}
+        caption="Hermes Agent's Security docs: the eight-layer overview (hermes-agent.nousresearch.com)"
+      />
+      <H2>Who is allowed to talk to the agent?</H2>
+      <P>
+        The first layer is the simplest and the easiest to get wrong: who can even open a conversation with the agent. Hermes Agent checks a messaging platform&apos;s allowlists in order, from a per-platform allow-all flag down to a global allowlist, and if nothing is configured at all, the default is deny. An agent with no allowlist set up does not quietly accept messages from strangers; it refuses everyone and logs a warning explaining why.
+      </P>
+      <P>
+        For less predictable access, there is a pairing system: a first-time user who messages the bot gets a one-time code, and the bot owner approves it via CLI before that person can use the agent at all.
+      </P>
+      <H2>What happens before a dangerous command runs?</H2>
+      <P>
+        The approval system has three modes. <code>smart</code> mode uses a second, auxiliary model to judge risk: a harmless command like printing text runs immediately, a genuinely dangerous one is auto-denied, and anything uncertain goes to a manual prompt. <code>manual</code> mode always asks. <code>off</code> mode, equivalent to running with <code>--yolo</code>, skips every prompt. An operator sets the mode directly in config:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"approvals:\n  mode: smart\n  cron_mode: deny\n  unattended_mode: deny"}</code></pre>
+      <P>
+        This is where the framework gets specific about context that matters a lot in practice: cron jobs, single-shot queries, and webhook or API sessions have nobody sitting there to answer a prompt, so by default they all deny a dangerous command outright rather than silently approving it. An operator can flip that to auto-approve, but the safe default assumes no human is watching.
+      </P>
+      <P>
+        There is also a session-scoped &quot;YOLO&quot; mode that bypasses approval prompts entirely, with two deliberate, hard-to-miss visual reminders (a banner at session start and a persistent status-bar marker) so it is difficult to forget it is on. Even YOLO mode cannot bypass a fixed, code-level blocklist of catastrophic commands: recursive deletes of the filesystem root, fork bombs, formatting a mounted disk, and similar operations are refused unconditionally, with no override flag at all.
+      </P>
+      <H2>What stops it from overwriting your credentials?</H2>
+      <P>
+        Before the agent writes or edits any file, Hermes checks the target path against a hardcoded denylist of credential locations: SSH keys, AWS and Kubernetes credentials, <code>sudoers</code>, and the agent&apos;s own secret stores like <code>.env</code> files and OAuth token caches. A blocked write returns an error immediately, with no approval prompt and no way around it from the chat interface.
+      </P>
+      <P>
+        One detail stands out: project-local <code>.env</code> files are blocked from being read by the agent&apos;s file tools anywhere on disk, but they remain writable. The agent can create or edit a <code>.env</code> file for you, it just cannot read the values back out of it. For example, it can add a new key to <code>.env</code>, but if you ask it to print the file&apos;s contents, that read is blocked. That asymmetry is a deliberate design choice, not a gap: it lets the agent help you configure tools without being able to steal the keys already in place.
+      </P>
+      <P>
+        The documentation is explicit that this denylist is defense in depth, not a hard boundary: the terminal tool runs as the same operating system user, and a shell command can still read or overwrite a path the file-write denylist blocks. The denylist stops an accidental or cooperative mistake. It does not sandbox a hostile one.
+      </P>
+      <H2>Does a container actually contain it?</H2>
+      <P>
+        This is where Hermes Agent&apos;s model gets precise about what a container is actually for. When the agent runs commands through a non-default terminal backend such as Docker, Modal, or a cloud sandbox, the dangerous-command approval check is skipped entirely, because the container itself becomes the security boundary instead. There is no need to ask permission for a destructive command if that command cannot reach anything outside the sandbox.
+      </P>
+      <Figure
+        src="/blog/hermes-agent-defense-in-depth-security-3.jpg"
+        alt="The Terminal Backend Security Comparison table from Hermes Agent's docs, listing local, ssh, docker, modal, daytona and vercel_sandbox"
+        width={1920}
+        height={1571}
+        caption="Which terminal backends skip the dangerous-command check, and why (hermes-agent.nousresearch.com)"
+      />
+      <P>
+        The local backend, by contrast, runs commands directly on the host and keeps the dangerous-command check active, because there is no container standing between the agent and the real filesystem. Choosing a backend is choosing which kind of defense you are relying on: approval prompts for a trusted but imperfect operator, or an actual sandbox boundary for untrusted input.
+      </P>
+      <P>
+        Docker containers that Hermes Agent spawns also get hardened by default: every Linux capability is dropped and only a few narrow ones (needed for package managers to change file ownership) are added back, privilege escalation is blocked, the process count is capped, and temporary directories are mounted with restricted sizes and no-exec flags where it matters.
+      </P>
+      <H2>What about secrets passed to subprocesses?</H2>
+      <P>
+        Any subprocess the agent spawns, whether a shell command, a code-execution sandbox, or a connected MCP (Model Context Protocol, a standard for connecting external tools to an LLM) tool server, gets a filtered environment by default. An MCP server subprocess, specifically, only receives a short list of safe variables (<code>PATH</code>, <code>HOME</code>, <code>USER</code>, and a few others) plus anything explicitly declared in its own configuration. API keys, tokens, and other secrets are stripped unless an operator or a skill deliberately declares them as needed.
+      </P>
+      <P>
+        Hermes Agent also sanitizes error messages coming back from MCP tools before sending them to the model: GitHub tokens, OpenAI-style keys, bearer tokens, and common <code>key=</code>/<code>password=</code> parameters are replaced with a redacted marker. This cuts down on casual leakage, but the documentation is careful to note the limit of what it protects: anything running inside the agent&apos;s own process, including a loaded skill or plugin, can still read whatever the agent process itself can read, including credentials already sitting in memory.
+      </P>
+      <H2>Is a skill or plugin safe to install?</H2>
+      <P>
+        Skills and plugins both load directly into the agent&apos;s own process and run with its full privileges. Hermes Agent ships a scanner, Skills Guard, that checks installable skill content for suspicious patterns before you add it. The framework is explicit that this scanner is a review aid, not a boundary: the only thing that actually protects you from a malicious skill is reading its code yourself before installing it, because a skill&apos;s Python runs the moment it is imported, not just when you invoke it.
+      </P>
+      <P>
+        The same logic applies to plugins, which the policy treats as more complex because they often ship their own background services and dependencies. A compromised or badly written third-party skill is not treated as a bug in Hermes Agent. It is treated as the expected outcome of installing something without reading it.
+      </P>
+      <H2>Isn&apos;t any of this a real wall?</H2>
+      <P>
+        Here is the sentence that frames the entire policy: the only security boundary against an adversarial model is the operating system. Nothing that runs inside the agent&apos;s own process counts as containment, not the approval gate, not the secret redaction, not any scanner. Every one of those is a heuristic operating on a string the model itself may have influenced, and a sufficiently motivated adversary can produce output that gets past a heuristic built to catch it.
+      </P>
+      <Figure
+        src="/blog/hermes-agent-defense-in-depth-security-4.jpg"
+        alt="Hermes Agent's SECURITY.md on GitHub, with the sentence naming the operating system as the only real boundary"
+        width={1920}
+        height={1571}
+        caption="Hermes Agent's SECURITY.md: the one sentence that frames the whole policy (github.com/NousResearch/hermes-agent)"
+      />
+      <P>
+        Hermes Agent supports two ways of actually delivering that boundary. The lighter one, terminal-backend isolation, runs shell and file commands inside a container or on a remote host, which confines anything the agent does by issuing shell or file operations. It explicitly does not confine everything else the agent does in its own Python process: a code-execution tool spawned as a host subprocess, an MCP subprocess, or a skill or plugin loaded into the interpreter all sit outside that boundary.
+      </P>
+      <P>
+        The heavier option, whole-process wrapping, puts the entire agent process tree inside a sandbox, so every code path (shell, code execution, MCP, file tools, plugins, hooks, skill loading) answers to the same filesystem, network, and process policy. Hermes Agent&apos;s own Docker image offers a lighter version of this; a project called NVIDIA OpenShell offers a more granular one, with per-session sandboxes, hot-reloadable network and inference policy, and credentials injected from a separate store that never touches the sandbox&apos;s own filesystem. Under a whole-process wrapper, all those in-process heuristics from earlier become accident prevention layered on top of a boundary that is actually load-bearing, which is the posture the project recommends whenever the agent reads content from surfaces an operator does not fully control, such as the open web, inbound email, or multi-user chat.
+      </P>
+      <H2>Keeping it off the internet entirely</H2>
+      <P>
+        Even inside a sandbox, an operator may still want to restrict what the agent can reach on the network. That is what egress isolation adds. For Docker deployments specifically, Hermes Agent documents a network-level defense aimed at one particular attack: a prompt-injection attack that tries to get a tool-generated shell command to exfiltrate data with <code>curl</code> or <code>wget</code>. Container isolation stops the agent from breaking out of its own process to touch the host. Network isolation stops it from calling home even if a malicious instruction slips through. The default Docker setup gives the agent process unrestricted outbound access. The hardened version splits the deployment across two Docker networks.
+      </P>
+      <Figure
+        src="/blog/hermes-agent-defense-in-depth-security-5.jpg"
+        alt="Diagram of the two-Docker-network egress isolation topology: an internal network with no route out, and an egress network for services that need the internet"
+        width={1920}
+        height={1080}
+        caption="The two-network egress topology for Docker deployments"
+      />
+      <P>
+        One network, called <code>internal</code>, has no default route and no internet access at all; the agent, the dashboard, and the gateway process run there. The other, <code>egress</code>, does have internet access, and only the services that actually need to reach an external API sit on it. The gateway is dual-homed across both, so it can receive an inbound message from Telegram or Slack and still hand the work to an agent that otherwise cannot reach the open internet. For tighter control, outbound traffic from the egress network can route through a proxy with an explicit allowlist of hostnames, so even a successfully injected command can only reach a small, named set of destinations rather than anywhere on the internet.
+      </P>
+      <P>
+        The documentation is upfront about the limits here too: a container on the internal network can usually still resolve external DNS names unless a local resolver blocks that separately, and network segmentation is not a substitute for a sandboxed terminal backend. It is one more layer, matched to one specific threat, not a replacement for the OS-level boundary described above.
+      </P>
+      <P>
+        Taken together, the shape of Hermes Agent&apos;s security model is less about any single clever check and more about naming, in public, exactly which of its defenses are real and which are not. The eight layers catch honest mistakes and slow down a casual attacker. The operating system, via a sandboxed terminal backend or a whole-process wrapper, is the only thing standing between a genuinely adversarial model and the rest of your machine. Anyone deploying an agent, Hermes Agent or otherwise, is better off starting from that same question: if the model itself turned hostile, what below it would actually stop it.
+      </P>
+      <P>
+        What to take away: Hermes Agent&apos;s safety checks prevent accidents, not adversarial attacks. That job belongs to the operating system underneath, through a sandboxed terminal backend or a whole-process wrapper. Read its security documentation and its SECURITY.md in full before deciding how to deploy one.
+      </P>
+      <P>
+        Follow along at https://x.com/myargoquest, and the project itself is open source at https://github.com/NousResearch/hermes-agent.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "hermes-agent-defense-in-depth-security",
+    title: "How Hermes Agent thinks about security: eight layers, one real boundary",
+    description: "Hermes Agent's own security policy names eight defenses and then says only one of them is real. Here is how that works and what it means for anyone running agents.",
+    date: "October 25, 2026",
+    isoDate: "2026-10-25T18:49",
+    readingTime: "12 min read",
+    Content: HermesAgentDefenseInDepthSecurityContent,
+  },
   {
     slug: "agent-evolution-harness-collective",
     title: "\"Two Papers That Just Changed How We Build AI Agents\"",
