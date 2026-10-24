@@ -1,4 +1,7 @@
 import { H2, P, UL, A, Pull, Note, Figure, H3 } from '@/components/blog'
+import { DEFAULT_CATEGORY, type Category } from '@/lib/categories'
+
+export { CATEGORIES, DEFAULT_CATEGORY, type Category } from '@/lib/categories'
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Blog post registry.
@@ -13,6 +16,7 @@ export type BlogPost = {
   date: string          // human-readable, e.g. "July 3, 2026"
   isoDate: string       // for <time> / sorting, e.g. "2026-07-03"
   readingTime: string   // e.g. "7 min read"
+  category?: Category   // missing = product-updates
   Content: () => React.ReactNode
 }
 
@@ -9412,6 +9416,10 @@ export const posts: BlogPost[] = [
     Content: SevenFiftyWordsContent,
   },
 ]
+
+export function categoryOf(p: BlogPost): Category {
+  return p.category ?? DEFAULT_CATEGORY
+}
 
 export function getPost(slug: string): BlogPost | undefined {
   return posts.find((p) => p.slug === slug)

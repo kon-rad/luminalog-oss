@@ -100,18 +100,27 @@ export function BlogPostLayout({
 }
 
 /* Wrapper for the blog index. */
-export function BlogIndexLayout({ children }: { children: React.ReactNode }) {
+export function BlogIndexLayout({
+  children,
+  title = 'Writing',
+  subline = 'On the science and practice of daily reflection, why putting your life into words changes how you think, feel, and grow.',
+  back = { href: '/', label: '← Back to Argo' },
+}: {
+  children: React.ReactNode
+  title?: string
+  subline?: string
+  back?: { href: string; label: string }
+}) {
   return (
     <>
       <Navbar />
       <main style={{ background: 'var(--bg)' }}>
         <section style={{ borderBottom: '1px solid var(--hairline)', background: 'var(--surfaceAlt)' }}>
           <div className="wrap" style={{ padding: '72px 0 48px', maxWidth: 820 }}>
-            <Link href="/" className="eyebrow" style={{ marginBottom: 18 }}>← Back to Argo</Link>
-            <h1 className="serif" style={{ marginTop: 14, fontSize: 'clamp(34px,5vw,52px)', fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1.05, color: 'var(--text)' }}>Writing</h1>
+            <Link href={back.href} className="eyebrow" style={{ marginBottom: 18 }}>{back.label}</Link>
+            <h1 className="serif" style={{ marginTop: 14, fontSize: 'clamp(34px,5vw,52px)', fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1.05, color: 'var(--text)' }}>{title}</h1>
             <p style={{ marginTop: 14, fontSize: 17, color: 'var(--text2)', maxWidth: 560 }}>
-              On the science and practice of daily reflection, why putting your life into
-              words changes how you think, feel, and grow.
+              {subline}
             </p>
           </div>
         </section>
