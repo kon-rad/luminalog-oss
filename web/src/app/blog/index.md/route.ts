@@ -12,7 +12,7 @@ export function GET() {
     `JSON: ${SITE}/blog/agents.json · Skill: ${SITE}/blog/SKILL.md`,
     '',
     ...agentIndex().map(
-      (p) => `- [${p.title}](${p.markdown}) (${p.date}, ${p.reading_time}): ${p.description}`,
+      (p) => `- [${p.title}](${p.markdown}) (${p.category}, ${p.date}, ${p.reading_time}): ${p.description}`,
     ),
     '',
   ]
