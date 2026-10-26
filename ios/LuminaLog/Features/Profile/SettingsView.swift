@@ -30,6 +30,9 @@ struct SettingsView: View {
     @State private var showInbox = false
     @State private var showStory = false
     /// Mirrors `DevFlags.periodSummaries` so the DEBUG developer toggle redraws the Story rows.
+    /// Read-only mirror: the rows below gate on `DevFlags.periodSummaries`, which is hard
+    /// `false` outside DEBUG, so a release build has no path to the Story screen even if this
+    /// key were somehow set on the device.
     @AppStorage(DevFlags.periodSummariesKey) private var periodSummariesOn = false
     /// What the Story destination opens. The Story Map plan's "Story map" row sets
     /// `StoryRoute(mode: .map)` before flipping `showStory`.
@@ -169,7 +172,7 @@ struct SettingsView: View {
                 VStack(spacing: Spacing.l) {
                     profileCard
                     leaderboardRow
-                    if periodSummariesOn {
+                    if DevFlags.periodSummaries {
                         storyRow
                         if DevFlags.storyMap {
                             storyMapRow
