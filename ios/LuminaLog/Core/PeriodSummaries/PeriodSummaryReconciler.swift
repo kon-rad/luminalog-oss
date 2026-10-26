@@ -111,18 +111,33 @@ final class PeriodSummaryReconciler {
     /// call's ladder reflects today. `timeZone` comes from the caller, which already
     /// holds the profile, so the ladder never waits on a fresh profile listener.
     func voiceMemoryContext(timeZone tz: TimeZone) async -> String? {
+        #if !DEBUG
+        // Progressive summarization is disabled at the source for every release
+        // build (2026-10-26). A release user can never receive the voice ladder,
+        // whatever `isEnabled` a caller injected.
+        return nil
+        #else
         guard isEnabled(), hasConsent() else { return nil }
         let today = PeriodSummaryIndex.localDayIndex(for: now(), in: tz)
         let rungs = MemoryLadder.rungs(today: today)
         let cached = (try? await repository.summaries(for: rungs.map(\.key))) ?? []
         backgroundRefresh = Task { await self.run(budget: Self.voiceRefreshBudget, includeOpen: true) }
         return MemoryLadder.format(cached, rungs: rungs, timeZone: tz)
+        #endif
     }
 
     private func perform(budget: Int, includeOpen: Bool) async -> RunResult {
         var result = RunResult()
+        #if !DEBUG
+        // Progressive summarization is disabled at the source for every release
+        // build (2026-10-26): the catch-up reconciler never generates or deletes a
+        // summary, even if a caller injected an `isEnabled` that returns true.
+        result.skipped = .disabled
+        return result
+        #else
         guard isEnabled() else { result.skipped = .disabled; return result }
         guard hasConsent() else { result.skipped = .noConsent; return result }
+        #endif
         let startedAt = now()
         if let until = notEntitledUntil, startedAt < until { result.skipped = .notEntitled; return result }
         if !includeOpen, let last = lastClosedRunAt, startedAt.timeIntervalSince(last) < Self.throttleInterval {

@@ -60,8 +60,21 @@ enum DevFlags {
     /// Home "Your story" card and the Settings Story rows. Parked on 2026-10-12
     /// (ADR-0168): registered OFF for every build (see LuminaLogApp.init). Turn it on
     /// for one device from Settings > Developer (debug builds).
+    ///
+    /// Disabled at the source (2026-10-26, progressive-summarization parking): the
+    /// getter is HARD `false` in every non-DEBUG build, so no persisted UserDefaults
+    /// value, deep link or notification can turn the ladder on for a user. The setter
+    /// still writes the key so the DEBUG developer toggle works per device. The
+    /// implementation stays for a later release; see
+    /// `docs/features/period-summaries.md` section 4 for how to resume.
     static var periodSummaries: Bool {
-        get { UserDefaults.standard.bool(forKey: periodSummariesKey) }
+        get {
+            #if DEBUG
+            return UserDefaults.standard.bool(forKey: periodSummariesKey)
+            #else
+            return false
+            #endif
+        }
         set { UserDefaults.standard.set(newValue, forKey: periodSummariesKey) }
     }
 
@@ -78,8 +91,17 @@ enum DevFlags {
     /// summaries, so it is parked with them (ADR-0168): registered OFF for every build
     /// (see LuminaLogApp.init), and it only shows when `periodSummaries` is also on.
     /// Spec: docs/superpowers/specs/2026-09-28-story-map-design.md.
+    ///
+    /// Disabled at the source with `periodSummaries` (2026-10-26): HARD `false` in every
+    /// non-DEBUG build, so the Map cannot be reached in a release build.
     static var storyMap: Bool {
-        get { UserDefaults.standard.bool(forKey: storyMapKey) }
+        get {
+            #if DEBUG
+            return UserDefaults.standard.bool(forKey: storyMapKey)
+            #else
+            return false
+            #endif
+        }
         set { UserDefaults.standard.set(newValue, forKey: storyMapKey) }
     }
 }
