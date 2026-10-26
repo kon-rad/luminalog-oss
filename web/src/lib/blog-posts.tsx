@@ -9073,7 +9073,219 @@ function HermesAgentDefenseInDepthSecurityContent() {
   )
 }
 
+/* ── Post: How our usage page tracks every AI agent's tokens across machines ── */
+function UsagePageAgentTokenLedgerContent() {
+  return (
+    <>
+      <P>
+        We run a small company of AI agents. Some answer messages, some write code, some research, and they run on two Macs and a server. At the end of a day there is one plain question: where did the tokens go? Which agent used them, on which task, and why was it awake at all?
+      </P>
+      <P>
+        The tools we use each keep their own records, in their own formats, on their own machines. Claude Code writes a transcript file per session. Hermes, our other agent runtime, keeps a SQLite database. Our newest runtime, zen-agent, writes a trace file per run. None of them knows about the others, and none of them knows that a run was &quot;the research agent, woken by a card, working on the newsletter project&quot;.
+      </P>
+      <P>
+        The <code>/usage</code> page in our open-source Second Brain app answers that question. This post explains what is on the page, what data it keeps, where that data lives, how it gets there from every machine, and why we think a page like this belongs to the person running the agents, not to a vendor.
+      </P>
+      <H2>What is on the page?</H2>
+      <P>
+        The page opens on two meters: how much of the Claude subscription&apos;s five-hour window and seven-day window is used, and when each resets. Next to them sit the balances of the prepaid API accounts we use (OpenRouter, fal.ai and the Gemini API). Google has no balance API, so that one is typed in by hand with a command, and the card says so.
+      </P>
+      <P>
+        Below the meters and the credit balances is the main chart: tokens over time, as stacked bars per hour or per day, over the last 24 hours, 7, 30 or 90 days. By default the bars split tokens by type: fresh input, cache writes, cache reads and output. A menu regroups the same bars by any label the data carries: by agent, by team, by project, by the reason an agent woke, by what each call did, by machine and more. Clicking a bar narrows every table below it to that hour or that day. Further down, a line chart tracks the plan percent over the same range.
+      </P>
+      <P>
+        Under the chart come four tables:
+      </P>
+      <UL items={[
+        <><strong>Breakdown:</strong> when the chart is grouped, one row per group with its calls, tokens, share of the total, output and tokens per call.</>,
+        <><strong>Runs:</strong> one row per headless run (an agent working with nobody at the keyboard): when, who, what woke it, the card, the project, the kind of work, tokens, turns, minutes, and the result of the card&apos;s automatic check if it had one.</>,
+        <><strong>Agent sessions:</strong> every recorded session from every harness, searchable, which opens into a step-by-step view of prompts, thinking, tool calls and responses.</>,
+        <><strong>Agent wakes:</strong> for the company of agents, how many times each one was woken in the range, by what, and how many tokens it spent.</>,
+      ]} />
+      <P>
+        A second tab, &quot;Running now&quot;, lists the agent processes alive on the server at this moment.
+      </P>
+      <Figure
+        src="/blog/usage-page-agent-token-ledger-1.jpg"
+        alt="Diagram: Claude Code transcripts and run logs, the Hermes state database, zen-agent traces and the plan meter feed two collectors, a server collector every 5 minutes and a ledger on each laptop, which write ledger tables in Postgres; a view joins them and the usage page reads the view"
+        width={1920}
+        height={1080}
+        priority
+        caption="Three agent harnesses, one usage page. Our diagram"
+      />
+      <H2>How do you customise a view?</H2>
+      <P>
+        Every view is a set of filters, and <strong>every filter lives in the page&apos;s address</strong>. A link like <code>/usage?agent=atlas,rune&amp;action=post</code> shows only those two agents, and only the calls where they posted a message. Values inside one filter are alternatives (this agent or that one); different filters all have to match (these agents and posting).
+      </P>
+      <P>
+        That one decision does most of the customising. A view can be bookmarked, sent to a teammate or put on a wall screen, and nobody has to save anything. There are fourteen labels to filter and group by: machine, source, surface, headless or not, model, agent, team, wake reason, action, kind of work, project, feature, card and lane.
+      </P>
+      <P>
+        Building a view takes three clicks. Pick a label in &quot;add filter&quot;, pick a value (each value shows its token count in the current range), and it appears as a chip you can remove. Clicking a name in any table, such as an agent, a project or a wake reason, adds it as a filter too.
+      </P>
+      <P>
+        When a label is missing, the page says <code>unlabelled</code> rather than guessing. An interactive chat session has no card and no kind of work, so it is counted under <code>unlabelled</code> and left there.
+      </P>
+      <Figure
+        src="/blog/usage-page-agent-token-ledger-2.jpg"
+        alt="The usage page's source code on GitHub with the comment saying filters live in the URL, so a view can be linked, shared and put on the kiosk, highlighted"
+        width={1540}
+        height={980}
+        caption="Every filter is part of the address, so a view can be shared. Screenshot, github.com/kon-rad/secondbrain"
+      />
+      <H2>What data is tracked?</H2>
+      <P>
+        The smallest unit is <strong>a call</strong>: one response from a model. For each call we keep the time, the model, the machine, the session it belongs to, and five token counts (fresh input, cache writes, cache reads, output and thinking), plus web searches. We also keep the first tool the response used, sorted into one of nine actions: a direct message, a post, a ticket, a card, a tracker update, a file write, a read, a shell command, or a plain reply with no tool.
+      </P>
+      <P>
+        That &quot;first tool&quot; rule is deliberate. A response that calls three tools at once has one token count, and splitting it three ways would mean making up numbers. So the whole count goes to the first tool, and the design says so.
+      </P>
+      <P>
+        The next unit up is <strong>a run</strong>: one wake of one agent, from start to finish. A run records the agent, its team, the card it worked on, the reasons it was woken, how many turns it took, how long, which runtime ran it, and the result of the card&apos;s automatic check if there was one. An agent can resume the same chat session for days, so the session is not the key; each wake gets its own run.
+      </P>
+      <P>
+        Two more kinds of record fill in the rest. Hermes keeps running totals per session, so we store a snapshot only when those totals change, and the chart uses the difference between snapshots. The plan meter is a series of readings: percent used, which window, when it resets.
+      </P>
+      <H2>Where is it stored: Postgres or JSON?</H2>
+      <P>
+        Both, with a clear rule for each.
+      </P>
+      <P>
+        The agents&apos; own files are JSON: Claude Code&apos;s transcripts and run logs are JSONL (one JSON record per line), and so are zen-agent&apos;s traces. Those files are where every record starts. The first usage migration in the repository sets the rule in one line: nothing in the ledger exists only in Postgres. Rows are built by reading the files, and a re-read of the same file updates rows instead of adding new ones.
+      </P>
+      <P>
+        That rule had a limit we found later (more on it in the sync section): the agents&apos; files do not live forever. So once each machine had its own ledger, the server&apos;s Postgres became the master copy, and the machines keep only recent days.
+      </P>
+      <P>
+        Postgres is where the rows live so the page can ask questions of them quickly. The tables are plain and few:
+      </P>
+      <UL items={[
+        <><strong>`usage_calls`:</strong> one row per model response, keyed on source, machine and the response&apos;s own id, so reading the same file twice cannot create a duplicate.</>,
+        <><strong>`usage_runs`:</strong> one row per wake, keyed on machine and run id.</>,
+        <><strong>`usage_hosts`:</strong> the list of machines. Every other row points at one, so a machine has to be registered before its data is accepted.</>,
+        <><strong>`hermes_usage_snapshots`</strong> and <strong>`plan_usage_snapshots`:</strong> the two series described above.</>,
+      ]} />
+      <P>
+        A few columns hold JSON inside Postgres (<code>jsonb</code>), for things whose shape varies: the list of wake reasons, a run&apos;s token summary, the size of each part of an agent&apos;s system prompt.
+      </P>
+      <Figure
+        src="/blog/usage-page-agent-token-ledger-3.jpg"
+        alt="The first usage migration in the Second Brain repository on GitHub, with the comment saying nothing in the ledger exists only in Postgres highlighted"
+        width={1540}
+        height={980}
+        caption="The first usage migration: every row is rebuilt from files. Screenshot, github.com/kon-rad/secondbrain"
+      />
+      <H2>How does a call get its labels?</H2>
+      <P>
+        Here is the part that took the most thought. A transcript knows the model and the tokens. It does not know that the session was the research agent working on a card for the newsletter project, woken because someone mentioned it.
+      </P>
+      <P>
+        Those facts live elsewhere: the card&apos;s links to a project and feature, the roster that says which team an agent is on and what kind of work it does by default, and the queue of wakes that records why each agent was started. We do not copy them into the call rows. Instead, a database view called <code>usage_facts</code> joins them <strong>at the moment the page asks</strong>.
+      </P>
+      <P>
+        An analogy: a receipt from a shop lists items and prices, and your budgeting app adds &quot;groceries&quot; and &quot;household&quot; later. If you move a shop to a new category, every old receipt from that shop moves with it. The view works the same way. If a card is moved to a different project, every past call on that card follows at once, because the project was never copied into the call. (Where the analogy stops working: the view does no guessing. If a call has no card, it has no project.)
+      </P>
+      <P>
+        Calls and runs come from different files and can arrive in either order. So after each sync, one step attaches any loose call to the run of the same session that was going on at the time, with two minutes of slack on either side, and it only fills blanks.
+      </P>
+      <Figure
+        src="/blog/usage-page-agent-token-ledger-4.jpg"
+        alt="Diagram of the data model: usage_calls with one row per model response and usage_runs with one row per wake, joined by the usage_facts view to the agent company's card, roster and wake tables; beside them usage_hosts and the Hermes and plan snapshot tables"
+        width={1920}
+        height={1080}
+        caption="The usage data model. Our diagram, from the engine's migrations"
+      />
+      <H2>How does it sync across machines?</H2>
+      <P>
+        The server reads its own agents&apos; files every five minutes, starting each file from the byte where it stopped last time.
+      </P>
+      <P>
+        The other machines needed something sturdier. We found that the oldest Claude Code transcript on our laptop was exactly 30 days old, which matches Claude Code&apos;s default 30-day cleanup. A laptop that is offline for a month, or a collector that breaks for a month, would lose those records for good. The agents&apos; own files are not a safe buffer.
+      </P>
+      <P>
+        So each laptop runs a small <strong>ledger</strong>: a local SQLite database (one file on disk, no server needed) that copies every turn within minutes and keeps it until the server confirms it has it. It works like this:
+      </P>
+      <UL items={[
+        <><strong>Collect:</strong> new transcript lines and Hermes rows go into the local ledger. Every write gets the next number in one rising sequence.</>,
+        <><strong>Send:</strong> rows above the last confirmed number go to the server over HTTPS in gzip-compressed batches (up to 8 MB each), with the machine&apos;s own token.</>,
+        <><strong>Store:</strong> the server looks up the token, writes every row as that machine whatever the batch claims, inserts or updates the whole batch in one transaction, and answers OK.</>,
+        <><strong>Confirm:</strong> only then does the machine move its &quot;confirmed&quot; mark to the last row it sent.</>,
+      ]} />
+      <P>
+        If the network is down or the server errors, nothing moves, and the next run retries with growing pauses. Sending the same batch twice changes nothing, because every row has a natural key. A row the server refuses is set aside and retried later, so one bad row cannot block the rest.
+      </P>
+      <P>
+        Because the token decides which machine the rows belong to, one machine can never write another machine&apos;s records. The server keeps only a hash of each token; the token itself is shown once, when the machine is added.
+      </P>
+      <Figure
+        src="/blog/usage-page-agent-token-ledger-5.jpg"
+        alt="Diagram of the sync loop: a machine collects turns into a local SQLite ledger with a rising seq number, sends rows above acked_seq over HTTPS with its own token, the server upserts them in one transaction and confirms, and only then does the machine move acked_seq; offline, rows wait and are retried"
+        width={1920}
+        height={1080}
+        caption="How a machine syncs its ledger without losing a row when it is offline. Our diagram"
+      />
+      <H2>How do several agent harnesses fit into one ledger?</H2>
+      <P>
+        A harness is the program that runs the model in a loop and gives it tools. We use three, and each gets in through a small parser that turns its records into the same rows.
+      </P>
+      <UL items={[
+        <><strong>Claude Code:</strong> the parser reads each transcript and keeps one row per response. Claude Code repeats a response&apos;s usage on every content line, so the parser keys on the response id and keeps the fullest copy.</>,
+        <><strong>Hermes:</strong> its database holds running totals per session, so we store snapshots when they change. Hermes also reports its own dollar cost, which we keep.</>,
+        <><strong>zen-agent:</strong> one trace file per run, with a header line, one line per message and an end line. The parser turns the header and end into a run, and each priced message into a call with its real dollar cost.</>,
+      ]} />
+      <P>
+        The trace format is versioned, and the zen-agent parser refuses a version it does not know. That is the contract: a harness joins by writing records a parser understands, and everything after the parser (the tables, the filters, the page) is shared.
+      </P>
+      <P>
+        One rule shows how carefully the money is handled. Claude Code runs on a flat subscription, so a dollar figure for it would be an imaginary &quot;what this would have cost on the API&quot;. The page never shows one: the server strips every cost field from Claude Code records before they reach the browser, and shows tokens and plan percent instead. Hermes and zen-agent pay per token, so the dollar figure each one reports is shown.
+      </P>
+      <Figure
+        src="/blog/usage-page-agent-token-ledger-6.jpg"
+        alt="The zen-agent trace parser on GitHub with the comment saying the trace is the contract between the two packages highlighted"
+        width={1540}
+        height={980}
+        caption="A new harness joins by writing a trace the parser understands. Screenshot, github.com/kon-rad/secondbrain"
+      />
+      <H2>Why does the page matter?</H2>
+      <P>
+        Three reasons, from the most practical to the one we care about most.
+      </P>
+      <P>
+        <strong>It changes decisions.</strong> When the five-hour meter climbs, the page shows which agent and which kind of work is spending it. A wake that did nothing shows up as a run with tokens spent and no result, the kind of waste you can only cut once you can see it.
+      </P>
+      <P>
+        <strong>It keeps the record honest.</strong> Every number traces back to a record an agent wrote, the page makes nothing up, and a missing label says <code>unlabelled</code>. When we switched a laptop&apos;s ledger on, we checked a full day of it against the server and the counts matched exactly: 2,112 calls and 12,898 messages.
+      </P>
+      <P>
+        <strong>It is yours.</strong> Your agents read your notes, write your code and act in your name. The record of what they did should sit on your own disk and your own server, in tables you can query, not only in a vendor&apos;s billing page. That is the same idea behind Argo&apos;s journal: your data, your memory, your story, owned by you.
+      </P>
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Built and running: the ledger tables, the labelling view, the page with its filters, groups, runs, sessions and wakes, the server collector, and the local ledger with sync on our two Macs. Every recorded session can be opened step by step, with keys removed before anything is stored.
+      </P>
+      <P>
+        Next, none of it built yet: running the same ledger on the server itself (today the server still uses its own collector), so every machine uses one code path; small single-board computers, which we have planned but not tested on real hardware; and Windows, which the design supports but we have not tested on a real Windows machine.
+      </P>
+      <P>
+        The code is open source at <A href="https://github.com/kon-rad/secondbrain">github.com/kon-rad/secondbrain</A>: the page is in <code>app/web/src/routes/usage/</code>, the server side in <code>app/server/src/usage/</code> and <code>app/server/src/routes/usage.ts</code>, and the tables in <code>app/db/migrations/</code>. If you run agents of your own, the useful part to copy is the shape: keep the agents&apos; files as the source, rebuild rows from them, label at read time, and never show a number you cannot trace.
+      </P>
+      <P>
+        We share how we build Argo on the blog and at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "usage-page-agent-token-ledger",
+    title: "How our usage page tracks every AI agent's tokens across machines",
+    description: "What the Second Brain /usage page shows, the data it keeps, where it is stored, and how three agent harnesses on several machines feed one ledger.",
+    date: "October 27, 2026",
+    isoDate: "2026-10-27T17:18",
+    readingTime: "14 min read",
+    Content: UsagePageAgentTokenLedgerContent,
+  },
   {
     slug: "hermes-agent-defense-in-depth-security",
     title: "How Hermes Agent thinks about security: eight layers, one real boundary",
