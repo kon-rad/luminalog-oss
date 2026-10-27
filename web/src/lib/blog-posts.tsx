@@ -9276,7 +9276,149 @@ function UsagePageAgentTokenLedgerContent() {
   )
 }
 
+/* ── Post: "Dan Luu's case for more ambitious software: a summary" ── */
+function DanluuAmbitiousSoftwareContent() {
+  return (
+    <>
+      <P>
+        Most programmers have a list of things they would fix if they had a spare year. A faster build. A better search tool. A database that does not fall over on their workload. The list stays a list, because a year is a year.
+      </P>
+      <P>
+        Dan Luu&apos;s new essay, <A href="https://danluu.com/ambitious/">We should be more ambitious with the software we build</A> (published on danluu.com on 2026-10-24), argues that the price on that list has changed and most people have not noticed. This post summarizes what he argues, the examples that carry the argument, and the counterargument he prints in his own appendix. The quotes are his; the summary and the diagrams are ours.
+      </P>
+      <H2>Where does the phrase come from?</H2>
+      <P>
+        The title is not Luu&apos;s line. It is something Michael Malis, who builds pgrust, kept saying to him while showing him projects. Luu says he would have phrased it as &quot;we can be more ambitious&quot; rather than &quot;we should&quot;, and he defines ambitious loosely: doing more than you could have done before.
+      </P>
+      <P>
+        His first example is pgrust itself. Most people who see it discussed assume it is another low-quality AI-generated rewrite, and Luu says he understands why, because most such projects are. But pgrust is tested hard enough that the testing has found bugs in Postgres itself: the essay lists an SP-GiST numerical bug, a JSONPath format cache bug, a pgcrypto bug and a money overflow bug, among others.
+      </P>
+      <Figure
+        src="/blog/danluu-ambitious-software-1.jpg"
+        alt="The opening of Dan Luu's essay on danluu.com, with the line about pgrust's testing uncovering real bugs in Postgres highlighted"
+        width={1280}
+        height={577}
+        priority
+        caption="The essay's opening: pgrust's testing found bugs in Postgres itself. Screenshot, danluu.com/ambitious"
+      />
+      <P>
+        His point is that this improved Postgres &quot;in a durable way&quot; even if pgrust never succeeds. He is also careful about status: in a footnote he quotes Malis saying he &quot;would not recommend using it as your primary production database today.&quot;
+      </P>
+      <H2>What changed in the cost of building?</H2>
+      <P>
+        Luu asked a simple question. If a state-of-the-art model ran 10 to 100 times faster, what on his own machine would become the bottleneck? His answer: ripgrep (a fast code search tool), compiling Rust, and the overhead of system calls and the filesystem.
+      </P>
+      <P>
+        So he built tools for those. A regex engine (the pattern matcher behind text search) that can be tuned to beat general-purpose regex libraries on his own workloads. A ripgrep fork that uses that engine&apos;s native code compiler. A Rust interpreter that sped up builds for his projects; a footnote reports a 50x speedup on cold builds and 2x on warm ones.
+      </P>
+      <P>
+        He is plain that he knew nothing about regexes, string matching, compilers or interpreters going in. He estimates that set of projects would have taken him a year or more to reach &quot;works for me&quot; quality. With coding agents it took &quot;a low single-digit number of hours&quot; of his time.
+      </P>
+      <Figure
+        src="/blog/danluu-ambitious-software-2.jpg"
+        alt="Dan Luu's essay with the sentence about a low single-digit number of hours highlighted, after the paragraph listing his regex engine, ripgrep fork and Rust interpreter"
+        width={1280}
+        height={577}
+        caption="A year or more of work, done in a few hours. Screenshot, danluu.com/ambitious"
+      />
+      <P>
+        Two limits matter here, and he states both. &quot;Works for me&quot; is not a product: reaching the quality bar of a useful product or open source project would be &quot;a lot more work&quot;. And he says the post was written fast, with quick comparisons rather than rigorous benchmarks.
+      </P>
+      <H2>What is the pre-agentic cost model?</H2>
+      <P>
+        This is the core of the essay. Luu sees people complain daily that Rust compiles slowly, as if that were a fixed fact. His reply: you can now write a Rust interpreter, or speed up compilation directly. The complaint survives, he argues, because people are &quot;implicitly carrying around a pre-agentic cost model.&quot;
+      </P>
+      <P>
+        A cost model is the rough price tag you attach to a project before you start it: how many weeks, how much expertise, how likely you are to finish. Ten years ago, he writes, the person who wrote a new compiler because theirs was slow was the same kind of person who started a 3D game engine when they wanted to make an indie game: the kind who never ships. That instinct was correct then. His claim is that it is now out of date, yet most productive programmers he knows still have it.
+      </P>
+      <Figure
+        src="/blog/danluu-ambitious-software-3.jpg"
+        alt="Dan Luu's essay with the phrase about people carrying around a pre-agentic cost model highlighted"
+        width={1280}
+        height={577}
+        caption="The core claim: we still price projects as if agents did not exist. Screenshot, danluu.com/ambitious"
+      />
+      <P>
+        An analogy: it is like still mailing paper letters because you remember long-distance calls being expensive. The analogy stops working at quality. A cheap phone call is as good as an expensive one, while cheap software still has to be checked, which is where the essay goes next.
+      </P>
+      <Figure
+        src="/blog/danluu-ambitious-software-4.jpg"
+        alt="Diagram: three tools Dan Luu built (a regex engine, a ripgrep fork, a Rust interpreter) priced at a year or more under the pre-agentic cost model and a few hours with coding agents, above a contrast between the same work done with AI and work that used to be too expensive"
+        width={1280}
+        height={577}
+        caption="The old cost model against what Luu reports for his own tools. Our diagram, from Dan Luu's essay"
+      />
+      <H2>How fast are the models improving?</H2>
+      <P>
+        Luu gives two examples from his own work.
+      </P>
+      <UL items={[
+        <><strong>A board game AI.</strong> He built an AI for the board game Azul with GPT-5.1 and 5.2, starting with no AI background. It took about 5 hours of his time to reach superhuman play and about 20 hours to become what appeared to be the strongest Azul AI at the time. Back then, asking the model to implement a technique from a paper usually failed, or produced something that only looked like the technique. Later, Gabriel Cangussu built an AI that beats Luu&apos;s, in substantially less time, and one key difference was that Fable 5.1 and Opus 5.5 understand board game AIs much better.</>,
+        <><strong>An eval he had to retire.</strong> In a toy eval where a model implements zstd (a compression format), GPT-6 Astra passed all of the registered tests more than 99% of the time across every test condition, for about USD 1 per implementation. The eval stopped being useful, so he moved to harder targets: the IMAP email protocol spec and Pandoc, the document converter that reads and writes dozens of formats.</>,
+      ]} />
+      <H2>Does that mean software is solved?</H2>
+      <P>
+        No, and this is the most useful part of the essay. Luu says newer models can one-shot more things, but that just moves him on to more ambitious work where models still struggle. With each more capable model he ends up further from &quot;it just works&quot;, because the gap between what a model can build and what it can check without heavy handholding keeps growing.
+      </P>
+      <Figure
+        src="/blog/danluu-ambitious-software-5.jpg"
+        alt="Diagram: an illustrative chart where what models can implement rises faster than what they can verify without heavy handholding, next to the checks the essay points to (pgrust's testing, fuzzing, self-checking setups) and Yossi Kreinin's counterpoint"
+        width={1280}
+        height={577}
+        caption="Each better model widens the gap between what it can build and what it can check. Our diagram, illustrative shape from Dan Luu's essay"
+      />
+      <P>
+        That gap is where the human&apos;s time goes now. In a footnote he says programming skills seem higher leverage than ever, and cites Max Bittker&apos;s framing: models are very good at counterfeiting, and it takes more expertise to spot the counterfeit as they improve.
+      </P>
+      <H2>What is the case against?</H2>
+      <P>
+        Luu prints it himself. Yossi Kreinin, quoted with permission, argues that &quot;for most people they should be less ambitious with the software they build with AI or they&apos;ll experience abject failure.&quot; Many problems have no clear pass/fail criteria for an agent loop, and most people struggle to reason about large systems they can constrain but not understand. Kreinin compares it to microservices: right for a few teams who need it and use it well, wrong for most. He adds that AI-driven speedups often leave messy code overfit to the case that was tested.
+      </P>
+      <P>
+        Luu partly agrees. He sees more bugs in software than he used to. His answer has two parts.
+      </P>
+      <UL items={[
+        <><strong>Amdahl&apos;s law.</strong> If you do exactly what you did five years ago, but with AI, the speedup is small, because the parts AI does not speed up still dominate. The large gains come from choosing work that used to be too expensive to attempt.</>,
+        <><strong>Self-checking setups.</strong> Even without a clean pass/fail test, you can often build something that checks itself. For one board game with ambiguous, contradictory rules, he set up consistency checks between the different rule explanations, which got close to a correct rule set for the cost of a month or two of a USD 200 per month subscription. Before agents, he found fuzzing (feeding a program huge numbers of random inputs) and property-based testing (checking that a rule holds for every generated input) more effective than ordinary unit tests in domains where people told him they would not work.</>,
+      ]} />
+      <Figure
+        src="/blog/danluu-ambitious-software-6.jpg"
+        alt="Dan Luu's appendix replying to Yossi Kreinin, with the lines about a poor speedup and things that were previously too expensive highlighted"
+        width={1280}
+        height={577}
+        caption="Luu's reply to the counterargument: the gains are in work that used to be too expensive. Screenshot, danluu.com/ambitious"
+      />
+      <P>
+        His line on it: &quot;Just because other people are pumping out vast quantities of barely working slop doesn&apos;t mean that you have to do the same thing.&quot;
+      </P>
+      <P>
+        He also names the opposite failure. It is possible to build more tooling than is productive, and tools can be obsolete in three months as models and harnesses change, so he sticks to tools where the payoff is direct. Some of his examples are small on purpose: a game with the submarine-like combat from David Gerrold&apos;s Star Wolf books, which he read in the 90s, which he would never have spent 10 to 20 hours on but would spend 5 minutes on.
+      </P>
+      <H2>Why this matters for builders</H2>
+      <P>
+        We build Argo with coding agents every day, and the essay names two habits worth checking in any team.
+      </P>
+      <UL items={[
+        <><strong>Re-price the list.</strong> Take the projects you ruled out as too big a year ago and estimate them again with today&apos;s tools. Some will still be too big. Some will now cost an afternoon.</>,
+        <><strong>Spend the savings on checks.</strong> The time an agent saves on writing code is the time to put into tests, benchmarks and setups that check themselves. pgrust is the example: the ambition was a rewrite of a database, and the value that already landed came from the testing.</>,
+      ]} />
+      <P>
+        The takeaway: the cost of attempting ambitious software has fallen far more than most people&apos;s estimates of it, and models&apos; ability to check their own work has not kept up, so aim higher and verify harder. Read the full essay at https://danluu.com/ambitious/, and follow what we build at https://myargoquest.com/blog and https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "danluu-ambitious-software",
+    title: "\"Dan Luu's case for more ambitious software: a summary\"",
+    description: "Dan Luu argues coding agents turned year-long projects into hours, so builders should aim higher and spend the savings on verification.",
+    date: "October 26, 2026",
+    isoDate: "2026-10-26T00:58",
+    readingTime: "9 min read",
+    Content: DanluuAmbitiousSoftwareContent,
+  },
   {
     slug: "usage-page-agent-token-ledger",
     title: "How our usage page tracks every AI agent's tokens across machines",
