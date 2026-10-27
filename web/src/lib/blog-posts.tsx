@@ -9409,7 +9409,52 @@ function DanluuAmbitiousSoftwareContent() {
   )
 }
 
+/* ── Post: "Argo build log, Day 14: New blog post on token tracking and an iOS memory fix" ── */
+function ArgoBuildLogDay14Content() {
+  return (
+    <>
+      <P>
+        Argo is a private AI journal where your entries stay yours and an AI reads them to show you patterns you would miss alone. The goal by 2027 is a million dollars a month in recurring revenue, 100,000 followers on Instagram and YouTube, and a modular wearable built one step at a time in public. Today the work showed the value of building tools that teach: a new blog post goes deep on how the open-source Second Brain usage page tracks every token from every agent harness, and the iOS app ships a fix that keeps release builds stable during longer sessions.
+      </P>
+      <H2>Highlights</H2>
+      <UL items={[
+        <>A new blog post went live explaining how the Second Brain /usage page tracks every AI agent&apos;s token spend across three harnesses on two Macs and a server, with per-call labels for agent, team, project and wake reason.</>,
+        <>The Argo iOS app shipped a fix that disables progressive summarization at the source for release builds, improving memory management.</>,
+        <>The build was live for 100 minutes on stream, with the X broadcast averaging 11 viewers and peaking at 14.</>,
+      ]} />
+      <H2>The journal app</H2>
+      <P>
+        A new post went live on the Argo blog about the /usage page in the open-source Second Brain app. The page shows subscription meters and API credit balances, stacked bar charts of tokens split by type and by agent, then four tables that break spend down by agent, project, session and wake reason. Every view lives in the URL, so any dashboard can be bookmarked or shared as a link. The post explains why tracking at the call level matters when you run three agent harnesses on several machines and need one answer to &quot;where did the tokens go.&quot;
+      </P>
+      <P>
+        The iOS app also shipped a fix: progressive summarization is now disabled at the source for release builds. This keeps memory in check during longer journaling sessions.
+      </P>
+      <H2>On stream</H2>
+      <P>
+        The build was live for 100 minutes across X, Twitch and Kick, focused on agent orchestrator work. The X broadcast ran 92 minutes with an average of 11 viewers.
+      </P>
+      <H2>Next</H2>
+      <UL items={[
+        <>Continue work on the media pipeline for daily AI news content.</>,
+        <>Ship the next round of agent harness improvements from this week&apos;s kanban board cutover.</>,
+      ]} />
+      <P>
+        Follow the build at https://myargoquest.com/blog
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "argo-build-log-day-14",
+    title: "\"Argo build log, Day 14: New blog post on token tracking and an iOS memory fix\"",
+    description: "A new blog post explains how the open-source Second Brain usage page tracks token spend across machines, and the iOS app ships a memory fix.",
+    date: "October 27, 2026",
+    isoDate: "2026-10-27T06:03",
+    readingTime: "2 min read",
+    Content: ArgoBuildLogDay14Content,
+  },
   {
     slug: "danluu-ambitious-software",
     title: "\"Dan Luu's case for more ambitious software: a summary\"",
