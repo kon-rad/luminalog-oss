@@ -9445,7 +9445,54 @@ function ArgoBuildLogDay14Content() {
   )
 }
 
+/* ── Post: "Argo build log, Day 15: The Exo case arrives in 3D" ── */
+function ArgoBuildLogDay15Content() {
+  return (
+    <>
+      <P>
+        Argo is a private AI journal and a modular wearable, both built step by step in public. The goal by 2027 is a million dollars a month in recurring revenue, 100,000 followers on Instagram and YouTube, and a hackable wearable platform anyone can build. Today the work showed value three: teach what you build where the Exo case became a 3D design anyone could print, and a blog post shared a hard-won perspective on ambition in software.
+      </P>
+      <H2>Highlights</H2>
+      <UL items={[
+        <>The Exo wearable&apos;s snap-fit clear case was designed and rendered in 3D, with a test coupon to check screw holes and component fit before the first print.</>,
+        <>A new blog post went live on the Argo blog summarising Dan Luu&apos;s argument for more ambitious software and what builders who ship in public can take from it.</>,
+        <>The Argo fund shipped an M4 deck approver with two trading rules and Telegram notices, bringing the open-source fund one step closer to launch.</>,
+      ]} />
+      <H2>Exo, the wearable</H2>
+      <P>
+        The clear snap-fit case for the wearable pie took a real step forward. Designed as an open-back shell that clips onto the existing hardware, it now has 3D renders and a test coupon that checks every critical screw hole and component pocket before the first full print. The idea is a case you can print from the open-source files with no special tools. The coupon prints next, then the full case.
+      </P>
+      <H2>The journal app</H2>
+      <P>
+        A new post on the Argo blog summarises Dan Luu&apos;s case for more ambitious software. Luu argues that most software is held back by organisational constraints, not technical ones, and that the biggest wins come from projects that aim for something genuinely hard. It is a short read for anyone wondering why progress on their own projects feels slower than it should.
+      </P>
+      <H2>The fund</H2>
+      <P>
+        The open-source Argo fund designed for Base now has an M4 deck approver: two simple rules (1% slippage, at most two swaps a day) and a Telegram notice whenever the deck signs a trade. The code is committed in the argo-exo repo and deployed on the server, inching closer to being a reference anyone can fork.
+      </P>
+      <H2>Next</H2>
+      <UL items={[
+        <>Print the Exo case coupon and check the fit.</>,
+        <>Continue 3D printing DevCon giveaways.</>,
+        <>Review the Dan Luu post&apos;s response.</>,
+      ]} />
+      <P>
+        Follow along at https://myargoquest.com/livestream or try the Argo app at https://apps.apple.com/us/app/id6781137459.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "argo-build-log-day-15",
+    title: "\"Argo build log, Day 15: The Exo case arrives in 3D\"",
+    description: "The Exo wearable's snap-fit clear case is rendered and ready to test. A new blog post on ambitious software, and the Argo fund ships a deck.",
+    date: "October 28, 2026",
+    isoDate: "2026-10-28T10:11",
+    readingTime: "2 min read",
+    Content: ArgoBuildLogDay15Content,
+  },
   {
     slug: "argo-build-log-day-14",
     title: "\"Argo build log, Day 14: New blog post on token tracking and an iOS memory fix\"",
