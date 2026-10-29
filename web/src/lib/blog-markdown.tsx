@@ -1,6 +1,7 @@
 import { Fragment, isValidElement, type ReactNode } from 'react'
 import { H2, H3, P, UL, A, Pull, Note, Figure } from '@/components/blog'
-import { posts, type BlogPost } from '@/lib/blog-posts'
+import { posts, categoryOf, type BlogPost } from '@/lib/blog-posts'
+import type { Category } from '@/lib/categories'
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Blog posts as markdown, for agents.
@@ -153,6 +154,7 @@ export type AgentPostEntry = {
   description: string
   date: string
   reading_time: string
+  category: Category
   url: string
   markdown: string
 }
@@ -164,6 +166,7 @@ export function agentIndex(): AgentPostEntry[] {
     description: p.description,
     date: p.isoDate.slice(0, 10),
     reading_time: p.readingTime,
+    category: categoryOf(p),
     url: postUrl(p.slug),
     markdown: postMarkdownUrl(p.slug),
   }))
