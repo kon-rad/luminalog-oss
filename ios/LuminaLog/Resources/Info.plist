@@ -46,7 +46,7 @@
 	<key>FACEBOOK_APP_ID</key>
 	<string>$(FACEBOOK_APP_ID)</string>
 	<key>GitCommitHash</key>
-	<string>e5ffe8a</string>
+	<string>43e9f68</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationQueriesSchemes</key>
