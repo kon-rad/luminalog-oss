@@ -9487,7 +9487,188 @@ function ArgoBuildLogDay15Content() {
   )
 }
 
+/* ── Post: The networks were never tangled: what it means if we can finally read an AI's mind ── */
+function TheNetworksWereNeverTangledContent() {
+  return (
+    <>
+      <P>
+        Hold a braid at arm&apos;s length and it looks like a knot: strands crossing over and under, no visible order. Pick it up and follow one strand with your finger and the knot disappears. Every strand goes somewhere, and it crosses the others in the same pattern over and over. Nothing changed except how closely you looked.
+      </P>
+      <P>
+        For about a decade, the people who study the inside of AI models believed they were holding a real knot. A model is built from millions or billions of tiny units called neurons (single numbers inside the network that rise or fall with each input). The hope was that each neuron would mean one thing, like &quot;curve&quot; or &quot;dog face&quot;. Many seemed to mean several unrelated things at once, so the field concluded that models pack ideas together in ways that have to be cut apart with special tools before anyone can read them.
+      </P>
+      <P>
+        This week Nick Cammarata, one of the researchers who built that picture, published a long essay saying it was mostly a braid. It is called &quot;Neural Networks Are Already Clean&quot; and it is published by Goodfire, the interpretability company where he works: https://already-clean.goodfire.com/. He announced it on X here: https://x.com/nickcammarata/status/2110757819427574056. This post explains what he claims, what his evidence is, where he says he could be wrong, and why it matters to anyone who lets an AI read their private writing. Everything about the science below comes from his essay and post. Where we give our own view, we say so.
+      </P>
+      <H2>Why did anyone think AI models were a tangle?</H2>
+      <P>
+        Interpretability is the science of reading what happens inside a trained model: which internal parts react to what, and how they combine to produce an answer. It matters because today we mostly judge AI by its outputs. If a model gives a good answer for a bad reason, outputs alone won&apos;t show it.
+      </P>
+      <P>
+        Early on, researchers looked at what made each neuron fire and found a puzzle. Some neurons seemed to respond to unrelated things. The famous example, from a 2017 image model called InceptionV1, was a neuron that seemed to fire for both cat faces and car fronts. A neuron like that is called <strong>polysemantic</strong> (having many meanings).
+      </P>
+      <P>
+        The leading explanation was <strong>superposition</strong>: the idea that a network stores more concepts than it has neurons by overlapping unrelated ones that rarely appear together, the way you might store winter coats and beach towels in the same box because you never need both at once. If that is how models work, reading neurons directly is hopeless. You first have to untangle them.
+      </P>
+      <Figure
+        src="/blog/the-networks-were-never-tangled-1.jpg"
+        alt="Diagram: superposition vs recursive generalization - the two explanations for polysemanticity"
+        width={1280}
+        height={577}
+        priority
+        caption="The old view vs the new view. Our diagram from Cammarata's essay."
+      />
+      <P>
+        So the field built untangling tools. The main one is the <strong>sparse autoencoder</strong> (a second, smaller network trained to rewrite a layer&apos;s activity as a longer list of &quot;features&quot;, each hopefully meaning one thing). A lot of the last few years of interpretability research runs through tools like it.
+      </P>
+      <P>
+        Cammarata helped write the original papers. In his words: &quot;So there were two explanations for polysemanticity, and I helped propose both.&quot; His post on X describes how he came away &quot;pessimistic, because neural networks appeared to fold into arbitrary tangled knots.&quot; When he later started OpenAI&apos;s first large automated interpretability project, on a model called GPT-2 XL, the essay reports that &quot;fewer than 2% of its neurons came out clean.&quot;
+      </P>
+      <Figure
+        src="/blog/the-networks-were-never-tangled-2.jpg"
+        alt="The opening of Cammarata's essay on Goodfire, showing the title Neural Networks Are Already Clean"
+        width={1280}
+        height={577}
+        caption="The essay's opening. Screenshot, goodfire.com"
+      />
+      <H2>What does he say changed?</H2>
+      <P>
+        Better tools, and a much closer look. The post on X puts it simply: &quot;with modern agentic tools and a much closer look, the picture looks totally different. the vast majority in models up to trillions of parameters are legible, and their circuits beautiful.&quot;
+      </P>
+      <P>
+        The essay goes back to the famous examples one by one. The cat-and-car neuron, he now argues, is a neuron for a V shape: pointed things push it up, round things push it down. Cat ears and car grilles both have points. It was one idea all along, described badly.
+      </P>
+      <Figure
+        src="/blog/the-networks-were-never-tangled-3.jpg"
+        alt="The car-and-cat neuron revealed as a V-shape pattern detector"
+        width={800}
+        height={350}
+        caption="The car-and-cat neuron detects V-shapes. Our diagram from Cammarata's account."
+      />
+      <P>
+        He also traces how wrong the old estimates were. For the last layer of InceptionV1, he says he once would have put the share of readable neurons at around 5%. With better visualization tools on the same network he now puts it at about 50%. Retrained with modern methods, about 70%. In a modern network of the same size, a ConvNeXt, &quot;it&apos;s about 99%.&quot;
+      </P>
+      <P>
+        The thesis in one line, from the essay: &quot;Neural networks are already clean.&quot;
+      </P>
+      <Figure
+        src="/blog/the-networks-were-never-tangled-4.jpg"
+        alt="Key findings from Cammarata's essay: cat-and-car neuron, InceptionV1 numbers, Qwen3-32B stats, Santa neuron test"
+        width={800}
+        height={430}
+        caption="Key findings from the essay. Our diagram from Cammarata's data."
+      />
+      <H2>If neurons aren&apos;t tangled, why do some look messy?</H2>
+      <P>
+        This is the central idea of the essay, and it is where the braid comes in.
+      </P>
+      <P>
+        Cammarata names a pattern he calls <strong>recursive generalization</strong>. A neuron starts out responding to one core thing. As training goes on, it extends to things that are nearby and similar, and then to things near those. Each step is small and sensible. After many steps, the ends of the branches can look unrelated to each other, even though you can walk from one to the other in small, reasonable moves.
+      </P>
+      <P>
+        His examples are concrete. One language-model neuron responds to the sound &quot;iy&quot; and reaches as far as &quot;do it yourself&quot;. Another responds to planetary geology and has offshoots into JavaScript code. From a distance, those look like random combinations. Followed strand by strand, they are a braid.
+      </P>
+      <P>
+        The difference from superposition is testable, which is his main point. Generalization should be <strong>local</strong>: things end up together because they share a pattern. Superposition would be <strong>non-local</strong>: unrelated things packed together because they rarely collide. When he looked closely, the groupings kept turning out local. &quot;I now think I was making superposition the null hypothesis when it should have been the last hypothesis,&quot; he writes. His summary of the old habit: &quot;Polysemanticity is often more a claim about the observer than the neuron.&quot;
+      </P>
+      <H2>Did the untangling tools find anything the neurons missed?</H2>
+      <P>
+        He tested this directly, because it is the obvious objection: if neurons hide things, a sparse autoencoder should find building blocks the neurons lack.
+      </P>
+      <P>
+        In his image-model experiments, he reports that it didn&apos;t. On the last layer of one model, he found that 88% of the autoencoder&apos;s activity was near-copies of single neurons. In another test he squeezed a layer of InceptionV1 from 480 neurons down to 10, forcing the network to cram everything into very little space. The 10 neurons stayed readable, just coarser. An autoencoder trained on that squeezed layer, swapped back into the model, dropped its top-choice accuracy from 58.8% to 43.0%.
+      </P>
+      <P>
+        He doesn&apos;t claim these tools are useless. He says they help most in very small models, and that they are good at grouping neurons that tend to fire together. His claim is narrower: the neurons themselves are the building blocks, and the network can be read using its own parts.
+      </P>
+      <H2>Does this hold for the language models people actually use?</H2>
+      <P>
+        Image models are easier to check, so the essay starts there. The language-model section uses open models, mainly Qwen3-32B and Kimi K3, a model with more than a trillion parameters (the adjustable numbers inside a network). &quot;We found similar results in models up to trillions of parameters, like Kimi K3,&quot; he writes.
+      </P>
+      <P>
+        The method is an <strong>attribution graph</strong> (a map of which internal neurons pushed the model toward a particular answer), built only from the model&apos;s real neurons. Then he tests the map by removing neurons and watching the answer change.
+      </P>
+      <P>
+        One example shows how readable this can be. Asked a question whose answer was Santa, Qwen was near-certain. Removing eight neurons whose negative side relates to Santa dropped that to 6%. Removing the twenty neurons actually labelled &quot;Christmas&quot; or &quot;Santa&quot; only dropped it to 76%. The meaning lived where a careful reader found it, not where a keyword search would look.
+      </P>
+      <P>
+        In Kimi K3, asked what to do with a found wallet, the model answers &quot;return&quot;. Removing one neuron that the essay describes as a &quot;holds back&quot; neuron raised the probability of that answer from 0.83 to 0.98. He describes this as possibly the first published neuron-only map of a model that size.
+      </P>
+      <P>
+        He is clear about limits here. The Kimi map is a hand-picked slice. &quot;We haven&apos;t begun full audits of this scale yet.&quot; The companion technical paper is still forthcoming.
+      </P>
+      <H2>What would it take to read a whole model?</H2>
+      <P>
+        The essay&apos;s own analogy is a city, not a knot. &quot;A bigger system isn&apos;t necessarily harder to navigate,&quot; he writes, as long as you have good maps. He argues for maps you can zoom in and out of that stay connected to the real streets, the actual neurons and circuits. He warns that forcing your own categories on the network too early can make it look far worse than it is: &quot;you may have made Tokyo look much messier than it is.&quot;
+      </P>
+      <P>
+        His proposed route is scale. He imagines a laboratory of automated scientists, AI agents that label neurons, test explanations and trace circuits, doing ordinary science far faster than people can. He connects this to Rich Sutton&apos;s &quot;bitter lesson&quot;, the observation that simple methods that scale beat clever hand-built ones: &quot;Maybe there&apos;s a bitter lesson for interpretability too: scaling ordinary investigation beats engineering a clever new decomposition.&quot;
+      </P>
+      <Figure
+        src="/blog/the-networks-were-never-tangled-5.jpg"
+        alt="Cammarata's four-step argument for why interpretability might be tractable"
+        width={800}
+        height={290}
+        caption="The four steps: one learning principle, science works, understanding compounds, interpretability tractable. Our diagram."
+      />
+      <P>
+        He calls the essay a working hypothesis, and he gives a number for his confidence: &quot;We&apos;re maybe 85% sure&quot;, by which he means 85% sure that nearly everything comes from generalization rather than packing.
+      </P>
+      <H2>What does this mean for trusting an AI with a journal?</H2>
+      <P>
+        This is our reading, not his. The essay doesn&apos;t mention journaling.
+      </P>
+      <Figure
+        src="/blog/the-networks-were-never-tangled-6.jpg"
+        alt="Cammarata's essay with the four-step argument highlighted"
+        width={1280}
+        height={577}
+        caption="Cammarata's four-part argument. Screenshot, goodfire.com"
+      />
+      <P>
+        We build Argo, a private AI journal. You write or speak, and an AI reads your entries and shows you patterns you can&apos;t see from inside your own head. When people ask whether they can trust that, our answer today is about plumbing: entries are encrypted, speech and handwriting are turned into text on your phone, and the AI insights run through private, encrypted, anonymized processing.
+      </P>
+      <P>
+        That answer protects your words on the way in. It says nothing about what the model does with them once it reads them. Why did it call this week anxious? Did that come from what you wrote, or from an assumption about people like you? Until now the honest answer was that nobody can look. If Cammarata is right, that starts to change. A map like his Santa example, applied to one journal insight, could in principle show which parts of the model drove it.
+      </P>
+      <P>
+        We want to be precise about what that means. Nobody, including us, can do this for a journal app today. His work is on open models, and the full audits haven&apos;t happened. But trust in AI has so far rested on locking the box. This is the first credible argument we&apos;ve seen that we might also be able to look inside it.
+      </P>
+      <H2>What does it do to the &quot;AI takeover&quot; story?</H2>
+      <P>
+        Most takeover stories share one assumption: AI systems get more capable while staying opaque, so a system could pursue goals we can&apos;t see until it&apos;s too late. Research we follow on automated AI research, the loop where AI speeds up its own development, makes that worry sharper, because the faster capability moves, the less time people have to understand it.
+      </P>
+      <P>
+        Cammarata&apos;s essay pushes on the opaque part. His key line on deception: &quot;Deception might hide from someone reading a model&apos;s outputs, but it has no reason to hide from the model&apos;s own circuitry.&quot; And his fear is not that it is hidden: &quot;My fear is that deception will be right there, in plain sight, and we won&apos;t know how to read it.&quot;
+      </P>
+      <P>
+        If he is right, the same agents that speed up AI development can speed up reading it, and fixes could become, in his words, &quot;simple, careful changes&quot; instead of retraining a system you don&apos;t understand. In his post he goes further: &quot;I now think ambitious interpretability will be solved by the time we need it most, and possibly quite soon.&quot;
+      </P>
+      <P>
+        Our view: this changes the takeover story from a race we can only lose into a race with two runners. That is our framing, and it rests on a hypothesis that hasn&apos;t been tested on a whole frontier model. Two caveats matter. Goodfire sells interpretability, so it benefits if interpretability looks tractable, which is a reason to wait for other labs to replicate the results. And readable parts don&apos;t automatically add up to a readable whole.
+      </P>
+      <H2>What to take from it</H2>
+      <P>
+        From a distance, the inside of an AI model looked like a knot. One of the people who drew that picture now says that, looked at closely enough, it is mostly a braid, and that AI agents may soon be able to follow every strand. If that holds, &quot;what is the AI doing with my words?&quot; becomes a question someone can answer.
+      </P>
+      <P>
+        Read the essay at https://already-clean.goodfire.com/ and Nick Cammarata&apos;s post at https://x.com/nickcammarata/status/2110757819427574056. Follow what we build at https://myargoquest.com/blog and https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "the-networks-were-never-tangled",
+    title: "The networks were never tangled: what it means if we can finally read an AI's mind",
+    description: "Nick Cammarata argues neural networks are already readable, neuron by neuron. What he found, and what it means for trusting an AI with a journal.",
+    category: "ai-news",
+    date: "October 15, 2026",
+    isoDate: "2026-10-15T11:28",
+    readingTime: "11 min read",
+    Content: TheNetworksWereNeverTangledContent,
+  },
   {
     slug: "argo-build-log-day-15",
     title: "\"Argo build log, Day 15: The Exo case arrives in 3D\"",
