@@ -9658,7 +9658,125 @@ function TheNetworksWereNeverTangledContent() {
   )
 }
 
+/* ── Post: DeepSeek's Super-agent Design - Continuous, Proactive, Persistent AI Agents ── */
+function DeepseekSuperagentDesignContent() {
+  return (
+    <>
+      <P>
+        # DeepSeek&apos;s Super-agent Design - Continuous, Proactive, Persistent AI Agents
+      </P>
+      <P>
+        DeepSeek Harness, the open-source &quot;everything is a plugin&quot; agent framework, just published an internal design document about what they call the <strong>Super-agent</strong>: an agent architecture that is continuous, productive, proactive, and persistent.
+      </P>
+      <P>
+        Their internal instance already runs across IM and GitHub, monitoring issues and opening PRs without being told.
+      </P>
+      <Figure
+        src="/blog/deepseek-superagent-design-1.jpg"
+        alt="The four characteristics of a Super-agent: Continuous, Productive, Proactive, Persistent"
+        width={800}
+        height={280}
+        priority
+        caption="The four characteristics from the DeepSeek Harness article"
+      />
+      <H2>The four characteristics</H2>
+      <P>
+        The article argues that current agent systems have a fundamental problem. A task started in one session can&apos;t be seen by another. Each session is a fresh start. The bottleneck isn&apos;t model capability anymore - it&apos;s <strong>human attention</strong>.
+      </P>
+      <P>
+        The solution is an agent decoupled from any single manually-driven session:
+      </P>
+      <P>
+        | Characteristic | What it means | |---|---| | <strong>Continuous</strong> | Same agent across IM, GitHub, CLI. No more &quot;does session X know about Y?&quot; | | <strong>Productive</strong> | Multiple complex tasks in parallel. Takes the next instruction before the previous one finishes | | <strong>Proactive</strong> | Monitors events in its environment. Acts on what matters, stays quiet otherwise | | <strong>Persistent</strong> | Always online. Recovers from anomalies automatically |
+      </P>
+      <Figure
+        src="/blog/deepseek-superagent-design-2.jpg"
+        alt="Five-module Super-agent architecture diagram"
+        width={800}
+        height={330}
+        caption="The five modules from the DeepSeek Harness article"
+      />
+      <H2>The five-module architecture</H2>
+      <P>
+        1. <strong>Two-level architecture</strong> - one level for continuous interaction (chat, PR comments), one for deep work (long-running tasks). They share context but don&apos;t block each other.
+      </P>
+      <P>
+        2. <strong>Event-driven design</strong> - the agent subscribes to events (new GitHub issue, CI failure) and triggers actions. This is what makes it proactive rather than simply reactive.
+      </P>
+      <P>
+        3. <strong>Full-duplex multi-channel interaction</strong> - instructions on one channel (IM), results on another (GitHub). New instructions arrive before the first task finishes.
+      </P>
+      <P>
+        4. <strong>Compute-state-environment separation</strong> - the agent&apos;s state lives independently of where it&apos;s running. A task can start on one machine and finish on another.
+      </P>
+      <P>
+        5. <strong>Watchdog</strong> - an external monitor that detects stuck tasks, crashes, and resource leaks. The agent heals itself.
+      </P>
+      <Figure
+        src="/blog/deepseek-superagent-design-3.jpg"
+        alt="Super-agent vs traditional agent comparison"
+        width={800}
+        height={350}
+        caption="How Super-agent differs from current session-based agents"
+      />
+      <P>
+        &gt; &quot;Rather than proposing new theory, this design applies classic engineering ideas from computer systems to building agent systems.&quot;
+      </P>
+      <H2>Already running inside DeepSeek</H2>
+      <P>
+        The article is not theoretical. The team&apos;s internal Super-agent instance, built on DeepSeek Harness, already:
+      </P>
+      <UL items={[
+        <>Reproduces and fixes bugs across IM and GitHub</>,
+        <>Responds to code reviews</>,
+        <>Monitors public group chats and opens PRs unprompted</>,
+        <>Develops DeepSeek Harness itself every day</>,
+      ]} />
+      <Figure
+        src="/blog/deepseek-superagent-design-4.jpg"
+        alt="Context bottleneck illustration"
+        width={800}
+        height={300}
+        caption="The bottleneck shifts from model capability to human attention management"
+      />
+      <P>
+        The async task mechanism is in DSH code but not yet enabled by default. The superagent prototype plugin is experimental. But the architectural direction is clear.
+      </P>
+      <H2>What this means for anyone building agent systems</H2>
+      <P>
+        The design applies well-known systems engineering patterns - event-driven architecture, state separation, watchdog monitors - to the agent problem. It is not proposing new theory, it is applying what we already know about building reliable distributed systems.
+      </P>
+      <P>
+        For anyone running an agent harness today, the relevant question is not &quot;should I build this?&quot; - it is &quot;which of these patterns can I adopt first?&quot; The compute-state separation alone (characteristic 4) would solve the problem of a Hermes session not knowing what Claude Code did, and vice versa.
+      </P>
+      <Figure
+        src="/blog/deepseek-superagent-design-5.jpg"
+        alt="DeepSeek Harness GitHub stars and growth"
+        width={800}
+        height={300}
+        caption="DeepSeek Harness adoption since open source launch in August 2026"
+      />
+      <P>
+        The full article is on X (in Chinese, machine translations available). DeepSeek Harness is open source on GitHub under MIT.
+      </P>
+      <P>
+        https://github.com/deepseek-ai/deepseek-harness
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "deepseek-superagent-design",
+    title: "DeepSeek's Super-agent Design - Continuous, Proactive, Persistent AI Agents",
+    description: "DeepSeek Harness published their internal architecture for agents that never lose context, work in parallel, and act without being told.",
+    category: "ai-news",
+    date: "November 2, 2026",
+    isoDate: "2026-11-02T03:40",
+    readingTime: "3 min read",
+    Content: DeepseekSuperagentDesignContent,
+  },
   {
     slug: "the-networks-were-never-tangled",
     title: "The networks were never tangled: what it means if we can finally read an AI's mind",
