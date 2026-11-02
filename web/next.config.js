@@ -35,6 +35,9 @@ const nextConfig = {
       // URLs were shared publicly, so they redirect rather than 404.
       { source: '/founding', destination: '/pricing', permanent: true },
       { source: '/founding/thanks', destination: '/pricing', permanent: true },
+      // The open-source launch post (2026-10-17) and the deck pointed people at
+      // /secondbrain; the platform is the homepage since 2026-11-02.
+      { source: '/secondbrain', destination: '/', permanent: true },
     ]
   },
 }

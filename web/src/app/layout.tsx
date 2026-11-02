@@ -6,16 +6,16 @@ import SolanaWalletProvider from '@/lib/wallet/WalletProvider'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://myargoquest.com'),
-  title: 'Argo: Record, reflect, and grow with your private AI journaling app',
-  description: 'Argo is The Merge, a new category of journaling. Capture your life in text, voice, video, or photos and talk to a private AI that remembers everything, helps you see your patterns, and grows your mind, spirit, and ability to articulate yourself. Your journal is encrypted so only you hold the key, and you choose what you share with the AI.',
+  title: 'Argo: the open-source agentic second brain. Stay the author.',
+  description: 'Argo is an open-source agentic second brain: a knowledge base you own, agents that run on the best open model or harness for the job, and a loop that improves itself. Local-first, private by construction, yours.',
   icons: {
     icon: '/logo.png',
     apple: '/logo-icon.png',
   },
   openGraph: {
-    title: 'Argo: Record, reflect, and grow with your private AI journaling app',
-    description: 'The Merge: a daily practice of merging with a private AI built entirely from your own life. It remembers everything, shows you patterns you couldn\'t see alone, and helps you grow more articulate and whole.',
-    images: ['/logo-icon.png'],
+    title: 'Argo: the open-source agentic second brain. Stay the author.',
+    description: 'The agents are yours. The data is yours. Nothing important moves without you.',
+    images: ['/argo-emblem.png'],
   },
 }
 

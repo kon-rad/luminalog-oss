@@ -15,21 +15,30 @@ const CANCEL_CODES = new Set(['auth/popup-closed-by-user', 'auth/cancelled-popup
 
 type LinkItem = { label: string; href: string; external?: boolean }
 
-// The "Products" submenu, shared by the desktop dropdown and the mobile
-// drawer's expandable section. The three in-page anchors (Privacy, Reflect,
-// Practice) resolve against ids added to the immersive landing page's
-// PrivacySection, InsightsCarousel, and SoulSection respectively.
-const PRODUCTS_LINKS: LinkItem[] = [
-  { label: 'Privacy', href: '/#privacy' },
-  { label: 'Open Source', href: 'https://github.com/kon-rad/luminalog-oss', external: true },
+// Top-level links (spec: Areas/argo/brand/argo-rename-and-slogan.md, section 5,
+// step 4): Argo is the brand link, then Journal, Exo, Blog, GitHub.
+const PRIMARY_LINKS: LinkItem[] = [
+  { label: 'Journal', href: '/argo-journal' },
+  { label: 'Exo', href: 'https://exo.myargoquest.com', external: true },
   { label: 'Blog', href: '/blog' },
+  { label: 'GitHub', href: 'https://github.com/kon-rad/argo', external: true },
+]
+
+// The "More" submenu, shared by the desktop dropdown and the mobile drawer's
+// expandable section. The three in-page anchors (Privacy, Reflect, Practice)
+// resolve against ids on the journal landing page's PrivacySection,
+// InsightsCarousel, and SoulSection respectively.
+const MORE_LINKS: LinkItem[] = [
+  { label: 'Docs', href: 'https://kon-rad.github.io/argo/', external: true },
+  { label: 'Journal source', href: 'https://github.com/kon-rad/luminalog-oss', external: true },
   { label: 'Vitalik Scholar', href: '/vitalik-scholar' },
   { label: 'Events', href: '/events' },
   { label: 'Courses', href: '/courses' },
   { label: 'Card Game', href: '/card-game' },
   { label: 'Pricing', href: '/pricing' },
-  { label: 'Reflect', href: '/#reflect' },
-  { label: 'Practice', href: '/#practice' },
+  { label: 'Privacy', href: '/argo-journal#privacy' },
+  { label: 'Reflect', href: '/argo-journal#reflect' },
+  { label: 'Practice', href: '/argo-journal#practice' },
 ]
 
 // The "Socials" submenu, shared by the desktop dropdown and the mobile
@@ -40,7 +49,7 @@ const SOCIAL_LINKS: LinkItem[] = [
   { label: 'Instagram', href: 'https://instagram.com/myargoquest', external: true },
   { label: 'Facebook', href: 'https://www.facebook.com/myargoquest', external: true },
   { label: 'Telegram Community', href: TELEGRAM_HREF, external: true },
-  { label: 'GitHub', href: 'https://github.com/kon-rad/luminalog-oss', external: true },
+  { label: 'GitHub', href: 'https://github.com/kon-rad/argo', external: true },
   { label: 'Konrad Gnat (X)', href: 'https://x.com/konrad_gnat', external: true },
   { label: 'YouTube (@MyArgoQuest)', href: 'https://www.youtube.com/@myargoquest', external: true },
 ]
@@ -190,30 +199,20 @@ export default function Navbar({ immersive = false }: { immersive?: boolean } = 
 
           {/* Right */}
           <div className="flex items-center gap-6">
-            <NavDropdown label="Products" items={PRODUCTS_LINKS} />
+            {PRIMARY_LINKS.map((item) => (
+              <a
+                key={item.label}
+                href={item.href}
+                target={item.external ? '_blank' : undefined}
+                rel={item.external ? 'noopener noreferrer' : undefined}
+                className="nav-link hidden md:inline-flex items-center"
+                style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text2)' }}
+              >
+                {item.label}
+              </a>
+            ))}
+            <NavDropdown label="More" items={MORE_LINKS} />
             <NavDropdown label="Socials" items={SOCIAL_LINKS} />
-
-            <a
-              href="https://www.youtube.com/@myargoquest"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="nav-link hidden md:inline-flex items-center"
-              title="Argo on YouTube"
-              aria-label="Argo on YouTube"
-            >
-              <YouTubeGlyph />
-            </a>
-
-            <a
-              href="https://www.youtube.com/@ArgoPodcast"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="nav-link hidden md:inline-flex items-center"
-              title="The Argo Podcast on YouTube"
-              aria-label="The Argo Podcast on YouTube"
-            >
-              <YouTubeGlyph />
-            </a>
 
             {!loading && (
               user ? (
@@ -307,7 +306,21 @@ export default function Navbar({ immersive = false }: { immersive?: boolean } = 
       {drawerOpen && (
         <div ref={drawerRef} id="mobile-drawer" role="menu" className="md:hidden" style={{ borderTop: '1px solid var(--hairline)' }}>
           <div className="wrap" style={{ paddingTop: 12, paddingBottom: 18, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <MobileAccordion label="Products" items={PRODUCTS_LINKS} onNavigate={() => setDrawerOpen(false)} />
+            {PRIMARY_LINKS.map((item) => (
+              <a
+                key={item.label}
+                href={item.href}
+                target={item.external ? '_blank' : undefined}
+                rel={item.external ? 'noopener noreferrer' : undefined}
+                role="menuitem"
+                onClick={() => setDrawerOpen(false)}
+                className="nav-link"
+                style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', padding: '11px 4px' }}
+              >
+                {item.label}
+              </a>
+            ))}
+            <MobileAccordion label="More" items={MORE_LINKS} onNavigate={() => setDrawerOpen(false)} />
             <MobileAccordion label="Socials" items={SOCIAL_LINKS} onNavigate={() => setDrawerOpen(false)} />
 
             <div style={{ height: 1, background: 'var(--hairline)', margin: '8px 0' }} />
@@ -409,14 +422,6 @@ function SolanaGlyph() {
         fill="url(#solana-glyph-gradient)"
         d="M4.5 16.6c.2-.2.5-.3.8-.3h14.4c.5 0 .7.6.4.9l-3 3c-.2.2-.5.3-.8.3H1.9c-.5 0-.7-.6-.4-.9l3-3zm0-9.2c.2-.2.5-.3.8-.3h14.4c.5 0 .7.6.4.9l-3 3c-.2.2-.5.3-.8.3H1.9c-.5 0-.7-.6-.4-.9l3-3zM19.7 12c.2.2.3.5.3.8v0c0 .5-.6.7-.9.4l-3-3a1.1 1.1 0 0 1-.3-.8v0c0-.5.6-.7.9-.4l3 3z"
       />
-    </svg>
-  )
-}
-
-function YouTubeGlyph() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden style={{ flexShrink: 0 }}>
-      <path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 0 0 .5 6.19C0 8.08 0 12 0 12s0 3.92.5 5.81a3.02 3.02 0 0 0 2.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 0 0 2.12-2.14C24 15.92 24 12 24 12s0-3.92-.5-5.81zM9.55 15.57V8.43L15.82 12z" />
     </svg>
   )
 }
