@@ -10112,7 +10112,227 @@ function CommandingHeightsContent() {
   )
 }
 
+/* ── Post: "DeepSeek Harness Creator Mode: what it does, what it costs, and how open it really is" ── */
+function DeepseekHarnessCreatorModeContent() {
+  return (
+    <>
+      <P>
+        On November 2, 2026, the team behind DeepSeek Harness posted a 99-second video with a short line on top: &quot;Your Harness. You Define It.&quot; The video shows a person typing a sentence, an AI agent going quiet for a while, and then a new piece of software appearing inside the app: a sticky note wall, a voxel island game, a 3D walk-through of how a transformer computes its next word.
+      </P>
+      <P>
+        The feature is called Creator Mode. In DeepSeek&apos;s words, it lets you &quot;Turn ideas into plugins that you can use, from a design workspace to a sandbox game or a 3D LLM visualizer.&quot;
+      </P>
+      <P>
+        This post covers what DeepSeek Harness is, what Creator Mode does and how it works under the hood, everything else the harness can do, what it costs in US dollars, and which parts are open source and which are not. Earlier today we also wrote about the same team&apos;s design paper, <A href="https://myargoquest.com/blog/deepseek-superagent-design">the Super-agent design</A>; this post is about the product.
+      </P>
+      <H2>What is DeepSeek Harness?</H2>
+      <P>
+        An agent harness is the program wrapped around an AI model that lets it do work: it gives the model tools (a terminal, a file editor, a web search), runs the loop of &quot;think, call a tool, read the result, think again&quot;, and shows you what is happening. Claude Code and Codex are harnesses. The model is the engine; the harness is the rest of the car.
+      </P>
+      <P>
+        DeepSeek&apos;s README describes its own plainly: &quot;DeepSeek Harness (<code>dsh</code>) is an open-source agent harness developed by DeepSeek AI.&quot; It runs three ways:
+      </P>
+      <UL items={[
+        <><strong>A desktop app</strong> for macOS (Apple silicon) and Windows (64-bit), released on September 30, 2026.</>,
+        <><strong>A local web interface</strong>, started with one command: <code>npx @deepseek-ai/dsh web</code>.</>,
+        <><strong>From source</strong>, out of the GitHub repository.</>,
+      ]} />
+      <P>
+        Its design idea fits in four words, which are also the X account&apos;s bio: &quot;Everything is a plugin.&quot; The agent loop, the terminal, subagents, scheduled tasks: each one is a plugin, loaded by a small framework called Cordis. That matters for Creator Mode. When the agent writes you a new plugin, it is not a bolt-on extension in a sandbox off to the side. It sits next to the parts that make up the harness itself.
+      </P>
+      <P>
+        DeepSeek is upfront that this is early software. The README says: &quot;DeepSeek Harness is in developer preview and iterating rapidly. THERE WILL BE COMPATIBILITY-BREAKING CHANGES.&quot;
+      </P>
+      <H2>What does Creator Mode do?</H2>
+      <P>
+        The chat box in DeepSeek Harness has a mode menu. The launch video shows four entries, each with a one-line description:
+      </P>
+      <UL items={[
+        <><strong>Standard mode:</strong> &quot;Code, files and everyday tasks&quot;</>,
+        <><strong>PTC mode:</strong> &quot;Batch tools and organize results&quot;</>,
+        <><strong>Minimal mode:</strong> &quot;Work with a terminal&quot;</>,
+        <><strong>Creator mode:</strong> &quot;Build plugins, features and your own UI&quot;</>,
+      ]} />
+      <Figure
+        src="/blog/deepseek-harness-creator-mode-1.jpg"
+        alt="The DeepSeek Harness desktop app's mode menu: Standard mode for code, files and everyday tasks; PTC mode to batch tools; Minimal mode to work with a terminal; Creator mode to build plugins, features and your own UI. The model shown is DeepSeek-V4.1-Flash 1017."
+        width={1920}
+        height={1080}
+        priority
+        caption="The four modes in the composer; Creator mode is the one that builds plugins (frame from the launch video, DeepSeek Harness)"
+      />
+      <P>
+        You pick Creator mode, describe what you want, and the agent builds it as a plugin, installs it into your copy of the harness, and checks that it works. The product page puts it in one sentence: &quot;Install plugins, or create them through chat in &quot;Creator mode&quot;, to extend tools, skills, and the interface.&quot;
+      </P>
+      <Figure
+        src="/blog/deepseek-harness-creator-mode-2.jpg"
+        alt="The DeepSeek Harness product page with the line Install plugins, or create them through chat in Creator mode, to extend tools, skills, and the interface highlighted"
+        width={1575}
+        height={289}
+        caption="How DeepSeek describes Creator mode on its product page (screenshot, deepseek.com)"
+      />
+      <P>
+        The page data describes it in more technical terms: Creator mode is &quot;Built for creating custom agent presets, with all Standard mode capabilities plus runtime inspection, plugin experiments, and preset-authoring guidance.&quot; In plain words, it can do everything the normal mode does, and on top of that it can look inside the running app, try plugins out in memory before installing them, and combine plugins into new modes of your own.
+      </P>
+      <P>
+        The word &quot;UI&quot; in the menu is the part that surprised us. Most agent tools let you add a new tool or a new instruction. Here the plugin can also change the interface: a sidebar panel, a floating timer, or a whole app inside the app.
+      </P>
+      <H2>How does a sentence become a plugin?</H2>
+      <P>
+        DeepSeek&apos;s product page shows one build from start to finish. The request is &quot;Write a Pomodoro timer plugin for me.&quot; The agent&apos;s log then reads, in order: &quot;Load skill cordis-plugin-development&quot;, it writes the plugin&apos;s files, it calls the tool &quot;plugin_manager · install_bundle&quot;, and it ends with &quot;The floating Pomodoro timer is built, installed, and verified.&quot;
+      </P>
+      <Figure
+        src="/blog/deepseek-harness-creator-mode-3.jpg"
+        alt="Six steps: you describe a plugin, the agent loads the cordis-plugin-development skill and inspects the app, writes an npm bundle with package.json and cordis.patch.yml, installs it with plugin_manager install_bundle, verifies it, and you use it. Below: a plugin is a TypeScript module that exports apply(ctx)."
+        width={1920}
+        height={1080}
+        caption="From a sentence to an installed plugin, the steps shown in DeepSeek's Pomodoro demo (Argo diagram)"
+      />
+      <P>
+        The developer docs explain what the agent is writing. &quot;In Harness, a plugin is a TypeScript module that exports an <code>apply</code> function. The framework calls <code>apply</code> when loading the plugin and passes a <code>ctx</code> context object through which the plugin registers capabilities.&quot; Through it, a plugin can add tools, skills or pieces of interface.
+      </P>
+      <P>
+        Plugins travel as bundles. &quot;A bundle is an npm package that ships a configuration layer. Its manifest declares <code>dsh.bundle</code>.&quot; Next to the code sits a patch file, <code>cordis.patch.yml</code>, that tells the harness which plugins to add or override. You can see those files in the launch video: when the sticky note wall is done, the log shows &quot;Edited 4 files&quot;, including <code>package.json</code> and <code>cordis.patch.yml</code>.
+      </P>
+      <P>
+        Two design choices stand out. First, the agent does not guess how to write a plugin; it loads a skill, a written procedure, before it starts. Second, it checks its own work: installing and verifying are steps in the loop, not something left to you. Both are lessons the whole agent field has been learning the hard way, and it is good to see them built in.
+      </P>
+      <P>
+        Because a bundle is an ordinary npm package, a plugin you make is not locked inside your machine. You can publish it, and others can install it with <code>dsh plugin add</code>.
+      </P>
+      <H2>What did DeepSeek build with it?</H2>
+      <P>
+        DeepSeek posted the prompts behind the video in a reply to the launch post, in English and Chinese. The prompt collection lists seven plugins:
+      </P>
+      <UL items={[
+        <>a 3D gallery of famous landmarks</>,
+        <>a Transformer 3D visualization, described as &quot;an interactive 3D demonstration game that helps me understand the computation inside a Transformer&quot;</>,
+        <>a pixel-art restyle of the whole harness, with five visual styles</>,
+        <>a poster design workbench</>,
+        <>a video editing workbench</>,
+        <>a paper reader in the right sidebar, where you can highlight, take notes and ask questions</>,
+        <>a conversation statistics panel showing token usage, costs and CPU</>,
+      ]} />
+      <P>
+        The Transformer lab is the tweet&apos;s &quot;3D LLM visualizer&quot;. It opens up &quot;One five-token transformer block&quot; in space and walks the sentence &quot;the cat sat on the&quot; through seven stages, from tokens to the final scores for the next word.
+      </P>
+      <Figure
+        src="/blog/deepseek-harness-creator-mode-4.jpg"
+        alt="A plugin called Transformer 3D Lab: one five-token transformer block on the sentence the cat sat on the, shown as seven 3D stages from Tokens through Embed, Q K V, Attention, Mix and FFN to Logits, with a pipeline panel on the right."
+        width={1920}
+        height={1080}
+        caption="The tweet's 3D LLM visualizer: a Transformer 3D Lab built as a plugin (frame from the launch video, DeepSeek Harness)"
+      />
+      <P>
+        The sandbox game is a voxel island builder called FUYU. Oddly, it is one of two plugins in the video, with the sticky note wall, that have no prompt in the collection.
+      </P>
+      <Figure
+        src="/blog/deepseek-harness-creator-mode-5.jpg"
+        alt="A voxel sandbox game titled FUYU, a tiny sandbox: a small block island called Berry Cay with a tree, built inside the harness."
+        width={1920}
+        height={1080}
+        caption="The sandbox game from the launch video; DeepSeek did not publish its prompt (frame from the launch video, DeepSeek Harness)"
+      />
+      <P>
+        DeepSeek adds an honest caveat on the prompt page: &quot;Some plugins were refined through several rounds of conversation, so a single prompt may not reproduce exactly what you see in the video.&quot; So treat the video as the best case, not as what one message will give you.
+      </P>
+      <H2>What else can the harness do?</H2>
+      <P>
+        Creator Mode is the headline, but it sits on top of a fairly complete harness. From the product page and the docs:
+      </P>
+      <UL items={[
+        <><strong>Four modes.</strong> Standard for everyday coding and files. PTC for batching tool calls and organizing the results. Minimal, which &quot;keeps only a shell tool and a file editor for benchmarking models in a minimal environment&quot;. And Creator.</>,
+        <><strong>Built-in plugins.</strong> Terminal, the agent loop and subagents, plus four marked experimental on the product page: agent teams, auto approval review, scheduled tasks and voice input.</>,
+        <><strong>MCP.</strong> Tools from Model Context Protocol servers plug in like any other tool.</>,
+        <><strong>A plugin market, sort of.</strong> An experimental &quot;Custom plugin indexes&quot; switch adds a Discover tab, and &quot;Creator mode gains the read-only <code>plugin_market</code> tool.&quot; But &quot;DSH ships no index source&quot;: there is no official store. You add lists of plugins that you or someone else hosts.</>,
+        <><strong>Other models.</strong> It is built around DeepSeek&apos;s own models, but it can also be pointed at other providers.</>,
+      ]} />
+      <P>
+        The default model is DeepSeek-V4.1-Flash-1017. DeepSeek says this model &quot;was specifically optimized for @DeepSeekHarness during training, improving task performance while shortening task runtime and reducing output usage and token costs.&quot;
+      </P>
+      <H2>What does it cost?</H2>
+      <P>
+        The harness itself costs nothing. It is open source, and no page we found lists a plan, a tier or a subscription for it. What you pay for is the model, by the token, through DeepSeek&apos;s API. As of November 2, 2026, the prices per million tokens in US dollars are:
+      </P>
+      <P>
+        | Model | Input, cache miss (off-peak / peak) | Input, cache hit (off-peak / peak) | Output (off-peak / peak) | |---|---|---|---| | deepseek-flash (DeepSeek-V4.1-Flash-1017, the default) | 0.15 / 0.30 | 0.003 / 0.006 | 0.60 / 1.20 | | deepseek-v4-pro | 0.66 / 1.32 | 0.022 / 0.044 | 1.98 / 3.96 |
+      </P>
+      <Figure
+        src="/blog/deepseek-harness-creator-mode-6.jpg"
+        alt="DeepSeek's API pricing table, left column deepseek-flash and right column deepseek-v4-pro, with the row 1M input tokens, cache miss highlighted: off-peak 0.15 and 0.66 US dollars, peak 0.3 and 1.32; output off-peak 0.6 and 1.98"
+        width={1575}
+        height={1435}
+        caption="What you actually pay: DeepSeek API tokens per million, deepseek-flash on the left and deepseek-v4-pro on the right, read on 2026-11-02 (screenshot, api-docs.deepseek.com)"
+      />
+      <P>
+        A few details change the real bill:
+      </P>
+      <UL items={[
+        <><strong>Time of day.</strong> &quot;Off-peak rates are half of the peak rates.&quot; Peak hours are 01:00 to 04:00 and 06:00 to 10:00 UTC on weekdays. Everything else, including weekends, is off-peak.</>,
+        <><strong>Cache hits are almost free.</strong> An agent re-reads the same long context on every step. When that context is cached, input on Flash costs USD 0.003 per million tokens instead of USD 0.15, fifty times less.</>,
+        <><strong>Search and Fetch are billed separately.</strong> Each costs USD 0.75 per 1,000 successful requests. DeepSeek&apos;s pricing page says these calls from the harness &quot;are currently free of charge; per-request billing starts at 00:00 Beijing time on November 1, 2026.&quot; That date has passed, but the page still says &quot;currently free&quot;, so check your own bill.</>,
+      ]} />
+      <P>
+        What we could not find: the token cost of a typical Creator Mode build. The Pomodoro demo took five minutes and 24 seconds, but DeepSeek publishes no token count for it. We also found no free quota for a new DeepSeek account. If you want to know what your own builds cost, the conversation statistics panel in DeepSeek&apos;s prompt collection is, fittingly, a plugin you could build first.
+      </P>
+      <H2>Is it open source or closed?</H2>
+      <P>
+        Mostly open, with the usual exception: the hosted service.
+      </P>
+      <Figure
+        src="/blog/deepseek-harness-creator-mode-7.jpg"
+        alt="Left: open source under MIT, the harness with 269,269 GitHub stars, Cordis with 9,539 stars and the V4.1-Flash weights, price of the harness 0 US dollars. Right: DeepSeek API prices per million tokens, flash 0.15 input and 0.60 output off-peak, v4-pro 0.66 and 1.98, Search and Fetch 0.75 per 1,000 requests. Bottom: the SAFETY.md line that it has not had a security audit."
+        width={1920}
+        height={1080}
+        caption="Free and open harness, paid tokens, and an honest warning (Argo diagram)"
+      />
+      <UL items={[
+        <><strong>The harness is open source, MIT licence.</strong> The repository, github.com/deepseek-ai/deepseek-harness, had 269,269 stars and 32,696 forks when we checked on November 2. It was created on August 13, 2026.</>,
+        <><strong>Cordis, the plugin framework, is MIT too</strong>, with 9,539 stars.</>,
+        <><strong>The default model&apos;s weights are open.</strong> DeepSeek-V4.1-Flash-1017 is on Hugging Face under the MIT licence. In principle you can run the whole stack, harness and model, on your own hardware, if you have hardware that can hold the model.</>,
+        <><strong>The hosted API is closed.</strong> DeepSeek&apos;s API, the accounts and the billing are a service, not code you can read.</>,
+      ]} />
+      <P>
+        MIT is about as permissive as licences get: you can use the code, change it and sell products built on it, as long as you keep the copyright notice.
+      </P>
+      <H2>What should you watch out for?</H2>
+      <P>
+        Open does not mean safe. DeepSeek&apos;s own SAFETY.md is blunt: &quot;DeepSeek Harness is experimental developer-preview software. It has not undergone a security audit and must not be treated as secure or production-ready.&quot;
+      </P>
+      <P>
+        Creator Mode makes that matter more, not less. A plugin is code that runs with the harness&apos;s access to your files and your terminal. When an agent writes that code for you, from one sentence, in five minutes, you are trusting code that nobody has read. Plugins installed from someone else&apos;s list carry the same risk, and the docs say so: &quot;Indexes are third-party content.&quot; Our advice: try it in a folder that holds nothing you care about, and read a plugin before you install one from a stranger.
+      </P>
+      <P>
+        Two smaller notes. First, Creator mode itself is not brand new: the repository has a design note about Creator skills dated September 21, 2026. November 2 is its big public moment, not its first day. Second, the developer-preview warning about breaking changes means a plugin you build this month may need fixing next month.
+      </P>
+      <H2>Why this matters</H2>
+      <P>
+        For two years the race between AI labs has been about models. Harnesses have now become a second front: the program that turns a model into an assistant decides most of what the assistant feels like to use. DeepSeek is betting that the best harness is the one you reshape yourself, by asking.
+      </P>
+      <P>
+        We think that is the right instinct. Our own tools at Argo started as one-off scripts and grew into a system of small skills and plugins, so the idea that everything is a plugin, and that the agent can write the next one, feels familiar. The free, MIT-licensed harness, together with low token prices and open weights, makes the barrier to trying it very low.
+      </P>
+      <P>
+        The open questions are trust and cost. Will people read the plugins their agent writes? And what does a five-minute build cost in tokens? DeepSeek has not published that second number yet.
+      </P>
+      <P>
+        The repository is at https://github.com/deepseek-ai/deepseek-harness and the product page at https://www.deepseek.com/en/harness/. We write about agent harnesses and research like this on the blog and at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "deepseek-harness-creator-mode",
+    title: "\"DeepSeek Harness Creator Mode: what it does, what it costs, and how open it really is\"",
+    description: "DeepSeek's open-source agent harness now builds its own plugins from a chat message. Every feature, the real price in USD, and what is open and what is not.",
+    category: "ai-news",
+    date: "November 2, 2026",
+    isoDate: "2026-11-02T16:28",
+    readingTime: "13 min read",
+    Content: DeepseekHarnessCreatorModeContent,
+  },
   {
     slug: "commanding-heights",
     title: "The Commanding Heights, explained: who gets rich when AI gets cheap",
