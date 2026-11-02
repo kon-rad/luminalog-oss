@@ -9934,7 +9934,195 @@ function PlatonicRepresentationJepaContent() {
   )
 }
 
+/* ── Post: The Commanding Heights, explained: who gets rich when AI gets cheap ── */
+function CommandingHeightsContent() {
+  return (
+    <>
+      <P>
+        Picture a designer who uses an AI model every day. It makes her far more productive. It also learns from her choices, along with millions of other users, and the next generation of that model is offered to her clients as a cheaper alternative to her. She paid for the tool, she trained it for free, and someone else kept the gain.
+      </P>
+      <P>
+        That scene is fiction. It comes from a 145-page essay published on October 29, 2026 by Will Manidis and Joe Roberts, called &quot;The Commanding Heights&quot;. The essay asks one question: when intelligence becomes cheap and everywhere, who ends up with the money? Their answer is not the companies that build the models.
+      </P>
+      <P>
+        This post explains their argument as fairly as we can, then gives our own critical read of where it is evidenced and where it is only asserted, and ends with what we think it means for Argo. Every number below is the authors&apos; figure, quoted from the essay. We have not checked those figures against the reports the essay cites.
+      </P>
+      <Figure
+        src="/blog/commanding-heights-1.jpg"
+        alt="The commanding-heights.com web edition: the title The Commanding Heights, the subtitle about scarce, controllable positions of economic power, the authors Will Manidis and Joe Roberts and the date October 29, 2026"
+        width={1575}
+        height={980}
+        priority
+        caption="The web edition at commanding-heights.com, dated October 29, 2026 (screenshot, The Commanding Heights, Manidis and Roberts)"
+      />
+      <H2>What is a Commanding Height?</H2>
+      <P>
+        The phrase is old. The authors take it from Lenin, who told the Fourth Congress of the Comintern in November 1922: &quot;We hold all the Commanding Heights.&quot; They borrow the words and give them a new meaning.
+      </P>
+      <P>
+        Their definition: &quot;We define the Commanding Heights as scarce, controllable positions of economic power whose holders durably capture the gains of increasingly capable and diffused intelligence.&quot; Three words carry the weight. <strong>Scarce</strong> means there are few of them. <strong>Controllable</strong> means someone can own and defend them. <strong>Durably</strong> means the advantage lasts, rather than vanishing when a competitor catches up.
+      </P>
+      <P>
+        A simple way to picture it is a mountain pass. Thousands of traders cross the mountains with goods worth a lot. The traders compete with each other and their margins shrink. The one who owns the pass charges every one of them a toll, and the more trade there is, the more the pass earns. The analogy stops working in one place: a real pass is fixed by geography, while the authors admit that economic crossings can move.
+      </P>
+      <Figure
+        src="/blog/commanding-heights-2.jpg"
+        alt="Page 107 of The Commanding Heights, with the sentence We define the Commanding Heights as scarce, controllable positions of economic power highlighted"
+        width={1032}
+        height={476}
+        caption="The essay's definition of a Commanding Height, page 107 (screenshot, The Commanding Heights, Manidis and Roberts)"
+      />
+      <H2>Why would the model be the giveaway?</H2>
+      <P>
+        Most people assume the AI business is selling intelligence: you pay a lab per question, the lab earns a margin. The essay turns that around: &quot;we believe that intelligence is the giveaway, a loss leader that draws in users and data and derives margins from being the conduit.&quot;
+      </P>
+      <P>
+        A loss leader is the product a shop sells cheaply, even at a loss, to bring people through the door, where they buy something else. In the essay&apos;s picture, the model is the cheap milk at the back of the supermarket. The money is made by whoever owns the store.
+      </P>
+      <P>
+        Their reason is the strange economics of a model: &quot;It costs billions to build and dollars to run, but in a year it will cost pennies to run and several billion dollars more to build again.&quot; So, they conclude, &quot;If there is a durable margin to be had, it will not be found at the constantly churning layer of the model.&quot;
+      </P>
+      <Figure
+        src="/blog/commanding-heights-3.jpg"
+        alt="Page 26 of the essay, with the line we believe that intelligence is the giveaway, a loss leader that draws in users and data highlighted"
+        width={1032}
+        height={414}
+        caption="The core inversion: intelligence as the loss leader, the conduit as the business, page 26 (screenshot, The Commanding Heights, Manidis and Roberts)"
+      />
+      <H2>What do Gutenberg and the railroads have to do with AI?</H2>
+      <P>
+        The essay leans on history to make this feel familiar: &quot;Technological revolutions are almost never born where they ultimately create wealth. Gutenberg went insolvent, and the great railroad fortunes were captured by men who never built a locomotive.&quot;
+      </P>
+      <P>
+        The printing press changed the world, and its inventor went broke. Railroads remade the American economy, and the locomotive builders were not the ones who got rich. The authors argue that AI models are the locomotives of this era, and that &quot;the most lasting wealth will accrue to those positions that intelligence must pass through to reach its utility.&quot;
+      </P>
+      <P>
+        They also make a point about why the builders keep building anyway. Each lab has to keep up with the frontier, or the money it already spent is wasted. As the essay puts it: &quot;what is rational capital allocation for a particular firm may be capital destruction in the aggregate.&quot; Each company is doing the sensible thing for itself, and the industry as a whole may still lose money.
+      </P>
+      <H2>Why do the two lines pull apart?</H2>
+      <P>
+        The essay&apos;s strongest section is about two numbers moving in opposite directions.
+      </P>
+      <UL items={[
+        <><strong>Building a frontier model costs more each year.</strong> Citing Epoch AI, a research group that tracks AI trends, the authors say the cost to train a frontier model is rising about 3.5 times a year. They project training runs of 3.5 billion US dollars in 2027 and 10 billion US dollars the year after. These are projections, not measured costs.</>,
+        <><strong>Using a model costs less each year.</strong> The authors write that since GPT-3, &quot;the price of a unit of machine intelligence has fallen thirteenfold a year&quot;. They also cite Epoch&apos;s finding that the minimum cost of reaching a given level of performance on five key benchmarks has fallen about 47% per quarter since 2023.</>,
+      ]} />
+      <P>
+        Put those side by side and the essay&apos;s claim follows. Each new model is more expensive to make, and each answer it gives is cheaper to sell. Whoever only makes models is running up a staircase that keeps getting steeper while the price at the top keeps falling.
+      </P>
+      <P>
+        The money behind this is large. The authors write that US hyperscalers (the biggest cloud companies) spent over 400 billion US dollars on capital expenditure last year and will spend around 800 billion US dollars this year. Citing Epoch again, they say that spending is growing about 70% a year while the hyperscalers&apos; operating cash flow grows only about 23% a year.
+      </P>
+      <Figure
+        src="/blog/commanding-heights-4.jpg"
+        alt="Bar chart of frontier training run cost: about 1 billion US dollars reported for 2026 (an unconfirmed estimate the essay cites), then the essay's projected 3.5 billion in 2027 and 10 billion in 2028, beside the price of a unit of machine intelligence falling 13 times a year since GPT-3 and the cost of a given benchmark score falling about 47 percent a quarter since 2023"
+        width={1920}
+        height={1080}
+        caption="Frontier runs get dearer while each answer gets cheaper, the essay's two lines side by side (Argo diagram)"
+      />
+      <H2>Why does China set the price floor?</H2>
+      <P>
+        The essay splits intelligence into three kinds: &quot;commodity intelligence, a commercial frontier sold at a premium, and a sovereign frontier held in state reserve.&quot; China, in their telling, sets the price of the first kind.
+      </P>
+      <P>
+        Their example is Kimi K3, which they describe as a 2.8-trillion-parameter model from Moonshot AI, released on July 16, 2026, with weights anyone could download and capabilities that &quot;rivaled the American commercial frontier for most tasks&quot;. Open weights means the model itself is published, so anyone can run it on their own hardware without paying the lab per question. When a model that good costs a trivial amount to download, it puts a floor under what anyone can charge.
+      </P>
+      <P>
+        The authors point to household balance sheets to explain why China can afford this. They write that in 2022, only 15% of Chinese household wealth was in equities, against 47% in real estate and 24% in cash and deposits, and that the Shanghai Composite rose only 29% over ten years while the S&amp;P rose 254%. The contrast with the US is the point. For Washington, the essay expects &quot;increasingly central backstops such as retirement savings and the Treasury&quot; to keep AI spending rising. It also notes that about half of American household wealth is tied up in the stock market, against fifteen percent in China.
+      </P>
+      <P>
+        They also report that publicized Chinese models went from a marginal share of global token use on OpenRouter (whose public usage rankings the essay cites) to more than a majority by volume by summer 2026. To their credit, they add that OpenRouter &quot;is a distorted subset of global token consumption&quot;, skewed toward people who already prefer open-weight models.
+      </P>
+      <P>
+        Their own chart, built from Arena data for October 2026, shows the result: US models still sit at the top of the quality frontier, but Chinese models share its cheap end, with a 1.3 times US price premium between two comparable models.
+      </P>
+      <Figure
+        src="/blog/commanding-heights-5.jpg"
+        alt="The essay's chart US models top the frontier, Chinese models share its cheap end: net improvement against median cost per task in Arena Agent Mode, October 2026, with a 1.3 times US price premium between GPT-6 Luna Max at 0.08 US dollars and MiMo-V2.6-Flash at 0.06 US dollars"
+        width={1020}
+        height={1008}
+        caption="US models top the frontier, Chinese models share its cheap end, page 65, from Arena data (screenshot, The Commanding Heights, Manidis and Roberts)"
+      />
+      <H2>So where does the money settle?</H2>
+      <P>
+        If models are cheap and interchangeable, the authors argue, value moves to the crossings: distribution (the apps people already use), payments and data. Licensing keeps its value too, they argue, because a liable human must remain responsible for the output.
+      </P>
+      <P>
+        Data is a crossing they develop at length. &quot;The rails most widely used will become inventories of human activity,&quot; they write, letting their owners gather proprietary data to improve the model &quot;through a new smiling face on an app like WhatsApp that billions of people already use every day.&quot; The designer at the top of this post is their illustration of how that works.
+      </P>
+      <P>
+        The biggest prize, in their view, is &quot;a population-scale installed base&quot;, the people who already use a product every day. &quot;The owner will be model-agnostic,&quot; they add. It does not matter whose model runs underneath, only who owns the relationship with the people using it. They also name one concrete opening: &quot;Personal AI agent providers will have an easy win in offering a mini-treasury function to every household in America.&quot;
+      </P>
+      <H2>Where is the argument weakest? (our read)</H2>
+      <P>
+        This section is our opinion. We think the essay is worth reading, and we also think it is long on assertion at the points where it should be most concrete.
+      </P>
+      <P>
+        <strong>The payoff is redacted.</strong> After building to the line &quot;It is finally time again to buy DoubleClick and Android, not Alphabet or Anthropic&quot;, the essay compares the next great toll collector to Google Ads, and then blacks out the names of the two companies it means. In the PDF they are black bars. In the web edition the same spans are marked as redacted. A reader cannot test the framework on the authors&apos; own picks, which is the one test that would show whether it works.
+      </P>
+      <Figure
+        src="/blog/commanding-heights-6.jpg"
+        alt="Top of page 141 of the essay: two company names are blacked out in the sentences comparing the next toll collector to Google Ads, with the words takes the same from an exponentially larger highlighted"
+        width={1032}
+        height={205}
+        caption="The essay's two picks are redacted in the published text, page 141 (screenshot, The Commanding Heights, Manidis and Roberts)"
+      />
+      <P>
+        <strong>Its own footnote cuts against its slogan.</strong> The essay&apos;s line is &quot;In the world to come, one either owns the rails or pays those who do.&quot; But footnote 25, citing an economics paper by Hornbeck and Rotemberg, says: &quot;The railroad sector captured only 7 percent of the railroads&apos; 1890 social return.&quot; The authors use this to show that the builders did not capture the value. It also shows that the railroad sector as a whole, owners included, captured little of it. Most of the gain went to the people and businesses that used the railways. If the railroad is the template, the template suggests the users win, not the owners of the rails.
+      </P>
+      <P>
+        <strong>The numbers don&apos;t always agree with each other.</strong> The text projects 10 billion US dollar training runs for 2028. The essay&apos;s own chart, a page earlier, says that at Epoch&apos;s rate &quot;the trend hits $1B in early 2027 and $10B in early 2029&quot;, which also sits awkwardly with the text&apos;s 3.5 billion US dollar runs in 2027. These are projections either way, and a year&apos;s difference in a projection is small. But in an essay this confident, the gap is worth noticing.
+      </P>
+      <P>
+        <strong>Fiction carries the emotional weight.</strong> The designer, a man named Ravi in Bangalore and a worker in Phnom Penh are invented characters. They make the displacement argument feel observed when it is projected. The real labor figures the essay does cite, such as its report that Tata Consultancy Services cut headcount by 23,460 in fiscal 2026 while adjusted operating profit rose 7.5%, are fewer and less dramatic than the stories.
+      </P>
+      <P>
+        <strong>Commodity and premium pull in different directions.</strong> The essay says there is no durable margin in models, yet its own chart shows a US model, GPT-6 Luna (Max), priced 1.3 times a comparable Chinese one, with only US models at the top of the frontier. If US labs can hold a premium like that, the labs at the very top may be a Commanding Height after all.
+      </P>
+      <P>
+        <strong>What is evidenced and what is asserted.</strong> The falling price of intelligence, the rising cost of training, capex outrunning cash flow, and China&apos;s household balance sheet all come with citations, many of them to Epoch AI. Which companies actually hold the Heights, the essay&apos;s central question, is asserted and then hidden.
+      </P>
+      <H2>What this means for Argo (our reading)</H2>
+      <P>
+        The essay never mentions Argo, journaling apps or anything like them. Everything in this section is our interpretation.
+      </P>
+      <P>
+        We are building a private journal: a place to write and talk about your life. We use AI to help you reflect, and we treat the model underneath as a swappable part. Read through this essay, that puts us in an interesting spot on the map.
+      </P>
+      <Figure
+        src="/blog/commanding-heights-7.jpg"
+        alt="Three stacked layers: Genesis, the labs, chips and data centers that build and serve models, where the essay says no durable margin will be found; the Commanding Heights, the crossings such as distribution, payments and data; and the diffused economy that pays the toll; beside them, Argo's bet on swappable models and a journal kept private to its writer"
+        width={1920}
+        height={1080}
+        caption="The essay's map of where the money settles, with Argo's position as our reading (Argo diagram)"
+      />
+      <P>
+        <strong>Cheap models help us as a buyer.</strong> If the essay is right that the cost of a given capability keeps falling fast, the models we use keep getting better at no cost to us. Treating the model as a swappable part is what the essay&apos;s own phrase &quot;model-agnostic&quot; describes. We also take its point about China seriously: much of the open-weight floor comes from Chinese labs, so we want more than one model family we can switch to.
+      </P>
+      <P>
+        <strong>A journal is exactly the kind of inventory the essay describes, and we choose not to harvest it.</strong> The essay&apos;s crossings get rich by turning use into training data, as in the designer&apos;s story. A journal kept private to its writer is the opposite design. Your entries are not an inventory of human activity for someone else&apos;s next model. That is a product choice and a position on this map, not only a feature.
+      </P>
+      <P>
+        <strong>So our moat cannot be the model.</strong> By the essay&apos;s own logic, a journaling model is not a Commanding Height, because anyone can download a similar one next month. What might last is the installed base and the trust behind it: a daily habit, and a record of your life that grows over years. We did not find a crossing in the essay that refuses to monetize the data passing through it. Whether trust alone can earn a durable living is an open question, and it is the one we are betting on.
+      </P>
+      <P>
+        The short version: Manidis and Roberts make a strong case that model prices fall and a weak case for who wins instead, and their own railroad footnote hints that the people using the rails may come out ahead. The full essay is at https://commanding-heights.com. We write about research and ideas like this on the blog and at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "commanding-heights",
+    title: "The Commanding Heights, explained: who gets rich when AI gets cheap",
+    description: "Manidis and Roberts argue AI models become commodities and the money goes to the crossings. What they show, what they assert, and our reading.",
+    category: "ai-news",
+    date: "November 2, 2026",
+    isoDate: "2026-11-02T14:11",
+    readingTime: "14 min read",
+    Content: CommandingHeightsContent,
+  },
   {
     slug: "platonic-representation-jepa",
     title: "LeCun's lab proved AI models can share one picture of the world, and scale is not the only lever",
