@@ -9766,7 +9766,185 @@ function DeepseekSuperagentDesignContent() {
   )
 }
 
+/* ── Post: LeCun's lab proved AI models can share one picture of the world, and scale is not the only lever ── */
+function PlatonicRepresentationJepaContent() {
+  return (
+    <>
+      <P>
+        Train one model only on photos. Train another only on text. They never see each other&apos;s data. Ask each to describe a red ball next to a blue cone, and look inside: do they hold the same picture of that scene?
+      </P>
+      <P>
+        For two years the honest answer was &quot;sort of, and more so as they get bigger&quot;. On 29 October 2026, Randall Balestriero (Brown University, AMI Labs) and Yann LeCun (New York University, AMI Labs) posted a paper that turns that guess into a theorem: <A href="https://arxiv.org/abs/2610.39302">Proving and Improving the Platonic Representation Hypothesis with JEPAs</A> (arXiv:2610.39302).
+      </P>
+      <P>
+        Their answer is that models converge when they are trained on the right pairs of examples, and that size was never the only lever. This post explains what they proved, the numbers behind it, and the caveat the authors put in the paper themselves.
+      </P>
+      <H2>What is the Platonic Representation Hypothesis?</H2>
+      <P>
+        A representation is the list of numbers a model turns an input into, its internal description of a photo or a sentence. Two models &quot;align&quot; when inputs that are close in one model&apos;s numbers are also close in the other&apos;s.
+      </P>
+      <P>
+        In 2024, Huh, Cheung, Wang and Isola noticed something odd. In the paper&apos;s words, they &quot;observed that the representations of vision and language models become increasingly similar as models scale, and hypothesized that they converge to a shared statistical model of reality&quot;. They called it the <strong>Platonic Representation Hypothesis</strong> (PRH), after Plato&apos;s idea that the things we see are shadows of one underlying reality.
+      </P>
+      <P>
+        It was an observation, not a guarantee. Balestriero and LeCun put the problem plainly: &quot;Alas, the PRH remains an observation. [...] As a result, scaling models and data remains the main lever used so far.&quot; If you wanted models that agree about the world, the only recipe was to make them bigger and hope.
+      </P>
+      <H2>What did the paper prove?</H2>
+      <P>
+        The paper works with JEPAs, short for Joint-Embedding Predictive Architectures. A JEPA learns from <strong>positive pairs</strong>: two inputs you tell it are &quot;the same thing&quot;. It turns each into an embedding (a vector of numbers) and is trained so the two embeddings agree, plus a term that stops it from giving every input the same answer. In the paper&apos;s experiments the two embeddings are compared directly, with no extra network in between.
+      </P>
+      <P>
+        The theorem says: JEPAs &quot;trained separately on any number of modalities learn the same representation up to one rotation whenever their positive pairs are two observations of one scene&quot;. A modality is a kind of data: images, text, audio. &quot;Up to one rotation&quot; means the two embedding spaces have the same shape and are only turned relative to each other, so a single rotation maps one onto the other.
+      </P>
+      <Figure
+        src="/blog/platonic-representation-jepa-1.jpg"
+        alt="Title, authors and abstract of the paper Proving and Improving the Platonic Representation Hypothesis with JEPAs, with the sentence about 42 times fewer training samples highlighted"
+        width={1530}
+        height={858}
+        priority
+        caption="The abstract of Balestriero and LeCun's paper, arXiv:2610.39302 (screenshot, arXiv)"
+      />
+      <P>
+        An analogy: two people draw maps of the same city, one from walking it and one from reading its street directory. If both did it properly, the maps match once you turn one of them to face north. The analogy stops working at the edges: real data is messy, and the theorem describes an idealised world, which we come back to below.
+      </P>
+      <P>
+        The authors say nothing in the argument is specific to images and text: &quot;it holds for any modalities that observe one world, e.g., images, video, text, audio or actions, and for any number of them at once.&quot;
+      </P>
+      <Figure
+        src="/blog/platonic-representation-jepa-2.jpg"
+        alt="Figure 1 of the paper: on the left, one world seen as images and as texts, with good views and bad views; on the right, alignment with DINOv2 against training samples for a good-view JEPA, next-token prediction and a bad-view JEPA"
+        width={1530}
+        height={1166}
+        caption="Figure 1 of the paper: good views reach the same alignment with 42 times fewer samples (screenshot, arXiv)"
+      />
+      <H2>What makes a view good or bad?</H2>
+      <P>
+        The whole result hangs on what counts as a positive pair. The paper calls the two halves of a pair &quot;views&quot;.
+      </P>
+      <UL items={[
+        <><strong>Good view:</strong> two observations of one scene. The paper&apos;s examples are &quot;two photographs, two captions&quot;. In Figure 1, the two captions are &quot;A red sphere next to a blue cone.&quot; and &quot;A blue cone behind a red ball.&quot; Different words, same scene.</>,
+        <><strong>Bad view:</strong> &quot;two corruptions of one observation&quot;. Take one sentence and hide a word in two different places, or crop one photo twice. Both halves come from the same sentence or the same picture.</>,
+      ]} />
+      <P>
+        The difference matters because of what the model can learn from each. Two captions of one image share only the scene, so the model has to encode the scene. Two masked copies of one sentence share that sentence&apos;s exact wording, so the model also spends capacity on the wording. The paper puts it this way: a good-view JEPA &quot;learns a representation that belongs to the world, while a JEPA whose positives are corruptions of one observation learns one that belongs to its modality&quot;.
+      </P>
+      <Figure
+        src="/blog/platonic-representation-jepa-3.jpg"
+        alt="Two boxes: good view, two captions of one image; bad view, a masked sentence or a prefix and its next token; below, next-token prediction is a bad-view JEPA"
+        width={1920}
+        height={1080}
+        caption="Good views and bad views, with the paper's own examples (Argo diagram)"
+      />
+      <P>
+        A common summary of this paper says the good views are a photo and its caption. That is a misreading. The text model in the paper is a text JEPA: its good views are two captions of the same image, and it never trains on images at all. The image model is trained separately. That separation is the point: two models that never see each other&apos;s data still end up with the same picture.
+      </P>
+      <H2>Why is next-token prediction a bad-view JEPA?</H2>
+      <P>
+        Large language models learn by next-token prediction: read a stretch of text, predict the next token (a word or part of a word). The paper shows this is a JEPA too, with a specific kind of pair: &quot;Its positives are a prefix and its continuation within one document&quot;. In Figure 1&apos;s example, &quot;a red sphere next&quot; is paired with &quot;to&quot;.
+      </P>
+      <P>
+        Both halves come from one document, so by the paper&apos;s definition these are bad views. That, the authors argue, &quot;explains why language models align with vision only through scale&quot;. The model learns how documents continue, and a picture of the world only partly emerges from that, given enough text.
+      </P>
+      <P>
+        The experiment that tests this keeps everything equal except the pairs: same corpus, same texts. Alignment here is measured against DINOv2, an image model, on the benchmark from the original PRH paper.
+      </P>
+      <UL items={[
+        <><strong>Good-view JEPA:</strong> reaches .109 after 21.6 million training samples.</>,
+        <><strong>Next-token prediction:</strong> reaches .111 after 900 million training samples.</>,
+      ]} />
+      <P>
+        <strong>That is about the same alignment with 42 times fewer samples</strong> (14 times fewer text tokens). Trained further, on 900 million samples, the good-view JEPA reaches .184.
+      </P>
+      <Figure
+        src="/blog/platonic-representation-jepa-4.jpg"
+        alt="Bar chart: a good-view JEPA reaches alignment .109 after 21.6 million samples; next-token prediction reaches .111 after 900 million"
+        width={1920}
+        height={1080}
+        caption="Same alignment, 42 times fewer samples (Argo diagram from Figure 1 of the paper)"
+      />
+      <P>
+        The paper also finds that alignment follows a scaling law in two quantities, the fraction of good views and the number of samples seen. It &quot;predicts 85 new runs, before they are trained, as accurately as rerunning them with another seed&quot;. That turns &quot;more good views help&quot; into a number you can plan with.
+      </P>
+      <H2>Can a 109M model really beat a 72B one?</H2>
+      <P>
+        On this one measure, yes. The authors trained a 109-million-parameter text JEPA on the texts of 940 million web images. On the PRH benchmark, measured against DINOv2:
+      </P>
+      <UL items={[
+        <><strong>109M text JEPA:</strong> .184</>,
+        <><strong>Qwen2.5-72B:</strong> .154</>,
+        <><strong>CLIP&apos;s text encoder:</strong> .124</>,
+      ]} />
+      <P>
+        In the paper&apos;s words, &quot;our 109M encoder, which read 116B text tokens, beats models 660 times larger trained on over 100 times more.&quot; It also leads with other image encoders, for example &quot;.230 against .210 with CLIP ViT-H&quot;.
+      </P>
+      <Figure
+        src="/blog/platonic-representation-jepa-5.jpg"
+        alt="Bar chart of alignment with DINOv2: 109M text JEPA .184, Qwen2.5-72B .154, CLIP text encoder .124, with a note on the machine-written captions caveat"
+        width={1920}
+        height={1080}
+        caption="Alignment with DINOv2 on the PRH benchmark, with the authors' own caveat (Argo diagram from Section 4.3)"
+      />
+      <P>
+        <strong>Be precise about what this measures.</strong> It is cross-modal alignment: how closely a text model&apos;s picture of the world matches an image model&apos;s. It is not chat quality, reasoning or writing. A 109M text encoder does not hold a conversation, and the paper does not claim it does.
+      </P>
+      <P>
+        Two showcases show what alignment buys. With one rotation, separately trained encoders become an image captioner, scoring CIDEr .838 on COCO. And on a benchmark where no image-text pairs are used at all, the text JEPA &quot;beats every zero-shot accuracy reported with language models up to 8B parameters, e.g., 64% against at most 56% top-5 on ImageNet-100.&quot;
+      </P>
+      <H2>What&apos;s the catch?</H2>
+      <P>
+        The authors name it themselves, in the paper&apos;s &quot;Known limitations&quot; paragraph: &quot;The main caveat is where good views come from.&quot;
+      </P>
+      <P>
+        To make good views from text you need to know which texts describe the same scene. On Flickr and COCO, humans wrote several captions per image. On Recap-DataComp, the large web dataset behind the headline numbers, &quot;two of each image&apos;s three texts are generated by an image captioner (LLaVA built on LLaMA-3-8B, whose vision encoder is CLIP ViT-L/14)&quot;. Those machine-written captions &quot;carry information distilled from image–text training&quot;. Some knowledge of images may have leaked into the text through the captioner.
+      </P>
+      <Figure
+        src="/blog/platonic-representation-jepa-6.jpg"
+        alt="The Known limitations paragraph of the paper, with the sentence The main caveat is where good views come from highlighted"
+        width={833}
+        height={1276}
+        caption="The authors' own main caveat, from the paper's Known limitations (screenshot, arXiv)"
+      />
+      <P>
+        The authors measured how much this matters. Without any image captioner, using alt-text and a text-only paraphrase of it as the two views, good views reach <strong>.060 on WIT against .107 with the recaptions</strong>. So, as they write, &quot;the comparisons with language models and CLIP&apos;s text encoder at scale rely on these texts, while the comparisons between views, on identical texts, do not.&quot;
+      </P>
+      <P>
+        Read that carefully. The 42 times result compares good views and next-token prediction on the same texts, so the captioner does not explain it away. The &quot;.184 beats a 72B model&quot; result leans on captions an image-aware model wrote.
+      </P>
+      <P>
+        Two more limits the paper states:
+      </P>
+      <UL items={[
+        <>The theorems are &quot;population statements over a finite world with injective renderings and matched marginals; real modalities are lossy&quot;, and &quot;no experiment meets the hypotheses of Theorem 1 exactly&quot;.</>,
+        <>The theory covers JEPAs whose two embeddings are compared directly. JEPAs used as world models, which predict one embedding from the other &quot;often conditioned on an action&quot;, are outside what the analysis covers.</>,
+      ]} />
+      <H2>Why this matters for Argo (our reading)</H2>
+      <P>
+        This section is our interpretation, not a claim from the paper.
+      </P>
+      <P>
+        We run small models locally, on our own machines, wherever we can. The usual worry is that small models are permanently behind because the big labs win on scale. This paper gives one concrete counterexample: on cross-modal alignment, a 109M encoder trained with the right pairs beat a 72B language model. It does not make small models better at everything, but it shows that for building shared embeddings, choosing the data pairing can matter more than adding parameters.
+      </P>
+      <P>
+        It also changes how we think about our own embeddings, the vectors we use to search notes, photos and recordings. Any embedding model is trained on some notion of &quot;these two things are the same&quot;. The paper&apos;s lesson is to choose those positives as two independent observations of one thing (two descriptions of one photo, two notes about one event) rather than two slices of the same text. That is a design choice we can make ourselves, without a bigger model.
+      </P>
+      <P>
+        The takeaway: the paper does not say scale is useless. It says scale was standing in for something cheaper, the choice of which two things you call &quot;the same&quot;. The full paper is at https://arxiv.org/abs/2610.39302. We write about research like this on the blog and at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "platonic-representation-jepa",
+    title: "LeCun's lab proved AI models can share one picture of the world, and scale is not the only lever",
+    description: "Balestriero and LeCun turn the Platonic Representation Hypothesis into a theorem: what you call \"the same\" matters more than model size.",
+    category: "ai-news",
+    date: "November 2, 2026",
+    isoDate: "2026-11-02T06:09",
+    readingTime: "10 min read",
+    Content: PlatonicRepresentationJepaContent,
+  },
   {
     slug: "deepseek-superagent-design",
     title: "DeepSeek's Super-agent Design - Continuous, Proactive, Persistent AI Agents",
