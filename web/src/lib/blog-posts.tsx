@@ -10322,7 +10322,156 @@ function DeepseekHarnessCreatorModeContent() {
   )
 }
 
+/* ── Post: How an AI research loop nearly halved a coding agent's token use ── */
+function SolPiHarnessLoopContent() {
+  return (
+    <>
+      <P>
+        A coding agent working through the night does a lot of rereading. Every time it asks the model for the next step, the harness sends the conversation so far: the task, the files it opened, the long test log from twenty minutes ago. Most of that text has already done its job. It gets paid for again on every turn.
+      </P>
+      <P>
+        Most work on making agents cheaper attacks the price of each token: faster kernels, compressed models, cheaper models. A paper from NVIDIA, NTU and MIT, posted to arXiv on 17 September 2026, attacks the number of tokens instead. It does not touch the model. It changes the harness around it, and the changes were found by another AI running research loops.
+      </P>
+      <P>
+        The result, called SoL-Pi, cut recorded token traffic by 44.7 to 49.0% on a held-out benchmark across two frontier models. This post explains what a harness is, how the AI searched for improvements, the four changes that survived, and what the savings really compare against.
+      </P>
+      <Figure
+        src="/blog/sol-pi-harness-loop-1.jpg"
+        alt="The SoL-Pi project page introduction, with the question Before scaling RSI, should we first ask AI to make AI more efficient? highlighted"
+        width={1575}
+        height={980}
+        priority
+        caption="The question behind the project, from the SoL-Pi project page (screenshot, NVIDIA)"
+      />
+      <H2>What is a harness?</H2>
+      <P>
+        A <strong>harness</strong> is the program that sits between a language model and the world. The model only reads text and writes text. The harness decides which tools the model can call, runs those tools, collects their output, decides what goes into the next prompt, and decides when to shorten the conversation. Claude Code, Codex and Pi are harnesses. The same model can run inside different harnesses: the paper ran GPT-5.6 Sol in both Codex and Pi, and Opus 5 in both Claude Code and Pi.
+      </P>
+      <P>
+        Think of the model as a skilled worker and the harness as their desk: which papers sit in front of them, which get filed away, which tools are within reach. Two desks can make the same worker fast or slow. The analogy stops working in one place: a person remembers yesterday, while a model only knows what the harness puts on the desk for this one request.
+      </P>
+      <P>
+        That makes the harness a real lever on cost. If it sends less text per request, or makes fewer requests, the bill drops with the same model and the same task. The hard part is that its pieces are tangled. The paper puts it this way: &quot;a change that is locally beneficial may cause downstream failures or shift token costs to later stages of execution.&quot; Cutting a log short saves tokens now and can cost a failed fix later.
+      </P>
+      <H2>How did an AI improve the harness?</H2>
+      <P>
+        The authors used an autoresearch loop, a pattern Andrej Karpathy published as a short instruction file for agents: propose a change, implement it, run a fixed experiment, look at the result, keep it or throw it away, repeat. They added two steps. The implementer keeps retrying until an explicit completion criterion is met (a pattern known as the Ralph loop), and a separate reviewer agent checks the change before it is tested.
+      </P>
+      <P>
+        The research AI did not guess blindly. It read <strong>execution traces</strong> (full records of what the agent did on a task, request by request) from an agent running the base harness, Pi, and looked for waste: repeated actions, context that kept growing, huge tool outputs, logs that said little.
+      </P>
+      <P>
+        Two rules kept the search honest. First, the scoring rules were fixed before the search began and kept out of the optimizer&apos;s reach. A candidate passed only if every capability score stayed within a set tolerance and at least one efficiency measure improved. Second, the final benchmark, EdgeBench, was held out. It was used only on frozen candidates (11 of its 51 public tasks to accept or reject them, the other 40 for the final result), and &quot;Held-out results never feed back into the Auto-Research Loops&quot;. This matters because an earlier study found that harnesses evolved this way tend to overfit the tasks they were tuned on and gain little on new ones.
+      </P>
+      <P>
+        The scale was large. The search started from 152 proposed directions and ran in 535 environments: 495 built from real GitHub issues and the pull requests that fixed them (with the fix and its test hidden from the agent), and 40 synthetic tasks with automatic checkers. The paper reports more than 3,000 runs and more than 60,000 agent-environment interactions.
+      </P>
+      <Figure
+        src="/blog/sol-pi-harness-loop-2.jpg"
+        alt="Diagram of the SoL-Pi search: rules fixed first and kept out of the optimizer's control; a five-step loop of propose, implement, review, test, keep or discard, repeated; 152 proposed directions, 535 search environments, more than 3,000 runs, 4 mechanisms survived; EdgeBench held out until the harness is frozen"
+        width={1920}
+        height={1080}
+        caption="How the search ran, as described in Section 2 of the paper (Argo diagram)"
+      />
+      <H2>What did it find?</H2>
+      <P>
+        Four mechanisms survived. None of them is exotic. Each removes one specific kind of repeated work.
+      </P>
+      <Figure
+        src="/blog/sol-pi-harness-loop-3.jpg"
+        alt="Page one of the SoL-Pi paper with the abstract sentence Four mechanisms survive selection and form SoL-Pi highlighted"
+        width={1488}
+        height={866}
+        caption="The paper's abstract, posted to arXiv on 17 September 2026. Source: arXiv 2609.20519"
+      />
+      <UL items={[
+        <><strong>Action Fusion:</strong> an agent often edits a file and then, in a separate request, runs the test. Action Fusion lets the edit tool take a follow-up command and returns both results together, so three API calls become two. Commands that need to look at the edit first stay separate.</>,
+        <><strong>Online Context Compact:</strong> <strong>compaction</strong> means replacing the long conversation with a shorter summary. It saves input tokens on every later request, but it breaks the <strong>prompt cache</strong> (the provider&apos;s discount for resending the exact same opening text), and rewriting that cache costs money. This mechanism only considers compacting when a step of the agent&apos;s plan finishes. It estimates how many requests are left and compacts only if the projected savings beat the cache rewrite. It also compacts when the context window is nearly full.</>,
+        <><strong>ObservationPack:</strong> a tool output over 10 KiB is saved to disk. It is sent in full for the next two requests, then replaced by a handle, its size and a short excerpt of the first and last lines. If the agent needs the exact text again, it pages it back through the handle.</>,
+        <><strong>Evidence-Preserving Reducer:</strong> build and test logs of 4 KiB or more are handed to a cheaper model, which writes a short receipt of the evidence that matters. Plain code then checks that receipt: its format, a hash of the original, the exit status, the size, and that every quote appears word for word in the log. If any check fails, or the log looks like it holds credentials, the agent gets the raw log instead. The cheap model only extracts. The main model still decides what to do.</>,
+      ]} />
+      <Figure
+        src="/blog/sol-pi-harness-loop-4.jpg"
+        alt="Four cards: Action Fusion runs an edit and its test in one tool call; Online Context Compact compacts at the end of a plan step only when it saves more than the cache rewrite costs; ObservationPack archives outputs over 10 KiB and later sends a handle and an excerpt; Evidence-Preserving Reducer has a cheaper model summarise logs of 4 KiB or more and checks every quote"
+        width={1920}
+        height={1080}
+        caption="The four mechanisms in SoL-Pi and when each one fires (Argo diagram, from Section 2.4 of the paper)"
+      />
+      <P>
+        The paper traces how one of these was found. Analysis of traces showed edits and tests sitting next to each other often enough to project an 11.5% token saving. Telling the agent in its prompt to combine them did not work reliably, so the research agent changed the tool&apos;s definition to offer the combined action directly. It also invented its own progress measure, how often the fused action actually fired, and tracked it alongside the task score.
+      </P>
+      <H2>How much does it save, and compared with what?</H2>
+      <P>
+        The headline numbers come from the 51 public EdgeBench tasks, at API prices as of 17 August 2026. On GPT-5.6 Sol, the full SoL-Pi stack cost USD 894, against USD 1,339 for Pi and USD 1,787 for Codex. On Opus 5, it cost USD 1,158, against USD 1,741 for Pi and USD 2,535 for Claude Code.
+      </P>
+      <Figure
+        src="/blog/sol-pi-harness-loop-5.jpg"
+        alt="Bar chart of API cost on the 51 EdgeBench tasks. GPT-5.6 Sol: Codex 1,787 dollars, score 34.7; Pi 1,339 dollars, score 44.8; SoL-Pi 894 dollars, score 42.0. Opus 5: Claude Code 2,535 dollars, score 43.7; Pi 1,741 dollars, score 44.8; SoL-Pi 1,158 dollars, score 42.2"
+        width={1920}
+        height={1080}
+        caption="API cost and average score per harness on EdgeBench, in USD (Argo chart, numbers from Tables 1 and 2 of the paper)"
+      />
+      <P>
+        <strong>Which comparison you quote changes the story.</strong> Against the stock harnesses, the cut is 50.0% versus Codex and 54.3% versus Claude Code. Against Pi, the harness SoL-Pi was built on, the cut is 33.2% and 33.5%. Pi already cost less than Codex and Claude Code in the paper&apos;s runs, so half or more of the gap was there before the search began (50% of it against Codex, 58% against Claude Code). SoL-Pi does not modify Claude Code or Codex. It is an extension for Pi.
+      </P>
+      <P>
+        The cost also falls by less than the token count, and the paper shows why. With GPT-5.6 Sol, the full stack halved the cached input it resent (from 2.13 billion to 1.06 billion tokens) but more than doubled the tokens written to the cache (from 0.014 billion to 0.032 billion), because compaction and excerpts change text the provider had already cached. Total cost still fell from USD 1,339 to USD 894. Keeping a long cached conversation intact is not automatically the cheapest choice.
+      </P>
+      <P>
+        The transfer result is the part to watch. The harness was searched only on GPT-5.6 Sol and then applied to Opus 5 without changes. The mechanisms fired less often on Opus 5, but the savings held at a similar level.
+      </P>
+      <H2>What does it cost in quality?</H2>
+      <P>
+        SoL-Pi is cheaper, not smarter. The full stack kept 93.7% of Pi&apos;s EdgeBench score on GPT-5.6 Sol (42.0 against 44.8) and 94.3% on Opus 5 (42.2 against 44.8). On 63 tasks from Terminal-Bench 4, it solved 15, while Codex and Pi each solved 18, though its cost per solved task was the lowest at USD 14.07. On six IMO 2026 problems that had to be proved in Lean 4, it proved three, as Pi did, while Codex proved five. Its cost per proved problem was again the lowest.
+      </P>
+      <P>
+        Single mechanisms behave differently from the full stack. Adding only ObservationPack to Pi raised the GPT-5.6 Sol score from 44.8 to 47.2, and adding only Action Fusion raised the Opus 5 score from 44.8 to 50.5, both while spending less than Pi. The full stack trades a few points of score for the deepest cut in cost.
+      </P>
+      <P>
+        The most interesting result is a team of agents. Given two hours to make a kernel run in fewer simulated machine cycles, a coordinator with 20 SoL-Pi workers reached 1,127 cycles for USD 60.11. The same setup with 20 Pi workers reached 1,366 cycles for USD 82.12, and a single Codex agent reached 1,333 cycles for USD 39.20. The cheaper workers turned the same two hours into the best result, though one agent alone was still the cheapest run.
+      </P>
+      <H2>How can you use it?</H2>
+      <P>
+        The code is public under the MIT licence at github.com/NVlabs/SoL-Pi. It installs on top of an unmodified Pi release, and every mechanism is off until you turn it on. The README also describes an example skill that hands a task from Claude Code or Codex to SoL-Pi in the background and reports the result back.
+      </P>
+      <Figure
+        src="/blog/sol-pi-harness-loop-6.jpg"
+        alt="The SoL-Pi GitHub README, with the line SoL-Pi installs on top of an unmodified Pi release highlighted"
+        width={1575}
+        height={945}
+        caption="The open-source release: an opt-in extension for Pi, MIT licence (screenshot, github.com/NVlabs/SoL-Pi)"
+      />
+      <P>
+        You can also copy the ideas without the code. The paper&apos;s add-one tests point to a simple habit: add one change at a time and measure it.
+      </P>
+      <UL items={[
+        <><strong>Big outputs:</strong> send long command output to a file and give the agent the last 40 lines and the path, not the whole thing. Our own agent rules already ask for this by hand. ObservationPack does it automatically.</>,
+        <><strong>Logs:</strong> let a cheap or local model summarise long logs, but accept the summary only if plain code confirms every quoted line exists in the original. Otherwise pass the raw log.</>,
+        <><strong>Compaction:</strong> compact when a piece of work is finished, not in the middle of it, and only when the conversation is long enough that the savings beat the cache cost.</>,
+        <><strong>Edits and checks:</strong> if your tools allow it, run the check in the same call as the edit.</>,
+        <><strong>Your own loop:</strong> if you try an autoresearch loop on your setup, write the pass rules before you start, keep them out of the optimizer&apos;s reach, and test on tasks it never saw.</>,
+      ]} />
+      <P>
+        We have not run SoL-Pi on our own agents yet. The ideas map closely onto problems we already work around, and the first one we would try is the log reducer, because it gives a cheap local model a useful job while a deterministic check keeps it honest.
+      </P>
+      <P>
+        The takeaway: the same model got about a third cheaper on new tasks through four ordinary engineering changes, and an AI found them by reading another agent&apos;s traces under rules it could not bend. The paper is at arxiv.org/abs/2609.20519. We write about agents and the systems around them at https://myargoquest.com/blog and on https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "sol-pi-harness-loop",
+    title: "How an AI research loop nearly halved a coding agent's token use",
+    description: "NVIDIA set an AI researcher loose on a coding agent's harness. Four plain changes survived, cutting tokens by 45 to 49%. What they are and what they cost.",
+    category: "ai-news",
+    date: "November 3, 2026",
+    isoDate: "2026-11-03T01:20",
+    readingTime: "11 min read",
+    Content: SolPiHarnessLoopContent,
+  },
   {
     slug: "deepseek-harness-creator-mode",
     title: "\"DeepSeek Harness Creator Mode: what it does, what it costs, and how open it really is\"",
