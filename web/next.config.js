@@ -38,6 +38,8 @@ const nextConfig = {
       // The open-source launch post (2026-10-17) and the deck pointed people at
       // /secondbrain; the platform is the homepage since 2026-11-02.
       { source: '/secondbrain', destination: '/', permanent: true },
+      // The blog index became the news front at /articles (2026-11-03). Post URLs stay at /blog/<slug>.
+      { source: '/blog', destination: '/articles', permanent: true },
     ]
   },
 }

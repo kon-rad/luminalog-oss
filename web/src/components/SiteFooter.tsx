@@ -19,7 +19,7 @@ export default function SiteFooter() {
             <Link href="/courses" style={{ color: 'var(--text2)' }}>Courses</Link>
             <Link href="/card-game" style={{ color: 'var(--text2)' }}>Card Game</Link>
             <Link href="/events" style={{ color: 'var(--text2)' }}>Events</Link>
-            <Link href="/blog" style={{ color: 'var(--text2)' }}>Blog</Link>
+            <Link href="/articles" style={{ color: 'var(--text2)' }}>Articles</Link>
             <Link href="/vitalik-scholar" style={{ color: 'var(--text2)' }}>Vitalik Scholar</Link>
             <Link href="/agents" style={{ color: 'var(--text2)' }}>For Agents</Link>
             <Link href="/privacy" style={{ color: 'var(--text2)' }}>Privacy Policy</Link>

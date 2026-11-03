@@ -17,8 +17,12 @@ export type BlogPost = {
   isoDate: string       // for <time> / sorting, e.g. "2026-07-03"
   readingTime: string   // e.g. "7 min read"
   category?: Category   // missing = product-updates
+  image?: string        // hero on /articles and in link previews; a /blog/... path. Missing = DEFAULT_IMAGE
   Content: () => React.ReactNode
 }
+
+/* Shown when a post has no hero of its own (the publisher writes the post's first image here). */
+export const DEFAULT_IMAGE = '/blog/argo-articles-default.jpg'
 
 /* ── Post: The best consumer in the world (Ashish Sood) ── */
 function AshishSoodContent() {
@@ -10500,6 +10504,7 @@ export const posts: BlogPost[] = [
     date: "November 2, 2026",
     isoDate: "2026-11-02T06:09",
     readingTime: "10 min read",
+    image: "/blog/platonic-representation-jepa-1.jpg",
     Content: PlatonicRepresentationJepaContent,
   },
   {
@@ -10510,6 +10515,7 @@ export const posts: BlogPost[] = [
     date: "November 2, 2026",
     isoDate: "2026-11-02T03:40",
     readingTime: "3 min read",
+    image: "/blog/deepseek-superagent-design-1.jpg",
     Content: DeepseekSuperagentDesignContent,
   },
   {
@@ -10520,33 +10526,37 @@ export const posts: BlogPost[] = [
     date: "October 15, 2026",
     isoDate: "2026-10-15T11:28",
     readingTime: "11 min read",
+    image: "/blog/the-networks-were-never-tangled-1.jpg",
     Content: TheNetworksWereNeverTangledContent,
   },
   {
     slug: "argo-build-log-day-15",
-    title: "\"Argo build log, Day 15: The Exo case arrives in 3D\"",
+    title: "Argo build log, Day 15: The Exo case arrives in 3D",
     description: "The Exo wearable's snap-fit clear case is rendered and ready to test. A new blog post on ambitious software, and the Argo fund ships a deck.",
     date: "October 28, 2026",
     isoDate: "2026-10-28T10:11",
     readingTime: "2 min read",
+    image: "/blog/argo-build-log-day-15-hero.jpg",
     Content: ArgoBuildLogDay15Content,
   },
   {
     slug: "argo-build-log-day-14",
-    title: "\"Argo build log, Day 14: New blog post on token tracking and an iOS memory fix\"",
+    title: "Argo build log, Day 14: New blog post on token tracking and an iOS memory fix",
     description: "A new blog post explains how the open-source Second Brain usage page tracks token spend across machines, and the iOS app ships a memory fix.",
     date: "October 27, 2026",
     isoDate: "2026-10-27T06:03",
     readingTime: "2 min read",
+    image: "/blog/argo-build-log-day-14-hero.jpg",
     Content: ArgoBuildLogDay14Content,
   },
   {
     slug: "danluu-ambitious-software",
-    title: "\"Dan Luu's case for more ambitious software: a summary\"",
+    title: "Dan Luu's case for more ambitious software: a summary",
     description: "Dan Luu argues coding agents turned year-long projects into hours, so builders should aim higher and spend the savings on verification.",
     date: "October 26, 2026",
     isoDate: "2026-10-26T00:58",
     readingTime: "9 min read",
+    image: "/blog/danluu-ambitious-software-1.jpg",
     Content: DanluuAmbitiousSoftwareContent,
   },
   {
@@ -10556,6 +10566,7 @@ export const posts: BlogPost[] = [
     date: "October 27, 2026",
     isoDate: "2026-10-27T17:18",
     readingTime: "14 min read",
+    image: "/blog/usage-page-agent-token-ledger-1.jpg",
     Content: UsagePageAgentTokenLedgerContent,
   },
   {
@@ -10565,15 +10576,17 @@ export const posts: BlogPost[] = [
     date: "October 25, 2026",
     isoDate: "2026-10-25T18:49",
     readingTime: "12 min read",
+    image: "/blog/hermes-agent-defense-in-depth-security-1.jpg",
     Content: HermesAgentDefenseInDepthSecurityContent,
   },
   {
     slug: "agent-evolution-harness-collective",
-    title: "\"Two Papers That Just Changed How We Build AI Agents\"",
+    title: "Two Papers That Just Changed How We Build AI Agents",
     description: "\"OO-Harness evolves agent harnesses via inheritance. RLCR trains agent organisations through collective rewards. Both point in the same direction.\"",
     date: "October 24, 2026",
     isoDate: "2026-10-24T09:55",
     readingTime: "6 min read",
+    image: "/blog/agent-evolution-harness-collective-1.jpg",
     Content: AgentEvolutionHarnessCollectiveContent,
   },
   {
@@ -10583,6 +10596,7 @@ export const posts: BlogPost[] = [
     date: "October 22, 2026",
     isoDate: "2026-10-22T12:40",
     readingTime: "11 min read",
+    image: "/blog/why-long-sessions-fill-claude-max-plan-1.jpg",
     Content: WhyLongSessionsFillClaudeMaxPlanContent,
   },
   {
@@ -10592,6 +10606,7 @@ export const posts: BlogPost[] = [
     date: "October 21, 2026",
     isoDate: "2026-10-21T13:17",
     readingTime: "13 min read",
+    image: "/blog/private-company-ai-brain-1.jpg",
     Content: PrivateCompanyAiBrainContent,
   },
   {
@@ -10601,6 +10616,7 @@ export const posts: BlogPost[] = [
     date: "October 21, 2026",
     isoDate: "2026-10-21T06:33",
     readingTime: "12 min read",
+    image: "/blog/t3code-explained-1.jpg",
     Content: T3codeExplainedContent,
   },
   {
@@ -10610,6 +10626,7 @@ export const posts: BlogPost[] = [
     date: "October 19, 2026",
     isoDate: "2026-10-19T03:41",
     readingTime: "7 min read",
+    image: "/blog/ten-agent-ops-repos-what-to-borrow-hero.jpg",
     Content: TenAgentOpsReposWhatToBorrowContent,
   },
   {
@@ -10619,6 +10636,7 @@ export const posts: BlogPost[] = [
     date: "October 19, 2026",
     isoDate: "2026-10-19T03:36",
     readingTime: "8 min read",
+    image: "/blog/small-model-routine-agent-choices-hero.jpg",
     Content: SmallModelRoutineAgentChoicesContent,
   },
   {
@@ -10628,6 +10646,7 @@ export const posts: BlogPost[] = [
     date: "October 19, 2026",
     isoDate: "2026-10-19T03:31",
     readingTime: "8 min read",
+    image: "/blog/kronos-candlestick-foundation-models-hero.jpg",
     Content: KronosCandlestickFoundationModelsContent,
   },
   {
@@ -10637,6 +10656,7 @@ export const posts: BlogPost[] = [
     date: "October 19, 2026",
     isoDate: "2026-10-19T03:24",
     readingTime: "7 min read",
+    image: "/blog/ecosystem-not-the-paper-hero.jpg",
     Content: EcosystemNotThePaperContent,
   },
   {
@@ -10646,6 +10666,7 @@ export const posts: BlogPost[] = [
     date: "October 19, 2026",
     isoDate: "2026-10-19T12:52",
     readingTime: "13 min read",
+    image: "/blog/keychain-ai-companion-second-brain-1.jpg",
     Content: KeychainAiCompanionSecondBrainContent,
   },
   {
@@ -10655,6 +10676,7 @@ export const posts: BlogPost[] = [
     date: "October 19, 2026",
     isoDate: "2026-10-19T17:30",
     readingTime: "9 min read",
+    image: "/blog/old-macbook-encrypted-home-backup-1.jpg",
     Content: OldMacbookHomeBackupContent,
   },
   {
@@ -10664,6 +10686,7 @@ export const posts: BlogPost[] = [
     date: "October 19, 2026",
     isoDate: "2026-10-19T07:56",
     readingTime: "13 min read",
+    image: "/blog/arkiv-hackathon-skillreg-hero.jpg",
     Content: ArkivHackathonSkillregContent,
   },
   {
@@ -10673,6 +10696,7 @@ export const posts: BlogPost[] = [
     date: "October 19, 2026",
     isoDate: "2026-10-19T15:51",
     readingTime: "12 min read",
+    image: "/blog/let-your-agent-post-to-linkedin-1.jpg",
     Content: LetYourAgentPostToLinkedinContent,
   },
   {
@@ -10682,6 +10706,7 @@ export const posts: BlogPost[] = [
     date: "October 18, 2026",
     isoDate: "2026-10-18T16:12",
     readingTime: "12 min read",
+    image: "/blog/inside-hermes-agent-memory-skills-self-improvement-1.jpg",
     Content: InsideHermesAgentMemorySkillsSelfImprovementContent,
   },
   {
@@ -10691,6 +10716,7 @@ export const posts: BlogPost[] = [
     date: "October 17, 2026",
     isoDate: "2026-10-17T00:41",
     readingTime: "14 min read",
+    image: "/blog/how-our-company-of-ai-bots-works-1.jpg",
     Content: HowOurCompanyOfAiBotsWorksContent,
   },
   {
@@ -10700,6 +10726,7 @@ export const posts: BlogPost[] = [
     date: "October 17, 2026",
     isoDate: "2026-10-17T11:43",
     readingTime: "13 min read",
+    image: "/blog/how-we-built-friendly-reachy-mini-hero.jpg",
     Content: HowWeBuiltFriendlyReachyMiniContent,
   },
   {
@@ -10709,6 +10736,7 @@ export const posts: BlogPost[] = [
     date: "October 17, 2026",
     isoDate: "2026-10-17T15:37",
     readingTime: "13 min read",
+    image: "/blog/how-secondbrain-works-open-source-1.jpg",
     Content: HowSecondbrainWorksOpenSourceContent,
   },
   {
@@ -10718,6 +10746,7 @@ export const posts: BlogPost[] = [
     date: "October 17, 2026",
     isoDate: "2026-10-17T02:42",
     readingTime: "3 min read",
+    image: "/blog/argo-build-log-day-4-hero.jpg",
     Content: ArgoBuildLogDay4Content,
   },
   {
@@ -10727,6 +10756,7 @@ export const posts: BlogPost[] = [
     date: "October 16, 2026",
     isoDate: "2026-10-16T15:51",
     readingTime: "13 min read",
+    image: "/blog/self-improving-agent-harness-hero.jpg",
     Content: SelfImprovingAgentHarnessContent,
   },
   {
@@ -10736,6 +10766,7 @@ export const posts: BlogPost[] = [
     date: "October 16, 2026",
     isoDate: "2026-10-16T13:17",
     readingTime: "11 min read",
+    image: "/blog/where-our-agents-tokens-go-hero.jpg",
     Content: WhereOurAgentsTokensGoContent,
   },
   {
@@ -10745,6 +10776,7 @@ export const posts: BlogPost[] = [
     date: "October 15, 2026",
     isoDate: "2026-10-15T15:47",
     readingTime: "24 min read",
+    image: "/blog/smart-ring-to-your-own-database-hero.jpg",
     Content: SmartRingToYourOwnDatabaseContent,
   },
   {
@@ -10754,6 +10786,7 @@ export const posts: BlogPost[] = [
     date: "October 15, 2026",
     isoDate: "2026-10-15T12:45",
     readingTime: "14 min read",
+    image: "/blog/build-a-3d-map-of-your-second-brain-hero.jpg",
     Content: BuildA3dMapOfYourSecondBrainContent,
   },
   {
@@ -10763,6 +10796,7 @@ export const posts: BlogPost[] = [
     date: "October 14, 2026",
     isoDate: "2026-10-14T14:10",
     readingTime: "10 min read",
+    image: "/blog/privacy-levels-for-ai-agents-hero.jpg",
     Content: PrivacyLevelsForAiAgentsContent,
   },
   {
@@ -10773,6 +10807,7 @@ export const posts: BlogPost[] = [
     date: 'October 14, 2026',
     isoDate: '2026-10-14T21:00',
     readingTime: '7 min read',
+    image: '/blog/local-voice-kokoro-second-brain-1.jpg',
     Content: LocalVoiceKokoroContent,
   },
   {
@@ -10783,6 +10818,7 @@ export const posts: BlogPost[] = [
     date: 'October 14, 2026',
     isoDate: '2026-10-14T19:00',
     readingTime: '8 min read',
+    image: '/blog/ardour-mcp-ai-agent-lane-8-style-track-1.jpg',
     Content: ArdourMcpAgentMusicContent,
   },
   {
@@ -10793,6 +10829,7 @@ export const posts: BlogPost[] = [
     date: 'October 14, 2026',
     isoDate: '2026-10-14T18:00',
     readingTime: '6 min read',
+    image: '/blog/argo-fund-ai-investment-committee-1.jpg',
     Content: ArgoFundCommitteeContent,
   },
   {
@@ -10803,6 +10840,7 @@ export const posts: BlogPost[] = [
     date: 'October 13, 2026',
     isoDate: '2026-10-13T12:45',
     readingTime: '7 min read',
+    image: '/blog/skills-loops-graphs-ai-agents-1.jpg',
     Content: SkillsLoopsGraphsContent,
   },
   {
@@ -10813,6 +10851,7 @@ export const posts: BlogPost[] = [
     date: 'October 12, 2026',
     isoDate: '2026-10-12T23:30',
     readingTime: '7 min read',
+    image: '/blog/ai-agents-crypto-trading-wallets-1.jpg',
     Content: AiAgentsCryptoTradingWalletsContent,
   },
   {
@@ -10823,6 +10862,7 @@ export const posts: BlogPost[] = [
     date: 'October 12, 2026',
     isoDate: '2026-10-12T17:30',
     readingTime: '10 min read',
+    image: '/blog/agent-harness-claude-code-hermes-1.jpg',
     Content: AgentHarnessContent,
   },
   {
@@ -10833,6 +10873,7 @@ export const posts: BlogPost[] = [
     date: 'October 12, 2026',
     isoDate: '2026-10-12T10:00',
     readingTime: '7 min read',
+    image: '/blog/what-argo-knows-1.jpg',
     Content: WhatArgoKnowsContent,
   },
   {
@@ -10843,6 +10884,7 @@ export const posts: BlogPost[] = [
     date: 'October 1, 2026',
     isoDate: '2026-10-01T10:00',
     readingTime: '10 min read',
+    image: '/blog/how-argo-encryption-works-1.jpg',
     Content: ArgoEncryptionContent,
   },
   {
@@ -10853,6 +10895,7 @@ export const posts: BlogPost[] = [
     date: 'September 12, 2026',
     isoDate: '2026-09-12T09:00',
     readingTime: '5 min read',
+    image: '/blog/argo-1-0-1-mirror-wallet-unlock-1.jpg',
     Content: ArgoMirrorWalletUnlockContent,
   },
   {
@@ -10863,6 +10906,7 @@ export const posts: BlogPost[] = [
     date: 'September 9, 2026',
     isoDate: '2026-09-09T13:00',
     readingTime: '4 min read',
+    image: '/blog/pitching-argo-startup-village-borneo-1.jpg',
     Content: PitchingArgoStartupVillageBorneoContent,
   },
   {
@@ -10873,6 +10917,7 @@ export const posts: BlogPost[] = [
     date: 'August 5, 2026',
     isoDate: '2026-08-05T10:00',
     readingTime: '9 min read',
+    image: '/blog/david-johnston-morpheus-hero.jpg',
     Content: PrivateAIEnclavesContent,
   },
   {
@@ -10883,6 +10928,7 @@ export const posts: BlogPost[] = [
     date: 'July 31, 2026',
     isoDate: '2026-07-31T18:00',
     readingTime: '6 min read',
+    image: '/blog/francis-goon-losing-the-fear-of-ai-hero.jpg',
     Content: FrancisGoonLosingTheFearOfAiContent,
   },
   {
@@ -10893,6 +10939,7 @@ export const posts: BlogPost[] = [
     date: 'July 29, 2026',
     isoDate: '2026-07-29T18:00',
     readingTime: '6 min read',
+    image: '/blog/llp024-anna-sokol-1.jpg',
     Content: Llp024AnnaSokolContent,
   },
   {
@@ -10903,6 +10950,7 @@ export const posts: BlogPost[] = [
     date: 'July 28, 2026',
     isoDate: '2026-07-28T18:00',
     readingTime: '6 min read',
+    image: '/blog/velveteen-artist-founder-stories-hero.jpg',
     Content: VelveteenArtistFounderStoriesContent,
   },
   {
@@ -10913,6 +10961,7 @@ export const posts: BlogPost[] = [
     date: 'July 26, 2026',
     isoDate: '2026-07-26T18:00',
     readingTime: '6 min read',
+    image: '/blog/llp022-daria-chernozub-hero.jpg',
     Content: Llp022DariaChernozubContent,
   },
   {
@@ -10923,6 +10972,7 @@ export const posts: BlogPost[] = [
     date: 'July 25, 2026',
     isoDate: '2026-07-25T18:00',
     readingTime: '6 min read',
+    image: '/blog/llp021-anton-contentdao-1.jpg',
     Content: AntonPecherkinContent,
   },
   {
@@ -10933,6 +10983,7 @@ export const posts: BlogPost[] = [
     date: 'July 21, 2026',
     isoDate: '2026-07-21T18:00',
     readingTime: '6 min read',
+    image: '/blog/ashish-sood-network-states-1.jpg',
     Content: AshishSoodContent,
   },
   {
@@ -10943,6 +10994,7 @@ export const posts: BlogPost[] = [
     date: 'July 20, 2026',
     isoDate: '2026-07-20T18:00',
     readingTime: '6 min read',
+    image: '/blog/tony-lopez-robotics-shenzhen-claude-code-hero.jpg',
     Content: TonyLopezContent,
   },
   {
@@ -10953,6 +11005,7 @@ export const posts: BlogPost[] = [
     date: 'July 16, 2026',
     isoDate: '2026-07-16T18:00',
     readingTime: '6 min read',
+    image: '/blog/llp018-daniel-im-hero.jpg',
     Content: DanielImContent,
   },
   {
@@ -10963,6 +11016,7 @@ export const posts: BlogPost[] = [
     date: 'July 15, 2026',
     isoDate: '2026-07-15T18:00',
     readingTime: '6 min read',
+    image: '/blog/llp017-peter-donaldson-hero.jpg',
     Content: PeterDonaldsonContent,
   },
   {
@@ -10973,6 +11027,7 @@ export const posts: BlogPost[] = [
     date: 'July 14, 2026',
     isoDate: '2026-07-14T18:00',
     readingTime: '5 min read',
+    image: '/blog/david-johnston-morpheus-hero.jpg',
     Content: DavidJohnstonMorpheusContent,
   },
   {
@@ -10983,6 +11038,7 @@ export const posts: BlogPost[] = [
     date: 'July 13, 2026',
     isoDate: '2026-07-13T18:00',
     readingTime: '6 min read',
+    image: '/blog/quantum-proof-bitcoin-chris-quantus-hero.jpg',
     Content: QuantumProofBitcoinContent,
   },
   {
@@ -10993,6 +11049,7 @@ export const posts: BlogPost[] = [
     date: 'July 11, 2026',
     isoDate: '2026-07-11T18:00',
     readingTime: '8 min read',
+    image: '/blog/chong-ing-kai-stickem-1.jpg',
     Content: ChongIngKaiContent,
   },
   {
@@ -11003,6 +11060,7 @@ export const posts: BlogPost[] = [
     date: 'July 9, 2026',
     isoDate: '2026-07-09T18:00',
     readingTime: '8 min read',
+    image: '/blog/koss-ethereum-biomarkers-and-the-signals-of-nature-1.jpg',
     Content: KossSignalsContent,
   },
   {
@@ -11013,6 +11071,7 @@ export const posts: BlogPost[] = [
     date: 'July 4, 2026',
     isoDate: '2026-07-04T20:00',
     readingTime: '11 min read',
+    image: '/blog/rumination-hero.jpg',
     Content: RuminationContent,
   },
   {
@@ -11023,6 +11082,7 @@ export const posts: BlogPost[] = [
     date: 'July 4, 2026',
     isoDate: '2026-07-04T18:00',
     readingTime: '10 min read',
+    image: '/blog/build-mind-hero.jpg',
     Content: BuildYourMindContent,
   },
   {
@@ -11033,6 +11093,7 @@ export const posts: BlogPost[] = [
     date: 'July 4, 2026',
     isoDate: '2026-07-04',
     readingTime: '9 min read',
+    image: '/blog/hero-750-words.jpg',
     Content: SevenFiftyHabitContent,
   },
   {
@@ -11043,6 +11104,7 @@ export const posts: BlogPost[] = [
     date: 'July 3, 2026',
     isoDate: '2026-07-03T12:00',
     readingTime: '6 min read',
+    image: '/blog/the-soul-constellation-a-galaxy-you-own-hero.jpg',
     Content: SoulConstellationContent,
   },
   {
@@ -11053,9 +11115,14 @@ export const posts: BlogPost[] = [
     date: 'July 3, 2026',
     isoDate: '2026-07-03',
     readingTime: '7 min read',
+    image: '/blog/the-science-of-750-words-a-day-hero.jpg',
     Content: SevenFiftyWordsContent,
   },
 ]
+
+export function imageOf(p: BlogPost): string {
+  return p.image ?? DEFAULT_IMAGE
+}
 
 export function categoryOf(p: BlogPost): Category {
   return p.category ?? DEFAULT_CATEGORY

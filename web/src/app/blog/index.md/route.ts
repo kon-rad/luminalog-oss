@@ -8,7 +8,7 @@ export function GET() {
   const lines = [
     '# Argo blog',
     '',
-    `Every post on ${SITE}/blog, newest first. Append \`.md\` to any post URL for its markdown.`,
+    `Every post on ${SITE}/articles, newest first. Append \`.md\` to any post URL for its markdown.`,
     `JSON: ${SITE}/blog/agents.json · Skill: ${SITE}/blog/SKILL.md`,
     '',
     ...agentIndex().map(

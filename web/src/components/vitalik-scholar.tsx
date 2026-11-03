@@ -23,7 +23,7 @@ function ScholarFooter() {
       <div className="wrap">
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', fontSize: 14 }}>
           <Link href="/vitalik-scholar" style={{ color: 'var(--text2)', fontWeight: 600 }}>Vitalik Scholar</Link>
-          <Link href="/blog" style={{ color: 'var(--text2)' }}>Blog</Link>
+          <Link href="/articles" style={{ color: 'var(--text2)' }}>Articles</Link>
           <Link href="/events" style={{ color: 'var(--text2)' }}>Events</Link>
           <Link href="/" style={{ color: 'var(--text2)' }}>Argo</Link>
         </div>

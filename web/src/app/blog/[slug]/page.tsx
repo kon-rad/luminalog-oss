@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { BlogPostLayout } from '@/components/blog'
-import { posts, getPost } from '@/lib/blog-posts'
+import { posts, getPost, imageOf } from '@/lib/blog-posts'
 import { postMarkdown } from '@/lib/blog-markdown'
 
 export function generateStaticParams() {
@@ -18,6 +18,7 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
       title: post.title,
       description: post.description,
       type: 'article',
+      images: [{ url: imageOf(post), width: 1600, height: 900 }],
     },
     // Agents that look for an alternate format find the markdown version.
     alternates: { types: { 'text/markdown': `/blog/${post.slug}.md` } },

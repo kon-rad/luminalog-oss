@@ -14,7 +14,7 @@ import CopyToAgents from '@/components/CopyToAgents'
  * ────────────────────────────────────────────────────────────────────────── */
 
 /* Shared footer, identical in spirit to the legal footer. */
-function BlogFooter() {
+export function BlogFooter() {
   return (
     <footer style={{ background: 'var(--bg)', borderTop: '1px solid var(--hairline)', padding: '40px 0 56px' }}>
       <div className="wrap">
@@ -27,7 +27,7 @@ function BlogFooter() {
           </Link>
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', fontSize: 14 }}>
             <Link href="/events" style={{ color: 'var(--text2)' }}>Events</Link>
-            <Link href="/blog" style={{ color: 'var(--text2)' }}>Blog</Link>
+            <Link href="/articles" style={{ color: 'var(--text2)' }}>Articles</Link>
             <Link href="/vitalik-scholar" style={{ color: 'var(--text2)' }}>Vitalik Scholar</Link>
             <Link href="/privacy" style={{ color: 'var(--text2)' }}>Privacy Policy</Link>
             <Link href="/terms" style={{ color: 'var(--text2)' }}>Terms</Link>
@@ -67,7 +67,7 @@ export function BlogPostLayout({
         <section style={{ borderBottom: '1px solid var(--hairline)', background: 'var(--surfaceAlt)' }}>
           <div className="wrap" style={{ padding: '72px 0 48px', maxWidth: 760 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
-              <Link href="/blog" className="eyebrow">← All writing</Link>
+              <Link href="/articles" className="eyebrow">← All articles</Link>
               {agent && <CopyToAgents markdown={agent.markdown} markdownUrl={agent.markdownUrl} />}
             </div>
             <h1 className="serif" style={{ marginTop: 14, fontSize: 'clamp(32px,4.6vw,48px)', fontWeight: 600, letterSpacing: '-0.03em', lineHeight: 1.08, color: 'var(--text)' }}>{title}</h1>

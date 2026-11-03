@@ -16,11 +16,11 @@ const CANCEL_CODES = new Set(['auth/popup-closed-by-user', 'auth/cancelled-popup
 type LinkItem = { label: string; href: string; external?: boolean }
 
 // Top-level links (spec: Areas/argo/brand/argo-rename-and-slogan.md, section 5,
-// step 4): Argo is the brand link, then Journal, Exo, Blog, GitHub.
+// step 4): Argo is the brand link, then Journal, Exo, Articles, GitHub.
 const PRIMARY_LINKS: LinkItem[] = [
   { label: 'Journal', href: '/argo-journal' },
   { label: 'Exo', href: 'https://exo.myargoquest.com', external: true },
-  { label: 'Blog', href: '/blog' },
+  { label: 'Articles', href: '/articles' },
   { label: 'GitHub', href: 'https://github.com/kon-rad/argo', external: true },
 ]
 

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
-import { BlogIndexLayout } from '@/components/blog'
-import { ArticleList, CategoryNav, sortedPosts } from '@/components/ArticleList'
+import { ArticlesLayout, ArticleList, CategoryNav, sortedPosts } from '@/components/ArticleList'
 import { ARTICLES_SUBLINE } from '@/lib/categories'
 
 export const metadata: Metadata = {
@@ -11,9 +10,9 @@ export const metadata: Metadata = {
 
 export default function ArticlesPage() {
   return (
-    <BlogIndexLayout title="Articles" subline={ARTICLES_SUBLINE}>
+    <ArticlesLayout title="Articles" subline={ARTICLES_SUBLINE}>
       <CategoryNav />
       <ArticleList list={sortedPosts()} showCategory />
-    </BlogIndexLayout>
+    </ArticlesLayout>
   )
 }

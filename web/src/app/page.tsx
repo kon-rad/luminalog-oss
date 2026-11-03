@@ -71,7 +71,7 @@ const PRODUCTS: Product[] = [
 const FOOTER_LINKS: [string, string][] = [
   ['Journal', JOURNAL_PATH],
   ['Exo', EXO_URL],
-  ['Blog', '/blog'],
+  ['Articles', '/articles'],
   ['Events', '/events'],
   ['Courses', '/courses'],
   ['GitHub', GITHUB_URL],

@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { BlogIndexLayout } from '@/components/blog'
-import { ArticleList, CategoryNav, sortedPosts } from '@/components/ArticleList'
+import { ArticlesLayout, ArticleList, CategoryNav, sortedPosts } from '@/components/ArticleList'
 import { categoryOf, posts } from '@/lib/blog-posts'
 import { CATEGORIES, CATEGORY_META, isCategory } from '@/lib/categories'
 
@@ -28,9 +27,9 @@ export default function ArticleCategoryPage({ params }: { params: { category: st
   const { label, subline } = CATEGORY_META[category]
   const list = sortedPosts(posts.filter((p) => categoryOf(p) === category))
   return (
-    <BlogIndexLayout title={label} subline={subline} back={{ href: '/articles', label: '← All articles' }}>
+    <ArticlesLayout title={label} subline={subline}>
       <CategoryNav active={category} />
       <ArticleList list={list} showCategory={false} emptyLabel={label} />
-    </BlogIndexLayout>
+    </ArticlesLayout>
   )
 }
