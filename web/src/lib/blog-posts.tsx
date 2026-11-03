@@ -10474,16 +10474,18 @@ export const posts: BlogPost[] = [
     date: "November 3, 2026",
     isoDate: "2026-11-03T01:20",
     readingTime: "11 min read",
+    image: "/blog/sol-pi-harness-loop-1.jpg",
     Content: SolPiHarnessLoopContent,
   },
   {
     slug: "deepseek-harness-creator-mode",
-    title: "\"DeepSeek Harness Creator Mode: what it does, what it costs, and how open it really is\"",
+    title: "DeepSeek Harness Creator Mode: what it does, what it costs, and how open it really is",
     description: "DeepSeek's open-source agent harness now builds its own plugins from a chat message. Every feature, the real price in USD, and what is open and what is not.",
     category: "ai-news",
     date: "November 2, 2026",
     isoDate: "2026-11-02T16:28",
     readingTime: "13 min read",
+    image: "/blog/deepseek-harness-creator-mode-1.jpg",
     Content: DeepseekHarnessCreatorModeContent,
   },
   {
@@ -10494,6 +10496,7 @@ export const posts: BlogPost[] = [
     date: "November 2, 2026",
     isoDate: "2026-11-02T14:11",
     readingTime: "14 min read",
+    image: "/blog/commanding-heights-1.jpg",
     Content: CommandingHeightsContent,
   },
   {
