@@ -10465,7 +10465,193 @@ function SolPiHarnessLoopContent() {
   )
 }
 
+/* ── Post: How a nightly gardener keeps a second brain tidy without deleting anything ── */
+function VaultGardenerContent() {
+  return (
+    <>
+      <P>
+        A second brain starts tidy. You pick a method, PARA in our case (Projects, Areas, Resources, Archives: four folders sorted by how actionable a note is, not by topic), and for a few weeks every note lands where it belongs. Then life happens. A project finishes and its folder stays in Projects. A note gets saved at the top of Research because you were in a hurry. A folder gets created with a capital letter and a space in its name. Seven weeks in, our own vault had 38 folders under Projects while the project tracker said we were running 7 projects, 9 loose notes sitting in the vault root, and an Archives folder that was nearly empty because nothing ever moved there.
+      </P>
+      <P>
+        None of that is a failure of the method. In PARA, live folders hold only live work. It just has no way to enforce it, and a human who is busy enough to need a second brain is too busy to file it every night.
+      </P>
+      <P>
+        This post explains the vault gardener, <code>secondbrain garden</code>, the part of our open-source Second Brain engine that now does the filing. Its nightly timer went live on our production server on 4 November 2026, Tokyo time. The interesting parts are not the moves themselves but the three things that make an agent safe to let loose on your notes: one small header it obeys, a short list of things it never does, and a ladder of three modes it climbs one rung at a time.
+      </P>
+      <H2>Why a second brain rots</H2>
+      <P>
+        Two forces work against a tidy vault. The first is that finishing is quiet. When a project ends you stop writing in its folder; nobody writes &quot;this is done&quot; anywhere, so the folder looks exactly like a live one. The second is that filing is a tax on capture. If saving a note means deciding where it goes, you save it at the root and promise to sort it later.
+      </P>
+      <P>
+        We had tried the obvious fix before this: a nightly agent on a local model that looked at the last 24 hours of changes and filed what it could. It ran twice and moved nothing. It had no catalog of what existed, no rules for what &quot;stale&quot; meant, and by design it could not archive or rename anything. The lesson was that the gap was not a missing cron job. It was a missing control surface and missing rules.
+      </P>
+      <H2>What a shelf is</H2>
+      <P>
+        The gardener treats every top-level folder under Projects, Areas and Research as a <strong>shelf</strong>. A shelf is a folder the gardener has one place to read and write the state of: its <code>README.md</code>, with a small header in frontmatter (the block of <code>key: value</code> lines between <code>---</code> markers at the top of a markdown file).
+      </P>
+      <Figure
+        src="/blog/vault-gardener-1.jpg"
+        alt="The vault gardener page of the engine's docs on GitHub, showing the shelf header in YAML with the sentence The owner edits a line; the gardener obeys it on the next run highlighted"
+        width={1575}
+        height={1050}
+        priority
+        caption="The gardener's docs page in the engine repository, with the one rule the whole design rests on highlighted (screenshot, github.com/kon-rad/argo)"
+      />
+      <P>
+        The header is seven lines:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"---\nshelf: Projects/demo\nstatus: active\nproject: none\nkind: project\nlast_reviewed: 2026-11-03\narchive_after: default\npin: false\n---"}</code></pre>
+      <P>
+        Each line has one owner. <code>shelf</code> and <code>last_reviewed</code> belong to the gardener: the path is always rewritten from the real folder, and the date is set on every run that writes. <code>kind</code> comes from the root folder: a shelf under Projects is a <code>project</code>, under Areas an <code>area</code>, under Research a <code>resource</code>. The other four are yours. <code>status</code> is <code>active</code>, <code>dormant</code> or <code>archived</code>. <code>project</code> names the project this shelf belongs to in the engine&apos;s tracker, or <code>none</code>; when a folder&apos;s name matches a tracker project, the gardener fills it in. <code>archive_after</code> is <code>default</code>, a number of days such as <code>120d</code>, or <code>never</code>. And <code>pin: true</code> means never archive, never propose, never rename this shelf.
+      </P>
+      <P>
+        The rule that makes this work is in the docs in one sentence: the owner edits a line; the gardener obeys it on the next run. A hand-set value always wins. The gardener only fills blanks. Any other key you keep in that frontmatter (<code>title</code>, <code>tags</code>, anything) is left in place, and the body of the note is never rewritten, except for one generated block at its end between <code>&lt;!-- shelf:start --&gt;</code> and <code>&lt;!-- shelf:end --&gt;</code> markers: status, project, the design doc, the next action from the folder&apos;s dev log, the newest and most-linked notes, and sibling shelves. Hand-written prose above the markers is never touched.
+      </P>
+      <Figure
+        src="/blog/vault-gardener-2.jpg"
+        alt="The seven-line shelf header the gardener writes into a folder's README, with a note on who sets each line."
+        width={1920}
+        height={1080}
+        caption="The shelf header: seven lines of frontmatter, and which of them the owner sets and which the gardener fills (Argo diagram, from docs/garden.md)"
+      />
+      <P>
+        The analogy is a library&apos;s card catalog. Every shelf gets a card, the cards are what you edit, and the shelving follows the cards. The analogy stops at one point: in a library the librarian writes the cards; here the gardener writes most of them and you only correct the ones that matter.
+      </P>
+      <H2>What a nightly run reads and decides</H2>
+      <P>
+        A run reads four things. The shelf headers. The git history, specifically the date of the last commit under each folder, which is the gardener&apos;s definition of &quot;touched&quot;. The project tracker, a table of projects and their stage in the engine&apos;s database, so a project that is <code>parked</code> or <code>done</code> can be recognised even if someone edited a file in it yesterday. And the list of files with uncommitted changes, because those belong to whoever is editing them right now.
+      </P>
+      <P>
+        If the tracker is unreachable the run does not stop; it carries on with no stage for any project, and a missing stage can never cause an archive. That is the general shape of the rules: a missing input leads to less action, not more.
+      </P>
+      <Figure
+        src="/blog/vault-gardener-3.jpg"
+        alt="Diagram of one nightly run: what it reads, the rules it applies, and what shadow, write and apply modes each write."
+        width={1920}
+        height={1080}
+        caption="What one nightly run reads, decides and writes, and what it never touches (Argo diagram, from docs/garden.md and rules.ts)"
+      />
+      <P>
+        From those inputs the run plans one action per shelf, with the rules checked in order:
+      </P>
+      <UL items={[
+        <><strong>Pinned, or already archived:</strong> nothing.</>,
+        <><strong>A project shelf</strong> whose tracker project is parked or done, or with no commit in <code>archive_after</code> days, or with no git history at all, becomes an archive candidate, which apply mode will turn into a move to <code>Archives/&lt;quarter&gt;/projects/&lt;name&gt;</code> and <code>status: archived</code>.</>,
+        <><strong>An area shelf</strong> with no tracker project and no commit in the area threshold is proposed in the report, never moved. An area is a standard you maintain (health, finances, a house), so a quiet one is not a dead one. Projects, which end, are archived automatically; areas are only ever proposed. That split is the PARA-correct one, and it is the single decision in this design most likely to be wrong for someone else&apos;s vault, which is why both thresholds are settings.</>,
+        <><strong>A research shelf</strong> is never archived by age. Reference material does not expire because you stopped reading it.</>,
+        <><strong>A folder whose name is not lowercase kebab-case</strong> is renamed (<code>Models Research</code> becomes <code>models-research</code>), at most 5 a night.</>,
+      ]} />
+      <P>
+        Notes sitting loose directly in a root folder, such as <code>Research/x.md</code>, are not moved at all yet. They are listed in the report under &quot;Needs a human&quot;, along with anything over a cap. The vault root itself is yours and is not scanned. Routing loose notes with a model is a later step; for now a human files them.
+      </P>
+      <P>
+        The planning step is written as pure functions: a list of shelves in, a list of actions out, with the dates and the tracker stages passed in as functions. That is what lets the rules be tested without git or a database. The engine&apos;s test suite covers 32 cases across seven files, with names like &quot;parked project archives even if touched&quot;, &quot;area is proposed not moved&quot; and &quot;refuses when a file under the source is dirty&quot;.
+      </P>
+      <H2>What it writes, and what it never touches</H2>
+      <P>
+        Writing is where an organising agent earns or loses trust, so it is worth being exact.
+      </P>
+      <P>
+        The report is always written: a markdown file named by date with five sections, Would archive, Proposed (areas), Would rename, Needs a human, and Skipped: uncommitted changes. In write mode it also writes the shelf headers (creating a <code>README.md</code> where a shelf has none), the generated block, and the catalog, a file with one row per shelf. In apply mode it also moves and renames.
+      </P>
+      <P>
+        Every move is a <code>git mv</code>, never a plain filesystem move and never a delete, so one night&apos;s changes are one revertable commit. A move is refused, not forced, when its target already exists, when its source is gone, or when any file under it has uncommitted changes. The shelf note and the catalog are skipped when they themselves are uncommitted. After a move, links in every other note that carry the old folder&apos;s path (wikilinks with the full path, markdown link targets, and the same path in backticks) are rewritten; a wikilink that names only the note&apos;s file name resolves by that name and keeps working, so it is left alone. At most 25 archive moves run in one night; the rest wait. Nothing under hidden folders (names starting with a dot), nested git repositories or <code>node_modules</code> is ever a shelf.
+      </P>
+      <P>
+        One more thing the gardener never does: commit. It changes files and stops. Your vault&apos;s sync timer, or you, commit what it changed, so the report is sitting there to read before anything is permanent, and a bad night in apply mode is a single <code>git revert</code>.
+      </P>
+      <H2>Shadow, write, apply</H2>
+      <P>
+        The three modes are the part of the design we would reuse for any agent that changes files you care about. They are a ladder, and each rung adds exactly one kind of write.
+      </P>
+      <Figure
+        src="/blog/vault-gardener-4.jpg"
+        alt="Three rising steps: shadow, write and apply. Our server is on write; apply is off."
+        width={1920}
+        height={1080}
+        caption="The three modes as a ladder; the nightly timer on our server runs write mode, and apply stays off until a week of reports reads right (Argo diagram, from cli-garden.ts and the timer unit)"
+      />
+      <UL items={[
+        <><strong>Shadow</strong> (<code>secondbrain garden</code>) reads everything, plans the whole night, and writes only the report. Nothing else on disk changes. You read what it would have done.</>,
+        <><strong>Write</strong> (<code>secondbrain garden --write</code>) adds the shelf headers, the generated block and the catalog. Still no moves and no renames. The vault gains its catalog; nothing is relocated.</>,
+        <><strong>Apply</strong> (<code>secondbrain garden --apply</code>, or <code>&quot;garden&quot;: &#123; &quot;apply&quot;: true &#125;</code> in the settings file) adds the moves and renames, with the caps and refusals above.</>,
+      ]} />
+      <P>
+        The plan is identical on every rung. The only difference is how much of it is allowed to happen, which means seven nights of shadow or write reports show you exactly what the first apply night will do, with the same code that will do it. The engine&apos;s docs put the advice plainly: set <code>apply</code> to true once a week of reports looks right, and the same timer starts moving files.
+      </P>
+      <P>
+        On a server, the engine&apos;s deploy script installs a systemd timer when the <code>garden</code> module is enabled. It runs write mode at 04:30 Tokyo time, with a random delay of up to two minutes, before the morning routines that read the vault.
+      </P>
+      <Figure
+        src="/blog/vault-gardener-5.jpg"
+        alt="The systemd timer unit for the gardener in the engine repository on GitHub, with the OnCalendar line set to 04:30 Asia/Tokyo highlighted"
+        width={1575}
+        height={945}
+        caption="The nightly timer as shipped in the engine: 04:30 Tokyo, with a random delay of up to two minutes (screenshot, github.com/kon-rad/argo)"
+      />
+      <H2>What the first production run looked like</H2>
+      <P>
+        The gardener was built and run on a Mac checkout of our vault on 3 November 2026. That first write run gave 105 shelves their header (94 README files created, 21 existing ones kept their prose and gained the header and the block), produced the catalog, and reported 1 archive candidate, 10 area proposals, 5 renames and 14 items for a human (8 renames over the nightly cap and 6 loose notes at the top of Research). A second write run straight after changed nothing, which is the test that the output is stable.
+      </P>
+      <P>
+        Two things were wrong on the first pass and are worth knowing if you run this on your own vault. Our vault&apos;s git history is under two months old, so no folder could be 90 days stale by commit date and the engine&apos;s default thresholds found nothing; our settings use 45 days for both thresholds for now, while the engine defaults stay at 90 days for projects and 180 for areas. And the shelf header originally baked <code>archive_after: 90d</code> into every project shelf, which silently overrode those settings; it now writes <code>default</code>, which means &quot;use the settings at plan time&quot;.
+      </P>
+      <P>
+        The pull request merged on 3 November. Hours later, on 4 November Tokyo time, the module was enabled on the server and the gardener was run by hand in shadow mode exactly as the timer would run it: same user, same environment file. It exited cleanly with 111 shelves, 1 archive candidate, 0 area proposals, 5 renames and 17 items for a human, and moved nothing. The vault had grown by six shelves since the Mac run the day before.
+      </P>
+      <Figure
+        src="/blog/vault-gardener-6.jpg"
+        alt="Five number panels from the first production run: 111 shelves, 1 archive candidate, 5 renames, 17 items for a human, 0 files moved."
+        width={1920}
+        height={1080}
+        caption="The gardener's first run on our production server on 4 November 2026, in shadow mode, exactly as the timer would run it (Argo chart, from the deploy log)"
+      />
+      <P>
+        The drop from 10 proposals to 0 is the kind of thing shadow mode exists to surface. The most likely cause is that the Mac&apos;s write run committed a header into every shelf&apos;s README, and the age rule reads the last commit date under the folder, so every shelf looked touched yesterday. That is our inference, not a confirmed finding. If it holds, the gardener&apos;s own writes reset the clock it measures with, and the fix is to measure age by commits that are not its own.
+      </P>
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Built and running: the <code>garden</code> module in the engine, merged on 3 November 2026 as pull request 104 (28 files, 1,359 lines added), with shadow, write and apply modes, the shelf header, the generated block, the catalog, the report, the caps and refusals, link rewriting on moves, and the nightly timer. Our server has run it in shadow mode once, and its timer is set to run write mode every night from 4 November.
+      </P>
+      <Figure
+        src="/blog/vault-gardener-7.jpg"
+        alt="Pull request 104 in the engine repository on GitHub, titled feat(garden): nightly vault gardener (shadow, write, apply), shown merged"
+        width={1575}
+        height={700}
+        caption="The pull request that added the gardener to the open-source engine, merged on 3 November 2026 (screenshot, github.com/kon-rad/argo)"
+      />
+      <P>
+        Not yet on: apply mode. <code>garden.apply</code> is <code>false</code> in our settings until a week of nightly reports reads right. The first apply night, from the current reports, would move one project folder and rename five.
+      </P>
+      <P>
+        Known open items: the report file is named by the UTC date and the timer fires at 19:30 UTC, so every nightly report carries the previous day&apos;s date, and the first nightly run overwrites the report from the hand run on 3 November. That wants a small engine change to name reports by the timer&apos;s local date. The proposals question above is the second. And still a plan rather than code: routing loose research notes into shelves with a local model, approving a proposal with one word from a chat message, and the same nightly check applied to the kanban board and the tracker.
+      </P>
+      <P>
+        To try it on your own vault, enable the module and run it in shadow mode first:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"secondbrain garden"}</code></pre>
+      <P>
+        Then read the report, pin what the rules got wrong, and climb one rung.
+      </P>
+      <P>
+        The engine is open source at https://github.com/kon-rad/argo, with the gardener documented in <code>docs/garden.md</code>. Follow the build on this blog or at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "vault-gardener",
+    title: "How a nightly gardener keeps a second brain tidy without deleting anything",
+    description: "How secondbrain garden turns every folder into a shelf with a seven-line header, plans archive moves from git history, and earns trust in three modes.",
+    category: "product-updates",
+    date: "November 4, 2026",
+    isoDate: "2026-11-04T19:48",
+    readingTime: "13 min read",
+    image: "/blog/vault-gardener-1.jpg",
+    Content: VaultGardenerContent,
+  },
   {
     slug: "sol-pi-harness-loop",
     title: "How an AI research loop nearly halved a coding agent's token use",
