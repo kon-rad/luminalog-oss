@@ -10640,7 +10640,132 @@ function VaultGardenerContent() {
   )
 }
 
+/* ── Post: Every harness now has a protocol: what UHP and HarnessRouter actually change ── */
+function UhpHarnessRouterContent() {
+  return (
+    <>
+      <P>
+        # Every harness now has a protocol
+      </P>
+      <P>
+        Tools have MCP. Agents have A2A. Models have the OpenAI API shape. Harnesses, the runtimes that actually loop an agent through tools and files, have had nothing. That is the gap the Unified Harness Protocol fills, and it is worth understanding because it changes what a product has to build if it wants to run agents on more than one runtime.
+      </P>
+      <P>
+        HarnessRouter is the open-source server that implements it: Apache-2.0, self-hosted, 30 harness bases at the time of writing, and an OpenAI Responses-compatible API in front.
+      </P>
+      <Figure
+        src="/blog/uhp-harness-router-1.jpg"
+        alt="Two panels comparing point-to-point harness integrations with a single routing layer"
+        width={1200}
+        height={680}
+        priority
+        caption="Without a shared protocol, four harnesses and four products is sixteen integrations. With UHP it is one."
+      />
+      <H2>The problem is arithmetic</H2>
+      <P>
+        If your product runs agent tasks on Codex today and you want to add Claude Code, you do not add an integration. You add a second execution stack: sessions, streaming, file transfer, cancellation, failure formats, and the recovery rules for each. Add Gemini CLI and Hermes and the maintenance cost is not additive, it multiplies.
+      </P>
+      <P>
+        That is fine for a product with one harness. It is painful for anything that wants to compare harnesses, offer them as a backend, or switch when one gets expensive.
+      </P>
+      <Figure
+        src="/blog/uhp-harness-router-2.jpg"
+        alt="Four step request flow through HarnessRouter"
+        width={1200}
+        height={680}
+        caption="A task goes in with a harness_id. The harness runs its own loop. Progress, files and failures come back through one shape."
+      />
+      <H2>What a call looks like</H2>
+      <P>
+        The protocol is deliberately thin. The backend sends a task with a <code>harness_id</code>. HarnessRouter starts that harness in its own session, the harness runs its native agent loop with its own tools, skills and model, and progress streams back over the same interface. Files, artifacts, failures and the final output all return through the same shape.
+      </P>
+      <P>
+        The important part is what does not change: the harness keeps its own behaviour. Claude Code does not become Codex. You get routing, not homogenisation.
+      </P>
+      <Figure
+        src="/blog/uhp-harness-router-3.jpg"
+        alt="Thirty harness names behind one API"
+        width={1200}
+        height={680}
+        caption="Thirty harness bases, including Hermes, Claude Code, Codex, DeepSeek Harness and Qoder Cloud Agent."
+      />
+      <H2>Thirty harnesses, one front door</H2>
+      <P>
+        The list is longer than the interesting part: Codex, Claude Code, Hermes, Pi, DeepSeek Harness, OpenCode, Kilo Code, Qwen Code, Gemini CLI, Cline, goose, Kimi Code CLI, MiniMax Code, Aider, OpenHands, Grok Build, Agent Zero, Qoder Cloud Agent, and more. Alibaba Cloud&apos;s Qoder is available as an agent backend through the API, which is the first sign of a vendor treating UHP as a distribution channel rather than a threat.
+      </P>
+      <P>
+        A support matrix ships with the repo, because &quot;30 bases&quot; does not mean every harness on every provider. Read it before promising a customer a combination.
+      </P>
+      <Figure
+        src="/blog/uhp-harness-router-4.jpg"
+        alt="Benchmark cards showing cost and latency spread"
+        width={1200}
+        height={680}
+        caption="HarnessRouter's own numbers: 223 to 0.47 credits, 4m36s to 1m25s, across eight harness and model configurations."
+      />
+      <H2>The numbers, with their caveat</H2>
+      <P>
+        HarnessRouter publishes a benchmark on one task across eight harness and model configurations. Its best and worst cases differ by 99.8% in cost, from 223 credits to 0.47, and by 3.2x in end-to-end latency, from 4 minutes 36 to 1 minute 25.
+      </P>
+      <P>
+        Two caveats, both worth saying out loud. First, these are the vendor&apos;s own numbers from its own methodology page, not an independent reproduction. Second, the cheapest and fastest configuration changes by task, which is the actual argument: you cannot know which harness wins without measuring your own workload. The 25 to 64 percent cost swing quoted for changing harness alone on compliance tasks points the same way.
+      </P>
+      <P>
+        The practical takeaway is not &quot;use the cheap one&quot;. It is that harness choice is now a measurable configuration, the way model choice became one.
+      </P>
+      <Figure
+        src="/blog/uhp-harness-router-5.jpg"
+        alt="Argo's three harnesses and what UHP would change"
+        width={1200}
+        height={680}
+        caption="Argo runs Hermes, Claude Code and zen-agent. Today that is one dispatcher per runtime and adapters around each."
+      />
+      <H2>What it means for a three-harness setup</H2>
+      <P>
+        Argo runs agents on Hermes, Claude Code and zen-agent. Today that means a dispatcher per runtime, a card format each adapter translates, and a cost comparison done by hand when a run gets expensive. Every new runtime is another adapter to keep alive.
+      </P>
+      <P>
+        That is the same arithmetic the diagram opened with, at small scale. A shared interface would not merge the runtimes, and it should not: each harness is good at different things and the models behind them differ. What it would remove is the per-runtime plumbing around sessions, streaming and failures, so adding a fourth harness is a config change instead of a project.
+      </P>
+      <P>
+        There is a second, quieter benefit. Once harness choice is a parameter, you can route by task: the cheap local model for a formatting pass, the strong one for a migration, and a measured decision about which harness handles each. That is the same logic we already apply to models.
+      </P>
+      <H2>What it does not solve</H2>
+      <UL items={[
+        <><strong>Quality.</strong> A protocol carries tasks, not judgement. If a harness is bad at a task, routing to it makes the failure arrive in a standard shape.</>,
+        <><strong>Cost control.</strong> UHP makes comparison possible; it does not stop a runaway loop.</>,
+        <><strong>Trust.</strong> Self-hosted means your keys and your infrastructure, which is good, but it also means you own the updates, the conformance suite and the incident when a harness changes its output.</>,
+      ]} />
+      <Figure
+        src="/blog/uhp-harness-router-6.jpg"
+        alt="Four layers of the agent stack and the interface each one got"
+        width={1200}
+        height={680}
+        caption="Tools, agents, models and now harnesses: each layer got its own interface in 2026."
+      />
+      <H2>Why this is the pattern of the year</H2>
+      <P>
+        Every layer of the agent stack has spent 2026 growing a standard interface: tools via MCP, agents talking to each other via A2A, model calls via the Responses API shape. The harness was the last layer without one, and it was the layer where switching cost lived.
+      </P>
+      <P>
+        The repo is at <A href="https://github.com/HarnessRouter/harnessrouter">github.com/HarnessRouter/harnessrouter</A>, Apache-2.0, about 4,100 stars at the time of writing, created in August and shipping daily. If you run more than one runtime in production, the conformance suite is worth reading before the benchmarks.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "uhp-harness-router",
+    title: "Every harness now has a protocol: what UHP and HarnessRouter actually change",
+    description: "A standard interface for running agent tasks across Codex, Claude Code, Hermes and 27 other harnesses, with one integration instead of sixteen. What it fixes, what it does not.",
+    category: "ai-news",
+    date: "November 4, 2026",
+    isoDate: "2026-11-04T19:56",
+    readingTime: "5 min read",
+    image: "/blog/uhp-harness-router-1.jpg",
+    Content: UhpHarnessRouterContent,
+  },
   {
     slug: "vault-gardener",
     title: "How a nightly gardener keeps a second brain tidy without deleting anything",
