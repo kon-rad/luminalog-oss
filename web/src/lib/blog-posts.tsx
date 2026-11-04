@@ -10754,7 +10754,162 @@ function UhpHarnessRouterContent() {
   )
 }
 
+/* ── Post: What Vitalik's "The end of my childhood" says about crypto, AI agents and keeping your own record ── */
+function VitalikEndOfChildhoodAndTheNextDecadeContent() {
+  return (
+    <>
+      <P>
+        In January 2024 Vitalik Buterin, who co-founded Ethereum, published a long personal essay called &quot;The end of my childhood&quot; (https://vitalik.eth.limo/general/2024/01/31/end.html). It opens in a hacker house in South Korea, a gathering of about thirty people almost all younger than him, where he noticed he &quot;was by a significant margin the oldest person in the room.&quot; His conclusion: &quot;it is time for the next generation to take up the mantle that used to be mine.&quot;
+      </P>
+      <P>
+        The essay is not about a protocol. It is about what happens when the things you built your life around fade: a scene, a role, the people you looked up to, and the mental frameworks you used to make sense of the world. It ends with a simple instruction. New things have to be made on purpose, and making them is &quot;a task for each one of us.&quot;
+      </P>
+      <P>
+        We read it this week because it describes a pattern we see in three places at once: crypto after its founding generation, work after AI agents, and computing after the phone. This post summarises what the essay says, then explains how we read it against each of those three, and why it makes the case for something we build: a private, encrypted record of your own thinking. Where we go beyond what Vitalik wrote, we say so.
+      </P>
+      <H2>What does the essay actually say?</H2>
+      <P>
+        The essay has seven numbered parts. Four ideas carry it.
+      </P>
+      <UL items={[
+        <><strong>Everything good is finite.</strong> Friendships fade, personalities shift over a decade, cities change, political movements lose attention. He used to argue about whether death gives life meaning; now he thinks it doesn&apos;t matter, because &quot;every single beautiful thing in our lives is finite&quot; anyway.</>,
+        <><strong>Drifting is a choice too.</strong> In 2022 two events changed him: the war in Ukraine, when he verified and endorsed the Ukrainian government&apos;s crypto donation address, and the collapse of the FTX exchange, which took down &quot;most of the people I had looked up to as guiding lights of the crypto space.&quot; He realised most of his career had been saying yes to other people&apos;s plans. His conclusion: &quot;I actually have responsibilities in this world, and I need to be intentional about how I operate.&quot;</>,
+        <><strong>Crypto has to grow past money.</strong> He wants Ethereum to keep serving people who are badly served by banks, and also to build a whole decentralized stack: identity, messaging, social media, sign-in and governance, with zero-knowledge proofs (a way to prove something is true without revealing the data behind it) for privacy.</>,
+        <><strong>Communities are made, not inherited.</strong> He points to Zuzalu, a pop-up community in Montenegro in 2023, and to the network-state movement &quot;at its best&quot;, as proof that cultures are &quot;not just something to be defended and preserved, but also something that can be actively created and grown.&quot;</>,
+      ]} />
+      <Figure
+        src="/blog/vitalik-end-of-childhood-and-the-next-decade-1.jpg"
+        alt="The opening of Vitalik Buterin's essay 'The end of my childhood' with the sentence 'every single beautiful thing in our lives is finite' highlighted"
+        width={1575}
+        height={980}
+        priority
+        caption="Vitalik Buterin, 'The end of my childhood', 2024-01-31. Screenshot of vitalik.eth.limo."
+      />
+      <P>
+        One more line matters for the rest of this post. Looking back on 2023, he writes that &quot;the frameworks I am forced to use to try to make sense of the world are changing.&quot; He doesn&apos;t just lose a scene. He loses some of the way he used to think.
+      </P>
+      <H2>What happens to crypto when its founders step back?</H2>
+      <P>
+        Every movement starts with a small group that holds the whole story in their heads. For crypto, that story was money: Bitcoin&apos;s first block quotes a newspaper headline about a bank bailout. Vitalik&apos;s essay is a founder saying, in public, that the story has to widen and that other people will be the ones to widen it.
+      </P>
+      <P>
+        An analogy helps. A founding generation is like the first settlers of a town. They know why every street runs where it does. Their children inherit the streets but not the reasons, and they build new neighbourhoods the founders never imagined. The analogy stops at one point: crypto&apos;s founders don&apos;t leave. Vitalik still writes and funds work. What changes is who sets the direction.
+      </P>
+      <P>
+        His own map of who that will be has four groups, which he calls token holders and DeFi users, intellectuals, builders, and pragmatic users. Each needs the other three, and each has a &quot;malfunctioning&quot; version when it forgets that. Our reading: the next decade of crypto looks less like one big community and more like many small ones, each made on purpose, each a mix of those four groups. Pop-up cities, hacker houses and network-state experiments are the early form. Vitalik describes this as an opening, not a prediction; the prediction is ours.
+      </P>
+      <Figure
+        src="/blog/vitalik-end-of-childhood-and-the-next-decade-2.jpg"
+        alt="Diagram of Vitalik's four groups who set crypto's direction, token holders and DeFi users, intellectuals, builders and pragmatic users, each depending on the other three"
+        width={1200}
+        height={620}
+        caption="Vitalik's four constituencies. Each needs the other three; each has a malfunctioning version when it forgets that."
+      />
+      <H2>What happens when AI agents do most of the work?</H2>
+      <P>
+        The essay was written before AI agents could run real work, and Vitalik doesn&apos;t discuss them in it. But his pattern applies directly. If a role you built your identity around can fade because a younger generation outgrows it, it can also fade because software takes it over.
+      </P>
+      <P>
+        That second kind of handover is already visible in research we keep. A September 2026 working paper, written by researchers from frontier AI labs and governance institutes, asks what happens when AI automates AI research itself and argues that a fast feedback loop is possible and that policymakers are not prepared. A 2026 paper by Zhenfeng Cao, &quot;The End of Software Engineering&quot;, argues that agents replace software as the thing being delivered, and that people move from writing code to stating intent and checking results. The same paper is honest about limits: on its cited benchmark, agents that succeed on more than 80% of isolated tasks fall below 38% when the work runs continuously.
+      </P>
+      <P>
+        Vitalik&apos;s position on AI comes from his other writing, not this essay. He calls it d/acc: decentralized, defensive, differential and democratic acceleration. In a 2026 debate with the e/acc founder Guillaume Verdon he described the goal as &quot;making the world safer for pluralism&quot; and warned that &quot;we have one shot at this.&quot; Read next to &quot;The end of my childhood&quot;, our interpretation is this: the response to a takeover you can&apos;t stop is the same as the response to a scene that fades. Don&apos;t drift. Choose deliberately what you build, and build things that spread power out rather than gather it in.
+      </P>
+      <P>
+        For a small company that is concrete. We run our own company with several AI agents that share one rulebook and one task board. The work moves fast, which makes his warning about autopilot sharper, not weaker: a company of agents can produce a great deal of activity that is still other people&apos;s plans. The question we try to ask of each project is the one his essay asks: did we choose this, or did we just accept it?
+      </P>
+      <H2>Why does the next computer sit on your body?</H2>
+      <P>
+        Each shift in computing moved the machine closer: the room-sized computer, the desk, the lap, the pocket. The next step puts it on your body, as glasses, earbuds, rings and small computers you wear. A wearable computer (a computer worn on the body that you use while doing something else) changes what an AI agent can see and hear.
+      </P>
+      <Figure
+        src="/blog/vitalik-end-of-childhood-and-the-next-decade-3.jpg"
+        alt="Diagram showing computing moving closer to the body over five steps: room, desk, lap, pocket, body"
+        width={1200}
+        height={560}
+        caption="Each computing shift moved the machine closer. The next step puts it on your body."
+      />
+      <P>
+        That is the opportunity and the danger together. A device that is always with you can help in the moment you need it. It can also become exactly the all-seeing system Vitalik&apos;s essay warns about, where his table of a decentralized stack includes replacing control through an &quot;all-seeing big brother&quot;. In the 2026 debate he went further and described sensors that process data privately on the device, so a network can learn something useful without watching any one person.
+      </P>
+      <P>
+        We are building our own wearable, Argo Exo, around one rule that answers the same worry: <strong>nothing records on its own.</strong> The design is a small computer worn on the body with display glasses, earbuds and a few buttons. You hold a button to speak, and you press to take a photo, like a camera you control. Your words go to agents that run on our own server. The rule exists because a wearable that records everything by default makes its owner a sensor for whoever holds the data.
+      </P>
+      <Figure
+        src="/blog/vitalik-end-of-childhood-and-the-next-decade-4.jpg"
+        alt="Diagram of Argo Exo's one rule, nothing records on its own, with push-to-talk speech and press-to-shoot capture"
+        width={1200}
+        height={580}
+        caption="Argo Exo is built around one rule: nothing records on its own."
+      />
+      <H2>Why keep a private record of your own thinking?</H2>
+      <P>
+        Go back to the line about frameworks. Vitalik says the frameworks he uses to understand the world are changing. Most of us can&apos;t see that happen to ourselves, because we only ever think with the framework we have today. Last year&apos;s beliefs get quietly rewritten in memory to match this year&apos;s.
+      </P>
+      <P>
+        A journal is the only instrument that catches it. A dated entry is a fixed point: what you believed, what you were afraid of, what you decided and why, written before you knew how it turned out. Read a year later, it shows you the framework you used to have. That is the record you need most when a scene you came from fades, a role you held ends, or AI agents take over work that used to define you.
+      </P>
+      <Figure
+        src="/blog/vitalik-end-of-childhood-and-the-next-decade-5.jpg"
+        alt="Diagram of a dated journal entry as a fixed point against memory quietly rewriting the past"
+        width={1200}
+        height={540}
+        caption="A dated entry is a fixed point. Read a year later, it shows the framework you used to have."
+      />
+      <P>
+        That record has three requirements, and each follows from the essay:
+      </P>
+      <UL items={[
+        <><strong>It has to be private.</strong> A record you write for an audience is a performance. Honest entries about doubt, money, fear or a collapsing scene only get written if nobody else can read them.</>,
+        <><strong>It has to be yours.</strong> Platforms end too. FTX was a reminder that an institution that looks permanent can vanish fast. A record held by a company you don&apos;t control can disappear with it.</>,
+        <><strong>It has to be readable by you at scale.</strong> Years of entries are too much to reread. An AI that can read all of them for you can show you patterns you can&apos;t see from inside your own head.</>,
+      ]} />
+      <Figure
+        src="/blog/vitalik-end-of-childhood-and-the-next-decade-6.jpg"
+        alt="Diagram of the three requirements of a private record: it has to be private, it has to be yours, it has to be readable by you at scale"
+        width={1200}
+        height={480}
+        caption="A record worth keeping has three requirements. Each follows from the essay."
+      />
+      <P>
+        This is what Argo, our journaling app, is for. You write, speak, film or photograph a handwritten page. Speech and handwriting are turned into text on your phone. Entries are encrypted, built so that we can&apos;t read them, and the AI insights run through private, encrypted, anonymized processing. The AI reads everything you&apos;ve written and shows you patterns you can&apos;t see from inside your own head.
+      </P>
+      <P>
+        Our reading of Vitalik&apos;s ending is that the new has to be created on purpose. A private record of how you thought is part of how you do that, because you can&apos;t choose deliberately what to build next if you can&apos;t see how you got here.
+      </P>
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Built and running today:
+      </P>
+      <UL items={[
+        <><strong>Argo</strong> is live on the App Store: voice, text, video and handwriting capture, encrypted entries, and an AI that reads your history. The code is open source at https://github.com/kon-rad/luminalog-oss.</>,
+        <><strong>Our agent company</strong> runs daily: several AI agents working from one shared rulebook and one task board. This post started as a task on that board.</>,
+      ]} />
+      <P>
+        Still being built:
+      </P>
+      <UL items={[
+        <><strong>Argo Exo</strong>, the wearable, is being built: the computer and glasses run, and push-to-talk speech and on-command capture are in progress. Connecting it to the journal, so a spoken thought can become an entry, is a plan, not a feature.</>,
+      ]} />
+      <P>
+        If you take one thing from the essay, take its ending: the scenes and frameworks you inherited will fade, and the next ones are made by people who decide to make them. Read the original at https://vitalik.eth.limo/general/2024/01/31/end.html, and follow what we build at https://myargoquest.com/blog and https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "vitalik-end-of-childhood-and-the-next-decade",
+    title: "What Vitalik's \"The end of my childhood\" says about crypto, AI agents and keeping your own record",
+    description: "Vitalik Buterin's essay on endings, read against three changes we build for: crypto's next generation, AI agents doing the work, and wearable computers.",
+    category: "crypto",
+    date: "October 15, 2026",
+    isoDate: "2026-10-15T20:07",
+    readingTime: "10 min read",
+    image: "/blog/vitalik-end-of-childhood-and-the-next-decade-1.jpg",
+    Content: VitalikEndOfChildhoodAndTheNextDecadeContent,
+  },
   {
     slug: "uhp-harness-router",
     title: "Every harness now has a protocol: what UHP and HarnessRouter actually change",
