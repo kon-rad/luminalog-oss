@@ -10898,7 +10898,122 @@ function VitalikEndOfChildhoodAndTheNextDecadeContent() {
   )
 }
 
+/* ── Post: Weight-Space Programming - the next step after "networks are already clean" ── */
+function WeightSpaceProgrammingContent() {
+  return (
+    <>
+      <P>
+        # Weight-Space Programming - the next step after &quot;networks are already clean&quot;
+      </P>
+      <P>
+        A few weeks ago, Nick Cammarata argued that neural network neurons are already legible. The way they look tangled because our tools were wrong, and with the right visualisation the vast majority of neurons have one clear job.
+      </P>
+      <P>
+        This paper from MIT CSAIL goes a step further. It shows that GPT-6 Astra does not just read individual neurons, it reads entire weight matrices - and it writes them.
+      </P>
+      <Figure
+        src="/blog/weight-space-programming-1.jpg"
+        alt="Astra reads raw weight arrays and identifies the game the network was trained on and what strategy it learned"
+        width={1100}
+        height={560}
+        priority
+        caption="Astra receives raw float arrays from a trained network and outputs the game and strategy without any labels."
+      />
+      <H2>What the paper demonstrates</H2>
+      <P>
+        The authors call it <strong>Weight-Space Programming</strong>: an LLM that deliberately reasons about a neural network&apos;s weights and changes them without a training loop, a loss function, or an optimizer.
+      </P>
+      <P>
+        Three demonstrations, from most surprising to most practical:
+      </P>
+      <P>
+        <strong>1. Reading weights.</strong> Astra receives the raw weight arrays of a small convolutional network trained on an Atari game. No architecture diagram, no labels, no environment. It looks at the numbers and says which game, and even what strategy the network learned: &quot;Breakout, 99 percent confident, paddle toward the ball.&quot;
+      </P>
+      <P>
+        <strong>2. Writing weights.</strong> Given only a task description (&quot;a policy network for Breakout that moves the paddle toward the ball&quot;) and the weight shape, Astra writes the weights. The resulting network plays Breakout at 100 percent success, outplaying a network trained with PPO for 100 million steps. No training loop, no reward signal, no back-propagation.
+      </P>
+      <P>
+        <strong>3. Editing a production model.</strong> Qwen3.5-0.8B has a documented issue: its model card warns about reasoning loops where it repeats the same thought pattern. Astra, reading the raw weights and the model card&apos;s description, identifies the weight region responsible and edits 0.016 percent of the total parameters.
+      </P>
+      <Figure
+        src="/blog/weight-space-programming-2.jpg"
+        alt="One-shot network writing outperforming PPO at 100 million steps: no environment feedback needed"
+        width={1100}
+        height={520}
+        caption="Astra writes game-playing network weights from a task description alone, beating a PPO-trained network."
+      />
+      <H2>The numbers on the Qwen3.5 edit</H2>
+      <P>
+        | Metric | Before | After | Delta | |---|---|---|---| | MATH-500 | 7.9% | 48.1% | +40.2 points | | IFEval (instruction following) | base | 3x improvement | +200% | | Weights edited | - | 0.016% | - |
+      </P>
+      <P>
+        The fix generalises out of the box. It was not trained for instruction following, but after the weight edit IFEval improved by 3x. That is the strongest single number in the paper: a 0.016 percent weight change that a model reasoned its way to, applied in one shot, and the improvement propagated to tasks the edit was not targeting.
+      </P>
+      <Figure
+        src="/blog/weight-space-programming-3.jpg"
+        alt="A three-column comparison table showing MATH-500, IFEval and weight count changes"
+        width={1000}
+        height={500}
+        caption="The Qwen3.5 edit results: MATH-500 from 7.9% to 48.1%, IFEval 3x, 0.016% of weights changed."
+      />
+      <H2>Why this matters for the interpretability conversation</H2>
+      <P>
+        Cammarata showed that neurons are individually legible with the right tools. This paper shows that the weights themselves carry task information that another model can read directly. The two results together paint a different picture than the superposition hypothesis: networks are not learned tangles, they are structured in ways that both humans (with tools) and models (natively) can read.
+      </P>
+      <P>
+        The scale gap is real: the reading and writing demonstrations are on networks with thousands of weights, and the Qwen edit is on a 0.8B model (about 0.8 billion parameters, 0.016 percent of which is about 128,000 weights). Applying this to a 70B+ model would mean reading billions of floating-point numbers as context, which no model today can do in a single pass. But the direction is clear.
+      </P>
+      <H2>The implication for training itself</H2>
+      <P>
+        The paper&apos;s last line is worth reading: &quot;Our neural network weights will soon be natively optimized by LLMs that deliberately reason about their weights.&quot; The argument is that Adam and Muon are placeholders: symbolic optimizers carrying simplistic inductive biases, waiting for a model that can directly understand what weight at coordinate (row 62, column 7) should be.
+      </P>
+      <P>
+        Interpretability is usually framed as a safety domain: know what the model is doing, so you can trust it. This paper reframes it as an optimization domain: if you can read the weights, you can edit the model directly. The same capability that fixes reasoning loops can also find trojans. The safety and training implications are the same muscle, exercised in different directions.
+      </P>
+      <Figure
+        src="/blog/weight-space-programming-4.jpg"
+        alt="The trajectory from hand-crafted features through SGD and Adam to weight-space programming by LLMs"
+        width={1100}
+        height={560}
+        caption="The evolution of optimizers: from hand-crafted features (2000s) through backprop (2010s) and Adam (2015-2025) to LLMs that deliberate about weights (2026+)."
+      />
+      <H2>The open questions</H2>
+      <UL items={[
+        <><strong>Scale.</strong> The largest model edited is 0.8B. How many weights can a frontier model hold in context and reason about at once?</>,
+        <><strong>Generality.</strong> The game networks are convolutional, the edit target is a transformer. Does the approach work on vision transformers, dense retrievers, mixture-of-experts?</>,
+        <><strong>Cost.</strong> A single weight-space program today is a frontier model call with the full weight list in context. Running that on every fine-tuning step is orders of magnitude more expensive than a gradient step.</>,
+        <><strong>Consistency.</strong> The Flaw edit works on the sample used; does it hold across decoding temperatures, hardware, and model versions?</>,
+      ]} />
+      <Figure
+        src="/blog/weight-space-programming-5.jpg"
+        alt="Three pillars of what is at stake: interpretability, training, safety"
+        width={1100}
+        height={520}
+        caption="Weight-space programming has simultaneous implications for interpretability, training and safety, all from the same capability."
+      />
+      <H2>The bottom line</H2>
+      <P>
+        This paper is the second half of the argument Cammarata started. One showed that networks are legible. The other shows that they are writable. Together they suggest that the weight-space of a trained network is a medium with structure, not noise, and that the next generation of model improvement may come from models editing other models rather than from gradient descent.
+      </P>
+      <P>
+        The paper and interactive demos are at rikiyat.github.io. Four MIT CSAIL authors, published November 2, 2026.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "weight-space-programming",
+    title: "Weight-Space Programming - the next step after \"networks are already clean\"",
+    description: "MIT CSAIL shows that frontier LLMs can read and write neural network weights natively, identifying tasks, writing game networks that beat PPO, and fixing a 0.8B model's reasoning loops by editing 0.016% of its parameters.",
+    category: "ai-news",
+    date: "November 5, 2026",
+    isoDate: "2026-11-05T16:40",
+    readingTime: "5 min read",
+    image: "/blog/weight-space-programming-1.jpg",
+    Content: WeightSpaceProgrammingContent,
+  },
   {
     slug: "vitalik-end-of-childhood-and-the-next-decade",
     title: "What Vitalik's \"The end of my childhood\" says about crypto, AI agents and keeping your own record",
