@@ -8274,6 +8274,14 @@ function TenAgentOpsReposWhatToBorrowContent() {
       <P>
         This post goes through what each repo actually is, checked against GitHub on the same day, and then the nine ideas we think are worth taking.
       </P>
+      <Figure
+        src="/blog/ten-agent-ops-repos-what-to-borrow-1.jpg"
+        alt="Scoreboard: 18,291 stars across the ten repositories, with 92 percent of them in just three, against only two that are an ops layer"
+        width={1200}
+        height={640}
+        priority
+        caption="The star count checks out, the description fits less well"
+      />
       <H2>Does the list hold up?</H2>
       <P>
         The star count does. The ten repositories have 18,291 stars in total, and every per-repo figure in the post matches GitHub. Three repositories hold 92% of them: mission-control, awesome-hermes-agent and council-of-high-intelligence.
@@ -8284,6 +8292,13 @@ function TenAgentOpsReposWhatToBorrowContent() {
       <P>
         That is normal for a list that bundles someone&apos;s whole body of work. It is worth knowing before you install anything.
       </P>
+      <Figure
+        src="/blog/ten-agent-ops-repos-what-to-borrow-2.jpg"
+        alt="Diagram: the star count holds up, but the description fits less well, only two of the ten are an ops layer"
+        width={1200}
+        height={680}
+        caption="Checked against GitHub on 19 October 2026"
+      />
       <H2>What are the two real ops tools?</H2>
       <P>
         <strong>mission-control</strong> is a self-hosted dashboard for agent fleets: a task board with review stages, a registry of agents that report a heartbeat, a cost view, scheduled tasks and approvals. Agents talk to it over a REST API, a command-line tool or an MCP server (a standard way to give an agent tools). The README marks it alpha and says support varies by agent runtime.
@@ -8297,6 +8312,13 @@ function TenAgentOpsReposWhatToBorrowContent() {
       <P>
         One caution: lacp has 306 stars but only 2 forks and 1 open pull request. A tool that people install usually collects more of both. That is not proof of anything, but it is a reason to read the code before relying on it.
       </P>
+      <Figure
+        src="/blog/ten-agent-ops-repos-what-to-borrow-3.jpg"
+        alt="Diagram of the two real ops tools: mission-control, a self-hosted dashboard with a completion receipt, and lacp, a local control plane with risk tiers and hooks"
+        width={1200}
+        height={680}
+        caption="Everything else on the list is useful, just not an ops layer"
+      />
       <H2>What about the rest?</H2>
       <UL items={[
         <><strong>council-of-high-intelligence</strong> is a skill (a written procedure an agent loads when needed) that runs a hard decision past personas of historical and modern thinkers, who argue blind, then cross-examine each other. Its best parts are not the personas. Every claim is labelled as a fact, an inference, an assumption or an open question, and every decision goes into an outcome ledger with a prediction, an owner and a review date, so it can later be marked confirmed, revised, reversed or inconclusive.</>,
@@ -8311,6 +8333,13 @@ function TenAgentOpsReposWhatToBorrowContent() {
       <P>
         We are not adopting any of these repositories. mission-control would be a second dashboard and a second database next to the one we already run, and lacp wraps agents we already wrap. The mechanisms are the valuable part. In order of how much we think each would help:
       </P>
+      <Figure
+        src="/blog/ten-agent-ops-repos-what-to-borrow-4.jpg"
+        alt="Diagram of the nine ideas worth borrowing, from receipts before done to heartbeats for named bots"
+        width={1200}
+        height={700}
+        caption="The mechanisms are the valuable part"
+      />
       <UL items={[
         <><strong>A task can&apos;t be marked done without a receipt.</strong> Our project tracker already refuses to mark a feature live without a passing check. Our task cards have no such rule: a bot can close its own card on its own word. A card should need a check result, a test output, a file path or a link before it closes.</>,
         <><strong>Check what was written, not only where.</strong> Our guard hook already runs before commands and file writes, but it only checks where the agent is going. A second hook after each write could reject a new note that doesn&apos;t link to its project, at the moment it is written instead of whenever someone notices.</>,
@@ -8322,10 +8351,24 @@ function TenAgentOpsReposWhatToBorrowContent() {
         <><strong>Local-only by default for tool servers.</strong> Any MCP server we run should listen only on the machine itself unless a token is set.</>,
         <><strong>Heartbeats for named bots.</strong> Show when each bot last woke and which tasks it holds, on the page where we watch the bots.</>,
       ]} />
+      <Figure
+        src="/blog/ten-agent-ops-repos-what-to-borrow-5.jpg"
+        alt="Diagram of labelling evidence as fact, inference, assumption or open question, and recording each decision in an outcome ledger"
+        width={1200}
+        height={700}
+        caption="From the council-of-high-intelligence skill"
+      />
       <H2>What&apos;s built and what&apos;s next</H2>
       <P>
         None of the nine is built yet. The first one, receipts before a card can close, is the one we expect to build first, because it closes a gap we have already hit once: work that moved forward without a check. The two hook ideas are one new hook and one change to a hook we already run. We will write up what changes after we build them.
       </P>
+      <Figure
+        src="/blog/ten-agent-ops-repos-what-to-borrow-6.jpg"
+        alt="Diagram: today a bot can close its own card on its own word, and a receipt would require a check result, a test output, a file path or a link before it closes"
+        width={1200}
+        height={680}
+        caption="A task cannot reach done without proof"
+      />
       <H2>How to use this list yourself</H2>
       <P>
         If you run more than one agent, look at three things in your own setup. Can an agent mark its own work complete with no evidence? Do your checks run only before commands, or also after file writes and at the end of a session? And can you see every agent&apos;s state in one place without opening a terminal? The repositories above each answer one of those questions. Read the code before installing any of them, and take the idea even if you skip the software.
@@ -12276,7 +12319,7 @@ export const posts: BlogPost[] = [
     category: "ai-news",
     date: "October 19, 2026",
     isoDate: "2026-10-19T03:41",
-    readingTime: "7 min read",
+    readingTime: "8 min read",
     image: "/blog/ten-agent-ops-repos-what-to-borrow-hero.jpg",
     Content: TenAgentOpsReposWhatToBorrowContent,
   },
