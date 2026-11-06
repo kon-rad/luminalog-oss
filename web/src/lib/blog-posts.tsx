@@ -11879,7 +11879,132 @@ function SetupVaultSkillContent() {
   )
 }
 
+/* ── Post: Dessa: Jack Dorsey's Block Just Built a Voice AI That Never Read a Single Word ── */
+function DessaVoiceAiFullDuplexSpeechContent() {
+  return (
+    <>
+      <P>
+        Every voice assistant you have used works the same way. You speak, it converts your speech to text, processes the text through a language model, converts the answer back to speech, and then responds. Your emotion, your timing, your pauses, your sighs, all discarded in the transcription step.
+      </P>
+      <P>
+        Jack Dorsey&apos;s Block just announced something different. Dessa is a full-duplex speech-to-speech model trained from scratch on nothing but recordings of human conversation. No text. No pretrained models. It learned to hold a real-time conversation simply by listening.
+      </P>
+      <Figure
+        src="/blog/dessa-voice-ai-full-duplex-speech-1.jpg"
+        alt="The Dessa announcement page at block.xyz/dessa, headed You learned to talk by listening, so did Dessa"
+        width={1200}
+        height={740}
+        priority
+        caption="The launch page at block.xyz/dessa"
+      />
+      <H2>What Makes Dessa Different</H2>
+      <P>
+        The key architectural difference is that there is no text layer. Traditional voice AI is a pipeline: ASR (speech to text), LLM (text processing), TTS (text to speech). Each step loses information. Emotion flattens. Timing drifts. Sarcasm, laughter, hesitation, gone.
+      </P>
+      <P>
+        Dessa is audio in, audio out. The model learned everything it knows from the sound of human speech. It learned when to cut in, when to backchannel with &quot;yeah&quot; or &quot;got it,&quot; how to laugh mid-sentence, and how to sound surprised, thoughtful, or teary. It can interrupt and be interrupted, the way people actually talk on a phone call.
+      </P>
+      <P>
+        The company describes it as &quot;the most authentic full-duplex speech model ever built.&quot; Full-duplex means it listens and speaks at the same time. Most voice assistants are half-duplex: they wait for you to finish, process, then respond.
+      </P>
+      <Figure
+        src="/blog/dessa-voice-ai-full-duplex-speech-2.jpg"
+        alt="Diagram comparing the ASR to LLM to TTS cascade, which loses emotion and timing, with Dessa, which is audio in and audio out"
+        width={1200}
+        height={680}
+        caption="The text layer is the thing that goes"
+      />
+      <Figure
+        src="/blog/dessa-voice-ai-full-duplex-speech-3.jpg"
+        alt="Diagram contrasting half-duplex assistants, which wait then respond, with full-duplex Dessa, which listens and speaks at once"
+        width={1200}
+        height={680}
+        caption="The headline architectural difference"
+      />
+      <H2>The Numbers (and What&apos;s Not Public)</H2>
+      <P>
+        Block has not published standard benchmarks. There is no parameter count, no API, no pricing, no weights to download. What exists are live recordings on the Dessa website showing people talking with the model: completing a forgotten movie title, reacting to a surprise trip to Paris, raising its voice when asked to speak up, a behavior the team says was not explicitly taught.
+      </P>
+      <P>
+        What we know technically:
+      </P>
+      <UL items={[
+        <>Trained on a single NVIDIA GB200 NVL72 (72 Blackwell GPUs)</>,
+        <>Inference runs faster than real time</>,
+        <>Runs locally on a MacBook Pro M4 Max or better</>,
+        <>Learned from &quot;hundreds of times fewer words&quot; than LLMs</>,
+        <>No text data or pretrained models used in training</>,
+      ]} />
+      <P>
+        The model comes from a very small AI research lab inside Block, led by former members of the Toronto deep learning startup Dessa (which Block, then Square, acquired in 2020). It reports directly to Jack Dorsey.
+      </P>
+      <Figure
+        src="/blog/dessa-voice-ai-full-duplex-speech-4.jpg"
+        alt="Diagram of what is known technically about Dessa: the GB200 training cluster, faster-than-real-time inference, local MacBook runs, no text data and no published benchmarks"
+        width={1200}
+        height={700}
+        caption="No parameter count, no API, no weights"
+      />
+      <H2>Why Full-Duplex Matters</H2>
+      <P>
+        The Verge&apos;s demo recordings are worth listening to. Dessa laughs, pauses, changes its mind mid-sentence, and gets things wrong in ways that feel human rather than robotic. In one demo, it initially mistakes the speaker for someone named &quot;Ronaldo&quot; and then corrects itself, an error that a traditional voice AI would never make because its text layer would filter it.
+      </P>
+      <P>
+        The awkwardness is itself the point. A model that can be awkward is a model that learned from real conversations, not from cleaned transcripts. It picked up the messiness of human speech along with the structure.
+      </P>
+      <P>
+        Block frames the safety argument clearly: &quot;Imagine being in serious pain while a voice AI has no idea and just keeps going. That&apos;s the safety problem. Dessa is a step toward fixing it.&quot; A speech-to-speech model that can hear emotion can respond to distress. A pipeline that flattens speech to text cannot.
+      </P>
+      <Figure
+        src="/blog/dessa-voice-ai-full-duplex-speech-5.jpg"
+        alt="Diagram of what Dessa learned from real conversation: timing, backchannel, emotion, and the human-feeling errors a text layer would filter out"
+        width={1200}
+        height={700}
+        caption="The awkwardness is the point"
+      />
+      <H2>The Catch</H2>
+      <P>
+        Dessa is not usable yet. There is no public API, no weights, no way to try it yourself. Block is giving early access to a small group of AI safety researchers, with a waitlist for everyone else. There are no standard benchmarks to compare against other models. Every claim is Block&apos;s own, verified only by the demo recordings they chose to publish.
+      </P>
+      <P>
+        The team&apos;s stated motivations are curiosity, better human-AI understanding, and safety. They are treating this as research, not a product. Whether Dessa becomes a platform, a product feature, or stays a research project is an open question.
+      </P>
+      <Figure
+        src="/blog/dessa-voice-ai-full-duplex-speech-6.jpg"
+        alt="Diagram of Dessa's safety argument and its catch: a model that can hear distress, but with no API, no weights and no benchmarks yet"
+        width={1200}
+        height={700}
+        caption="A research project, not a product yet"
+      />
+      <H2>What This Means for Voice AI</H2>
+      <P>
+        For anyone building voice agents, Dessa establishes a new baseline. The cascade pipeline (ASR + LLM + TTS) has been the default because it works reliably. Dessa suggests that a direct speech-to-speech approach can capture dimensions of communication that the pipeline necessarily discards.
+      </P>
+      <P>
+        The practical implications are direct. On-device voice AI that runs on consumer hardware without a cloud round-trip is faster, private, and emotionally aware. That combination matters for wearable devices (like the Exo), for private voice interfaces, and for any application where latency and emotional context are critical.
+      </P>
+      <P>
+        For now, watch block.xyz/dessa for updates, and apply for the researcher waitlist if you are building voice agents.
+      </P>
+      <P>
+        Paper and demos: https://block.xyz/dessa. Announcement: https://x.com/jack/status/2113697902916751661. Follow along at myargoquest.com.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "dessa-voice-ai-full-duplex-speech",
+    title: "Dessa: Jack Dorsey's Block Just Built a Voice AI That Never Read a Single Word",
+    description: "Full-duplex speech-to-speech model trained entirely on human conversation audio, running locally on a MacBook",
+    category: "ai-news",
+    date: "October 24, 2026",
+    isoDate: "2026-10-24T06:11",
+    readingTime: "5 min read",
+    image: "/blog/dessa-voice-ai-full-duplex-speech-1.jpg",
+    Content: DessaVoiceAiFullDuplexSpeechContent,
+  },
   {
     slug: "setup-vault-skill",
     title: "Set up your own second brain by answering four questions",
