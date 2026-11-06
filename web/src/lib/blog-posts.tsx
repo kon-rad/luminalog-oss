@@ -12122,7 +12122,128 @@ function AiGameSumiro24hContent() {
   )
 }
 
+/* ── Post: ENSIP-26 - how AI agents declare themselves on ENS with one identity across every chain ── */
+function Ensip26AgentTextRecordsContent() {
+  return (
+    <>
+      <P>
+        # ENSIP-26: how AI agents declare themselves on ENS
+      </P>
+      <P>
+        An ENS name is a single, multichain identity. An agent running on Ethereum Mainnet, Base and Optimism should not need three identity files. It should have one name, one context file, and a way to say &quot;connect to me here for this protocol, there for that one.&quot;
+      </P>
+      <P>
+        ENSIP-26 standardises exactly that, and it sits at the intersection of three of the most active areas in the Ethereum ecosystem right now: naming (ENS), agent identity (ERC-8004) and agent discovery (ENSIP-25).
+      </P>
+      <Figure
+        src="/blog/ensip-26-agent-text-records-1.jpg"
+        alt="A five-step flow from ENS name through agent-context and agent-endpoint records to the client"
+        width={1100}
+        height={500}
+        priority
+        caption="An ENS name becomes an agent identity: one name, one context, protocol-specific endpoints. The client discovers everything through standard ENS text records."
+      />
+      <H2>History</H2>
+      <P>
+        ENSIP-26 was created on May 17, 2025 by premm.eth and justghadi.eth, and is currently in draft status. It extends ENSIP-5 (Text Records, the standard that lets any ENS name store arbitrary key-value text pairs) with two new keys: <code>agent-context</code> and <code>agent-endpoint[&lt;protocol&gt;]</code>.
+      </P>
+      <P>
+        The ecosystem around it: - <strong>ENSIP-25</strong> (AI Agent Registry ENS Name Verification) standardizes how agent registries verify that an ENS name owns an agent. - <strong>ERC-8004</strong> defines agent identity, reputation and validation onchain, and its &quot;services&quot; vocabulary is what ENSIP-26 uses for its protocol names. - <strong>ENSIP-26</strong> connects the two: an ENS name is the agent&apos;s identity, agent-context is the entry point (analogous to an index.html), and agent-endpoint records let clients connect directly to the running agent.
+      </P>
+      <H2>What the two records do</H2>
+      <P>
+        <strong>agent-context</strong> is the agent&apos;s description file. It can be plain text, Markdown, YAML or JSON. It describes what the agent does, how to interact with it, and whether it is registered in any agent registries (ENSIP-25). It is the first thing a client loads when it wants to understand an agent.
+      </P>
+      <P>
+        <strong>agent-endpoint[protocol]</strong> maps a protocol name to a URL. The protocol names align with ERC-8004&apos;s service vocabulary. Three are defined today:
+      </P>
+      <P>
+        | Key | Protocol | Example value | |---|---|---| | <code>agent-endpoint[mcp]</code> | Model Context Protocol - tools, resources, prompts | <code>https://token-swap.mcp</code> | | <code>agent-endpoint[a2a]</code> | Agent-to-Agent Protocol - authentication, skills, messaging | <code>https://token-swap.a2a</code> | | <code>agent-endpoint[web]</code> | Human-facing web interface | <code>https://agent.example.com</code> |
+      </P>
+      <P>
+        Additional protocol values may be added as the ecosystem evolves. The value must be a valid URL, including IPFS URIs.
+      </P>
+      <Figure
+        src="/blog/ensip-26-agent-text-records-2.jpg"
+        alt="Three rows showing agent-endpoint for mcp, a2a and web, each mapping to a URL"
+        width={1000}
+        height={460}
+        caption="Each protocol name maps to a URL the client connects to."
+      />
+      <Figure
+        src="/blog/ensip-26-agent-text-records-3.jpg"
+        alt="A timeline showing the progression from ENSIP-5 to ENSIP-25 to ERC-8004 to ENSIP-26"
+        width={1100}
+        height={480}
+        caption="The road to ENSIP-26: each layer adds one piece of the agent identity puzzle."
+      />
+      <H2>The example that makes it concrete</H2>
+      <P>
+        The specification includes a Swap Agent: an agent with one ENS identity that works across three chains (Ethereum Mainnet, Base and Optimism). Its agent-context describes the tokens it can swap and points to its endpoints. Its agent-endpoint records declare where to reach it via MCP and A2A.
+      </P>
+      <P>
+        A client that wants to interact with this agent loads the ENS name, reads <code>agent-context</code> to understand what the agent does, loads <code>agent-endpoint[mcp]</code> to get the connection URL, and connects over MCP. It does not need to know which chains the agent runs on. The agent&apos;s identity is the ENS name; the resolution handles the rest.
+      </P>
+      <H2>The stack</H2>
+      <P>
+        ENSIP-26 does not stand alone. It sits in a stack where each layer handles one concern:
+      </P>
+      <P>
+        | Layer | Concern | |---|---| | ENS name | Identity, owned by whoever registered it | | ENSIP-25 | Verification: is this name really running this agent? | | <strong>ENSIP-26</strong> | Context and endpoint discovery - the bridge | | ERC-8004 | Protocol vocabulary and agent identity onchain | | MCP, A2A | Actual agent interaction (tools, skills, messages) |
+      </P>
+      <Figure
+        src="/blog/ensip-26-agent-text-records-4.jpg"
+        alt="Five horizontal rows showing the stack from ENS name to agent protocols"
+        width={1100}
+        height={500}
+        caption="ENSIP-26 sits at the center of the stack, bridging naming, verification and protocol layers."
+      />
+      <H2>Ideal use cases</H2>
+      <P>
+        The specification is intentionally minimal to encourage adoption. The ideal use cases follow from the design:
+      </P>
+      <P>
+        <strong>Multichain agents.</strong> An agent that runs on several rollups or L2s uses one ENS name, one context file, and per-chain endpoints if needed. The client resolves the name once and chooses the protocol.
+      </P>
+      <P>
+        <strong>Wallets and dapps that interact with agents.</strong> A wallet that supports ENS names can resolve an agent&apos;s MCP or A2A endpoints without a separate registry. The user types <code>vitalik.eth</code> and the wallet knows which protocols the agent speaks.
+      </P>
+      <P>
+        <strong>Agent marketplaces and registries.</strong> An agent registry (ENSIP-25) can read the agent-context from the ENS name instead of asking the developer to fill in a profile form separately. The name is the source of truth.
+      </P>
+      <P>
+        <strong>Open-source agent frameworks.</strong> A framework that spawns agents can give each agent an ENS name, write its context to the name&apos;s text records, and publish the endpoint when the agent is online. The agent&apos;s identity outlives any one session.
+      </P>
+      <Figure
+        src="/blog/ensip-26-agent-text-records-5.jpg"
+        alt="Three use case cards for ENSIP-26: multichain agents, agent registries and wallet integration"
+        width={1100}
+        height={480}
+        caption="ENSIP-26: ideal for multichain agents, agent registries that want to read the context directly, and wallets that resolve ENS names into agent protocols."
+      />
+      <H2>Backwards compatibility</H2>
+      <P>
+        Unaware clients ignore the new keys. Existing ENS name behaviour is unaffected. An ENS name that has never heard of ENSIP-26 resolves normally. Only clients that specifically look for agent-context and agent-endpoint will find them.
+      </P>
+      <P>
+        Security considerations are standard ENS security: the same rules that protect your domain control protect your agent&apos;s identity. The specification is at <A href="https://docs.ens.domains/ensip/26/">docs.ens.domains/ensip/26</A> with the draft status meaning it can evolve as the ecosystem learns what works.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "ensip-26-agent-text-records",
+    title: "ENSIP-26 - how AI agents declare themselves on ENS with one identity across every chain",
+    description: "A new ENS standard gives every AI agent a single ENS name with an agent-context text record and protocol-specific endpoints via agent-endpoint records. The bridge between naming, registries and agent protocols.",
+    category: "crypto",
+    date: "November 6, 2026",
+    isoDate: "2026-11-06T17:34",
+    readingTime: "5 min read",
+    image: "/blog/ensip-26-agent-text-records-1.jpg",
+    Content: Ensip26AgentTextRecordsContent,
+  },
   {
     slug: "ai-game-sumiro-24h",
     title: "A full original browser game built in 24 hours with AI tools",
