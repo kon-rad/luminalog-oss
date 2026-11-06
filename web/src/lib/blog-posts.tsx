@@ -11002,7 +11002,151 @@ function WeightSpaceProgrammingContent() {
   )
 }
 
+/* ── Post: Hunger beats tenure: Felix Rieseberg's advice for junior engineers ── */
+function HungerBeatsTenureContent() {
+  return (
+    <>
+      <P>
+        When you give a tenured engineer a task, they produce a Jira ticket and then nothing else.
+      </P>
+      <P>
+        That line from Felix Rieseberg&apos;s recent essay &quot;Hunger beats tenure&quot; hit hard because it is true for too many teams. Not because senior engineers are bad at their jobs, but because the career ladder has limited rungs. Once you climb past a certain level, there is no way up without becoming a manager or reaching an individual contributor ceiling.
+      </P>
+      <P>
+        The coding interview is dead at his team. After seeing enough evidence, Rieseberg wrote on Anthropic&apos;s engineering team that it no longer provides signal. So what does? The answer is building things that work. Here is the framework he offers to junior engineers who want to break through.
+      </P>
+      <Figure
+        src="/blog/hunger-beats-tenure-1.jpg"
+        alt="The article page on Felix Rieseberg's blog showing his essay Hunger beats tenure: Advice for junior engineers"
+        width={1200}
+        height={740}
+        priority
+        caption="The original essay at felixrieseberg.com"
+      />
+      <H2>The problem with tenure</H2>
+      <P>
+        Rieseberg frames the issue simply: tenure is a reward for surviving. But survival does not prove you can build what matters next. When promotion becomes automatic rather than earned through shipped work, the gap widens between who is building and who is managing.
+      </P>
+      <P>
+        This is not a criticism of individual engineers. It is a structural problem with how most companies measure engineering quality. The coding interview was supposed to solve this. Show up, solve a whiteboard puzzle, prove you are smart. But that test measures one kind of ability. It does not measure whether someone can ship something useful.
+      </P>
+      <P>
+        The career ladder creates its own ceiling. Above a certain level: no more rungs. You either move into management or stay put as an individual contributor at a very senior title. Rieseberg describes himself as &quot;a longtime hater of promotions by tenure&quot; for exactly this reason. When advancement depends on years rather than output, the signal gets noisy.
+      </P>
+      <Figure
+        src="/blog/hunger-beats-tenure-2.jpg"
+        alt="Diagram comparing a tenured engineer who produces a Jira ticket with a hungry engineer who ships a working prototype"
+        width={1200}
+        height={680}
+        caption="The gap tenure leaves behind"
+      />
+      <H2>The five-step framework</H2>
+      <Figure
+        src="/blog/hunger-beats-tenure-3.jpg"
+        alt="Diagram of the five-step framework: find the altitude, pick a radical idea, build over a weekend, focus on one good idea, lean into fresh perspective"
+        width={1200}
+        height={700}
+        caption="The five-step framework for junior engineers"
+      />
+      <H3>Step one: Understand what your company is actually trying to accomplish</H3>
+      <P>
+        Find the right altitude, he says. Learn what your organization wants and then look one layer up at what your manager&apos;s manager cares about. This is often a useful proxy for where the real priorities lie.
+      </P>
+      <P>
+        Think of it like reading a map. You need to see both your immediate location and the horizon. A junior engineer doing the right task will always outperform one doing the wrong task well.
+      </P>
+      <H3>Step two: Pick a radical idea</H3>
+      <P>
+        Come up with ideas that would dramatically improve your organization&apos;s chances of hitting those goals. Be ambitious. Rieseberg does not mean &quot;build a slightly better login page.&quot; He means find the thing that shifts the needle if it works.
+      </P>
+      <P>
+        The key word is &quot;radical&quot; because most safe ideas have already been explored by people with deeper pockets. A junior engineer who has nothing to lose can afford to go big.
+      </P>
+      <H3>Step three: Build it over a weekend</H3>
+      <P>
+        This is where hunger replaces process. Small groups and solo engineers fly past the usual cycle of product requirements documents, buy-in meetings, and lobbying for time with designers. They build something that works instead.
+      </P>
+      <P>
+        The proof point: at Anthropic, two relatively new engineers named Anthony Morris and Alice Zhao built a working prototype of the Claude Code command-line interface over one weekend. The first public version shipped roughly eight days later. A good graphical interface for Claude Code is now very popular.
+      </P>
+      <Figure
+        src="/blog/hunger-beats-tenure-4.jpg"
+        alt="Diagram: two newer Anthropic engineers build a Claude Code prototype over one weekend, and the first public version ships about eight days later"
+        width={1200}
+        height={560}
+        caption="Claude Code as the proof point that hunger beats tenure"
+      />
+      <H2>The future is bright</H2>
+      <P>
+        Rieseberg does not think the coding interview will come back. It is easy to feel sentimental, given how many copies of algorithms and data structures books were sold in hopes of unlocking good jobs. But the death of the coding interview marks something real: software engineering reaching a new level of abstraction where showing what you built matters more than solving puzzles on a whiteboard.
+      </P>
+      <P>
+        The Claude Code example proves it. Two new engineers built something people wanted without going through any traditional approval process. That is what hunger does. It turns an idea into a product faster than anyone expected.
+      </P>
+      <H2>What he looks for now</H2>
+      <P>
+        I have been scanning resumes and portfolios for little prototypes that exhibit taste, empathy, and principled thinking. If you have figured out something better, it is worth sharing.
+      </P>
+      <P>
+        That line summarizes everything. Instead of whiteboard puzzles, Rieseberg looks for:
+      </P>
+      <UL items={[
+        <><strong>Prototypes:</strong> real, working things</>,
+        <><strong>Taste:</strong> evidence that the builder understands what makes a product good</>,
+        <><strong>Empathy:</strong> understanding how real users experience software</>,
+        <><strong>Principled thinking:</strong> not just hacks, but decisions backed by reasoning he can follow</>,
+      ]} />
+      <Figure
+        src="/blog/hunger-beats-tenure-5.jpg"
+        alt="Diagram of what Rieseberg looks for now: prototypes, taste, empathy and principled thinking"
+        width={1200}
+        height={700}
+        caption="Instead of whiteboard puzzles"
+      />
+      <H2>Two kinds of fresh perspective</H2>
+      <P>
+        There are two different advantages to being junior:
+      </P>
+      <P>
+        <strong>User-facing work:</strong> You have a unique empathy for users. Your colleagues at Slack and Notion had a hard time internalizing what using Slack or Notion is like as an external user. The people inside the system forget what it feels like to be outside it.
+      </P>
+      <P>
+        <strong>Infrastructure work:</strong> You benefit from not having learned all the reasons things are impossible yet. Every veteran engineer has a mental catalog of &quot;that can&apos;t be done because.&quot; A newcomer only sees what needs to be done.
+      </P>
+      <Figure
+        src="/blog/hunger-beats-tenure-6.jpg"
+        alt="Diagram: two kinds of fresh perspective, user-facing work and infrastructure work"
+        width={1200}
+        height={680}
+        caption="What being junior is actually good for"
+      />
+      <H2>Why this matters for everyone</H2>
+      <P>
+        The tension between hunger and tenure touches something everyone in tech feels: does experience alone make you valuable? Or do you still need to prove it, again and again, by building things people actually use?
+      </P>
+      <P>
+        Rieseberg&apos;s answer is clear. Build something. Show what it can do. Let the work speak louder than your title.
+      </P>
+      <H2>What to take away</H2>
+      <P>
+        Hunger beats tenure because it is measured by what ships, not by how long you have been around. The future belongs to people who build prototypes instead of writing Jira tickets and to anyone who can show taste, empathy, and principled thinking in their work. Follow along at https://myargoquest.com/blog for more perspective on engineering culture.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "hunger-beats-tenure",
+    title: "Hunger beats tenure: Felix Rieseberg's advice for junior engineers",
+    description: "An engineering manager at Anthropic argues that coding interviews are dead and presents a five-step framework for junior engineers who want to make an impact.",
+    category: "news",
+    date: "October 28, 2026",
+    isoDate: "2026-10-28T05:32",
+    readingTime: "5 min read",
+    image: "/blog/hunger-beats-tenure-1.jpg",
+    Content: HungerBeatsTenureContent,
+  },
   {
     slug: "weight-space-programming",
     title: "Weight-Space Programming - the next step after \"networks are already clean\"",
