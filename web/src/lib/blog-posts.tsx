@@ -11749,7 +11749,148 @@ function HermesAgentFeaturesDifferentiatorsContent() {
   )
 }
 
+/* ── Post: Set up your own second brain by answering four questions ── */
+function SetupVaultSkillContent() {
+  return (
+    <>
+      <Figure
+        src="/blog/setup-vault-1.jpg"
+        alt="The Argo home page: the gold emblem, the line 'a hackable, DIY agent orchestration stack', and three buttons, with Set up your vault first"
+        width={1920}
+        height={1200}
+        priority
+      />
+      <P>
+        Most guides to a personal knowledge base open with a diagram and close with a command you
+        have to adapt. The engine behind our second brain now ships the first ten minutes as a
+        skill instead: a folder with a <code>SKILL.md</code> that tells an agent how to build the
+        vault. You answer four questions, it runs the steps, and it checks each one before the next.
+      </P>
+      <P>
+        We put the skill in the open-source engine, where the guard hooks and the shared skills
+        live, and pointed the ways you would arrive at it at it: a button on the home page, a page
+        of its own, and a raw file an agent can fetch. This is the practical version: what it asks,
+        what it runs, what it refuses to touch, and where to get it.
+      </P>
+
+      <H2>The four questions</H2>
+      <P>
+        The skill asks all four in one batch, because everything after depends on the answers.
+        Nothing runs until they are in.
+      </P>
+      <UL items={[
+        <><strong>Where the vault lives.</strong> An absolute path to a new or empty folder. The setup refuses a folder that already has content, so an existing notes folder moves in later, once the vault is standing.</>,
+        <><strong>The operating system.</strong> macOS, Debian or Ubuntu, or something else. It decides which install commands run, and nothing else.</>,
+        <><strong>Semantic search now, later or never.</strong> Keyword search needs no keys. Semantic search needs an embedding provider, so it is asked once and skipped by default.</>,
+        <><strong>Which agent harness comes next.</strong> Claude Code, Hermes, another tool, or none yet. It only decides which page you land on after the vault is up.</>,
+      ]} />
+      <Figure
+        src="/blog/setup-vault-2.jpg"
+        alt="The Set up your vault page on myargoquest.com: the four questions in a table, with a copy-to-agents button"
+        width={1920}
+        height={1333}
+        caption="The page is a short read, and the button copies the skill itself into an agent"
+      />
+
+      <H2>What it runs</H2>
+      <P>
+        Then it walks the same path the documentation describes, one command at a time, checking
+        after each so a failure is caught where it happened rather than three steps later.
+      </P>
+      <UL items={[
+        <><strong>Prerequisites.</strong> git, Python 3.9 or later, Node 22 or later, PostgreSQL 15 or later and pgvector. It checks what is already installed and installs only what is missing.</>,
+        <><strong>The vault.</strong> git init, the engine as a submodule at .secondbrain, then secondbrain-vault init, which writes the folders, the rules and a starter roster.</>,
+        <><strong>The app.</strong> One command builds and starts it on 127.0.0.1:5123, and the launcher goes on your PATH.</>,
+        <><strong>Your notes.</strong> Move markdown in, then scan. The scanner skips .env files, keys and certificates, so credentials are never indexed or served.</>,
+        <><strong>Search.</strong> Keyword search works immediately; semantic search is one key or one local model away, if you asked for it.</>,
+        <><strong>A private remote.</strong> It pushes the vault to a remote and checks that .env is ignored before that push.</>,
+      ]} />
+      <Figure
+        src="/blog/setup-vault-4.jpg"
+        alt="The Set up your vault page in the engine documentation, with numbered steps and a check after each"
+        width={1920}
+        height={1350}
+        caption="The docs hold the same path written for a person; the skill is the agent's copy of it"
+      />
+
+      <H2>What it deliberately leaves alone</H2>
+      <P>
+        The skill stops the moment the vault runs and search works. It connects no agent harness,
+        turns on no optional module, and sets up no server, and it says so when it reports back.
+        Those are separate pages, and you read them when you want them. A setup that tries to do
+        everything is a setup that fails somewhere you cannot see.
+      </P>
+
+      <H2>Getting it</H2>
+      <P>
+        The skill is in the engine at{' '}
+        <A href="https://github.com/kon-rad/argo">github.com/kon-rad/argo</A>, under{' '}
+        <code>skills/setup-vault</code>. On the site it is at{' '}
+        <A href="/setup-vault">myargoquest.com/setup-vault</A>.
+      </P>
+      <P>
+        An agent can fetch the raw file at <A href="/setup-vault/skill.md">/setup-vault/skill.md</A>,
+        the same shape as the blog's own skill at <code>/blog/SKILL.md</code>: markdown, no key, no
+        login. It is listed in our <code>llms.txt</code>, so an agent that reads that file finds it
+        without being told.
+      </P>
+      <Figure
+        src="/blog/setup-vault-3.jpg"
+        alt="The setup-vault skill served as plain markdown at myargoquest.com/setup-vault/skill.md"
+        width={1920}
+        height={1350}
+        caption="The same skill as a file an agent installs, alongside the blog and contest skills the site already serves"
+      />
+
+      <H2>What you end up with</H2>
+      <P>
+        A private git repo of markdown, the app over it, search, and a starter roster you can
+        ignore until you want it. The notes are the only irreplaceable part, and they are plain
+        files in a repo you own.
+      </P>
+      <Figure
+        src="/blog/setup-vault-5.jpg"
+        alt="The second brain app: a file tree down the left, tabs for Vault, Work, Life, Docs, TV and Friendly, and a search box"
+        width={1920}
+        height={1200}
+        caption="The app indexes the folder; it does not own it"
+      />
+      <Figure
+        src="/blog/setup-vault-6.jpg"
+        alt="A note open in the app, with its title, size, modified date, and Download, Edit and Listen buttons"
+        width={1920}
+        height={1200}
+        caption="Every note stays a markdown file, readable and editable anywhere"
+      />
+
+      <H2>Why a skill and not a script</H2>
+      <P>
+        A script has to guess your operating system, your paths and your database, and it breaks
+        quietly when it guesses wrong. An agent has a conversation: it can see the machine, ask the
+        four things it cannot see, and stop and say so when something does not add up. The steps are
+        still written down, in a file you can read and version. They are just executed by something
+        that can adapt when your machine differs from the one in the instructions.
+      </P>
+      <P>
+        If you want your own, press <strong>Set up your vault</strong> on the home page, or hand
+        your agent <A href="/setup-vault/skill.md">/setup-vault/skill.md</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "setup-vault-skill",
+    title: "Set up your own second brain by answering four questions",
+    description: "The engine now ships the first ten minutes as a skill: hand it to your agent, answer four questions, and it takes an empty folder to a private vault with the app and search, checking each step.",
+    category: "product-updates",
+    date: "November 6, 2026",
+    isoDate: "2026-11-06T11:40",
+    readingTime: "6 min read",
+    image: "/blog/setup-vault-1.jpg",
+    Content: SetupVaultSkillContent,
+  },
   {
     slug: "hermes-agent-features-differentiators",
     title: "Hermes Agent: what it is, how it works, and how it differs from other agent systems",

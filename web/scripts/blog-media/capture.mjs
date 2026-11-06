@@ -102,6 +102,15 @@ async function main() {
       const page = await context.newPage()
       try {
         await page.goto(shot.url, { waitUntil: 'networkidle', timeout: 60000 })
+        // Optional: press buttons by their visible text before shooting, for
+        // overlays like a cookie banner. A miss is not an error.
+        for (const label of shot.dismiss ?? []) {
+          try {
+            await page.getByRole('button', { name: label }).first().click({ timeout: 2500 })
+          } catch {
+            console.log(`  (dismiss "${label}" not found, continuing)`)
+          }
+        }
         if (shot.waitFor) await page.waitForSelector(shot.waitFor, { timeout: 30000 })
         if (shot.waitMs) await page.waitForTimeout(shot.waitMs)
 

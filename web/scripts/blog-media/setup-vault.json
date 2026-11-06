@@ -9,6 +9,7 @@
       "viewport": { "width": 1440, "height": 900 },
       "deviceScaleFactor": 1.5,
       "waitMs": 2000,
+      "dismiss": ["Decline"],
       "note": "hero: the landing page, with 'Set up your vault' as the primary action"
     },
     {
@@ -17,6 +18,7 @@
       "viewport": { "width": 1440, "height": 1000 },
       "deviceScaleFactor": 1.5,
       "waitMs": 2000,
+      "dismiss": ["Decline"],
       "note": "the setup-vault page: the four questions and what the skill runs"
     },
     {
