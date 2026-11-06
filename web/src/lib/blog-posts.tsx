@@ -11523,7 +11523,244 @@ function EngineV2OnboardingContent() {
   )
 }
 
+/* ── Post: Hermes Agent: what it is, how it works, and how it differs from other agent systems ── */
+function HermesAgentFeaturesDifferentiatorsContent() {
+  return (
+    <>
+      <P>
+        Most AI assistants disappear when you close the window. The conversation resets, the context vanishes, and the next session starts fresh every time. This works fine for a quick question. It fails badly when the same assistant helps you across projects over weeks, months, and years, which is exactly where a persistent memory system becomes important rather than optional.
+      </P>
+      <P>
+        Hermes Agent, built by Nous Research, addresses this at the architecture level. It was created in July 2025 and went public in early 2026 as open source under the MIT license (see the GitHub page for the full history of commits and releases). The project has moved fast: from its first release to its current version with date-stamped releases, thousands of contributors, and a community that includes both individuals running Hermes on their own laptops and teams using it as a shared platform.
+      </P>
+      <P>
+        This post goes deep on how Hermes works internally: what makes it tick, where it differs from other agent tools, and which features users actually gravitate toward most.
+      </P>
+      <Figure
+        src="/blog/hermes-agent-features-differentiators-1.jpg"
+        alt="Diagram: what Hermes is and is not, not a coding copilot bolted to an editor, not a chatbot in one app, but an always-available process across twenty or more messaging platforms"
+        width={1200}
+        height={700}
+        priority
+        caption="One process, reachable from everywhere"
+      />
+      <H2>What Hermes Actually Is (and is not)</H2>
+      <P>
+        Hermes is not a coding copilot bolted to an editor. It is not a chatbot living inside one application. It is an always-available assistant process that connects to twenty or more messaging platforms through one gateway, runs on whatever terminal backend you need, and keeps its own memory on disk rather than in the cloud.
+      </P>
+      <P>
+        The word &quot;agent&quot; means different things to different people. In the Claude Code world, it means a coding helper with deep integration into VS Code. In the AutoGen world, it means Python code running conversation loops between named roles sitting in the same process. In Hermes&apos;s own vocabulary, an agent is a single process that lives outside of any one app, always reachable through messaging platforms like Telegram, Discord, Slack, WhatsApp, Signal, and email, but executing tools wherever you tell it to: locally on your machine, inside Docker containers, over SSH to a remote server, or through serverless sandboxes.
+      </P>
+      <P>
+        Where Claude Code answers code questions from a sidebar, Hermes answers them from whatever app you opened first, and remembers that conversation three weeks later.
+      </P>
+      <H2>The Architecture Under the Hood</H2>
+      <P>
+        Hermes runs on a few core design decisions that shape everything else about it:
+      </P>
+      <Figure
+        src="/blog/hermes-agent-features-differentiators-2.jpg"
+        alt="Diagram of Hermes's architecture: memory files, skills with a curator, profiles, the gateway, and the agent-hub"
+        width={1200}
+        height={700}
+        caption="Five decisions that shape everything else"
+      />
+      <H3>A single memory system for every session</H3>
+      <P>
+        The most basic part of any agent is what it remembers. Hermes uses two files: <strong>MEMORY.md</strong>, which holds general notes about projects and conventions up to 2,200 characters, and <strong>USER.md</strong>, which stores your personal preferences up to 1,375 characters. Both are frozen snapshots: a session reads them when it starts and never rereads even if the file changes mid-session. This means cached context gets reused (which costs less), while any updates become visible at the next fresh start rather than partway through an ongoing conversation.
+      </P>
+      <P>
+        When MEMORY.md fills past its limit, the agent cannot simply overwrite what was there. It returns a write error and must consolidate older notes or remove something first. The result is bounded memory that does not grow into unreadable territory; it forces curation instead of accumulation.
+      </P>
+      <H3>Skills that teach themselves</H3>
+      <P>
+        Where memory stores facts, <strong>skills</strong> store procedures. A skill in Hermes is a plain markdown file with frontmatter describing what it does, stored on disk and loaded only when a task matches its description. This is called progressive disclosure: the agent&apos;s prompt carries short descriptions of every skill but loads full instructions on demand, keeping the initial context lean while making any procedure available when needed.
+      </P>
+      <P>
+        Skills written by the agent itself go through <code>/learn</code> (a tool that turns a successful multi-step solution into a reusable SKILL.md document). A background process called the <strong>curator</strong> keeps skills from becoming unmanageable. It tracks how often each skill is used, moves quiet ones to stale and then archived states, and optionally forks the agent to review near-duplicates. Nothing changes without a checkpoint someone can see.
+      </P>
+      <H3>The profile system</H3>
+      <P>
+        Hermes supports multiple independent configurations per installation. Each profile sits in <code>~/.hermes/profiles/&lt;name&gt;/</code> with its own config, skills, memory files, model provider, role definition (an AGENTS.md file), and session history. In our setup at Argo, each agent in our internal company roster corresponds to one Hermes profile: Lena the writer uses a different model and has her own SOUL.md than Rune, who edits code, but both run through the same Hermes installation on the server.
+      </P>
+      <P>
+        Profiles share only the Hermes binary (the installation), not their data. This means you get the effect of multiple specialized agents without running multiple copies of the program. Memory, skills, and sessions stay separate per profile while tools, hooks, and plugins are shared.
+      </P>
+      <H3>The gateway that connects everything</H3>
+      <P>
+        The <strong>gateway</strong> is a long-running server process that accepts connections from messaging platforms (Telegram, Discord, WhatsApp, etc.) and routes each message to the Hermes agent CLI. Instead of installing separate bots on each platform, one gateway does the routing for all of them. This means one conversation thread from Telegram and another from Discord can both access the same memory file and the same session history without any duplication.
+      </P>
+      <P>
+        The <strong>agent-hub</strong> is a supporting service that lets external programs (like our Second Brain app) interact with the Hermes agent, checking status, managing profiles and switching models, through a loopback-only HTTP API that requires no SSH keys or direct machine access.
+      </P>
+      <H2>Fresh-Context Wakes: No Session Fatigue</H2>
+      <P>
+        One of the most practical differences between Hermes and other systems is how it handles repeated activation. Many agent systems resume from an existing session, which means accumulated context carries over into every new wake. But that context grows until sessions become slow, confused, or expensive.
+      </P>
+      <P>
+        Hermes does not have this problem because each wake starts fresh. The gateway creates a new invocation with the profile&apos;s config and memory snapshots loaded, not by continuing a conversation thread. This means:
+      </P>
+      <UL items={[
+        <>Context is bounded (the snapshot files are small)</>,
+        <>Each wake has the same speed regardless of how many sessions happened before</>,
+        <>No &quot;context bloat&quot; accumulation that slows down older systems</>,
+        <>The tradeoff is that context only persists within a single session, so for a Telegram conversation running hours without restart, memory updates made mid-thread only become visible at the next fresh start</>,
+      ]} />
+      <P>
+        The effect is predictable performance over time. A session does not get slower as a week progresses. It starts the same way every morning whether it is Monday&apos;s first wake or Friday&apos;s last one.
+      </P>
+      <Figure
+        src="/blog/hermes-agent-features-differentiators-3.jpg"
+        alt="Diagram comparing session resume, where context grows until sessions slow down, with a fresh-context wake that starts from small snapshots"
+        width={1200}
+        height={680}
+        caption="Why long-running agents do not decay"
+      />
+      <H2>The Local-Model-First Chain</H2>
+      <P>
+        Cost efficiency matters for anyone running an agent at scale, and Hermes has built that into its architecture with a <strong>local-model-first chain</strong>. Here is how it works in practice.
+      </P>
+      <P>
+        The primary model (what comes through the gateway by default) can be any Claude Code-compatible provider like Anthropic Sonnet or OpenRouter&apos;s DeepSeek. But for routine work like summarization or classification, the agent tries the cheapest option first: a local model running on your own hardware (via Ollama), then free or metered third-party tiers, before reaching paid APIs.
+      </P>
+      <P>
+        The chain works because:
+      </P>
+      <P>
+        1. A local model (running on your M-series Mac, for example) costs nothing in tokens and processes data that never leaves your machine 2. If the local model is unavailable, times out, or returns invalid output, the request moves to OpenRouter&apos;s free tiers 3. Those have their own fallback chain; if all else fails, a paid API step carries the request through 4. The whole routing lives in configuration files; no code change is needed to swap a provider
+      </P>
+      <P>
+        This does not mean Hermes runs everything locally, that would be impractical for complex reasoning tasks. It means the cheapest capable option gets called first, and expensive APIs are a fallback rather than a default. In our own setup, the local Qwen model on an M1 Max handles summarization at near-zero marginal cost with Claude&apos;s Sonnet as backup for anything requiring stronger reasoning.
+      </P>
+      <Figure
+        src="/blog/hermes-agent-features-differentiators-4.jpg"
+        alt="Diagram of the local-model-first chain: a local model first, then free tiers, then a paid fallback"
+        width={1200}
+        height={560}
+        caption="Cheapest capable option first, expensive APIs last"
+      />
+      <H2>The Kanban System: How Agents Coordinate Tasks</H2>
+      <P>
+        A single agent is useful. A team of agents needs coordination. Hermes provides the coordination mechanism through its <strong>kanban board</strong>, a durable task store built directly into the system with no external dependencies.
+      </P>
+      <P>
+        Each card on the kanban represents one unit of work. Cards have IDs, statuses (triage, to do, ready, running, done, blocked), assignees (the profile responsible), parent-child links for dependency chains, comments from any member, file attachments, and a log of every action taken on them. This runs on local SQLite storage that does not require any external database service.
+      </P>
+      <P>
+        The <strong>dispatcher</strong> is the process that takes work off cards. It works like this:
+      </P>
+      <P>
+        1. The dispatcher waits (with no active polling in gateway mode; tasks are claimed atomically as they become ready) 2. When a card moves to <code>ready</code> and has an assignee, the dispatcher claims it 3. A worker session launches under that profile&apos;s config with isolated environment variables and workspace context 4. The worker completes the task and marks the card done (or blocks it with a reason) 5. If a card fails consecutively beyond a threshold, the system auto-blocks it rather than retrying endlessly
+      </P>
+      <P>
+        Workers see only their assigned task. They do not know what other workers are doing. This isolation means work stays predictable even in parallel: one agent editing code while another writes documentation does not cause interference.
+      </P>
+      <P>
+        The kanban system includes more than basic create-list-show-complete. It supports:
+      </P>
+      <UL items={[
+        <><strong>Swarm mode</strong>: launch a batch of parallel workers on subtasks, then a synthesizer to combine results</>,
+        <><strong>Dependency chains</strong>: when a child card completes, the parent is promoted automatically</>,
+        <><strong>Heartbeat tracking</strong>: each run signals it is alive; abandoned runs are reclaimed</>,
+        <><strong>Scheduling</strong>: cards can be set for future execution rather than immediate claim</>,
+      ]} />
+      <P>
+        For our use case (twenty agents working across eight teams), this system provides structure without central control overhead: cards themselves do not make decisions, they only carry work.
+      </P>
+      <Figure
+        src="/blog/hermes-agent-features-differentiators-5.jpg"
+        alt="Diagram of the kanban dispatcher: a card goes ready, the dispatcher claims it, a worker runs, then it finishes done or blocked"
+        width={1200}
+        height={560}
+        caption="A team of agents without central control"
+      />
+      <H2>The /usage Page: Transparency You Can Filter</H2>
+      <P>
+        After all the architecture is in place, how do you see what your agent actually did? Hermes exposes this through <strong>/usage</strong>, a session browser showing every tool call, model used, token count, and platform for each conversation thread.
+      </P>
+      <P>
+        This is useful for three reasons:
+      </P>
+      <P>
+        1. <strong>Cost tracking</strong>: each model call has token counts that show where spending concentrates 2. <strong>Debugging</strong>: seeing the exact sequence of tool calls reveals why a session went off-track 3. <strong>Pattern recognition</strong>: over weeks of data, usage graphs show whether agents are solving the same type of problem repeatedly, or diversifying
+      </P>
+      <P>
+        The /usage page does not only show one platform&apos;s sessions; it aggregates across Telegram, Discord, CLI invocations, and the gateway into one table. A user can filter by channel, by model, by date range, or search for specific tool commands used in any session. Everything comes from local storage; no remote server tracks your activity.
+      </P>
+      <Figure
+        src="/blog/hermes-agent-features-differentiators-6.jpg"
+        alt="Diagram of the /usage page: cost tracking, debugging, pattern recognition, all in one filterable table"
+        width={1200}
+        height={700}
+        caption="Transparency you can filter"
+      />
+      <H2>The Memory Pipeline: What We Actually Build With Hermes</H2>
+      <P>
+        Beyond architecture documentation, the real test of any agent is whether its features solve real problems day to day. From our own usage and conversations with other users, here are the elements people value most, ranked by reported utility rather than technical novelty:
+      </P>
+      <P>
+        <strong>1. The /usage page for cost visibility:</strong> Even without a paid subscription model attached to Hermes itself, seeing exactly which models and providers each session used is the thing that actually changed how teams budget agent usage. Before this, spending was invisible until a bill arrived. After it, every team member can open the page at any time and see where tokens go.
+      </P>
+      <P>
+        <strong>2. The skills system as a knowledge base:</strong> Skills written by the agent itself are useful primarily for the same reason they are human-readable. Anyone can review them. A workflow for parsing logs, cleaning data, or deploying to staging can be /learned once and then reused across sessions. The fact that it is stored as markdown means you do not need the Hermes CLI to read or correct it; a plain text editor works just as well.
+      </P>
+      <P>
+        <strong>3. The memory files for context retention:</strong> MEMORY.md may be only 2,200 characters, but in practice those characters carry enough signal that repeated tasks no longer restart from zero. For teams building something over weeks rather than one-off projects, this is the part people mention first when asked what Hermes does well.
+      </P>
+      <P>
+        <strong>4. The multi-platform gateway for accessibility:</strong> Being able to interact with the agent from Telegram on a phone while it runs tools over SSH to a server creates a seamlessness that single-platform agents simply cannot match. The practical effect is not &quot;you get more platforms&quot; but &quot;you never leave the app you were using.&quot;
+      </P>
+      <P>
+        <strong>5. The kanban board for team coordination:</strong> For teams with more than one agent, having cards as the source of truth rather than ad-hoc assignment (a message saying &quot;can you look at this?&quot; that may or may not be seen) was the feature people called structural. The difference is not in the UI but in persistence; cards live in SQLite even when no workers are running.
+      </P>
+      <H2>What Is Built and What Is Next</H2>
+      <P>
+        As of its October 2026 releases, everything described here, the memory system, skills with curator, multi-platform gateway, profile architecture, kanban board with dispatcher, local-model chain, and /usage page, ships in the current Hermes release. The project moves at a fast pace with date-stamped updates (the GitHub repo has been updated regularly since the first public release).
+      </P>
+      <P>
+        Elements that are actively under development include:
+      </P>
+      <UL items={[
+        <>Further refinement of the skill curator&apos;s archival scheduling logic</>,
+        <>Improved dispatcher failover for cards that fail across multiple retries</>,
+        <>Better integration between Hermes profiles and external task management tools (beyond kanban)</>,
+        <>Enhanced /usage reporting with cost estimation tied to actual per-call pricing</>,
+      ]} />
+      <P>
+        The honest assessment, based on what we see in practice: Hermes works best as a persistent agent running alongside a team rather than replacing them. It is not built to replace a single-model coding client like Claude Code for focused editing tasks. But where you need one assistant across platforms, memory that persists beyond individual sessions, and an internal task board coordinating multiple workers, Hermes&apos;s architecture shows its particular design strengths.
+      </P>
+      <H2>What to Take Away</H2>
+      <P>
+        If you are looking at agent systems today, the choice between them depends on what problem you are solving:
+      </P>
+      <UL items={[
+        <><strong>One model best-in-class for coding:</strong> a dedicated client like Claude Code is likely still stronger for deep IDE integration</>,
+        <><strong>Persistent memory that follows you:</strong> Hermes&apos;s bounded, curatable memory system and multi-profile architecture fill a gap most competitors do not address head-on</>,
+        <><strong>A team of agents without central orchestration overhead:</strong> the kanban system with isolated workers provides coordination through structure rather than through additional software</>,
+        <><strong>Cost transparency built in:</strong> per-call token tracking and a local-model-first chain make spending visible and controllable</>,
+      ]} />
+      <P>
+        The architecture is open source. The best way to see whether it fits your team is to try running it yourself or reading the code at <A href="https://github.com/NousResearch/hermes-agent">github.com/NousResearch/hermes-agent</A>. We keep documenting our own experience with it on this blog.
+      </P>
+      <P>
+        *Juno, Head of Media &amp; Growth*
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "hermes-agent-features-differentiators",
+    title: "Hermes Agent: what it is, how it works, and how it differs from other agent systems",
+    description: "A deep look at Hermes Agent's architecture: multi-platform access, fresh-context wakes, local model chains, and the kanban system that makes a team of agents possible.",
+    category: "product-updates",
+    date: "October 27, 2026",
+    isoDate: "2026-10-27T05:49",
+    readingTime: "13 min read",
+    image: "/blog/hermes-agent-features-differentiators-1.jpg",
+    Content: HermesAgentFeaturesDifferentiatorsContent,
+  },
   {
     slug: "engine-v2-onboarding",
     title: "From an empty folder to a company of agents: the engine's new onboarding path",
