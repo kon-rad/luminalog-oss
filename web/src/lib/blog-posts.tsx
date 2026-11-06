@@ -11135,7 +11135,238 @@ function HungerBeatsTenureContent() {
   )
 }
 
+/* ── Post: How we built a self-managing org of AI agents that needs almost nothing from its CEO ── */
+function ExoAgentOrganizationHowItWorksAndReducesCeoBandwidthContent() {
+  return (
+    <>
+      <P>
+        Most teams that build AI into their business are still manually assigning tasks, reading logs, and running stand-ups. Every agent needs a person to explain what happened, which card is stuck, and what the next step is. The human sits in the middle of every message, reading and writing everything twice.
+      </P>
+      <P>
+        We built something different. A small company of 23 bots across 8 teams that run on their own with almost no input from the CEO. A single kanban board holds every team&apos;s work. A message system connects them without forwarding anything to a human. And a usage page shows everything they did so the CEO can see what happened while still sleeping.
+      </P>
+      <P>
+        This is how it works, and why the CEO only needs to run two words a day: &quot;approve&quot; and &quot;skip.&quot;
+      </P>
+      <H2>What wakes a bot up?</H2>
+      <P>
+        An AI agent in our org is not a program that runs all day waiting for input. It is <strong>always reachable, always offline, never running</strong>. Think of it like a colleague with a desk at home: the phone rings when something needs them, they answer, do the work, and go back to doing nothing.
+      </P>
+      <P>
+        A bot has no persistent process. The only thing that keeps it alive is a Postgres table of wake-ups and one program that reads it every 30 seconds.
+      </P>
+      <P>
+        Here is what wakes each bot:
+      </P>
+      <UL items={[
+        <><strong>A card on the kanban board</strong> assigned to them (that is most things)</>,
+        <><strong>A direct message</strong> in our internal message system</>,
+        <><strong>A mention</strong> by another agent in a shared channel</>,
+        <><strong>An urgent question</strong> from the CEO going through their team lead</>,
+        <><strong>A scheduled timer</strong>, like the morning stand-up or the daily sweep</>,
+        <><strong>A card being handed off</strong> to them from another team</>,
+      ]} />
+      <P>
+        The wake is lightweight because we changed how each session starts. An older approach carried every previous message a bot ever read, growing to tens of thousands of tokens per run. The new one passes only what matters: who the bot is, its role, the vault rules, the skills it can load, and, if it was woken for a specific task, the card body with everything it needs to know.
+      </P>
+      <P>
+        Where the bot was supposed to remember goes in a file it reads when needed rather than a session it carries forever. If a bot needs context from yesterday, <code>cli-org recall</code> finds the relevant notes. If it learned something new, the memory system remembers it for tomorrow.
+      </P>
+      <Figure
+        src="/blog/exo-agent-organization-how-it-works-and-reduces-ceo-bandwidth-1.jpg"
+        alt="Diagram of the six things that wake a bot: a card, a direct message, a mention, an urgent question, a scheduled timer and a hand-off"
+        width={1200}
+        height={700}
+        priority
+        caption="Always reachable, always offline, never running"
+      />
+      <H2>The kanban board: one place where work lives</H2>
+      <P>
+        The kanban board is the org&apos;s shared operating system. Every card on it represents a commitment by one agent to do one thing, and nothing else. A card has a title, a body with what good looks like, an assignee, a project link, and a status that moves through nine states:
+      </P>
+      <P>
+        1. <strong>Triage</strong> - filed but not yet accepted 2. <strong>To do</strong> - accepted, waiting on something else (another card or a future time) 3. <strong>Scheduled</strong> - parked until a time, not until a person 4. <strong>Ready</strong> - waiting for its assignee to claim and start 5. <strong>Running</strong> - claimed by an agent lane; the work is happening 6. <strong>Review</strong> - finished work waiting for approval 7. <strong>Blocked</strong> - stuck, with one of seven block kinds (dependency, needs-owner, missing-input, tool-error, budget, review-changes, other) and a reason 8. <strong>Done</strong> - completed with a one-line result 9. <strong>Archived</strong> - old cards moved off the columns
+      </P>
+      <P>
+        A card&apos;s status is never just paperwork. The statuses connect to automations:
+      </P>
+      <UL items={[
+        <>When the last parent of a dependent card finishes, the board automatically moves it from <strong>to do</strong> to <strong>ready</strong>. No human pressed that button.</>,
+        <>A running card whose session expired gets reclaimed by the system if no heartbeat came through.</>,
+        <>A blocked card with kind <code>dependency</code> auto-unblocks when its parent card completes.</>,
+      ]} />
+      <Figure
+        src="/blog/exo-agent-organization-how-it-works-and-reduces-ceo-bandwidth-2.jpg"
+        alt="Diagram of the nine card statuses, from triage through running to archived"
+        width={1200}
+        height={700}
+        caption="Every card is one commitment by one agent"
+      />
+      <H2>How agents do work on a card</H2>
+      <P>
+        When a bot finally claims a card, here is what happens:
+      </P>
+      <P>
+        1. It reads the card body (the objective, returns, budget, scope, and verification fields) 2. It reads relevant cards from other projects if they connect 3. It does the actual work: writing code, researching, designing, drafting 4. It comments on the card with progress updates along the way 5. When done: it calls <code>cli-board finish &lt;id&gt; --done &quot;&lt;result&gt;&quot;</code> 6. Or when stuck: it calls <code>cli-board finish &lt;id&gt; --blocked &lt;kind&gt; &quot;&lt;why&gt;&quot;</code> and posts a status to its team channel
+      </P>
+      <P>
+        That last rule, one status post per wake, always with evidence (a path, a command, a card id), is how the CEO gets visibility without being in the loop. When juno finishes an agent summaries blog post, it doesn&apos;t DM the CEO. It posts one line to <code>#media</code> that says what changed and where to find it. The message system records what happened; the CEO only enters when something needs a human decision.
+      </P>
+      <Figure
+        src="/blog/exo-agent-organization-how-it-works-and-reduces-ceo-bandwidth-3.jpg"
+        alt="Diagram of a card's life: claimed, worked, then closed as done or blocked, with no manager in the loop"
+        width={1200}
+        height={680}
+        caption="From ready to done without a manager"
+      />
+      <H2>The message system: who talks to whom</H2>
+      <P>
+        Bots talk through our second brain&apos;s built-in message channels, not over Slack or email. The channels table enforces who may speak to whom, and this is enforced at database level, not just in prompt instructions.
+      </P>
+      <P>
+        | Who | May speak directly to | |-----|----------------------| | Regular bot (member) | Its own team channel; shared channels with other invited bots | | Any agent | Shared channels; DMs across teams; its own team channel | | Team lead | All of its team&apos;s members, all shared channels, direct messages to anyone | | The CEO | Everyone, anything, in any channel |
+      </P>
+      <P>
+        What this means for the CEO: <strong>nobody messages them directly except their team lead</strong>. A bot that needs another team hands off in a shared channel with the card id attached. A bot stuck on a decision posts to its lead&apos;s channel or uses <code>cli-org ask-owner</code>, which routes through the lead. The CEO never reads every message, never forwards anything, and never explains work between agents.
+      </P>
+      <P>
+        The stand-up is where the CEO enters the loop each morning. At 05:30, each team lead gets a routine wake, reads its channel messages from the last day, reads its project&apos;s open cards, and posts one stand-up under 120 words: what shipped, what moved, what was blocked, the one question for the CEO. The CEO reads them, all eight of them, on their phone in the morning commute.
+      </P>
+      <P>
+        The whole system handles about two questions per day (a &quot;block this&quot; and a &quot;redo that&quot;). Everything else self-manages through board state and channels.
+      </P>
+      <Figure
+        src="/blog/exo-agent-organization-how-it-works-and-reduces-ceo-bandwidth-4.jpg"
+        alt="Diagram of who may speak to whom: members, any agent, team leads and the CEO"
+        width={1200}
+        height={620}
+        caption="Enforced at the database level"
+      />
+      <H2>How do you see what they did?</H2>
+      <P>
+        Every run an agent wakes for is recorded in the usage ledger, the same place that tracks every token spent, every tool call, every tool failure. The Second Brain app&apos;s <code>/usage</code> page shows this data with filters: by bot, by project, by card id, by reason, by harness (which model or runtime), by hour, and by day.
+      </P>
+      <P>
+        The Usage Dashboard was built for one reason: the CEO needs to see what happened while not being in the loop. Every row tells you which agent ran, on which card it was working, why it woke, how many tokens it spent, which tool calls failed, and what session it belongs to. Click open any row to see every message, every tool call with its input and output, and the full prompt text if captured.
+      </P>
+      <P>
+        The same data feeds the summaries job, a separate scheduled process that picks up finished sessions and gives each one a short summary written by a model: what was asked, what was done, what was learned, what is open, and the outcome. These summaries feed the daily stand-up digest (replacing the old clip-based approach) and become candidate memory for future agents to recall.
+      </P>
+      <Figure
+        src="/blog/exo-agent-organization-how-it-works-and-reduces-ceo-bandwidth-5.jpg"
+        alt="Diagram of how the CEO sees what happened: the ledger, the filters, an opened row, and the summaries that feed the stand-up"
+        width={1200}
+        height={700}
+        caption="The CEO reads eight lines before coffee"
+      />
+      <H2>How does work connect across projects?</H2>
+      <P>
+        Every card can be linked to a tracker project (and optionally a feature). The link lives in the board&apos;s own table, not as a side effect but as a core field: <code>project_slug</code> and <code>feature_slug</code>. A card created or assigned through <code>cli-org task create</code> also writes the project ownership row automatically.
+      </P>
+      <P>
+        What this means for the board layout: filters show you cards by project, by feature, by team. Board columns still show all teams together (the exo board holds everything company-wide), but the project filter lets you jump to any single project&apos;s work. The kanban page reads directly from the same table that the tracker reads: there is no sync between them. Finish a card and its project row updates automatically.
+      </P>
+      <P>
+        Card graphs, templates describing multi-step workflows as cards linked by dependencies, let one trigger create many. Apply a &quot;newsroom-story&quot; template to a project, and you get research, review, draft, revision, fact-check, and repurpose cards, all linked, all promoting each other in sequence so the next bot wakes automatically when its parent finishes.
+      </P>
+      <H2>The kanban boards are not just for humans anymore</H2>
+      <P>
+        The exo board is company-wide and visible to every team. But teams can have their own boards too: a <code>platform</code> board for engineering, a <code>content</code> board for design. A lead assigns work on both the company-wide board (if it crosses teams) and the team board (for internal team coordination).
+      </P>
+      <P>
+        The project tracker, the second brain&apos;s Projects page, sits right next to the kanban in the same database row. No sync needed: the same <code>project_slug</code> field links them. Features under each project have their own rows, and a feature page can show its cards because they share the same foreign key.
+      </P>
+      <H2>What the CEO actually does all day</H2>
+      <P>
+        Two words. Sometimes more if something needs judgment:
+      </P>
+      <UL items={[
+        <><strong>&quot;Approve&quot;</strong> - a finished task is in review; the CEO says approved or requests changes</>,
+        <><strong>&quot;Block&quot;</strong> - a decision cannot go forward without human input (budget, strategy, direction)</>,
+        <><strong>Occasionally</strong>: reviewing an agent&apos;s proposal to change a persona or skill (these always need human sign-off), checking the stand-up for blockers that span teams</>,
+      ]} />
+      <P>
+        The rest of the time: running the business. The agents on each team take their own decisions within their role definitions. Platform engineers choose implementation, growth leads pick content angles, operations handle scheduling. The org&apos;s memory system remembers what was learned (with human approval gates for shared facts) so the same decision is not made twice across runs.
+      </P>
+      <P>
+        The CEO also gets a weekly stand-up digest automatically compiled from all team channels and board changes: open question marks out of 23 agents, cards that went <code>blocked</code> with reasons, cards promoted to ready, and one line per team about what shipped and what stalled. It can be read in three minutes on the phone before breakfast.
+      </P>
+      <H2>Where does a card go when it is done?</H2>
+      <P>
+        When Konrad says &quot;approve&quot; on a review card, the work gets published or deployed. The board record stays: it shows who did the final review, against what verification, and the outcome. The project field links the task back to its product area so anyone can trace from today&apos;s feature to who built each piece and when.
+      </P>
+      <P>
+        Cards in <code>review</code> status are a simple checkpoint: the builder finishes and posts a comment; whoever is responsible for quality (often the lead or an independent reviewer) reads it and moves it to done with feedback, or leaves it running until changes land. No handoff notes needed, everything is on the card&apos;s body.
+      </P>
+      <P>
+        What about work that needs another team? A card in <code>running</code> can&apos;t be reassigned across teams by just anyone. Only a lead can reassign to another team&apos;s members (via a hand-off through a shared channel) and only the CEO can bypass those rules. This prevents scope creep: cards stay focused on one team&apos;s work until someone with authority decides otherwise.
+      </P>
+      <H2>How much of this costs the CEO?</H2>
+      <P>
+        The answer is small by design:
+      </P>
+      <UL items={[
+        <><strong>Morning stand-up</strong>: about 3 minutes reading 8 briefs (one per team), answering 0 to 2 questions</>,
+        <><strong>Review cards as they land</strong>: about 5 minutes, reading and approving blocks of finished work</>,
+        <><strong>Weekly check-in</strong>: about 10 minutes reviewing the stand-up digest with one line per team</>,
+      ]} />
+      <P>
+        Most agent decisions happen without the CEO ever being asked. The memory system remembers (with human-gated facts), skills document what was learned, and the board shows everyone&apos;s status in one place. When a card is <code>done</code>, the story ends there for the human, unless they click open to see how it happened.
+      </P>
+      <P>
+        A full workday where 15 agents finish 15 cards generates about 30 messages across channels. They are not forwarded to the CEO; they are read by their leads and, if anything needs escalation, summarized into one stand-up post each. The human reads maybe eight lines a day before coffee.
+      </P>
+      <H2>If you want to build something like this</H2>
+      <P>
+        The architecture reduces to five rules:
+      </P>
+      <P>
+        1. <strong>The agent that finished a task should remember what happened.</strong> A memory file, or the shared memory system (with person approval for cross-team facts), prevents agents from having to relearn the same things on every wake. 2. <strong>Everyone talks through a single message board with roles.</strong> No forwarding, no DM chains, no copying to Slack. Rules enforced at the database level about who can speak to whom. 3. <strong>One kanban board for all teams, but each board has scope.</strong> Company-wide and per-team channels, with cards linking back to projects. 4. <strong>Tasks that require another team use a hand-off in the right channel, not a DM.</strong> The assignee&apos;s name on the card says who is responsible; the hand-off message connects them. 5. <strong>Every token spent is recorded and filterable</strong>, so the CEO can see what an agent did without being pestered by asking it directly.
+      </P>
+      <Figure
+        src="/blog/exo-agent-organization-how-it-works-and-reduces-ceo-bandwidth-6.jpg"
+        alt="Diagram of the five rules the architecture reduces to, from memory to a human only in the loop for judgment"
+        width={1200}
+        height={700}
+        caption="The architecture reduces to five rules"
+      />
+      <P>
+        The result: 23 bots on 8 teams doing research, writing code, reviewing cards, posting summaries, running scripts, managing channels and publishing content, all with the human CEO involved in maybe five minutes of active work a day. The rest comes through async status boards, team channels, and a memory system that remembers what it was told (with gates).
+      </P>
+      <H2>What&apos;s still missing</H2>
+      <P>
+        A couple things the system needs to mature:
+      </P>
+      <UL items={[
+        <><strong>Auto-generated stand-up digests across all agents</strong>: We want each lead&apos;s brief to be compiled by the same summarizer that runs on agent sessions, not human-written but machine-curated from board events and channel summaries.</>,
+        <><strong>More granular project views inside the kanban</strong>: Board cards currently show up on the main <code>exo</code> board for everyone. A team-specific board with just its own work plus cross-team hand-offs would reduce noise further.</>,
+        <><strong>Agent-to-agent task creation with automatic routing</strong>: Currently tasks that span teams require a human to create the right cards and assign them correctly. Automatic discovery of &quot;who should handle this&quot; from the card description is the next step, but it needs guardrails so the wrong bot doesn&apos;t get work meant for another.</>,
+      ]} />
+      <P>
+        The most important feature missing, though, was already the most impactful: <strong>the memory system</strong>. Agents that remember what they learned stop repeating mistakes across runs. With human-gated shared facts and individual agent memory files, each bot gets smarter about the company it works for, without the CEO intervening.
+      </P>
+      <P>
+        *This is the version from 2026-10-28 where the org has a working board, messages that route through rules, usage tracking that updates live, and agents that remember what they did.*
+      </P>
+      <P>
+        The code is open source at <A href="https://github.com/kon-rad/secondbrain">github.com/kon-rad/secondbrain</A>. We share how we build Argo on this blog and at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "exo-agent-organization-how-it-works-and-reduces-ceo-bandwidth",
+    title: "How we built a self-managing org of AI agents that needs almost nothing from its CEO",
+    description: "A small company of 23 bots on 8 teams, one kanban board, an async message system, and a usage page show how work gets done with the human running at most two words a day.",
+    category: "product-updates",
+    date: "October 28, 2026",
+    isoDate: "2026-10-28T05:40",
+    readingTime: "13 min read",
+    image: "/blog/exo-agent-organization-how-it-works-and-reduces-ceo-bandwidth-1.jpg",
+    Content: ExoAgentOrganizationHowItWorksAndReducesCeoBandwidthContent,
+  },
   {
     slug: "hunger-beats-tenure",
     title: "Hunger beats tenure: Felix Rieseberg's advice for junior engineers",
