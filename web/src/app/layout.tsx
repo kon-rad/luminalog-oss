@@ -6,14 +6,14 @@ import SolanaWalletProvider from '@/lib/wallet/WalletProvider'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://myargoquest.com'),
-  title: 'Argo: the open-source agentic second brain. Stay the author.',
+  title: 'Argo: a hackable, DIY agent orchestration stack',
   description: 'Argo is an open-source agentic second brain: a knowledge base you own, agents that run on the best open model or harness for the job, and a loop that improves itself. Local-first, private by construction, yours.',
   icons: {
     icon: '/logo.png',
     apple: '/logo-icon.png',
   },
   openGraph: {
-    title: 'Argo: the open-source agentic second brain. Stay the author.',
+    title: 'Argo: a hackable, DIY agent orchestration stack',
     description: 'The agents are yours. The data is yours. Nothing important moves without you.',
     images: ['/argo-emblem.png'],
   },

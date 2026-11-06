@@ -15,7 +15,7 @@ import { INK, CREAM, MUTE, ACCENT } from '@/components/landing/theme'
 
 const GITHUB_URL = 'https://github.com/kon-rad/argo'
 const DOCS_URL = 'https://kon-rad.github.io/argo/'
-const SETUP_VAULT_URL = 'https://github.com/kon-rad/argo/blob/main/skills/setup-vault/SKILL.md'
+const SETUP_VAULT_URL = '/setup-vault'
 const EXO_URL = 'https://exo.myargoquest.com'
 const JOURNAL_PATH = '/argo-journal'
 
@@ -80,6 +80,7 @@ const FOOTER_LINKS: [string, string][] = [
   ['Courses', '/courses'],
   ['GitHub', GITHUB_URL],
   ['Docs', DOCS_URL],
+  ['Set up your vault', SETUP_VAULT_URL],
   ['Privacy Policy', '/privacy'],
   ['Terms', '/terms'],
   ['Support', 'mailto:konradmgnat@gmail.com'],
@@ -145,7 +146,7 @@ export default function Home() {
               margin: '14px 0 0',
             }}
           >
-            Stay the author.
+            A hackable, DIY agent orchestration stack.
           </p>
           <p
             style={{
@@ -159,9 +160,8 @@ export default function Home() {
             The agents are yours. The data is yours. Nothing important moves without you.
           </p>
           <div style={{ display: 'flex', gap: 12, marginTop: 36, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <a
-              href={GITHUB_URL}
-              {...ext(GITHUB_URL)}
+            <Link
+              href={SETUP_VAULT_URL}
               style={{
                 padding: '11px 22px',
                 background: ACCENT,
@@ -170,6 +170,22 @@ export default function Home() {
                 fontSize: 14,
                 fontWeight: 600,
                 textDecoration: 'none',
+              }}
+            >
+              Set up your vault
+            </Link>
+            <a
+              href={GITHUB_URL}
+              {...ext(GITHUB_URL)}
+              style={{
+                padding: '11px 22px',
+                background: 'transparent',
+                color: CREAM,
+                borderRadius: 999,
+                fontSize: 14,
+                fontWeight: 600,
+                textDecoration: 'none',
+                border: '1px solid rgba(243,238,228,0.28)',
               }}
             >
               View on GitHub
@@ -304,7 +320,7 @@ export default function Home() {
                 Argo
               </a>
               <p className="serif" style={{ fontStyle: 'italic', fontSize: 16, color: 'var(--text2)', marginTop: 14, maxWidth: 300 }}>
-                Argo: open-source agentic second brain. Stay the author.
+                Argo: a hackable, DIY agent orchestration stack.
               </p>
             </div>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center', paddingTop: 6, maxWidth: 560 }}>
