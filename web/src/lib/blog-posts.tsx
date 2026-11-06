@@ -12036,7 +12036,104 @@ function DessaVoiceAiFullDuplexSpeechContent() {
   )
 }
 
+/* ── Post: A full original browser game built in 24 hours with AI tools ── */
+function AiGameSumiro24hContent() {
+  return (
+    <>
+      <P>
+        # A full original browser game built in 24 hours with AI tools
+      </P>
+      <P>
+        Shikhar built Sumiro, a 3D samurai puzzle-platformer that runs in the browser, in 24 hours. The demo video was recorded by Claude playing the game.
+      </P>
+      <P>
+        The stack is six tools. The result is playable. The point is that a solo developer can now show someone a 3D game before investing months in it. The bottleneck shifts from building to taste and distribution.
+      </P>
+      <Figure
+        src="/blog/ai-game-sumiro-24h-1.jpg"
+        alt="Four metric cards: 2.6M views, 12.5K likes, 24h build time, 30-40 min playthrough"
+        width={1000}
+        height={460}
+        priority
+        caption="Sumiro by the numbers: 2.6M views, 12.5K likes, built in 24h, 30-40 min to play."
+      />
+      <Figure
+        src="/blog/ai-game-sumiro-24h-2.jpg"
+        alt="Six hexagons: Opus 5.5, Flux 3 Max, GPT Image, Tripo, Blender, Three.js"
+        width={1100}
+        height={500}
+        caption="Six tools, one game, 24 hours."
+      />
+      <H2>The stack</H2>
+      <P>
+        | Tool | What it did | |---|---| | <strong>Opus 5.5</strong> (Claude Code) | Gameplay code, physics, animation, parallel agents for testing and debugging | | <strong>Flux 3 Max</strong> | Generated the reference art style video the whole game is built around | | <strong>GPT Image</strong> | Produced concept art and level designs | | <strong>Tripo</strong> | Generated the 3D character model from the concept art | | <strong>Blender</strong> | Refined the 3D assets and assembled scenes | | <strong>Three.js</strong> | Rendered the game world in the browser, no download needed |
+      </P>
+      <H2>The workflow</H2>
+      <P>
+        Shikhar shared the full workflow as a thread. It is worth reading even if you do not plan to build a game, because the compression is the story, not the game itself.
+      </P>
+      <P>
+        1. Flux 3 Max generates a concept video in the desired art style 2. GPT Image produces concept art and level scenes 3. Tripo generates the 3D character model from the concept art 4. Blender refines the assets and assembles the scene 5. Three.js builds the game world in the browser 6. Opus 5.5 writes the gameplay, physics, animations and test loops through parallel agents 7. Claude plays the finished game, and the play session becomes the demo video
+      </P>
+      <Figure
+        src="/blog/ai-game-sumiro-24h-3.jpg"
+        alt="A six-step workflow from art style to playable game"
+        width={1200}
+        height={500}
+        caption="From Flux 3 Max reference to Three.js world: six steps in 24 hours."
+      />
+      <Figure
+        src="/blog/ai-game-sumiro-24h-4.jpg"
+        alt="The full AI toolchain in one flow: six tools paired into three layers plus Claude playing the demo"
+        width={1000}
+        height={480}
+        caption="Flux 3 Max + GPT Image for art, Tripo + Blender for 3D, Three.js + Opus 5.5 for the game, Claude playing for the demo video."
+      />
+      <H2>The demo video</H2>
+      <P>
+        The detail that kept being repeated in the coverage: even the demo video was recorded by Claude playing the game. The developer did not record a trailer. Claude played through the 30 to 40 minute game and the footage was the trailer.
+      </P>
+      <P>
+        That is a specific kind of turing test. The game had to be engaging enough that watching Claude play it was interesting. The 2.6 million views suggest it passed.
+      </P>
+      <H2>What the shift looks like</H2>
+      <P>
+        | Before (traditional) | After (this stack) | |---|---| | 6 months to first playable version | 24 hours to first playable version | | Months of validation after building | Hours of validation before committing | | Trailer separately produced | Trailer is the AI playing the game | | Risk: invest time before knowing if it works | Risk: invest only the 24 hours |
+      </P>
+      <Figure
+        src="/blog/ai-game-sumiro-24h-5.jpg"
+        alt="Two panels comparing the old and new workflow bottleneck"
+        width={1000}
+        height={460}
+        caption="The bottleneck stops being the first playable version. It becomes taste, distribution and retention."
+      />
+      <H2>What it is not</H2>
+      <P>
+        The author calls it an experiment. The controls are stiff, browser compatibility is untested, and the play session is 30 to 40 minutes. It is not a polished game ready for a store, and the thread makes no claim that it is.
+      </P>
+      <P>
+        The point is that the workflow exists, works, and is shared. If six AI tools can take one person from a prompt to a playable browser game in 24 hours, the question for any solo founder is not whether they can build the game. It is whether they have a good enough idea and can find an audience for it.
+      </P>
+      <H2>The post</H2>
+      <P>
+        Shikhar&apos;s original post: https://x.com/xikhar/status/2117776295534997818
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "ai-game-sumiro-24h",
+    title: "A full original browser game built in 24 hours with AI tools",
+    description: "Shikhar built Sumiro, a 3D samurai puzzle-platformer, in 24 hours using Opus 5.5, Flux 3 Max, GPT Image, Tripo, Blender and Three.js. The demo was played by Claude. 2.6M views on X.",
+    category: "ai-news",
+    date: "November 6, 2026",
+    isoDate: "2026-11-06T10:22",
+    readingTime: "3 min read",
+    image: "/blog/ai-game-sumiro-24h-1.jpg",
+    Content: AiGameSumiro24hContent,
+  },
   {
     slug: "dessa-voice-ai-full-duplex-speech",
     title: "Dessa: Jack Dorsey's Block Just Built a Voice AI That Never Read a Single Word",
