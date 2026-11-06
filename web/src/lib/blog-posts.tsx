@@ -12232,7 +12232,250 @@ function Ensip26AgentTextRecordsContent() {
   )
 }
 
+/* ── Post: "Argo Hiring Desk: how people and agents can hire an AI specialist" ── */
+function HiringAnAiAgentContent() {
+  return (
+    <>
+      <P>
+        You find an AI agent that makes the kind of anime you want: a futuristic Mumbai waterfront, an enormous cobra above the bridge, blue energy creatures and an orange sunset. You want a 30-second episode with you and your friends as its characters. Then you want another episode next week, with the same faces and the same world.
+      </P>
+      <P>
+        A portfolio answers whether you like the work. Hiring still needs answers to other questions: who operates this agent, what exactly are you commissioning, what may it access, how do you receive the result, and where does your payment go?
+      </P>
+      <P>
+        Argo Hiring Desk is our ETHGlobal Mumbai project for that transaction. We are extending our existing Second Brain agent company so outside people and other agents can discover selected workers, agree on a job, receive a reviewed delivery and pay in USDC.
+      </P>
+      <P>
+        <strong>This is an implementation explainer, not a launch announcement.</strong> As of November 6, 2026, foundation implementation is underway. The first release targets a bounded public-document research task. Personalized anime production is the example of what the same hiring model could support after the core transaction is demonstrated.
+      </P>
+      <Figure
+        src="/blog/hiring-an-ai-agent-1.jpg"
+        alt="AI-generated concept art shows three fictional anime protagonists and blue energy companions facing a spectral cobra above a Mumbai-inspired bridge at sunset."
+        width={1672}
+        height={941}
+        priority
+        caption="AI-generated concept illustration of a future anime commission, not a completed Hiring Desk delivery."
+      />
+      <H2>What would hiring an anime agent look like?</H2>
+      <P>
+        Imagine a service listed under the proposed name <code>anime.myargoquest.eth</code>. Its profile explains its specialty, shows a portfolio and states its delivery format. You choose one 30-second vertical episode, supply approved character artwork and describe the scene.
+      </P>
+      <P>
+        The brief might ask for three protagonists approaching a bridge guarded by a giant cobra. Their blue energy creatures combine to open a portal. The final shot reveals something waiting on the other side. The quote specifies the MP4 format, subtitles, delivery deadline and included revisions.
+      </P>
+      <Figure
+        src="/blog/hiring-an-ai-agent-2.jpg"
+        alt="Three cards show agreement, bounded production and review for an illustrative 30-second anime commission."
+        width={1600}
+        height={900}
+        caption="Proposed anime-service journey. Our diagram; Phase 1 uses a bounded research task."
+      />
+      <P>
+        The agent&apos;s offer identifies its price in USDC and the exact payment destination. You accept those terms. Argo&apos;s operator separately approves the execution plan, including which tools and model providers the worker may use and how much the run may cost.
+      </P>
+      <P>
+        The worker then receives a project packet containing only the approved references and instructions. For this future service, production would include storyboard preparation, shot generation and editing. You review the episode, request any included revision and approve the final delivery before paying the agreed amount.
+      </P>
+      <P>
+        Episode 2 would reuse a versioned world bible and character sheets. Those assets, production choices and review are what make the story consistent. A blockchain cannot make a generated face consistent across shots.
+      </P>
+      <P>
+        The personal part also changes the privacy requirements. For the hackathon, our inputs and published result must be deliberately public-safe. Private photos and confidential personalized episodes need a separate access-controlled asset and delivery path. Permission to create a video would not include permission to post it to social media. Reusing event artwork would also require appropriate permission; an original world can instead take broad visual inspiration from the reference.
+      </P>
+      <P>
+        The initial research service keeps these production variables out of the first transaction: compare three supplied public documents and produce a cited markdown brief. That lets us test whether hiring, authorization, execution, delivery and payment fit together before adding video-generation costs and rendering latency.
+      </P>
+      <H2>How does an ENS name identify the agent?</H2>
+      <P>
+        We own <code>myargoquest.eth</code>. Our proposed naming scheme gives each participating specialist a subname beneath it, such as <code>anime.myargoquest.eth</code>. The example subname and its records are proposed, not verified deployments.
+      </P>
+      <P>
+        <strong>ENS</strong>, the Ethereum Name Service, gives people a readable name to resolve instead of copying identifiers between systems. Its text records can carry a public description and service information. The draft <A href="https://docs.ens.domains/ensip/26/">ENSIP-26 proposal</A> defines <code>agent-context</code> and protocol-specific endpoint keys such as <code>agent-endpoint[web]</code>, <code>agent-endpoint[a2a]</code> and <code>agent-endpoint[mcp]</code>.
+      </P>
+      <P>
+        A web endpoint is for a person using a browser. A2A is an agent-to-agent interface. MCP, the Model Context Protocol, is a way to expose tools and resources. We would advertise only interfaces actually implemented and available.
+      </P>
+      <Figure
+        src="/blog/hiring-an-ai-agent-3.jpg"
+        alt="ENS discovery leads to identity checks and then pinned job terms for the proposed anime.myargoquest.eth name."
+        width={1600}
+        height={900}
+        caption="How naming connects to authorization. Our diagram; the subname is proposed."
+      />
+      <P>
+        Discovery is one step; verification is another. A registry entry could claim someone else&apos;s familiar name. The client needs to check the association from the name as well. Draft <A href="https://docs.ens.domains/ensip/25/">ENSIP-25</A> specifies a parameterized <code>agent-registration</code> text record that includes the registry&apos;s interoperable address and agent identifier.
+      </P>
+      <P>
+        The related <A href="https://eips.ethereum.org/EIPS/eip-8004">ERC-8004 draft</A> supplies registry-based identity and reputation mechanisms. A usable identity reference includes the chain, registry contract and agent ID. A bare number is ambiguous across registries. Recorded feedback can help a client evaluate past interactions, but it does not eliminate fake accounts or guarantee artistic quality.
+      </P>
+      <Figure
+        src="/blog/hiring-an-ai-agent-4.jpg"
+        alt="Official ENSIP-26 documentation describes agent-context and agent-endpoint records for agent interface discovery."
+        width={1350}
+        height={840}
+        caption="The draft agent-discovery proposal. Screenshot of ENS documentation, docs.ens.domains."
+      />
+      <P>
+        Our identity adapter is responsible for checking the name, registry identity, provider wallet and payment binding. Once a client accepts an offer, that job retains its original recipient and network. Updating a name later must not redirect an accepted payment.
+      </P>
+      <P>
+        The ENS sponsor target is specifically an ENSv2 mainnet integration. Owning an ENS name is a starting point; it does not establish ENSv2 deployment or satisfy that integration requirement by itself. We will substantiate that part with actual resolution and deployment evidence rather than infer it from ownership. The <A href="https://ethglobal.com/events/mumbai/prizes">official Mumbai prize page</A> describes the integration requirement.
+      </P>
+      <H2>What becomes public, and what stays private?</H2>
+      <P>
+        The design has two interfaces. The public application lets clients browse services, post jobs, inspect offers, accept work and pay. The private Desk lets Argo&apos;s operator approve execution, stop runs, review results and release an exact delivery.
+      </P>
+      <Figure
+        src="/blog/hiring-an-ai-agent-5.jpg"
+        alt="The public client sends job terms to the private operator, which authorizes isolated work; the result returns for review."
+        width={1600}
+        height={900}
+        caption="Proposed architecture and authority boundaries. Our diagram."
+      />
+      <P>
+        <strong>Arkiv</strong> is the planned public job-record layer. Its documentation describes queryable, time-scoped data, with SDK operations for creating and reading entities. We use that model to make hiring facts inspectable outside our application. The records link a job to its offer, the client&apos;s acceptance, the provider&apos;s claim and the released delivery. See <A href="https://docs.arkiv.network/">Arkiv&apos;s introduction</A> and <A href="https://docs.arkiv.network/start-here/first-entity/">entity quickstart</A>.
+      </P>
+      <P>
+        Authorship matters. A record stating that the client accepted is insufficient if a different party created that record. Our first protocol version uses client-owned public acceptance entities whose creator is authenticated from chain observations. Acceptance binds a specific offer and its terms. A provider&apos;s claim cannot award itself someone else&apos;s job.
+      </P>
+      <P>
+        <strong>Swarm</strong> is the planned storage layer for the approved public artifact. Arkiv holds the delivery record and reference; Swarm holds the file a reader downloads. Uploading requires an upload-capable Bee route and valid postage, which pays for storage. These are operational prerequisites, not something a file reference alone provides. <A href="https://docs.ethswarm.org/docs/develop/upload-and-download/">Swarm&apos;s upload guide</A> explains the mechanism.
+      </P>
+      <P>
+        The publishing broker calculates a SHA-256 digest, a fingerprint of the exact approved file bytes. A reader downloads the file and recalculates that fingerprint. Matching values establish that the downloaded file matches the approved result. They do not establish that its reasoning or art is good.
+      </P>
+      <P>
+        Our public brief must contain only material intended for public disclosure. Internal messages, private notes, execution traces and model credentials stay outside these records. Swarm is public by default; its encrypted references can bundle a decryption key. Publishing a complete encrypted reference can therefore disclose access rather than protect it. The planned demo will publish public-safe results and exclude private personal material. <A href="https://docs.ethswarm.org/docs/develop/tools-and-features/store-with-encryption/">Swarm&apos;s encryption documentation</A> explains that distinction.
+      </P>
+      <H2>What stops a hired agent from accessing our private company?</H2>
+      <P>
+        The worker starts in a fresh session. It does not inherit the internal agent&apos;s memory or conversation. Reusing a provider&apos;s public identity is different from giving an external assignment access to everything that provider knows internally.
+      </P>
+      <P>
+        Our worker design uses a separate Linux worker host with a disposable, non-root container for each job. Its system filesystem is read-only. It receives the approved corpus read-only and a job-specific scratch directory for temporary work. Private home directories, the company vault and the container-management socket are absent.
+      </P>
+      <Figure
+        src="/blog/hiring-an-ai-agent-6.jpg"
+        alt="Approved inputs, bounded tools and external key custody define the isolated worker boundary."
+        width={1600}
+        height={900}
+        caption="Execution security requirements from the Phase 1 plan. Our diagram, not test evidence."
+      />
+      <P>
+        The worker receives narrow tools for reading, searching, model calls and submitting a result. Phase 1 excludes a general shell, package installation, arbitrary URL fetching and executable customer content.
+      </P>
+      <P>
+        A tool gateway enforces the allowed operations outside the language model. It checks a short-lived job capability: a credential scoped to the assignment, attempt, approved tools, expiry and budget. Direct outbound network access is denied. The gateway must also prevent requests to private networks and metadata services, including attempts that use redirects.
+      </P>
+      <P>
+        Model-provider credentials and signing keys remain in trusted services outside the worker. The worker can request a permitted model call; it cannot retrieve the provider&apos;s key. Spending limits must handle concurrency: two simultaneous calls cannot each reserve the same remaining budget. Runtime, resource use and cancellation are also enforced by services rather than by asking the model to cooperate.
+      </P>
+      <P>
+        Publication is another permission. The operator approves the exact artifact hash and destination. If the bytes change, that approval no longer applies. A trusted broker publishes only after validating the approved payload; the worker token cannot approve, publish or sign.
+      </P>
+      <P>
+        These are requirements to demonstrate, not a claim that an architecture diagram proves isolation. The acceptance tests attempt real forbidden filesystem and network access from inside the container. Containers also share their host kernel. Arbitrary customer code remains outside the first release.
+      </P>
+      <H2>How do the USDC payment and Arc Studio fit?</H2>
+      <P>
+        <strong>Arc</strong> supplies the planned settlement rail: the client pays the provider the agreed USDC amount. The initial demonstration uses Arc testnet and clearly labelled test USDC. Client funds remain under the client&apos;s wallet authority.
+      </P>
+      <P>
+        Our operator can approve a worker run and release a result. Those actions cannot spend from the client&apos;s wallet. The payment screen presents the network, recipient, asset, amount and fees before the client signs.
+      </P>
+      <P>
+        The settlement adapter independently checks the confirmed chain receipt. A submitted transaction is still pending. A failed transaction is unpaid. A receipt for the wrong recipient, amount or asset cannot complete the job, and a receipt already allocated to one job cannot pay another.
+      </P>
+      <P>
+        Arc exposes native and ERC-20 USDC interfaces over one underlying balance. The native interface uses 18 decimals; ERC-20 uses 6. Our adapter must choose and test one transfer interface, use exact integer amounts and avoid counting related events twice. <A href="https://www.arc.io/blog/supporting-arc-in-wallets-one-balance-usdc-fees-and-complete-history">Arc&apos;s wallet-integration guide</A> explains the shared balance and event handling.
+      </P>
+      <P>
+        <strong>Arc Studio</strong> is the development environment for the payment experience, not a separate payment network. The plan requires an actual Studio-produced flow integrated into the public client, with its project provenance preserved. Opening Studio beside an independently built adapter would not demonstrate that integration. The intended evidence is the working flow and a shareable <A href="https://studio.arc.io/">Arc Studio project</A>, consistent with the <A href="https://ethglobal.com/events/mumbai/prizes">sponsor requirements</A>.
+      </P>
+      <P>
+        The first payment model is delivery followed by a direct transfer. It has no escrow or nonpayment protection. Arkiv and Arc also do not form one atomic transaction: our application reconciles public job facts with settlement receipts. If confirmation is uncertain, it checks the existing transaction rather than asking for another payment.
+      </P>
+      <H2>How are we implementing the system?</H2>
+      <P>
+        The reusable capability is an optional Second Brain engine addon. With it disabled, the target behavior is no Desk routes, navigation entries or scheduled work. The public application is a separate build without private database clients or signing keys. A client SDK and command-line interface use the same protocol definitions as the browser.
+      </P>
+      <P>
+        We are establishing shared contracts first: versioned record types, identifiers, amount representation, valid state changes and common fixtures. Backend and frontend packages then consume that contract. This avoids one screen treating “worker finished” as “delivered” while another treats it as “paid.”
+      </P>
+      <P>
+        The public lifecycle is <code>posted</code>, <code>offered</code>, <code>accepted</code>, <code>claimed</code>, <code>delivered</code>, <code>paid</code>. Private execution separately tracks operator approval, queuing, running, review and release. Dispatch requires valid client acceptance, an eligible provider, operator approval, unexpired terms and no existing active attempt.
+      </P>
+      <P>
+        The main adapters have bounded responsibilities:
+      </P>
+      <UL items={[
+        <><strong>Public store and publisher:</strong> validate Arkiv records, publish approved Swarm bytes and reconcile publication attempts.</>,
+        <><strong>Identity:</strong> compile a public provider profile and verify naming, registry and payment bindings.</>,
+        <><strong>Runner and gateway:</strong> execute the immutable job specification with scoped tools and enforced limits.</>,
+        <><strong>Settlement:</strong> prepare the client transaction, verify its receipt and reconcile pending confirmation.</>,
+        <><strong>Operator and client interfaces:</strong> expose their respective actions while sharing the same schemas.</>,
+      ]} />
+      <P>
+        Private operational state belongs in Postgres: approvals, execution attempts, transaction intents and minimal audit records. Public job facts come from Arkiv; payment facts come from chain receipts. Any local copy of public records is a cache, not permission to invent their state.
+      </P>
+      <P>
+        Recovery is part of the implementation. We record an intended external action before submitting it and reconcile after a restart. Idempotent processing means retrying an operation does not create a second delivery or charge. Approvals also include an expected revision so a stale browser cannot authorize changed work.
+      </P>
+      <H2>What&apos;s built, and what&apos;s next?</H2>
+      <P>
+        Our existing Second Brain agent company is the starting point. The new work is the external hiring interface and its protocol, public records, isolated execution, reviewed publication and payment integration.
+      </P>
+      <P>
+        Foundation packages are in review. The integrated hiring transaction, live sponsor integrations and isolation acceptance tests have not yet been verified. This article describes the target behavior so readers can understand both the product and what evidence remains necessary.
+      </P>
+      <P>
+        Phase 1 intentionally has one configured Argo provider and one bounded research service. Public clients may be people or authorized agent clients; outside providers are not being admitted in that release. ERC-8004 feedback is optional after verifying the chosen deployment and current interface. Naming and identity remain part of the core target.
+      </P>
+      <P>
+        Later service types could include the personalized anime episodes described above. They require measured generation costs, rendering time, rights handling and private asset controls before becoming an offered product.
+      </P>
+      <P>
+        Two extensions sit outside the scope of Phase 1. Exo would provide a small browser terminal for operating the same server-side Desk. Hedera would provide a possible x402 metered mode, where a client pays for successive useful chunks under a bounded budget. Protocol and facilitator support must be verified first; we are not claiming continuous on-chain streaming payments or an implemented Hedera integration.
+      </P>
+      <H2>What should judges and readers check?</H2>
+      <P>
+        A successful demo should let an independent reader follow one real transaction without an Argo login: resolve the provider, inspect the job and acceptance, download the approved result and verify the matching Arc payment.
+      </P>
+      <Figure
+        src="/blog/hiring-an-ai-agent-7.jpg"
+        alt="A linked verification path checks ENS and ERC-8004 identity, Arkiv agreement and delivery, Swarm artifact bytes and Arc payment."
+        width={1600}
+        height={900}
+        caption="The planned independent-reader proof. Our diagram; live receipts remain a release requirement."
+      />
+      <P>
+        For Arkiv and Swarm, the useful proof is a fresh public query plus a downloadable result whose bytes match the approved hash. For ENS, it is actual name resolution and verified identity binding, with the required ENSv2 deployment evidence. For Arc, it is the Studio-produced payment experience and independently checked testnet receipt.
+      </P>
+      <P>
+        The security evidence should include denied private-file and network requests, expired or cancelled job access, rejected stale approvals and a reused payment that cannot complete another job. A screenshot using fixtures is useful during development but must be labelled; it cannot replace a live transaction.
+      </P>
+      <P>
+        For the Continuity submission, the record must also distinguish the pre-event starting point from work added during Mumbai. A dated baseline and event diff establish that provenance. We will not present the existing agent company as newly built hackathon work.
+      </P>
+      <P>
+        If the anime example helps you picture the product, the first research job gives you something smaller to inspect: who agreed, what the worker could access, which file was released and whether the client paid. Follow the implementation on the <A href="https://myargoquest.com/blog">Argo blog</A> and <A href="https://x.com/myargoquest">@myargoquest</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "hiring-an-ai-agent",
+    title: "\"Argo Hiring Desk: how people and agents can hire an AI specialist\"",
+    description: "How Argo Hiring Desk connects ENS identity, public jobs, isolated workers and USDC payments, from a research brief to personalized anime episodes.",
+    category: "hackathons",
+    date: "November 6, 2026",
+    isoDate: "2026-11-06T17:52",
+    readingTime: "13 min read",
+    image: "/blog/hiring-an-ai-agent-1.jpg",
+    Content: HiringAnAiAgentContent,
+  },
   {
     slug: "ensip-26-agent-text-records",
     title: "ENSIP-26 - how AI agents declare themselves on ENS with one identity across every chain",
