@@ -15,6 +15,7 @@ import { INK, CREAM, MUTE, ACCENT } from '@/components/landing/theme'
 
 const GITHUB_URL = 'https://github.com/kon-rad/argo'
 const DOCS_URL = 'https://kon-rad.github.io/argo/'
+const SETUP_VAULT_URL = 'https://github.com/kon-rad/argo/blob/main/skills/setup-vault/SKILL.md'
 const EXO_URL = 'https://exo.myargoquest.com'
 const JOURNAL_PATH = '/argo-journal'
 
@@ -42,7 +43,7 @@ type Product = {
   name: string
   body: string
   cta: { label: string; href: string; external?: boolean }
-  more?: { label: string; href: string }
+  links?: { label: string; href: string }[]
 }
 
 const PRODUCTS: Product[] = [
@@ -51,14 +52,17 @@ const PRODUCTS: Product[] = [
     name: 'Argo',
     body: 'The agentic second brain: a knowledge base you own, agents that run on the best open model or harness for the job, and a loop that improves itself. Local-first, private by construction, yours.',
     cta: { label: 'View on GitHub', href: GITHUB_URL, external: true },
-    more: { label: 'Read the docs', href: DOCS_URL },
+    links: [
+      { label: 'Read the docs', href: DOCS_URL },
+      { label: 'Set up your vault', href: SETUP_VAULT_URL },
+    ],
   },
   {
     eyebrow: 'iOS app',
     name: 'Argo Journal',
     body: 'A private, encrypted AI journaling app. Capture in voice, text, video, or handwriting. An AI reads every entry you have written and shows you patterns you cannot see from inside your own head.',
     cta: { label: 'Download on the App Store', href: APP_STORE_URL, external: true },
-    more: { label: 'About the journal', href: JOURNAL_PATH },
+    links: [{ label: 'About the journal', href: JOURNAL_PATH }],
   },
   {
     eyebrow: 'Wearable',
@@ -277,11 +281,11 @@ export default function Home() {
                       {p.cta.label}
                     </a>
                   )}
-                  {p.more && (
-                    <Link href={p.more.href} {...ext(p.more.href)} style={{ fontSize: 13.5, color: 'var(--accentDeep)', fontWeight: 600 }}>
-                      {p.more.label} &rarr;
+                  {p.links?.map((l) => (
+                    <Link key={l.label} href={l.href} {...ext(l.href)} style={{ fontSize: 13.5, color: 'var(--accentDeep)', fontWeight: 600 }}>
+                      {l.label} &rarr;
                     </Link>
-                  )}
+                  ))}
                 </div>
               </article>
             ))}
