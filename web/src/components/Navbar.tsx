@@ -21,6 +21,7 @@ const PRIMARY_LINKS: LinkItem[] = [
   { label: 'Journal', href: '/argo-journal' },
   { label: 'Exo', href: 'https://exo.myargoquest.com', external: true },
   { label: 'Articles', href: '/articles' },
+  { label: 'Devcon Slides', href: '/devcon-2026-slides' },
   { label: 'GitHub', href: 'https://github.com/kon-rad/argo', external: true },
 ]
 

@@ -8,6 +8,8 @@ surface insights, suggest prompts, and let you chat with your own history.
 This monorepo holds the full stack: a SwiftUI iOS app, a Node/TypeScript proxy API, and the
 marketing landing page.
 
+> **Devcon 8 Mumbai 2026 slides:** [Set up your company of agents, the workshop deck](https://myargoquest.com/devcon-2026-slides)
+
 > **Status:** open source, actively developed. Contributions welcome — see
 > [Contributing](#contributing).
 
