@@ -1,0 +1,55 @@
+{
+  "out": "public/blog",
+  "quality": 82,
+  "maxWidth": 1920,
+  "shots": [
+    {
+      "name": "setup-vault-1",
+      "url": "https://myargoquest.com/",
+      "viewport": { "width": 1440, "height": 900 },
+      "deviceScaleFactor": 1.5,
+      "waitMs": 2000,
+      "note": "hero: the landing page, with 'Set up your vault' as the primary action"
+    },
+    {
+      "name": "setup-vault-2",
+      "url": "https://myargoquest.com/setup-vault",
+      "viewport": { "width": 1440, "height": 1000 },
+      "deviceScaleFactor": 1.5,
+      "waitMs": 2000,
+      "note": "the setup-vault page: the four questions and what the skill runs"
+    },
+    {
+      "name": "setup-vault-3",
+      "url": "https://myargoquest.com/setup-vault/skill.md",
+      "viewport": { "width": 1280, "height": 900 },
+      "deviceScaleFactor": 1.5,
+      "waitMs": 1500,
+      "note": "the raw skill an agent fetches"
+    },
+    {
+      "name": "setup-vault-4",
+      "url": "https://kon-rad.github.io/argo/onboarding/02-set-up-your-vault/",
+      "viewport": { "width": 1280, "height": 900 },
+      "deviceScaleFactor": 1.5,
+      "waitMs": 1500,
+      "note": "the same path by hand, in the docs"
+    },
+    {
+      "name": "setup-vault-5",
+      "url": "http://127.0.0.1:5123/",
+      "viewport": { "width": 1440, "height": 900 },
+      "deviceScaleFactor": 1.5,
+      "waitMs": 2500,
+      "note": "the second brain app on the finished vault"
+    },
+    {
+      "name": "setup-vault-6",
+      "url": "http://127.0.0.1:5123/file/PARA%20Guide.md",
+      "viewport": { "width": 1440, "height": 900 },
+      "deviceScaleFactor": 1.5,
+      "waitMs": 2500,
+      "note": "a note open, with backlinks"
+    }
+  ]
+}

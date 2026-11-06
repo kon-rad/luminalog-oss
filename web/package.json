@@ -9,6 +9,8 @@
     "lint": "next lint",
     "test": "vitest run",
     "contest:media": "python3 scripts/process-contest-media.py",
+    "blog:media": "NODE_PATH=$(npm root -g) node scripts/blog-media/capture.mjs",
+    "skills:sync": "node scripts/skills-sync.mjs",
     "events:sync": "node --env-file=../server/.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/sync-luma-past-events.mjs"
   },
   "dependencies": {

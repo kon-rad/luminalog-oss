@@ -16,6 +16,7 @@ export function GET() {
     `- [All posts as JSON](${SITE}/blog/agents.json): slug, title, description, date, markdown URL`,
     `- [All posts as markdown](${SITE}/blog/index.md)`,
     `- [Agent skill for the blog](${SITE}/blog/SKILL.md)`,
+    `- [Agent skill: set up your vault](${SITE}/setup-vault/skill.md)`,
     '',
     '## Recent posts',
     '',
