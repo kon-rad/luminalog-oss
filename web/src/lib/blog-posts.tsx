@@ -11355,7 +11355,186 @@ function ExoAgentOrganizationHowItWorksAndReducesCeoBandwidthContent() {
   )
 }
 
+/* ── Post: From an empty folder to a company of agents: the engine's new onboarding path ── */
+function EngineV2OnboardingContent() {
+  return (
+    <>
+      <P>
+        # From an empty folder to a company of agents
+      </P>
+      <P>
+        Most writing about running agents on your own notes starts at the interesting part. You read about autonomous workers, a message board where named agents report to you, and a short summary every morning; you go to install it, and the first screen assumes you already know what a git submodule is, which database to run, and what a harness means. The compelling half is documented. The first ten minutes are left as a precondition.
+      </P>
+      <P>
+        Recent work on the Second Brain engine went the other way. The newest pieces are all on-ramp: a one-command installer, an <code>init</code> that writes your first company, a launcher that runs on Linux, a <code>setup-vault</code> skill a new user can hand to an agent, and an onboarding path whose every command runs today. This is how that path works, what a vault actually is, which part a skill handles, and what is still a plan.
+      </P>
+      <Figure
+        src="/blog/engine-v2-onboarding-1.jpg"
+        alt="Five stages left to right: an empty folder, a private markdown vault, the app with search, one agent under your rules, a company of named agents"
+        width={1200}
+        height={680}
+        priority
+        caption="The path in one line: a folder becomes a vault, a vault gets an app, then one agent, then a company"
+      />
+      <H2>What a vault actually is</H2>
+      <P>
+        A vault is a folder of plain markdown inside a git repo you own. Nothing proprietary: any editor opens it, git syncs it, and it outlives the app that indexes it. The app is a search index and an editor over the folder, not the place the notes live.
+      </P>
+      <P>
+        The engine plugs into that folder as a git submodule at <code>.secondbrain/</code>. That is a single entry in your repo that points at another, and it is what keeps the design honest: the app, the guard hooks and the shared skills live in a public repository, and your notes never leave yours. You upgrade the engine by moving the pin to a newer commit. The engine has no route into your private repo, and nothing about you is ever in it.
+      </P>
+      <P>
+        That gives three layers. The system is easier to read once you hold them apart.
+      </P>
+      <Figure
+        src="/blog/engine-v2-onboarding-2.jpg"
+        alt="Three stacked layers: your notes as markdown in a git repo you own, the public engine added as a submodule at dot secondbrain, and agents working under one rulebook behind a guard"
+        width={1200}
+        height={680}
+        caption="Three layers: your private notes, the public engine as a submodule, and agents that never see the owner's data"
+      />
+      <UL items={[
+        <><strong>Your notes.</strong> Plain markdown in a git repo you own. This is the only layer that holds your life.</>,
+        <><strong>The engine.</strong> A public repository, added as a submodule, that you pull updates into by moving one pin.</>,
+        <><strong>The agents.</strong> Claude Code, Hermes or your own tool, working in the folder under one rulebook.</>,
+      ]} />
+      <H2>The path, stage by stage</H2>
+      <P>
+        The onboarding documentation lays the whole thing out as fourteen named stages, from prerequisites to a company of agents that reports to you every morning. Every stage ends with a check, so you know it worked before you move on.
+      </P>
+      <P>
+        The order follows one rule: nothing later is needed for anything earlier. Markdown works without the app. The app works without an agent. One agent works without a company. That is why the path is long but never all-or-nothing. After the first stages you have a private vault with search; a few stages later one agent is working in it; the company only earns its place once the parts underneath it run.
+      </P>
+      <H2>The part a skill handles</H2>
+      <P>
+        The newest addition replaces the manual checklist. The engine ships a skill named <code>setup-vault</code>, in its <code>skills/</code> directory. Pass this skill to an agent and it runs the setup steps itself.
+      </P>
+      <P>
+        It asks four questions in one batch before it runs anything:
+      </P>
+      <UL items={[
+        <>Where should the vault live? An absolute path to a new or empty folder.</>,
+        <>Which operating system is this? macOS, Debian or Ubuntu, or something else.</>,
+        <>Semantic search now, later, or never? Keyword search needs no keys.</>,
+        <>Which agent harness will you connect afterwards?</>,
+      ]} />
+      <P>
+        Then it runs seven steps, checking each before the next one: install the prerequisites, create the vault, run the app, add notes and build the index, turn on semantic search if you asked for it, back up to a private remote, and point you at the page for connecting your agent. It stops there deliberately. Connecting Claude Code or Hermes is the next page, not part of this skill.
+      </P>
+      <P>
+        The reason it asks rather than assumes is worth stating plainly. <code>init</code> refuses a folder that already has content, because it writes the whole vault structure into it. A skill that guessed the path could run <code>init</code> over someone&apos;s existing notes. Asking first is the safety mechanism, not politeness.
+      </P>
+      <Figure
+        src="/blog/engine-v2-onboarding-3.jpg"
+        alt="The setup-vault skill file on GitHub: a table of the four setup questions and their suggested defaults, under the heading Ask these questions first"
+        width={1920}
+        height={1327}
+        caption="The setup-vault skill: four questions, then seven checked steps (github.com/kon-rad/argo)"
+      />
+      <P>
+        A reader can use it today by pointing an agent at the file:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"Load the setup-vault skill from the argo repo and set up my vault."}</code></pre>
+      <H2>One command to install the prerequisites</H2>
+      <P>
+        The engine needs five tools: git, Python 3.9 or later, Node.js 22 or later, PostgreSQL 15 or later, and the pgvector extension built for that same Postgres. The installer handles all five on macOS, Debian and Ubuntu (other Linux distributions need the manual path below), installs only those, and touches nothing else on the machine. It is served from the documentation site, so the README&apos;s one-liner and the setup page point at the same script.
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"curl -fsSL https://kon-rad.github.io/argo/install.sh | sh"}</code></pre>
+      <P>
+        If you would rather do it by hand, the manual path is a handful of commands. The engine&apos;s README keeps the short version, and the setup page expands each step with a check.
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"mkdir my-vault && cd my-vault && git init\ngit submodule add https://github.com/kon-rad/argo.git .secondbrain\n.secondbrain/bin/secondbrain-vault init .\ncp .env.example .env\ngit add -A && git commit -m \"new vault\""}</code></pre>
+      <Figure
+        src="/blog/engine-v2-onboarding-4.jpg"
+        alt="The Set up your vault docs page, showing step 1 Install the prerequisites and the one command curl piped to sh"
+        width={1920}
+        height={1082}
+        caption="One command installs the prerequisites; it touches nothing else (kon-rad.github.io/argo/onboarding)"
+      />
+      <P>
+        The last file matters more than it looks. <code>.env</code> holds keys and machine settings, and it is gitignored from the first commit, so a key never reaches your repo by accident. The setup skill checks that with <code>git check-ignore .env</code> before it lets you push anywhere.
+      </P>
+      <Figure
+        src="/blog/engine-v2-onboarding-5.jpg"
+        alt="The Argo engine README on GitHub, headed An agentic second brain, open source, with the quick start block below"
+        width={1920}
+        height={1327}
+        caption="The engine repo and its quick start (github.com/kon-rad/argo)"
+      />
+      <H2>init writes your first company</H2>
+      <P>
+        The command that creates the vault, <code>secondbrain-vault init</code>, also writes a starter company. Historically that was the hardest stage to hand to a stranger: you had to invent a roster, name a lead, pick coders and reviewers, and describe how they relate, before you had seen the system work at all.
+      </P>
+      <P>
+        Now <code>init</code> copies the smallest company that has a real hierarchy: an owner, one lead, one coder, one reviewer, and two teams. Stage seven of the path becomes a thing you read and edit rather than write from scratch. If you never want a company, the file sits there unused and nothing about it runs.
+      </P>
+      <Figure
+        src="/blog/engine-v2-onboarding-6.jpg"
+        alt="A small org chart written by init: an owner at the top, one lead below, then a coder and a reviewer in two teams"
+        width={1100}
+        height={660}
+        caption="A starter org written by init: owner, lead, coder, reviewer, two teams"
+      />
+      <H2>Core features ship in every vault; everything else is an addon</H2>
+      <P>
+        The same week&apos;s work settled what a vault turns on by default. Before, the enabled modules were one setting, and an empty value turned every feature off, including the ones the app needs to make sense of itself. Now the core features ship in every vault, and everything else is an addon that stays off until you name it.
+      </P>
+      <P>
+        The core is a project tracker, the org and its roster, a kanban board, a usage ledger and session summaries, and memory was added to the core this week. Addons cover the rest: the map, the TV kiosk, voice, the social queue, media, the vault gardener and more. Turning one on is a single line.
+      </P>
+      <Figure
+        src="/blog/engine-v2-onboarding-7.jpg"
+        alt="Two panels: the core features always on, projects org board usage summaries and memory; and addons such as map, voice and social, off until the vault lists them"
+        width={1200}
+        height={680}
+        caption="Core features ship in every vault; everything else is an addon, off until a line in secondbrain.json turns it on"
+      />
+      <P>
+        The practical effect is a calm first run. You get a working vault, not a pile of features competing for the same attention, and you add the ones you actually want.
+      </P>
+      <H2>How an agent gets onboarded</H2>
+      <P>
+        There are two onboardings here, and the second one is the interesting half. The first is you, setting up a vault. The second is an agent, learning to work inside it without being handed the keys.
+      </P>
+      <P>
+        The engine ships shared skills (a way of writing a procedure an agent follows) and links them into the vault with one command, <code>secondbrain-vault link-skills</code>. They include <code>setup-vault</code> for the path above, <code>fact-check</code> for checking claims against sources, <code>ingest</code> for bringing notes in, <code>company-report</code> for the tracker, and others. A skill is a <code>SKILL.md</code> file: a description of when to use it, and the steps, in plain language.
+      </P>
+      <P>
+        Underneath all of it sits one rulebook. Every agent in the vault reads the same <code>AGENTS.md</code>, and every tool call an agent makes passes a guard before it runs. The guard blocks reading secret files, force-pushing, and a small list of the owner&apos;s own mistakes, and it is the same guard for every harness. Agents must also write a short dev log before they can mark a piece of work done.
+      </P>
+      <P>
+        That is the model: you write the rules once, in one file, and every agent on every machine follows them. Skills carry the procedures; the rulebook carries the constraints; the guard enforces both.
+      </P>
+      <H2>What ships today and what comes next</H2>
+      <P>
+        Shipped and running today: the one-command installer on macOS and Linux, the <code>init</code> that writes the starter org, the Linux-capable launcher, the <code>setup-vault</code> skill, the org compiler in the engine, the memory feature, and the <code>doctor</code>, <code>plan</code> and <code>apply</code> commands that check and reconcile a vault against its config. The onboarding pages describe all of it, and their status notes track what runs.
+      </P>
+      <P>
+        Still a plan, and worth saying plainly: the single command that creates the vault and starts the app in one step. Today those are the handful of commands above, not one. The onboarding pages have not yet been shrunk to the two-page spine the design calls for, and the fifteen-minute figure is a design target, not a stopwatch run on a clean machine. When the single-command path lands, the docs merge into a shorter path rather than change.
+      </P>
+      <H2>Where to start</H2>
+      <P>
+        If you want your own agentic second brain, the fastest route now is to point an agent at the <code>setup-vault</code> skill and let it ask you four questions. If you would rather watch each step, the onboarding page walks the fourteen stages and stops wherever you want it to. Either way you finish with markdown in a repo you own, and agents that are optional from the first minute.
+      </P>
+      <P>
+        The engine is open source at <A href="https://github.com/kon-rad/argo">github.com/kon-rad/argo</A>, with the whole path in the <A href="https://kon-rad.github.io/argo/onboarding/">onboarding docs</A>. More of this kind of writing goes to <A href="https://x.com/myargoquest">x.com/myargoquest</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "engine-v2-onboarding",
+    title: "From an empty folder to a company of agents: the engine's new onboarding path",
+    description: "The Second Brain engine now takes you from an empty folder to a private vault and a first company of agents: one install command, an init that writes the roster, and a skill an agent can run.",
+    category: "product-updates",
+    date: "November 6, 2026",
+    isoDate: "2026-11-06T05:44",
+    readingTime: "10 min read",
+    image: "/blog/engine-v2-onboarding-1.jpg",
+    Content: EngineV2OnboardingContent,
+  },
   {
     slug: "exo-agent-organization-how-it-works-and-reduces-ceo-bandwidth",
     title: "How we built a self-managing org of AI agents that needs almost nothing from its CEO",
