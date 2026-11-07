@@ -118,6 +118,12 @@ else
   echo " argo-final-demo-day.pptx present and current ($(du -h "$PPTX" | cut -f1))"
 fi
 
+# The published PDF owns the deck. Render locally before syncing so images,
+# manifest and download always ship together; a failed render stops deployment.
+if [ -f "$SRC_DIR/public/cybazaar/slides/source.pdf" ]; then
+  ( cd "$SRC_DIR" && npm run cybazaar:slides )
+fi
+
 echo "==> Syncing $SRC_DIR -> $SERVER:$REMOTE_DIR ..."
 # NOTE: .env.local is intentionally excluded — the server keeps its own .env.local
 # with NEXT_PUBLIC_* vars baked in at build time. Never let a local file overwrite it.

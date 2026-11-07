@@ -13,6 +13,9 @@ const nextConfig = {
     // required at runtime from node_modules (bundling their .node binaries fails).
     serverComponentsExternalPackages: ['onnxruntime-node', '@huggingface/transformers'],
   },
+  async headers() {
+    return [{ source: '/cybazaar/slides/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' }] }]
+  },
   async rewrites() {
     // Agents read posts as markdown: /blog/<slug>.md -> app/blog-md/[slug]/route.ts.
     // afterFiles, so /blog/index.md and /blog/SKILL.md (their own routes) win.

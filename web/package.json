@@ -11,7 +11,8 @@
     "contest:media": "python3 scripts/process-contest-media.py",
     "blog:media": "NODE_PATH=$(npm root -g) node scripts/blog-media/capture.mjs",
     "skills:sync": "node scripts/skills-sync.mjs",
-    "events:sync": "node --env-file=../server/.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/sync-luma-past-events.mjs"
+    "events:sync": "node --env-file=../server/.env --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/sync-luma-past-events.mjs",
+    "cybazaar:slides": "node scripts/cybazaar/update-slides.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
