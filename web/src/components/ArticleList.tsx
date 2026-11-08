@@ -15,12 +15,13 @@ export function sortedPosts(list: BlogPost[] = posts): BlogPost[] {
 }
 
 /* Full-width page shell: masthead on the alt surface, then the front on paper. */
-export function ArticlesLayout({ title, subline, children }: { title: string; subline: string; children: React.ReactNode }) {
+export function ArticlesLayout({ title, subline, children, mastheadImage }: { title: string; subline: string; children: React.ReactNode; mastheadImage?: string }) {
   return (
     <>
       <Navbar />
       <main style={{ background: 'var(--bg)' }}>
-        <section className="news-masthead">
+        <section className={`news-masthead${mastheadImage ? ' news-masthead-image' : ''}`}>
+          {mastheadImage && <Image src={mastheadImage} alt="" fill priority sizes="100vw" className="news-masthead-media" />}
           <div className="wrap">
             <p className="eyebrow">Argo</p>
             <h1 className="serif news-masthead-title">{title}</h1>
@@ -63,15 +64,16 @@ function Meta({ post, showCategory }: { post: BlogPost; showCategory: boolean })
 }
 
 /* The lead story: full-bleed image with the title set over its lower edge. */
-function LeadCard({ post, showCategory }: { post: BlogPost; showCategory: boolean }) {
+export function LeadCard({ post, showCategory, rank }: { post: BlogPost; showCategory: boolean; rank?: number }) {
   return (
     <Link href={`/blog/${post.slug}`} className="news-lead">
       <div className="news-lead-media">
         <Image src={imageOf(post)} alt="" fill priority sizes="(max-width: 900px) 100vw, 760px" style={{ objectFit: 'cover' }} />
       </div>
       <div className="news-lead-text">
+        {rank && <span className="ten-rank ten-rank-overlay">No. {rank}</span>}
         <Meta post={post} showCategory={showCategory} />
-        <h2 className="serif news-lead-title">{post.title}</h2>
+        {rank ? <h3 className="serif news-lead-title">{post.title}</h3> : <h2 className="serif news-lead-title">{post.title}</h2>}
         <p className="news-lead-desc">{post.description}</p>
       </div>
     </Link>
@@ -79,20 +81,21 @@ function LeadCard({ post, showCategory }: { post: BlogPost; showCategory: boolea
 }
 
 /* The two stories beside the lead: a small landscape image above the title. */
-function SecondaryCard({ post, showCategory }: { post: BlogPost; showCategory: boolean }) {
+export function SecondaryCard({ post, showCategory, rank }: { post: BlogPost; showCategory: boolean; rank?: number }) {
   return (
     <Link href={`/blog/${post.slug}`} className="news-secondary">
       <div className="news-media news-media-secondary">
         <Image src={imageOf(post)} alt="" fill sizes="(max-width: 900px) 100vw, 340px" style={{ objectFit: 'cover' }} />
       </div>
+      {rank && <span className="ten-rank">No. {rank}</span>}
       <Meta post={post} showCategory={showCategory} />
-      <h2 className="serif news-secondary-title">{post.title}</h2>
+      {rank ? <h3 className="serif news-secondary-title">{post.title}</h3> : <h2 className="serif news-secondary-title">{post.title}</h2>}
     </Link>
   )
 }
 
 /* Everything else: a three-up grid of image cards. */
-export function ArticleCard({ post, showCategory }: { post: BlogPost; showCategory: boolean }) {
+export function ArticleCard({ post, showCategory, magazine = false }: { post: BlogPost; showCategory: boolean; magazine?: boolean }) {
   return (
     <Link href={`/blog/${post.slug}`} className="card news-card">
       <div className="news-media news-media-card">
@@ -100,7 +103,7 @@ export function ArticleCard({ post, showCategory }: { post: BlogPost; showCatego
       </div>
       <div className="news-card-body">
         <Meta post={post} showCategory={showCategory} />
-        <h2 className="serif news-card-title">{post.title}</h2>
+        {magazine ? <h3 className="serif news-card-title">{post.title}</h3> : <h2 className="serif news-card-title">{post.title}</h2>}
         <p className="news-card-desc">{post.description}</p>
       </div>
     </Link>

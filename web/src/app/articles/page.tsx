@@ -1,5 +1,9 @@
 import type { Metadata } from 'next'
-import { ArticlesLayout, ArticleList, CategoryNav, sortedPosts } from '@/components/ArticleList'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
+import { ArticlesLayout, CategoryNav, sortedPosts } from '@/components/ArticleList'
+import { MagazineFront } from '@/components/MagazineFront'
+import { DEFAULT_IMAGE } from '@/lib/blog-posts'
 import { ARTICLES_SUBLINE } from '@/lib/categories'
 
 export const metadata: Metadata = {
@@ -9,10 +13,12 @@ export const metadata: Metadata = {
 }
 
 export default function ArticlesPage() {
+  const mastheadImage = ['/blog/argo-articles-masthead.jpg', DEFAULT_IMAGE]
+    .find((image) => existsSync(join(process.cwd(), 'public', image)))
   return (
-    <ArticlesLayout title="Articles" subline={ARTICLES_SUBLINE}>
+    <ArticlesLayout title="Articles" subline={ARTICLES_SUBLINE} mastheadImage={mastheadImage}>
       <CategoryNav />
-      <ArticleList list={sortedPosts()} showCategory />
+      <MagazineFront sorted={sortedPosts()} />
     </ArticlesLayout>
   )
 }

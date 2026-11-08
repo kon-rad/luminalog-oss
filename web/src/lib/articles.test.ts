@@ -5,7 +5,8 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('@/components/blog', () => ({}))
 
 import { DEFAULT_IMAGE, imageOf, posts } from '@/lib/blog-posts'
-import { front } from '@/lib/articles'
+import { desks, front, ten } from '@/lib/articles'
+import { CATEGORIES } from '@/lib/categories'
 
 const PUBLIC = join(__dirname, '..', '..', 'public')
 
@@ -42,5 +43,44 @@ describe('front page layout', () => {
     const two = front(sorted.slice(0, 2))
     expect(two.secondary.length).toBe(1)
     expect(two.rest).toEqual([])
+  })
+})
+
+describe('magazine selection', () => {
+  const sorted = [...posts].sort((a, b) => (a.isoDate < b.isoDate ? 1 : -1))
+
+  it('takes exactly the newest ten, or all posts when fewer exist', () => {
+    expect(ten(sorted).map((p) => p.slug)).toEqual(sorted.slice(0, 10).map((p) => p.slug))
+    expect(ten(sorted)).toHaveLength(10)
+    expect(ten(sorted.slice(0, 4))).toHaveLength(4)
+    expect(ten([])).toEqual([])
+  })
+
+  it('keeps populated desks in taxonomy order with one to three newest posts', () => {
+    const shelves = desks(sorted)
+    expect(shelves.map((desk) => desk.category)).toEqual(CATEGORIES)
+    expect(shelves.map((desk) => desk.posts.length)).toEqual([3, 2, 3, 3, 3, 2, 1, 1])
+    for (const shelf of shelves) {
+      const categoryPosts = sorted.filter((post) => (post.category ?? 'product-updates') === shelf.category)
+      const unfeatured = categoryPosts.filter((post) => !ten(sorted).some((featured) => featured.slug === post.slug))
+      const expected = (unfeatured.length <= 1 ? categoryPosts : unfeatured).slice(0, 3)
+      expect(shelf.posts.map((post) => post.slug)).toEqual(expected.map((post) => post.slug))
+    }
+  })
+
+  it('omits empty desks and only overlaps The Ten when a desk has at most one fresh post', () => {
+    const make = (slug: string, category: typeof CATEGORIES[number]) => ({ ...posts[0], slug, category })
+    const list = [
+      make('featured-product', 'product-updates'),
+      make('featured-news', 'news'),
+      make('fresh-product-1', 'product-updates'),
+      make('fresh-product-2', 'product-updates'),
+      make('fresh-news', 'news'),
+    ]
+    const shelves = desks(list, list.slice(0, 2))
+    expect(shelves.map((desk) => desk.category)).toEqual(['product-updates', 'news'])
+    expect(shelves[0].posts.map((post) => post.slug)).toEqual(['fresh-product-1', 'fresh-product-2'])
+    expect(shelves[1].posts.map((post) => post.slug)).toEqual(['featured-news', 'fresh-news'])
+    expect(desks([])).toEqual([])
   })
 })
