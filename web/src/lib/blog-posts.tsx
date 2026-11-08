@@ -13029,7 +13029,111 @@ function SearchInsideLanguageModelsContent() {
   )
 }
 
+/* ── Post: Memorilla - 16 memory tokens let a frozen LLM read thousands of documents at once ── */
+function MemorillaContent() {
+  return (
+    <>
+      <P>
+        # Memorilla: 16 memory tokens let a frozen LLM read thousands of documents at once
+      </P>
+      <P>
+        An AI agent that remembers everything you have ever told it is the goal. The obstacle is obvious: context windows are finite, document collections grow, and feeding every relevant document into every call is expensive and slow.
+      </P>
+      <P>
+        Stanford&apos;s SNAP group, led by Jure Leskovec, published a solution called Memorilla. It replaces thousands of document tokens with 16 learned memory tokens, and the frozen LLM becomes more accurate on factual verification than if it had read every document in full.
+      </P>
+      <Figure
+        src="/blog/memorilla-1.jpg"
+        alt="A six-step pipeline: documents through a frozen encoder into a memory store, then a trainable memory module reads the store plus the query and produces 16 memory tokens for the frozen LLM"
+        width={1100}
+        height={480}
+        priority
+        caption="Documents are encoded once. The memory module compresses query-relevant information into 16 tokens. The frozen LLM reads only those tokens."
+      />
+      <H2>How it works</H2>
+      <P>
+        Memorilla separates the act of remembering from the act of recalling. A frozen embedding encoder (Qwen3-Embedding-4B) processes each incoming document, such as a conversation or a book chapter, into an embedding that lives in a persistent store. When a question arrives, a small trainable memory module (194 million parameters, about 2% of the decoder size) reads the question and every embedding in the store. It produces 16 query-dependent vectors that the frozen Qwen3-8B decoder reads alongside the question.
+      </P>
+      <P>
+        The key constraints that guided the design are: every query reads the whole collection, not a pre-selected subset; what memory returns depends on the question; the token budget is fixed regardless of collection size; and new documents can be added without re-encoding the past.
+      </P>
+      <Figure
+        src="/blog/memorilla-2.jpg"
+        alt="Two-panel comparison: FactKG score 80.43% with full context vs 84.33% with 16 memorilla tokens"
+        width={900}
+        height={380}
+        caption="On FactKG, Memorilla scores 84.33% against 80.43% for full document context, with 108x fewer document tokens."
+      />
+      <H2>The results</H2>
+      <P>
+        The paper reports results across eight benchmarks covering personalization, factual reasoning, and long-document QA. Memorilla achieved the best average score among all evaluated methods.
+      </P>
+      <P>
+        | Metric | Full context | Memorilla (16 tokens) | Improvement | |---|---|---|---| | FactKG accuracy | 80.43% | 84.33% | +3.9% | | Document tokens | baseline | 108x fewer | 108x reduction | | NarrativeQA compression | baseline | 4,000x | 4,000x reduction | | Latency (512 docs, H100) | 19.9s | 0.74s | 27x faster | | TextWorld agent success | 18.6% | 24.2% | +5.6% |
+      </P>
+      <Figure
+        src="/blog/memorilla-3.jpg"
+        alt="Six metric cards: FactKG 84.33%, 108x compression, 4000x on NarrativeQA, 0.74s latency, 194M params, agent 24.2%"
+        width={1100}
+        height={480}
+        caption="Memorilla improvements across accuracy, compression, latency, and agent performance."
+      />
+      <H2>The four design requirements</H2>
+      <P>
+        The paper is explicit about four requirements that distinguish Memorilla from prior work. Collection-wide access means every query considers every document, not just the top-N from a retriever. Query-dependent recall means the same collection serves many different queries. The fixed token budget ensures the LLM never sees more than 16 memory tokens regardless of collection size. Reusable embeddings mean documents are encoded once and the store grows without re-encoding history.
+      </P>
+      <Figure
+        src="/blog/memorilla-4.jpg"
+        alt="Four labeled boxes: collection-wide access, query-dependent recall, fixed token budget, reusable embeddings"
+        width={1100}
+        height={440}
+        caption="Memorilla's four design requirements distinguish it from RAG and other memory approaches."
+      />
+      <H2>How it compares</H2>
+      <P>
+        The practical alternative to Memorilla is retrieval-augmented generation (RAG), which picks the top-N passages and feeds them into the context. RAG is simpler, well understood, and works. Memorilla differs in that it considers every document, compresses into a fixed budget, and stays fast regardless of collection size. On the other hand, Memorilla can lose fine-grained facts that a dedicated retriever would surface, and it has only been tested with a Qwen encoder and a Qwen decoder.
+      </P>
+      <Figure
+        src="/blog/memorilla-5.jpg"
+        alt="A comparison table across five dimensions: context window, retrieval, and Memorilla"
+        width={1000}
+        height={400}
+        caption="Memorilla shows near-constant latency and a fixed 16-token budget regardless of collection size, unlike context window or retrieval approaches."
+      />
+      <H2>What it means for agent memory</H2>
+      <P>
+        The most relevant result for agent development is the TextWorld experiment. An agent that used Memorilla to recall its own past game sessions improved its success rate from 18.6% to 24.2%. That is a 30% relative improvement from remembering what it did before, without any changes to the model or the agent architecture.
+      </P>
+      <P>
+        For an agent system like Argo, where agents run long-lived sessions across multiple projects and document stores, the same pattern applies: encode every completed task output into a Memorilla store, and the agent draws on the entire history through 16 tokens per query.
+      </P>
+      <H2>The limits</H2>
+      <P>
+        The paper lists its own limitations. Memorilla can lose fine-grained facts. It was tested only with a Qwen encoder and Qwen decoder. Transfer across model families is untested. It may not carry over to coding tasks. The memory module needs training for each setup, which plain retrieval does not.
+      </P>
+      <P>
+        The training recipe is three stages: stage 1 on Wikipedia, stage 2 on a mixture, stage 3 on multitask data. All checkpoints are on Hugging Face at memorilla/Memorilla-Qwen3-8B, Apache 2.0.
+      </P>
+      <H2>The repo</H2>
+      <P>
+        Code: github.com/snap-stanford/memorilla. Paper: arXiv 2610.21375. Weights on Hugging Face: memorilla/Memorilla-Qwen3-8B.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "memorilla",
+    title: "Memorilla - 16 memory tokens let a frozen LLM read thousands of documents at once",
+    description: "Stanford's Memorilla compresses document collections into 16 learned tokens for a frozen LLM. FactKG accuracy climbs from 80.43% to 84.33% with 108x fewer tokens. Open source, Apache 2.0.",
+    category: "ai-news",
+    date: "November 8, 2026",
+    isoDate: "2026-11-08T09:50",
+    readingTime: "4 min read",
+    image: "/blog/memorilla-1.jpg",
+    Content: MemorillaContent,
+  },
   {
     slug: "search-inside-language-models",
     title: "How to search inside a language model and test what you find",
