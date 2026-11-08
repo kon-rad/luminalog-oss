@@ -12662,7 +12662,113 @@ function AlibabaOpensandboxContent() {
   )
 }
 
+/* ── Post: treg.to/social - one API for social data, filtered by Jev, at 0% markup ── */
+function TregJevSocialApiContent() {
+  return (
+    <>
+      <P>
+        # treg.to/social - one API for social data, filtered by Jev, at 0% markup
+      </P>
+      <P>
+        If you run social media monitoring through an AI agent, you know the pain: separate API for X, separate for TikTok, separate for Instagram, separate for Reddit, each with its own pricing, rate limits and authentication. Then the agent has to read every post and decide whether it matters, which costs tokens and time.
+      </P>
+      <P>
+        treg.to/social solves both sides. It unifies 4,113+ endpoints across 126+ data providers behind one API key, passes through access at 0% markup over wholesale cost, and pairs every data pull with Jev, a classification model that runs in under 120 milliseconds with exactly zero schema errors.
+      </P>
+      <Figure
+        src="/blog/treg-jev-social-api-1.jpg"
+        alt="A five-step flow: your agent asks treg.to for social data, treg.to routes through 4,113+ endpoints, returns raw data, Jev classifies it, filtered result back to the agent"
+        width={1100}
+        height={480}
+        priority
+        caption="Your agent asks treg.to for social data. treg.to fetches from 126+ providers at wholesale cost. Jev classifies every post. Only the relevant results come back."
+      />
+      <H2>What treg.to is</H2>
+      <P>
+        treg.to calls itself &quot;OpenRouter for Agent Tools.&quot; Instead of routing model requests across providers, it routes tool calls across 126 upstream data providers at wholesale prices. You deposit prepaid credits ($10, $50 or $500), and every API call costs exactly what the upstream provider charges, with zero markup.
+      </P>
+      <P>
+        It covers every major social platform with read and write endpoints:
+      </P>
+      <P>
+        | Platform | Read cost | Write cost | |---|---|---| | X (Twitter) | $0.0002 / read call | Free (OAuth) | | TikTok | $0.000025 / video record | Free | | Instagram | $0.0009 / profile audit | Free | | YouTube | $0.00188 / full transcript | Free | | Reddit | $0.0001 / thread | Free | | LinkedIn | $0.003 / profile enrich | Free |
+      </P>
+      <Figure
+        src="/blog/treg-jev-social-api-2.jpg"
+        alt="Six platform cards with their per-call costs"
+        width={1100}
+        height={500}
+        caption="Platforms covered by treg.to/social with wholesale read costs. Write endpoints are all free at 0% markup."
+      />
+      <H2>What Jev is</H2>
+      <P>
+        Jev is a non-autoregressive classification model from TypeSafe AI, a company founded in 2024 by former OpenAI and Scale AI leadership. It raised $870M at a $7.5B valuation in October 2026. Instead of RLHF (Reinforcement Learning from Human Feedback, which optimizes for conversational agreeableness), Jev was trained using RLCD (Reinforcement Learning from Calibrated Decisions), which optimizes for mathematical accuracy on structured classification tasks.
+      </P>
+      <P>
+        The &quot;Logit Trick&quot; is the crux: rather than running an autoregressive forward pass to generate words, Jev evaluates the raw logits of the vocabulary space constrained strictly to the schema dimensions. It outputs calibrated probability vectors, not conversational text.
+      </P>
+      <Figure
+        src="/blog/treg-jev-social-api-3.jpg"
+        alt="Three classification primitives: Boolean, Choice and Scalar, each with an example"
+        width={1100}
+        height={420}
+        caption="Jev classifies using three primitives: Boolean (yes/no probability), Choice (exact label from a defined set) and Scalar (bounded numeric score). Sub-120ms per call."
+      />
+      <H2>The cost comparison</H2>
+      <P>
+        A concrete case: Jason Zhou used treg.to + Jev to analyze 220,000 social posts. The cost was $11. Using the Twitter official API alone, the same volume would cost $1,200 (at $0.005 per post). The 109x difference comes from treg&apos;s wholesale pricing across multiple platforms and Jev&apos;s token-free classification - no output tokens to pay for.
+      </P>
+      <Figure
+        src="/blog/treg-jev-social-api-4.jpg"
+        alt="Two panels comparing $1,200 for the official X API vs $11 for treg.to + Jev on 220k posts"
+        width={1000}
+        height={420}
+        caption="220k social posts: $1,200 on the X API vs $11 on treg.to/social with Jev."
+      />
+      <H2>The architecture</H2>
+      <P>
+        The design is a clear separation between data ingestion and decision calibration:
+      </P>
+      <P>
+        1. An agent calls treg.to with a request for social data (competitor mentions, trending posts, ad monitoring). 2. treg.to routes through one of its 126+ providers at wholesale cost. 3. The raw data (posts, comments, ads) comes back. 4. The agent sends it to Jev for classification, asking questions like &quot;Is this a complaint?&quot; or &quot;What is the purchase intent?&quot; 5. Jev returns calibrated probability arrays in under 120 milliseconds. 6. The agent only processes what passes the filter.
+      </P>
+      <P>
+        For content research workflows, this means a full competitive analysis that used to cost thousands of dollars a month and multiple API subscriptions can run for less than a dollar.
+      </P>
+      <Figure
+        src="/blog/treg-jev-social-api-5.jpg"
+        alt="Four rows describing TypeSafe AI: founded 2024, $870M Series A, RLCD training, Logit Trick"
+        width={1100}
+        height={400}
+        caption="TypeSafe AI: RLCD instead of RLHF, the Logit Trick for token-free classification, $870M raised at $7.5B valuation."
+      />
+      <H2>What it means for Argo</H2>
+      <P>
+        Our daily social pipeline (argo-daily-update, media kits, content calendars) monitors mentions, posts and trends across platforms. Today that is a manual process. A treg.to + Jev integration would mean an agent can pull competitor data, classify every post by relevance, and surface only the posts that need human attention, at a cost of pennies per run.
+      </P>
+      <P>
+        The write endpoints (free at 0% markup) also mean the agent can publish directly to X, Instagram, LinkedIn and YouTube from a single API, without managing per-platform tokens. The OAuth vault keeps credentials encrypted and separate from the agent&apos;s context.
+      </P>
+      <H2>The repo</H2>
+      <P>
+        treg.to is open source. Try it at treg.to/social.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "treg-jev-social-api",
+    title: "treg.to/social - one API for social data, filtered by Jev, at 0% markup",
+    description: "4,113 API endpoints across 126 providers for social data, unified behind one key. Jev's RLCD model classifies every post in sub-120ms. $0.05 for 1,000 competitor ads. Open source, 0% markup.",
+    category: "ai-news",
+    date: "November 8, 2026",
+    isoDate: "2026-11-08T04:49",
+    readingTime: "4 min read",
+    image: "/blog/treg-jev-social-api-1.jpg",
+    Content: TregJevSocialApiContent,
+  },
   {
     slug: "alibaba-opensandbox",
     title: "Alibaba OpenSandbox - secure sandbox runtimes for AI agents that need to do real things",
