@@ -12565,7 +12565,115 @@ function Arete27bContent() {
   )
 }
 
+/* ── Post: Alibaba OpenSandbox - secure sandbox runtimes for AI agents that need to do real things ── */
+function AlibabaOpensandboxContent() {
+  return (
+    <>
+      <P>
+        # Alibaba OpenSandbox: secure sandbox runtimes for AI agents
+      </P>
+      <P>
+        Every agent needs to do something real eventually. Execute code, browse the web, control a desktop, call an API. The risk is that the host machine is exposed to whatever the agent does, and the options until now have been &quot;trust the agent not to break anything&quot; or &quot;don&apos;t let it do real things.&quot;
+      </P>
+      <P>
+        OpenSandbox is the middle path: each agent gets its own isolated sandbox, created in 64 milliseconds, and the agent can do anything inside it without exposing the host. Alibaba released it under Apache 2.0, and it has grown to 15,900 stars and 1,473 forks.
+      </P>
+      <Figure
+        src="/blog/alibaba-opensandbox-1.jpg"
+        alt="A four-step flow: agent to sandbox with credential vault to Docker or Kubernetes to the host remaining untouched"
+        width={1100}
+        height={500}
+        priority
+        caption="The agent works inside an isolated sandbox. The Credential Vault keeps keys out of the sandbox. Docker or Kubernetes runs it. The host is never touched."
+      />
+      <H2>What it does</H2>
+      <P>
+        OpenSandbox is a general-purpose sandbox platform for AI applications. It provides a unified API across Rust, Python, Java, TypeScript, C# and Go, so the same integration pattern works whether the agent runs locally in Docker or at scale on Kubernetes.
+      </P>
+      <P>
+        The core idea is simple: an agent gets a sandbox, the sandbox has an in-sandbox execution daemon, and all interaction goes through a sandbox lifecycle API that standardises create, list, inspect, renew, pause, resume, snapshot and delete.
+      </P>
+      <Figure
+        src="/blog/alibaba-opensandbox-2.jpg"
+        alt="Six feature cards: fast sandbox runtime, multi-language SDKs, network controls, credential vault, Docker to Kubernetes, strong isolation"
+        width={1100}
+        height={500}
+        caption="Six key features of OpenSandbox, from 64ms sandbox creation to gVisor and Kata Containers for strong isolation."
+      />
+      <H2>The four environment types</H2>
+      <P>
+        | Environment | What it handles | |---|---| | <strong>Coding Agents</strong> | Write, test and debug code inside a sandboxed environment | | <strong>GUI Agents</strong> | Full VNC desktops so agents can interact with graphical interfaces | | <strong>Code Execution</strong> | High-performance runtimes for scripts and computational tasks | | <strong>RL Training</strong> | Isolated environments for reinforcement learning workloads |
+      </P>
+      <Figure
+        src="/blog/alibaba-opensandbox-3.jpg"
+        alt="Four cards showing the environment types: coding agents, GUI agents, code execution, RL training"
+        width={1100}
+        height={400}
+        caption="Four sandbox types cover the main agent workflows: coding, GUI, execution and training."
+      />
+      <H2>The Credential Vault</H2>
+      <P>
+        The feature that makes security practitioners pay attention. The Credential Vault lets agents call external services without seeing the keys. API tokens and secrets are injected into the sandbox&apos;s outbound requests, but the agent inside the sandbox never reads the raw credential. If the sandbox is compromised, the keys are not in it.
+      </P>
+      <P>
+        This is the right design for a system where agents negotiate with third-party services: the agent needs to call the service, but neither the agent nor a compromised sandbox should own the key.
+      </P>
+      <H2>Performance</H2>
+      <P>
+        Firecracker sandbox creation: - 64 ms P50 when created serially - 125.4 ms P99 when creating 10 concurrent sandboxes
+      </P>
+      <P>
+        Sandboxes support pause and resume with full memory and disk state preserved, which matters for agent evaluation loops and RL training.
+      </P>
+      <Figure
+        src="/blog/alibaba-opensandbox-4.jpg"
+        alt="Two stat cards showing 64ms serial and 125.4ms P99 for 10 concurrent sandboxes"
+        width={900}
+        height={380}
+        caption="Sandbox creation speed: 64 ms serial, 125.4 ms for 10 concurrent."
+      />
+      <H2>From local to cluster</H2>
+      <P>
+        The same API works for Docker locally and Kubernetes in production. A developer can start with <code>docker compose up</code> and move to a Kubernetes cluster without changing the agent integration. Batch sandbox creation supports agent evaluation and RL training workloads at scale.
+      </P>
+      <P>
+        Stronger isolation is available through gVisor, Kata Containers and Firecracker microVM for deployments where container-level isolation is not enough.
+      </P>
+      <H2>The numbers</H2>
+      <Figure
+        src="/blog/alibaba-opensandbox-5.jpg"
+        alt="Six stat cards: 15,900 stars, 1,473 forks, 64ms sandbox creation, 6 SDK languages, Apache 2.0 license, CNCF Landscape"
+        width={1000}
+        height={420}
+        caption="OpenSandbox by the numbers: stars, forks, speed, languages, license and ecosystem listing."
+      />
+      <H2>What it means for the agent stack</H2>
+      <P>
+        OpenSandbox sits at the execution layer of the agent stack, the layer that most frameworks hand-wave. MCP standardises how an agent calls a tool. A2A standardises how agents talk to each other. UHP standardises how a product runs a harness. OpenSandbox standardises where an agent runs when it needs to do something that could break the host.
+      </P>
+      <P>
+        For a system like Argo that runs agents from a board, the practical question is whether each agent should have its own sandbox. If an agent writes code or calls an external service, the answer is yes. The Credential Vault pattern is directly applicable: agents on the board that push to GitHub, call APIs or deploy code should not hold those keys in their context.
+      </P>
+      <H2>The repo</H2>
+      <P>
+        OpenSandbox is at github.com/opensandbox-group/OpenSandbox, Apache 2.0, 15,900+ stars. SDKs for Python, Java, TypeScript, C# and Go. CLI and MCP server included. CNCF Landscape listed.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "alibaba-opensandbox",
+    title: "Alibaba OpenSandbox - secure sandbox runtimes for AI agents that need to do real things",
+    description: "OpenSandbox gives AI agents isolated environments for code execution, browsing and desktop control. 64ms sandbox creation, Docker and Kubernetes runtimes, Credential Vault. 15,900 stars on GitHub.",
+    category: "ai-news",
+    date: "November 8, 2026",
+    isoDate: "2026-11-08T03:11",
+    readingTime: "4 min read",
+    image: "/blog/alibaba-opensandbox-1.jpg",
+    Content: AlibabaOpensandboxContent,
+  },
   {
     slug: "arete-27b",
     title: "Arete-27B - turning Qwen3.8 from a 22% propaganda rate to 0.9%, with open weights and data",
