@@ -12757,7 +12757,110 @@ function TregJevSocialApiContent() {
   )
 }
 
+/* ── Post: Apple's 1987 Knowledge Navigator: the film that predicted AI assistants, tablets and video calling ── */
+function AppleKnowledgeNavigator1987Content() {
+  return (
+    <>
+      <P>
+        # Apple&apos;s 1987 Knowledge Navigator: the film that predicted AI assistants, tablets and video calling
+      </P>
+      <P>
+        In 1987 Apple was in an awkward position. Steve Jobs had left in 1985. Revenues were growing, but analysts questioned where the next big ideas would come from. CEO John Sculley, with advice from Alan Kay, imagined what computing could look like 20 years ahead.
+      </P>
+      <Figure
+        src="/blog/apple-knowledge-navigator-1987-1.jpg"
+        alt="A timeline from 1987 to 2026 showing the Knowledge Navigator film, InfoWorld 2003 assessment, iPad 2010, LLMs in the 2020s, and the remaining gap in 2026"
+        width={1100}
+        height={420}
+        priority
+        caption="The Knowledge Navigator timeline: 1987 concept to 2026. Most features arrived. Cross-session context is the gap."
+      />
+      <P>
+        The result was the Knowledge Navigator: a concept film showing a folding tablet with a conversational AI assistant, video calling, access to personal and global knowledge, and task delegation. Made in six weeks for Sculley&apos;s keynote at Educom, it anticipated features that took decades to arrive.
+      </P>
+      <H2>What it showed</H2>
+      <P>
+        The film depicted a professor interacting with an AI butler seamlessly connected to his working life. The device was a folding tablet - thin, portable, always connected. The assistant understood natural language, handled scheduling, retrieved documents on command, and even made video calls to colleagues.
+      </P>
+      <P>
+        At a time when most computer interaction was through command lines and early graphical interfaces, the vision was radical. The assistant was not a search bar or a menu. It was a character: a polite, capable butler that understood context, prioritised tasks and took initiative.
+      </P>
+      <Figure
+        src="/blog/apple-knowledge-navigator-1987-2.jpg"
+        alt="Five predicted features: folding tablet, conversational AI assistant, video calling, knowledge access, task delegation"
+        width={1000}
+        height={400}
+        caption="The Knowledge Navigator showed five features that became standard over the next 30 years."
+      />
+      <H2>The people behind it</H2>
+      <P>
+        Sculley included the concept in the epilogue of his memoir: a fantasy machine infused with the soul of intelligent agents. Bud Colligan, Apple&apos;s Director of Higher Education Marketing, and creative director Hugh Dubberly took the idea and produced the film in six weeks.
+      </P>
+      <P>
+        Dubberly later recounted the experience in Bill Buxton&apos;s book on software design. The team drew inspiration from Stewart Brand&apos;s book on the MIT Media Lab, William Gibson&apos;s Neuromancer and Vernor Vinge&apos;s True Names. The film was built on existing ideas about agents and interfaces, synthesised into a single demo that has aged better than most predictions from that era.
+      </P>
+      <Figure
+        src="/blog/apple-knowledge-navigator-1987-3.jpg"
+        alt="Three inspirations: Stewart Brand's Media Lab book, Neuromancer, and True Names"
+        width={1000}
+        height={360}
+        caption="The Knowledge Navigator drew from the Media Lab's vision of machine learning, cyberpunk interface concepts from Neuromancer, and AI agent ideas from True Names."
+      />
+      <H2>What arrived</H2>
+      <P>
+        By 2003, InfoWorld revisited the Knowledge Navigator and found that much of what it showed had arrived. Tablets. Video calling. Access to vast amounts of knowledge. What was still missing was the natural-language interaction layer.
+      </P>
+      <P>
+        That piece arrived in the last few years. Large language models can hold conversations, retrieve information, delegate tasks and act on context. The assistant in the Knowledge Navigator film is recognisable as a modern AI agent: it understands what you mean, not just what you say.
+      </P>
+      <Figure
+        src="/blog/apple-knowledge-navigator-1987-4.jpg"
+        alt="Five features tracked from 1987 predictions through to their actual arrival: tablet 2010, video calling 2000s, knowledge access 2010s, natural language 2020s, cross-session context still in progress"
+        width={1000}
+        height={420}
+        caption="Four of the five predicted features have arrived. Cross-session context is the one still in progress."
+      />
+      <H2>The gap that remains</H2>
+      <P>
+        The Knowledge Navigator showed something deeper than a chatbot. The assistant had continuity across sessions, an understanding of the user&apos;s professional context, and the ability to act across multiple tools and data sources without being explicitly directed.
+      </P>
+      <P>
+        That continuity is still the hard part. Modern AI assistants can answer a question, schedule a meeting or retrieve a document. The thread that connects one interaction to the next, across devices and across weeks of context, is the gap between the 1987 vision and the 2026 reality.
+      </P>
+      <P>
+        The Knowledge Navigator was a concept film, not a product plan. But as a statement of intent about where human-computer interaction should go, it remains one of the clearest visions ever produced by a technology company.
+      </P>
+      <Figure
+        src="/blog/apple-knowledge-navigator-1987-5.jpg"
+        alt="A side-by-side comparison: today's assistants respond to queries, the Knowledge Navigator envisioned continuous context and proactive understanding"
+        width={1000}
+        height={360}
+        caption="Today's AI assistants can answer, schedule and retrieve. The Knowledge Navigator showed an assistant that understood your professional context and acted without direction."
+      />
+      <H2>Related reading</H2>
+      <UL items={[
+        <>John Sculley&apos;s memoir (epilogue contains the Knowledge Navigator concept)</>,
+        <>Bill Buxton&apos;s &quot;Sketching User Experiences&quot; (contains Dubberly&apos;s account)</>,
+        <>Stewart Brand&apos;s &quot;The Media Lab: Inventing the Future at MIT&quot;</>,
+        <>William Gibson&apos;s &quot;Neuromancer&quot;</>,
+        <>Vernor Vinge&apos;s &quot;True Names&quot;</>,
+      ]} />
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "apple-knowledge-navigator-1987",
+    title: "Apple's 1987 Knowledge Navigator: the film that predicted AI assistants, tablets and video calling",
+    description: "In 1987, Apple made a concept film showing a folding tablet with a conversational AI assistant, video calling, and personal knowledge access. Most of it has arrived. The last piece is landing now.",
+    category: "ai-news",
+    date: "November 8, 2026",
+    isoDate: "2026-11-08T05:34",
+    readingTime: "4 min read",
+    image: "/blog/apple-knowledge-navigator-1987-1.jpg",
+    Content: AppleKnowledgeNavigator1987Content,
+  },
   {
     slug: "treg-jev-social-api",
     title: "treg.to/social - one API for social data, filtered by Jev, at 0% markup",
