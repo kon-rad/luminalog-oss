@@ -12849,7 +12849,198 @@ function AppleKnowledgeNavigator1987Content() {
   )
 }
 
+/* ── Post: How to search inside a language model and test what you find ── */
+function SearchInsideLanguageModelsContent() {
+  return (
+    <>
+      <P>
+        You ask a language model where a landmark is located. It gives the wrong city. You can change the prompt, add a reference document or train it on better examples. But can you look inside the model, find the computation involved and change it directly?
+      </P>
+      <P>
+        Our recent <A href="https://myargoquest.com/blog/weight-space-programming">weight-space programming article</A> explored the possibility of working directly with neural-network weights. The practical next question is which tools let a person investigate a model today, and what evidence they provide before an edit.
+      </P>
+      <P>
+        There are useful tools for each stage. You can search descriptions of internal features, see which features activate on your text, follow connections between them and test changes to the computation. Permanently updating the model is a separate step, with a separate set of methods and tests.
+      </P>
+      <P>
+        The most useful visualization connects an internal measurement to an experiment you can repeat.
+      </P>
+      <Figure
+        src="/blog/search-inside-language-models-1.jpg"
+        alt="Two panels compare saved checkpoint weights with temporary activations in a model run"
+        width={1920}
+        height={840}
+        priority
+        caption="Weights persist in a checkpoint; activation steering changes the computation during a run. Diagram: Argo."
+      />
+      <H2>What are you actually looking at?</H2>
+      <P>
+        A model&apos;s <strong>weights</strong> are learned numbers saved in its checkpoint. Its <strong>activations</strong> are temporary numbers produced while it processes your prompt. Changing the first can alter the saved model. Changing the second alters a particular run unless you preserve and reapply the intervention.
+      </P>
+      <P>
+        Think of the weights as the settings of a machine and the activations as readings while it operates. The analogy has a limit: a neural network&apos;s settings interact, and a concept does not generally have one dedicated dial.
+      </P>
+      <P>
+        This distinction explains why a slider labeled with a concept can change an answer without rewriting the original weight file. The slider may amplify a direction in the model&apos;s temporary internal state.
+      </P>
+      <P>
+        Before interpreting a complex model, it helps to watch a smaller one execute. <A href="https://github.com/poloclub/transformer-explainer">Transformer Explainer</A> runs GPT-2 in the browser and connects custom inputs to attention and next-token predictions. It lets you follow actual computation while learning the architecture.
+      </P>
+      <P>
+        For a focused view of how attention heads connect tokens, <A href="https://github.com/jessevig/bertviz">BertViz</A> provides interactive displays. These views answer a narrower question than a full explanation of why the model produced a particular answer.
+      </P>
+      <H2>How do you search for a concept inside a model?</H2>
+      <P>
+        <A href="https://docs.neuronpedia.org/sparse-autoencoders/search">Neuronpedia</A> is a useful starting point. You can search feature descriptions, run text through a supported model to find strongly activated features, or inspect the top features for individual tokens.
+      </P>
+      <P>
+        A <strong>feature</strong> is a pattern in the model&apos;s internal activity. Many of the features in this workflow come from a sparse autoencoder, an auxiliary model that learns a dictionary of directions for reconstructing activations. It tries to describe an example using relatively few active dictionary entries.
+      </P>
+      <P>
+        That gives researchers a different set of coordinates for examining the model. A feature might respond to geographical names, a programming pattern or a family of related contexts. It need not correspond to a single original neuron.
+      </P>
+      <P>
+        The search description is a clue. Read the activation examples to see what actually triggers the feature. Neuronpedia explicitly warns that its AI-generated explanations can be incorrect. A label such as “city names” could hide a narrower pattern, or combine several contexts that need more investigation.
+      </P>
+      <P>
+        Try a sentence containing the concept, then a minimally changed version without it. Inspect which token positions activate the feature. Include examples that should match your interpretation and examples that should not. Inference-based experiments depend on the selected source having inference enabled; the <A href="https://docs.neuronpedia.org/getting-started/find-resources">resource documentation</A> explains that boundary.
+      </P>
+      <P>
+        If you want to investigate a local model, <A href="https://github.com/decoderesearch/SAELens">SAELens</A> supports loading, training and analyzing sparse autoencoders, with feature dashboards through SAE-Vis. A pretrained dictionary is a practical first step before taking on dictionary training yourself.
+      </P>
+      <Figure
+        src="/blog/search-inside-language-models-2.jpg"
+        alt="Neuronpedia documentation lists feature search modes and warns to check activation examples"
+        width={1350}
+        height={975}
+        caption="Neuronpedia documents explanation search, inference search and token-level feature search. Source: Neuronpedia documentation."
+      />
+      <H2>How do you test whether a feature matters?</H2>
+      <P>
+        A feature activating on a sentence establishes an association. To investigate its role in producing an answer, change the computation and measure what happens.
+      </P>
+      <P>
+        With <strong>activation steering</strong>, you amplify or suppress a selected internal direction during inference. Compare the output with the unchanged baseline, across several strengths and several prompts. A single striking generation can suggest an experiment, but it provides little information about consistency.
+      </P>
+      <P>
+        <strong>Activation patching</strong> tests a different question. Run a clean prompt and an altered prompt. Then copy an internal value from the clean run into the altered one. If the target prediction recovers, that component carries relevant information under the intervention you chose.
+      </P>
+      <P>
+        The choice matters. Suppressing a value to zero, replacing it with an average and borrowing it from another prompt create different conditions. Record what you changed, at which layer and token position, and how you measured the result.
+      </P>
+      <P>
+        <A href="https://github.com/TransformerLensOrg/TransformerLens">TransformerLens</A>, <A href="https://github.com/ndif-team/nnsight">NNsight</A> and <A href="https://github.com/stanfordnlp/pyvene">pyvene</A> provide infrastructure for inspecting and intervening in model execution. They are tools for building experiments. You still need to define the question and controls.
+      </P>
+      <Figure
+        src="/blog/search-inside-language-models-3.jpg"
+        alt="Three stages show prompt comparison, activation transplantation and measurement of prediction recovery"
+        width={1200}
+        height={1320}
+        caption="Activation patching tests an internal component under a specified intervention. Conceptual diagram: Argo."
+      />
+      <P>
+        For a complementary view, the <A href="https://arxiv.org/abs/2303.08112">tuned lens</A> decodes intermediate hidden states into vocabulary distributions using learned probes. It can show how a prediction becomes visible across layers. Treat the display as a measurement through those probes, then test consequential interpretations against the model&apos;s computation.
+      </P>
+      <H2>What does a circuit visualization add?</H2>
+      <P>
+        Individual features can reveal patterns, but an answer usually depends on interactions. A circuit visualization tries to make those interactions inspectable.
+      </P>
+      <P>
+        Anthropic&apos;s <A href="https://transformer-circuits.pub/2025/attribution-graphs/methods.html">Circuit Tracing</A> method builds attribution graphs using an interpretable replacement for parts of the network. Cross-layer transcoders approximate MLP computations, providing features whose relationships can be displayed and investigated.
+      </P>
+      <P>
+        The replacement is an approximation. A subgraph is a hypothesis about mechanisms involved in a particular prompt, and its reliability depends on what the replacement captures. Interventions help test the proposed connections.
+      </P>
+      <P>
+        The open-source <A href="https://github.com/decoderesearch/circuit-tracer">circuit-tracer</A> library provides graph construction, visualization and intervention workflows. Check its available transcoders before choosing a model: being able to load a checkpoint does not establish that the required interpretation resources exist for it.
+      </P>
+      <P>
+        Neuronpedia also lets you <A href="https://docs.neuronpedia.org/circuit-tracing/steer-graphs">steer features from a graph</A>. That is a useful connection between seeing a proposed mechanism and testing it. The resulting change is evidence to assess, rather than automatic proof that every node and edge has been interpreted correctly.
+      </P>
+      <Figure
+        src="/blog/search-inside-language-models-4.jpg"
+        alt="Neuronpedia graph-steering documentation explains testing a circuit hypothesis by intervention"
+        width={1350}
+        height={975}
+        caption="A graph supplies a hypothesis to test through interventions. Source: Neuronpedia graph-steering documentation."
+      />
+      <H2>Which tools permanently change model weights?</H2>
+      <P>
+        Persistent factual editing has its own research line.
+      </P>
+      <UL items={[
+        <><strong>ROME</strong> changes a factual association through a rank-one update to a feed-forward weight matrix. Its <A href="https://arxiv.org/abs/2202.05262">paper</A> connects intervention-based investigation to direct parameter editing.</>,
+        <><strong>MEMIT</strong> extends editing to many associations, distributing updates across layers. Its <A href="https://arxiv.org/abs/2210.07229">paper</A> demonstrates batch updates on GPT-J and GPT-NeoX.</>,
+        <><strong>AlphaEdit</strong> constrains updates using a null space derived from preservation knowledge. Its <A href="https://arxiv.org/abs/2410.02355">paper</A> addresses interference with the representations being preserved. That preservation is conditional on the knowledge represented in the method.</>,
+      ]} />
+      <P>
+        <A href="https://github.com/zjunlp/EasyEdit">EasyEdit</A> provides a framework for comparing editing approaches and evaluating their effects. Check what each method changes: a framework can support parameter editors alongside approaches with different mechanisms.
+      </P>
+      <P>
+        The interface language can be confusing. <A href="https://github.com/goodfire-ai/goodfire-sdk">Goodfire&apos;s Ember SDK</A> offers semantic feature search and controls for shaping outputs through a hosted service. Adjusting a feature&apos;s steering coefficient is a different operation from changing a tensor in the base checkpoint. Open-source client code also does not make the whole hosted system locally reproducible.
+      </P>
+      <P>
+        The clearest way to describe an experiment is to name what changed: activations, an auxiliary component, or base-model parameters.
+      </P>
+      <Figure
+        src="/blog/search-inside-language-models-5.jpg"
+        alt="ROME, MEMIT and AlphaEdit cards compare the mechanisms of persistent factual edits"
+        width={1920}
+        height={840}
+        caption="ROME, MEMIT and AlphaEdit use different parameter-update strategies. Diagram: Argo; based on the original papers."
+      />
+      <H2>Why doesn&apos;t finding a fact tell you where to edit it?</H2>
+      <P>
+        An internal location can matter to a computation without being the best place to modify the resulting behavior.
+      </P>
+      <P>
+        In <A href="https://arxiv.org/abs/2301.04213">Does Localization Inform Editing?</A>, Hase and colleagues find that causal-tracing results do not identify the best MLP layer for overwriting a factual association in their tested setting. That challenges a tempting workflow: locate the brightest spot in a visualization, edit there and assume the rest follows.
+      </P>
+      <P>
+        The edit needs its own evaluation. Does the answer change under paraphrases? Do neighboring facts survive? Does general language or reasoning performance deteriorate? Research on <A href="https://arxiv.org/abs/2401.04700">the general-capability effects of model editing</A> shows why narrow factual success is insufficient.
+      </P>
+      <P>
+        A recent connection between the two fields is <A href="https://arxiv.org/abs/2609.23892">Circuit-Diff</A>. It compares attribution graphs before and after a factual weight edit using the same frozen transcoder lens. Its <A href="https://github.com/edwardF8/Circuit-Diff">released implementation</A> helps investigate which features and connections changed.
+      </P>
+      <P>
+        The evidence is early: the paper reports causal patching on up to 24 CounterFact edits. Its interpretation depends on a successful edit and a lens that remains useful afterward. It offers a concrete way to investigate an edit&apos;s consequences, with those limits attached.
+      </P>
+      <H2>Where should you begin?</H2>
+      <P>
+        Start with one narrow question and a checkpoint supported by the tools you need. Record the exact model revision and prompts, and save the original checkpoint and baseline results before making changes.
+      </P>
+      <P>
+        Use Transformer Explainer to understand the computation. Use Neuronpedia to explore feature search and inspect activation examples. When you have a specific hypothesis, test it through patching or steering with recorded controls.
+      </P>
+      <P>
+        Move to persistent editing only when you can compare the target result with paraphrases, related facts and general capabilities. Keep the original checkpoint and a reproducible record of the update. A useful final view shows both the internal change and the behavior it produced.
+      </P>
+      <Figure
+        src="/blog/search-inside-language-models-6.jpg"
+        alt="Two panels separate intended edit success from preservation of unrelated model behavior"
+        width={1920}
+        height={840}
+        caption="Evaluate target behavior and collateral changes together. Proposed evaluation checklist: Argo."
+      />
+      <P>
+        Follow the research and practical experiments at <A href="https://myargoquest.com/blog">Argo</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "search-inside-language-models",
+    title: "How to search inside a language model and test what you find",
+    description: "A practical guide to visualizing LLMs, searching their features, tracing circuits and understanding when steering becomes a weight edit.",
+    category: "ai-news",
+    date: "November 8, 2026",
+    isoDate: "2026-11-08T07:23",
+    readingTime: "8 min read",
+    image: "/blog/search-inside-language-models-1.jpg",
+    Content: SearchInsideLanguageModelsContent,
+  },
   {
     slug: "apple-knowledge-navigator-1987",
     title: "Apple's 1987 Knowledge Navigator: the film that predicted AI assistants, tablets and video calling",
