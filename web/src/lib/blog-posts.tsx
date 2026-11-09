@@ -13122,7 +13122,131 @@ function MemorillaContent() {
   )
 }
 
+/* ── Post: "Qwen 4: what is confirmed before a 27B release" ── */
+function Qwen4ConfirmedContent() {
+  return (
+    <>
+      <P>
+        You see Qwen 4 27B in a headline and start thinking about the machine that could run it. Before choosing hardware, there is a more basic question: which released model would you actually download?
+      </P>
+      <P>
+        As checked on November 9, 2026, the primary sources reviewed for this article did not verify a public Qwen4-27B release. They did establish a Qwen 4 roadmap and a released architecture preview under a different model name. Those are useful pieces of evidence, with different meanings.
+      </P>
+      <P>
+        This is a guide to reading that evidence before turning it into a deployment plan. It does not offer a release date or measured hardware requirements for Qwen4-27B.
+      </P>
+      <H2>What Alibaba actually said</H2>
+      <P>
+        In its <A href="https://www.alibabacloud.com/en/press-room/alibaba-unveils-roadmap-on-full-stack-ai-strategy">September 22, 2026 announcement</A>, Alibaba said Qwen 4 was in training. That confirms a statement about the model family on that date.
+      </P>
+      <Figure
+        src="/blog/qwen-4-confirmed-1.jpg"
+        alt="Alibaba announcement dated September 22, 2026"
+        width={1920}
+        height={1327}
+        priority
+        caption="Source: Alibaba Cloud. The training statement is dated September 22, 2026."
+      />
+      <P>
+        A dated training announcement cannot tell us, by itself, whether a model is still training today. It also cannot establish that a particular downloadable version has shipped since then. To answer either question, we need newer evidence tied to the exact model.
+      </P>
+      <P>
+        The distinction matters when older announcements keep circulating alongside newer speculation. A sentence can be accurately quoted and still fail to answer the question a reader is asking now.
+      </P>
+      <H2>What the architecture preview tells us</H2>
+      <P>
+        There is a concrete artifact to inspect: <A href="https://huggingface.co/Qwen/Qwen3.8-Flash-Next">Qwen3.8-Flash-Next</A>. Qwen&apos;s model card describes it as an experimental preview of the architecture that will underpin Qwen4.
+      </P>
+      <Figure
+        src="/blog/qwen-4-confirmed-2.jpg"
+        alt="Qwen model card describing an architecture preview"
+        width={973}
+        height={403}
+        caption="Source: Qwen on Hugging Face. The card names Qwen3.8-Flash-Next."
+      />
+      <P>
+        An architecture is the arrangement of a model&apos;s computational parts. A preview lets developers study a particular implementation and the documentation attached to it. It gives the discussion something more substantial than an expected name.
+      </P>
+      <P>
+        It does not make every field in that model card a specification for another model. The preview&apos;s parameter counts and deployment instructions belong to the preview. A future 27B version would need its own documentation before we could report those details as established facts.
+      </P>
+      <P>
+        Think of a prototype vehicle showing a new engine layout. You can inspect the prototype. You still need the production vehicle&apos;s specification before claiming its weight or fuel consumption. The analogy concerns the evidence, not how neural networks are manufactured.
+      </P>
+      <H2>What the public catalog check found</H2>
+      <P>
+        At approximately 09:09 UTC on November 9, we queried Hugging Face&apos;s public model API for models under the official Qwen organization with Qwen4 in the name. That query returned an empty list.
+      </P>
+      <P>
+        A separate request for the exact Qwen/Qwen4-27B model endpoint returned HTTP 401 rather than a public model card. An inaccessible endpoint is not proof that a model does not exist. It may be private, gated, differently named, or absent.
+      </P>
+      <Figure
+        src="/blog/qwen-4-confirmed-3.jpg"
+        alt="Official Qwen organization model search"
+        width={1920}
+        height={1327}
+        caption="Source: Qwen on Hugging Face. Qwen4 name search captured November 9, 2026; not an audit of all providers."
+      />
+      <P>
+        Our conclusion is deliberately scoped: <strong>this check did not verify a public Qwen4-27B release</strong>. It was not a complete audit of every provider or private repository. A later announcement or catalog entry could change the result, which is why the date belongs beside it.
+      </P>
+      <H2>What would establish a release</H2>
+      <P>
+        For a release article, we would look for an official announcement naming the exact model and the artifact readers can use. For an open-weight release, that means the downloadable model files, configuration and licence. For API availability, it means a documented identifier and working access through the named provider.
+      </P>
+      <Figure
+        src="/blog/qwen-4-confirmed-4.jpg"
+        alt="Release verification sequence from announcement to test"
+        width={1600}
+        height={900}
+        caption="Argo editorial method: identify the model, inspect its files and licence, then test the access route."
+      />
+      <P>
+        These checks answer different questions. An announcement establishes what the publisher says it launched. Files let us inspect what was published. A licence tells us the stated terms. A successful inference test shows that the particular route we tested actually works.
+      </P>
+      <P>
+        We have not performed a Qwen4-27B inference test. We would not present a launch headline as a substitute for one.
+      </P>
+      <H2>How to prepare a deployment decision</H2>
+      <P>
+        Write down a task you want a local model to perform. For example, ask it to extract the affected component and reproduction steps from a fixed repository issue. Decide what a correct extraction must include before running the test.
+      </P>
+      <P>
+        When a verified model arrives, record its exact identity and the software used to run it. Test that task on your intended setup before making a performance claim. If the question is whether it fits on a particular machine, report the actual configuration and observed memory use alongside the result.
+      </P>
+      <Figure
+        src="/blog/qwen-4-confirmed-5.jpg"
+        alt="Separate evidence paths for the preview and a 27B model"
+        width={1600}
+        height={900}
+        caption="Argo diagram: a preview model card does not establish another model specification."
+      />
+      <P>
+        For now, this article provides no GPU shopping recommendation and no Qwen4-27B memory estimate. The evidence reviewed here does not support either. Readers can inspect the released preview on its own terms while waiting for documentation of the model they intend to deploy.
+      </P>
+      <H2>Where to check next</H2>
+      <P>
+        Go to the <A href="https://huggingface.co/Qwen">official Qwen organization</A>, read the exact model card, and compare it with the publisher&apos;s announcement. Keep the architecture preview and the eventual release separate in your notes. That makes it easier to update a plan when a real artifact appears.
+      </P>
+      <P>
+        Follow our source-backed explainers at <A href="https://myargoquest.com/blog">the Argo blog</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "qwen-4-confirmed",
+    title: "\"Qwen 4: what is confirmed before a 27B release\"",
+    description: "\"How to separate Qwen 4 release evidence from an architecture preview, and what to check before planning a local deployment.\"",
+    category: "ai-news",
+    date: "November 9, 2026",
+    isoDate: "2026-11-09T09:42",
+    readingTime: "4 min read",
+    image: "/blog/qwen-4-confirmed-1.jpg",
+    Content: Qwen4ConfirmedContent,
+  },
   {
     slug: "memorilla",
     title: "Memorilla - 16 memory tokens let a frozen LLM read thousands of documents at once",
