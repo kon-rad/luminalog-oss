@@ -13235,7 +13235,138 @@ function Qwen4ConfirmedContent() {
   )
 }
 
+/* ── Post: Claude Fable 5.2 and Mythos 5.2: what changed ── */
+function ClaudeFableMythos52Content() {
+  return (
+    <>
+      <P>
+        An AI can write a plausible patch and still leave the difficult part of a project untouched. The real test comes when the problem spans several tools, the first approach fails, and someone has to decide what to try next.
+      </P>
+      <P>
+        That is the kind of work Anthropic is targeting with <A href="https://www.anthropic.com/claude-fable-and-mythos-5-2">Claude Fable 5.2 and Mythos 5.2</A>, announced on November 9. The release points toward longer technical projects, from software to physical devices. For a builder, the useful question is where this changes the work they can finish, and what they should verify before trusting it.
+      </P>
+      <Figure
+        src="/blog/claude-fable-mythos-52-1.jpg"
+        alt="Anthropic's announcement hero naming Claude Fable 5.2 and Mythos 5.2"
+        width={1500}
+        height={975}
+        priority
+        caption="The official November 9 release announcement page. Screenshot: Anthropic."
+      />
+      <H2>Why are there two names?</H2>
+      <P>
+        Fable and Mythos use the same underlying model. The distinction is in safeguards and access. Fable has additional controls for cybersecurity and biology. Organizations doing eligible work can apply for Mythos through Anthropic&apos;s verification programs.
+      </P>
+      <Figure
+        src="/blog/claude-fable-mythos-52-2.jpg"
+        alt="A branching diagram separates one underlying model into Fable safeguards and Mythos verified research access"
+        width={1600}
+        height={900}
+        caption="One model, two access paths. Conceptual explanation of Anthropic's release, not its model architecture. Diagram: Argo."
+      />
+      <P>
+        That matters when a team chooses a model for a particular job. Paying for a Claude subscription is not the same as having permission to use Mythos for every task. Establish which model the application can actually call, then test that configuration. A result obtained with one safeguard setup cannot simply be assigned to another.
+      </P>
+      <P>
+        The <A href="https://www.anthropic.com/claude/fable">Fable product page</A> lists the model for Pro, Max, Ultra, Team and Enterprise users, alongside platform and cloud access. Developers use <code>claude-fable-5-2</code> on the Claude API. Availability still needs checking for the account and service a team intends to use.
+      </P>
+      <Figure
+        src="/blog/claude-fable-mythos-52-3.jpg"
+        alt="Anthropic explains that Fable and Mythos share an underlying model with different safeguards and access routes"
+        width={1350}
+        height={870}
+        caption="Shared underlying model, different safeguards and access. Screenshot: Anthropic."
+      />
+      <H2>What should an application check before using it?</H2>
+      <P>
+        <A href="https://support.claude.com/en/articles/15363606-why-claude-switched-models-in-your-conversation-with-fable-models">Anthropic&apos;s fallback documentation</A> describes an important difference between Claude applications and the API. API customers must configure fallback behavior. Without it, a request blocked by safeguards can return HTTP 200 with a stop reason. HTTP 200 alone therefore does not establish that the requested task completed. A service can successfully deliver a response that says it could not do the job.
+      </P>
+      <P>
+        An application should inspect what happened, preserve the reason a task stopped, and make its next action explicit. Silently treating a blocked run as a finished result would turn a model limitation into an application error. Data-retention terms and access eligibility also need checking before sensitive material is submitted.
+      </P>
+      <H2>Does this replace the everyday coding model?</H2>
+      <P>
+        Anthropic still recommends starting with Opus 5.5 for most everyday coding and knowledge work. Fable is positioned for harder, more open-ended problems.
+      </P>
+      <P>
+        Consider two possible jobs. One is changing a label in a form with a clear test. The other is finding why a service fails only after several systems interact. The first has a narrow target. The second may require tracing assumptions, designing an experiment and revising the plan. These are illustrative tasks, but the distinction gives a team something more useful than choosing the highest-ranked model for every request.
+      </P>
+      <P>
+        An escalation rule can be simple: start with the existing setup, then move a task to the more capable model when a defined obstacle appears. Record the obstacle. Was it a failure to find the cause, an inability to use the tools, or an incorrect result after review? That record makes the next model choice easier to assess.
+      </P>
+      <H2>What should we take from the reported results?</H2>
+      <P>
+        The release includes a prototype operating-system experiment involving more than 1,000 subagents working for eight days. It also describes a separate mathematics experiment: roughly 1,000 agents formalized Fermat&apos;s Last Theorem in 30 hours. Formalizing a proof means translating it into a form a computer can check. It does not mean discovering the theorem.
+      </P>
+      <P>
+        These are different experiments with different goals. Combining their headlines into an operating system built in 30 hours would create a result Anthropic did not report. The mathematics figure describes one run per model, which limits what it tells us about repeatability.
+      </P>
+      <Figure
+        src="/blog/claude-fable-mythos-52-4.jpg"
+        alt="Anthropic benchmark footnotes describe safeguard settings, effort and evaluation conditions"
+        width={960}
+        height={1040}
+        caption="Benchmark methodology footnotes detailing effort levels and safeguard settings. Screenshot: Anthropic."
+      />
+      <P>
+        On FrontierCode 2.0, Anthropic reports 49.1% for Fable 5.2 and 32.4% for Fable 5.1, both at Xhigh effort. That setting gives the model more room to work on a problem. The comparison is useful because it names both the task collection and the effort setting; it remains a vendor-reported result.
+      </P>
+      <P>
+        A benchmark is a defined collection of tasks with a scoring rule. It can reveal a useful difference, but the score belongs to that setup. Before using it to justify a model change, ask what counted as success, which tools were available, and whether the model had the same budget as the comparison. A score is a reason to investigate a workload, not a forecast for an unrelated repository.
+      </P>
+      <H2>What does the hardware example add?</H2>
+      <P>
+        Anthropic reports a collaboration with Diode in which Fable produced the circuit-board, enclosure and software designs for three devices. Diode manufactured and assembled them, and Anthropic reports that all three worked. Design files crossed into real objects, but the physical work still involved people and manufacturing.
+      </P>
+      <Figure
+        src="/blog/claude-fable-mythos-52-5.jpg"
+        alt="Anthropic's hardware-engineering passage and circuit-board video poster from its release page"
+        width={1350}
+        height={870}
+        caption="The hardware demonstration includes human manufacturing and assembly. Source passage and video poster: Anthropic."
+      />
+      <P>
+        For a builder, this suggests a demanding evaluation. Inspect the artifacts at every boundary: does the code run, do the dimensions match, and can the person doing the next step use what was produced? A convincing rendering is not a manufacturing check. A generated test is not evidence that the test ran. Work becomes useful when its next consumer can verify and use it.
+      </P>
+      <H2>How do the price and speed claims work?</H2>
+      <P>
+        The <A href="https://claude.com/pricing">published pricing</A> is USD 8 per million input tokens and USD 40 per million output tokens for Fable 5.2 standard mode. Tokens are the pieces of text the service processes and generates. Fast mode costs USD 16 and USD 80 respectively. The standard unit rates are 20% lower than Fable 5.1&apos;s listed USD 10 and USD 50. Opus 5.5 standard pricing is USD 4 per million input tokens and USD 20 per million output tokens. Fable&apos;s unit rates are twice Opus&apos;s; actual task cost also depends on how many tokens and attempts the job needs.
+      </P>
+      <P>
+        For an arithmetic example, a run using 100,000 input tokens and 20,000 output tokens would cost USD 1.60 at standard rates or USD 3.20 in fast mode. That excludes caching, tool use, repeated attempts and other charges. It illustrates the rates, not a typical project budget.
+      </P>
+      <Figure
+        src="/blog/claude-fable-mythos-52-6.jpg"
+        alt="Anthropic's Fable product-page passage listing availability, token prices and fast-mode terms"
+        width={1350}
+        height={870}
+        caption="Published pricing and availability, checked November 10, 2026. Screenshot: Anthropic's Fable product page."
+      />
+      <P>
+        Anthropic reports output generation up to 30% faster than the 5.1 models, and up to 2.5 times faster token generation with fast mode. Those claims do not say a whole task finishes proportionally sooner. Waiting for a build or revisiting a failed approach can dominate the elapsed time. Measure the accepted outcome and the full bill together.
+      </P>
+      <P>
+        Start an evaluation with a task whose answer or acceptance test is already known. Hold the input, tool permissions and objective steady. Compare the existing setup with Fable, then record elapsed time, total cost and the human work needed to accept the result. That is a proposed test, not a test we have run for this article. It gives the release a practical next step: find out whether the harder work becomes verifiably easier.
+      </P>
+      <P>
+        Follow Argo&apos;s research and build notes at <A href="https://myargoquest.com/blog">myargoquest.com/blog</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "claude-fable-mythos-52",
+    title: "Claude Fable 5.2 and Mythos 5.2: what changed",
+    description: "How Anthropic's new models differ in access, what their technical-work results show, and when to try them beyond everyday coding.",
+    category: "ai-news",
+    date: "November 10, 2026",
+    isoDate: "2026-11-10T07:08",
+    readingTime: "6 min read",
+    image: "/blog/claude-fable-mythos-52-1.jpg",
+    Content: ClaudeFableMythos52Content,
+  },
   {
     slug: "qwen-4-confirmed",
     title: "\"Qwen 4: what is confirmed before a 27B release\"",
