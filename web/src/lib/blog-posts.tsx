@@ -13478,7 +13478,139 @@ function DeletionTuningExplainedContent() {
   )
 }
 
+/* ── Post: Why small AI agent teams can outperform one giant team ── */
+function ParallelAgentTeamsExplainedContent() {
+  return (
+    <>
+      <P>
+        Suppose you have 100 AI agents and one difficult problem. You could ask all 100 to work alone, put them in one large group, or divide them into smaller teams. If you can check each answer automatically, which arrangement gives you the best result?
+      </P>
+      <P>
+        A <A href="https://arxiv.org/abs/2611.09798">new research paper</A> by Junlin Wang and colleagues tests those choices on long-running tasks, including writing fast GPU programs and completing formal proofs. Its answer is the middle option: run several small teams independently, let teammates exchange findings, and keep the best verified result.
+      </P>
+      <P>
+        With a budget of 100 agents using the researchers&apos; 27-billion-parameter model, ten teams of ten beat 100 independent agents on ten of twelve tasks. They also beat a single 100-agent team on all four tasks where the researchers ran that comparison. The result is about how to organize attempts at a checkable problem, not a claim that every meeting of AI agents improves every kind of work.
+      </P>
+      <Figure
+        src="/blog/parallel-agent-teams-explained-1.jpg"
+        alt="Title, authors and abstract of the parallel agent teams paper"
+        width={1286}
+        height={772}
+        priority
+        caption="The study compares ways to divide a fixed agent budget. Source: Wang et al., arXiv 2611.09798, p. 1, CC BY 4.0."
+      />
+      <H2>What does an AI agent team do here?</H2>
+      <P>
+        An <strong>agent</strong> in this study is a model working on a task in its own computing environment. It can try solutions and submit its best result. On most tested tasks it can call a scorer during the run; two machine-learning tasks are graded only at the end. The scorer, or <strong>verifier</strong>, gives a measurable result. For a GPU program, that might include whether the code works and how fast it runs.
+      </P>
+      <P>
+        The teams are simple. Each member keeps its own workspace and context, but everyone on the team can read and write to a shared forum. Members can report an experiment, post a useful partial result, or learn from a teammate&apos;s failed attempt. There are no assigned roles or manager in the main team setup. The best verified submission by any member becomes the team&apos;s result.
+      </P>
+      <P>
+        Think of ten small workshops trying to solve the same engineering problem. Inside a workshop, people can share discoveries. Between workshops, they work independently, so one group&apos;s early idea does not steer all the others toward the same answer. The analogy stops at the task boundary: these experiments have automatic scores, while most human work does not.
+      </P>
+      <Figure
+        src="/blog/parallel-agent-teams-explained-2.jpg"
+        alt="Diagram of independent agents, one large team and small parallel teams"
+        width={1286}
+        height={713}
+        caption="The paper compares three ways to spend the same number of agents. Source: Wang et al., Fig. 1, CC BY 4.0."
+      />
+      <H2>Why not run everyone alone?</H2>
+      <P>
+        Running many independent agents and choosing the best answer is called <strong>best-of-N</strong>. It works because different attempts produce different results. But if most solo attempts hit similar obstacles, adding more copies eventually has little effect. In the paper&apos;s experiments, 50 solo agents already achieved most of the improvement that 100 solo agents achieved.
+      </P>
+      <P>
+        A small team can raise the quality of each attempt. One member finds a promising direction; another tests it; others avoid repeating a known failure. The study found that a ten-agent team tended to score higher than one solo agent. The researchers then ran several such teams and selected the strongest result.
+      </P>
+      <P>
+        At a 100-agent budget, that combination won on ten of twelve tasks against 100 solo agents. The average score across the twelve tasks was 27% higher. The two exceptions matter: solo agents did better on the Kimi-Linear Decode task and slightly better on Active Learning. This is evidence for a useful arrangement on the tested tasks, not an instruction to replace every solo run with a team.
+      </P>
+      <Figure
+        src="/blog/parallel-agent-teams-explained-3.jpg"
+        alt="Twelve task charts comparing parallel teams and independent agents"
+        width={1316}
+        height={1207}
+        caption="Teams of ten beat solo agents on ten of twelve tasks at the 100-agent budget. Source: Wang et al., Fig. 2, CC BY 4.0."
+      />
+      <P>
+        The figure also shows the shape of the gain. As the budget grows, the solo-agent curve tends to flatten. The small-team curve continues rising for longer. That makes the result more interesting than a single winning score: it suggests that the organization of attempts changes what extra computing power buys.
+      </P>
+      <Figure
+        src="/blog/parallel-agent-teams-explained-4.jpg"
+        alt="Curves comparing total performance and marginal gains as agent budgets grow"
+        width={1286}
+        height={574}
+        caption="The small-team curve continues to gain as more agents are added. Source: Wang et al., Fig. 3, CC BY 4.0."
+      />
+      <H2>Why not make one huge team?</H2>
+      <P>
+        A large team lets more agents share what they know, but it produces only one team-level attempt. The agents may also converge on the first promising direction and stop exploring alternatives. By splitting them into separate groups, the system preserves several independent searches while retaining collaboration inside each group.
+      </P>
+      <P>
+        The paper directly tested 100-agent teams on four tasks. Ten teams of ten beat the single large team on each of those four. When the researchers held the overall budget at 100 agents and varied group size, the best size sat between the two extremes in every tested task. Ten-person teams led on three tasks; two 50-person teams reached the maximum score on the fourth. <strong>Ten is the paper&apos;s useful working choice, not a magic team size.</strong>
+      </P>
+      <Figure
+        src="/blog/parallel-agent-teams-explained-5.jpg"
+        alt="Four plots comparing team sizes at a fixed 100-agent budget"
+        width={1316}
+        height={515}
+        caption="On four tasks, an intermediate team size beat the two extreme arrangements. Source: Wang et al., Fig. 4, CC BY 4.0."
+      />
+      <H2>Does this mean cheaper AI work?</H2>
+      <P>
+        In a separate cost comparison across eight tasks with enough runs, the researchers compared their smaller 27-billion-parameter model with a frontier model. At their estimated equal dollar cost, several small-model teams beat five frontier-model solo runs on four of those tasks. That is an interesting cost comparison, but it depends on the paper&apos;s GPU-time and token-price accounting and on those particular tasks.
+      </P>
+      <P>
+        The more general lesson is about spending a fixed budget wisely. A higher-quality attempt from a team can be worth more than another low-quality independent sample, provided the verifier can reliably pick the best result.
+      </P>
+      <Figure
+        src="/blog/parallel-agent-teams-explained-6.jpg"
+        alt="Plots comparing estimated costs of small-model teams and frontier-model agents"
+        width={1316}
+        height={614}
+        caption="The authors compare verified scores at estimated equal dollar cost. Source: Wang et al., Fig. 5, CC BY 4.0."
+      />
+      <H2>Do teams need a manager?</H2>
+      <P>
+        Not in the paper&apos;s main setup. The agents share a forum as peers. To test the alternative, the researchers ran manager-led teams of ten on four tasks shown in the paper&apos;s comparison figure. In those runs, one agent assigned work and gathered reports, while workers did not directly share findings. The flat teams performed better in all four comparisons. The authors point to the manager as a communication bottleneck in this setup.
+      </P>
+      <P>
+        That finding belongs to this particular design, not every possible agent organization. Its practical point is straightforward: if agents can share a useful finding directly, routing every message through a coordinator may slow the exchange.
+      </P>
+      <Figure
+        src="/blog/parallel-agent-teams-explained-7.jpg"
+        alt="Charts comparing peer forums with manager-led agent teams"
+        width={1316}
+        height={594}
+        caption="The peer-sharing teams outperformed the manager-led teams in the tested comparisons. Source: Wang et al., Fig. 10, CC BY 4.0."
+      />
+      <H2>What can a builder take from it?</H2>
+      <P>
+        Start with a task whose outputs can be scored, such as a program tested by a benchmark or a proof checked by a formal verifier. Give each agent an independent workspace, then let small groups share attempts and results in a common forum. Keep groups separate so they explore different paths. Finally, score every group&apos;s best submission with the same verifier and choose the highest-scoring one.
+      </P>
+      <P>
+        Measure several group sizes before settling on ten. The paper&apos;s larger team sizes had only one to five runs each, and its main results come from one agent harness and a limited set of optimization tasks. Without a reliable verifier, choosing the best answer becomes a different problem.
+      </P>
+      <P>
+        The paper&apos;s most useful idea is the balance: collaboration can improve each attempt, while independent teams preserve multiple chances to find a stronger answer. Read the <A href="https://arxiv.org/abs/2611.09798">research paper</A> and follow more clear AI explanations at <A href="https://myargoquest.com/blog">Argo</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "parallel-agent-teams-explained",
+    title: "Why small AI agent teams can outperform one giant team",
+    description: "A new study finds that several small teams sharing notes can beat many solo AI agents when a scorer can choose the best result.",
+    category: "ai-news",
+    date: "November 11, 2026",
+    isoDate: "2026-11-11T20:33",
+    readingTime: "7 min read",
+    image: "/blog/parallel-agent-teams-explained-1.jpg",
+    Content: ParallelAgentTeamsExplainedContent,
+  },
   {
     slug: "deletion-tuning-explained",
     title: "How deleting a few weights teaches an AI model new tasks",
