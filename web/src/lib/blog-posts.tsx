@@ -13355,7 +13355,141 @@ function ClaudeFableMythos52Content() {
   )
 }
 
+/* ── Post: How deleting a few weights teaches an AI model new tasks ── */
+function DeletionTuningExplainedContent() {
+  return (
+    <>
+      <P>
+        An AI model can be capable in one setting and weak in another. To teach it a new task, the usual answer is to train again, changing many of the numbers inside it. Those numbers are called weights. They determine how strongly one part of the model influences another.
+      </P>
+      <P>
+        We recently looked at <A href="https://myargoquest.com/blog/weight-space-programming">models that directly edit weights</A>. A <A href="https://arxiv.org/abs/2611.10866">new NeurIPS 2026 paper</A> asks a simpler question: what if an AI model could learn a task by turning a very small number of its existing connections off, without writing any new weight values?
+      </P>
+      <P>
+        Jack Lu and his coauthors call the method <strong>Deletion Tuning</strong>. In the six reported reinforcement-learning runs, the final adaptation sets fewer than 0.05% of model weights to zero. At the largest model sizes they tested, it reached roughly the same accuracy as full fine-tuning across math reasoning, supervised question answering and self-distillation.
+      </P>
+      <Figure
+        src="/blog/deletion-tuning-explained-1.jpg"
+        alt="Title and abstract of the Deletion Tuning research paper"
+        width={1254}
+        height={753}
+        priority
+        caption="The paper asks whether deleting a small set of pretrained weights can teach new tasks. Source: Lu et al., arXiv 2611.10866, p. 1, CC BY 4.0."
+      />
+      <H2>How can removing a connection teach anything?</H2>
+      <P>
+        Picture a sound mixing desk. A recording contains many tracks. To make one instrument easier to hear, you might lower another track without recording a new sound. A model&apos;s weights are not separate tracks, so the analogy has limits. But it shows why removing an influence can change the result rather than merely damage it.
+      </P>
+      <P>
+        Deletion Tuning starts with a pretrained model whose weight values are frozen. It places a learnable switch beside each weight in a particular part of the model, the gate projection of its transformer blocks. During training, the switch is soft: the original weight is multiplied by a value between zero and one. This lets the training process adjust the switches gradually.
+      </P>
+      <P>
+        At the end, each switch becomes a binary choice. The weight keeps its original value, or it becomes zero. The saved task-specific adapter is the pattern of those choices, called a mask. The deployed model contains no newly learned weight values. <strong>The mask was learned through training; the method is not training-free.</strong>
+      </P>
+      <Figure
+        src="/blog/deletion-tuning-explained-2.jpg"
+        alt="Paper diagram shows pretrained weights, a learned gate mask and the deployed zeros"
+        width={1357}
+        height={607}
+        caption="Training learns which existing weights to keep or delete. The deployed model writes no new weight values. Source: Lu et al., Fig. 1, CC BY 4.0."
+      />
+      <H2>Why does the choice of weights matter?</H2>
+      <P>
+        Deleting weights at random would be an easy trick, but it is not what the authors tested. They first use a pruning score, called Wanda, to initialize the possible switches. Then they train the mask on the task. The question is whether learning which switches to flip matters more than simply removing a tiny fraction of connections.
+      </P>
+      <P>
+        The paper compares its learned mask with one-shot Wanda pruning, which removes weights without that training step. On the math tasks, one-shot removal stays close to the original model. The learned deletion mask improves substantially. For example, on the paper&apos;s Llama 8B math test, the base model scored 60.27%, one-shot Wanda scored 60.65%, and Deletion Tuning scored 83.55% at its best checkpoint.
+      </P>
+      <P>
+        That comparison is useful because it narrows the result. The model did not gain a skill because any deletion is beneficial. It gained the tested behavior after the training process found a task-specific deletion pattern.
+      </P>
+      <Figure
+        src="/blog/deletion-tuning-explained-3.jpg"
+        alt="Table contrasts the base model, one-shot Wanda pruning and learned Deletion Tuning masks"
+        width={1389}
+        height={710}
+        caption="A learned mask, not one-shot removal, drives the reported improvement. Source: Lu et al., Table 4, CC BY 4.0."
+      />
+      <H2>What did the experiments show?</H2>
+      <P>
+        The researchers tested two model families, from 0.5 billion to 30 billion parameters. They used three ways of teaching a model: reinforcement learning with checkable answers, supervised learning from examples, and self-distillation, where the student generates its own responses while a teacher supplies target probabilities for each token. The most direct comparison is with <strong>full fine-tuning</strong>, which can update every model weight.
+      </P>
+      <P>
+        In the reinforcement-learning experiments, the deletion mask came close to or matched full fine-tuning on the largest backbones. On Llama 8B math questions, Deletion Tuning scored 83.55% versus 83.24% for full fine-tuning. On a six-benchmark average for Qwen 7B, the scores were 52.32% and 51.89%. On the tested Qwen mixture-of-experts model at 30 billion total parameters, they were 58.54% and 58.43%.
+      </P>
+      <P>
+        The saved adapters were much smaller. For Llama 8B, the compressed deletion mask was 8.4 MB, compared with a 30,633 MB full fine-tuned checkpoint in the authors&apos; accounting. The 8.4 MB is the task-specific mask, not the total model footprint: the base model remains present in full. This is not a claim that it runs faster.
+      </P>
+      <Figure
+        src="/blog/deletion-tuning-explained-4.jpg"
+        alt="Table compares base, full fine-tuning and Deletion Tuning at four model scales"
+        width={1389}
+        height={607}
+        caption="At the larger tested scales, the deletion mask matched full fine-tuning with a far smaller saved adapter. Source: Lu et al., Table 2, CC BY 4.0."
+      />
+      <P>
+        Smaller models did not all reach full fine-tuning&apos;s score. The paper&apos;s claim is parity <strong>at the largest tested scale in each setting</strong>, not a universal win at every size.
+      </P>
+      <P>
+        The researchers also tested supervised fine-tuning on knowledge and reasoning benchmarks, and self-distillation on tool use and science questions. The deletion mask matched full fine-tuning at the largest model size they used for each of those settings. This matters because the method did not work only with one kind of training signal.
+      </P>
+      <Figure
+        src="/blog/deletion-tuning-explained-5.jpg"
+        alt="Two tables show supervised fine-tuning and self-distillation results beside full fine-tuning"
+        width={1389}
+        height={1107}
+        caption="The paper tests deletion masks beyond reinforcement learning, on supervised learning and self-distillation. Source: Lu et al., Tables 5 and 6, CC BY 4.0."
+      />
+      <H2>What happens to the model&apos;s earlier abilities?</H2>
+      <P>
+        Learning a new task can weaken an older one. The authors measured this during math reinforcement learning by retesting six earlier tasks, including general knowledge, instruction following and code generation. Across three Llama sizes, Deletion Tuning&apos;s average accuracy on the six-task suite stayed within one percentage point of the starting model. The full fine-tuned models ended 1.3 to 3.1 points below the start, while some comparison adapters fell as much as 5.4 points.
+      </P>
+      <P>
+        That is an encouraging retention result on the authors&apos; test suite. It does not yet show a model learning one new task after another indefinitely. The paper names a sequence of tasks as future work.
+      </P>
+      <Figure
+        src="/blog/deletion-tuning-explained-6.jpg"
+        alt="Six charts compare prior-task accuracy and distance from the base model during training"
+        width={1389}
+        height={961}
+        caption="In the authors' six-task retention test, Deletion Tuning stayed closer to the base model than the comparison methods. Source: Lu et al., Fig. 2, CC BY 4.0."
+      />
+      <H2>Where does this leave an engineer?</H2>
+      <P>
+        The <A href="https://github.com/agentic-learning-ai-lab/deleting-weights">authors released code</A> for training and evaluating masks under the three regimes. The most useful idea to borrow is the separation between how an adaptation is *learned* and how it is *stored*. A task may require a substantial training run while its final instruction to the model fits in a small file.
+      </P>
+      <P>
+        If you compare this approach with another adapter, check four things: accuracy on the new task, performance on older tasks, the size of the saved adapter, and training memory. The paper says its mask training uses less memory than full fine-tuning but more than LoRA, because it maintains a learnable switch for each candidate weight. A small final mask does not make every part of the process cheap.
+      </P>
+      <Figure
+        src="/blog/deletion-tuning-explained-7.jpg"
+        alt="Official code repository README introduces Deletion Tuning and its public implementation"
+        width={1296}
+        height={912}
+        caption="The authors' public repository makes the mask method and its training code inspectable. Source: Agentic Learning AI Lab GitHub repository."
+      />
+      <P>
+        The result changes a familiar intuition: learning need not always mean writing new numbers into a model. In these experiments, carefully learned deletions were enough to adapt large models while leaving most of their existing behavior intact. The open question is how well those masks work across a longer sequence of real tasks.
+      </P>
+      <P>
+        Read the <A href="https://arxiv.org/abs/2611.10866">paper</A>, explore the <A href="https://agenticlearning.ai/deleting-weights/">project page</A>, and follow more AI explanations at <A href="https://myargoquest.com/blog">Argo</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "deletion-tuning-explained",
+    title: "How deleting a few weights teaches an AI model new tasks",
+    description: "Deletion Tuning learns which tiny set of model weights to switch off, matching full fine-tuning at the largest tested scales.",
+    category: "ai-news",
+    date: "November 11, 2026",
+    isoDate: "2026-11-11T19:53",
+    readingTime: "7 min read",
+    image: "/blog/deletion-tuning-explained-1.jpg",
+    Content: DeletionTuningExplainedContent,
+  },
   {
     slug: "claude-fable-mythos-52",
     title: "Claude Fable 5.2 and Mythos 5.2: what changed",
