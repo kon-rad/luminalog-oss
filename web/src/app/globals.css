@@ -198,6 +198,12 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 
   /* News front (/articles, components/ArticleList.tsx) */
   .news-masthead { border-bottom: 1px solid var(--hairline); background: var(--surfaceAlt); padding: 64px 0 40px; }
+  .news-masthead-image { position: relative; display: flex; align-items: flex-end; height: clamp(320px, 26vw, 420px); padding: 0 0 40px; overflow: hidden; }
+  .news-masthead-media { object-fit: cover; object-position: center; }
+  .news-masthead-image::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(22,19,14,0.97) 0%, rgba(22,19,14,0.9) 45%, rgba(22,19,14,0.55) 75%, rgba(22,19,14,0) 100%); }
+  .news-masthead-image .wrap { position: relative; z-index: 1; }
+  .news-masthead-image .eyebrow, .news-masthead-image .news-masthead-title { color: #F3EEE4; }
+  .news-masthead-image .news-masthead-subline { color: rgba(243,238,228,0.8); }
   .news-masthead-title { margin-top: 12px; font-size: clamp(38px, 5.6vw, 64px); font-weight: 600; letter-spacing: -0.035em; line-height: 1; color: var(--text); }
   .news-masthead-subline { margin-top: 14px; font-size: 17px; color: var(--text2); max-width: 600px; }
   .news-body { padding: 36px 0 96px; }
@@ -209,6 +215,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   a:hover .news-media img, a:hover .news-lead-media img { transform: scale(1.03); }
 
   .news-top { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 28px; align-items: stretch; }
+  .news-top-solo { grid-template-columns: minmax(0, 1fr); }
   .news-lead { position: relative; display: block; min-height: 480px; border-radius: var(--r-card); overflow: hidden; text-decoration: none; box-shadow: var(--shadow); transition: transform 0.18s ease, box-shadow 0.18s ease; }
   .news-lead:hover { transform: translateY(-3px); box-shadow: var(--shadowHover); }
   .news-lead-media { position: absolute; inset: 0; background: var(--surfaceAlt); }
@@ -220,6 +227,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   .news-lead-desc { margin-top: 12px; font-size: 16px; line-height: 1.55; color: rgba(243,238,228,0.8); max-width: 600px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
   .news-side { display: grid; grid-template-rows: 1fr 1fr; gap: 24px; }
+  .news-side-solo { grid-template-rows: 1fr; }
   .news-secondary { display: flex; flex-direction: column; gap: 10px; text-decoration: none; }
   .news-media-secondary { aspect-ratio: 16 / 10; border-radius: 18px; }
   .news-secondary-title { font-size: 21px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; color: var(--text); }
@@ -233,13 +241,40 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   .news-card-title { font-size: 21px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; color: var(--text); }
   .news-card-desc { font-size: 15px; line-height: 1.55; color: var(--text2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
+  /* Magazine front: ranked stories followed by category desks. */
+  .ten-heading { color: var(--text); font-size: 13px; letter-spacing: 0.12em; border-top: 2px solid var(--text); padding-top: 18px; margin-bottom: 28px; }
+  .ten-rank { display: block; color: var(--accentDeep); font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  .ten-rank-overlay { color: #F3EEE4; margin-bottom: 8px; }
+  .ten-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; margin-top: 32px; }
+  .ten-item { display: flex; gap: 16px; align-items: flex-start; min-width: 0; padding: 18px 0; border-top: 1px solid var(--hairline); text-decoration: none; }
+  .ten-item-media { position: relative; flex: 0 0 112px; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 12px; background: var(--surfaceAlt); border: 1px solid var(--hairline); }
+  .ten-item-media img, .desk-single-media img { object-fit: cover; object-position: center; }
+  .ten-item-body { min-width: 0; }
+  .ten-title { margin: 6px 0 8px; font-size: 18px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.25; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .ten-item:hover .ten-title { color: var(--accentDeep); }
+  .desks { display: flex; flex-direction: column; gap: 56px; margin-top: 56px; }
+  .desk-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border-top: 2px solid var(--text); padding-top: 18px; margin-bottom: 22px; }
+  .desk-title { color: var(--text); font-size: 24px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+  .desk-link { color: var(--accentDeep); font-size: 13.5px; font-weight: 600; white-space: nowrap; text-decoration: none; }
+  .desk-link:hover { color: var(--accent); }
+  .desk-single { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 24px; align-items: center; padding: 20px; text-decoration: none; }
+  .desk-single-media { position: relative; aspect-ratio: 16 / 10; border-radius: 18px; overflow: hidden; background: var(--surfaceAlt); border: 1px solid var(--hairline); }
+  .desk-single-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
   @media (max-width: 1000px) {
+    .news-masthead-image { height: 300px; }
     .news-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .news-top { grid-template-columns: minmax(0, 1fr); }
     .news-lead { min-height: 400px; }
     .news-side { grid-template-rows: none; grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 640px) {
+    .news-masthead-image { height: 260px; padding-bottom: 30px; }
+    .ten-list { grid-template-columns: 1fr; }
+    .desks { gap: 40px; }
+    .desk-title { font-size: 21px; }
+    .desk-link { white-space: normal; text-align: right; }
+    .desk-single { grid-template-columns: 1fr; }
     .chip-row {
       flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
       margin: 0 -20px 20px; padding: 0 20px;
