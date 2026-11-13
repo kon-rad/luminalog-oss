@@ -13599,7 +13599,125 @@ function ParallelAgentTeamsExplainedContent() {
   )
 }
 
+/* ── Post: How Graphon connects the clues an AI assistant needs to remember ── */
+function GraphonMultimodalMemoryContent() {
+  return (
+    <>
+      <P>
+        A reservation email says a hotel stay will cost one amount. A later invoice says something else. If you ask an AI assistant what you paid, which document should it trust?
+      </P>
+      <P>
+        The question sounds simple until the assistant has years of emails, images, videos and documents to search. It needs to recognize that both files concern the same stay, understand that the invoice came later, and use the final charge rather than the original estimate. That is a memory problem, not just a search problem.
+      </P>
+      <P>
+        <A href="https://www.graphonlabs.ai/">Graphon Labs</A> is building a memory system for that kind of task. Its central idea is to connect related evidence in a graph, then bring the relevant part of that graph into an assistant&apos;s answer.
+      </P>
+      <Figure
+        src="/blog/graphon-multimodal-memory-1.jpg"
+        alt="Graphon Labs homepage describing its multimodal memory product"
+        width={1800}
+        height={1140}
+        priority
+        caption="Graphon presents memory across video, images, audio and documents as one product. Screenshot: Graphon Labs."
+      />
+      <H2>Why is search alone not enough?</H2>
+      <P>
+        A search tool can retrieve the reservation email. A different query might retrieve the invoice. The assistant still has to work out that the two records describe the same trip and that the invoice supersedes the estimate.
+      </P>
+      <P>
+        The challenge gets harder when one clue is a person named in an email, another is that person in a photograph, and a third is something they said in a video. The information is spread across formats. A useful memory system needs to preserve the connections, not just store each file separately.
+      </P>
+      <P>
+        Graphon says it reads text, documents, images, audio and video to build a shared representation of their relationships. It retrieves the relevant subgraph when an agent asks a question. A <strong>graph</strong> is a set of things and connections between them. Here, the things might be people, events, files and dates. A connection might say that an invoice belongs to a booking, or that a face in a frame is the person named in an email.
+      </P>
+      <Figure
+        src="/blog/graphon-multimodal-memory-2.jpg"
+        alt="Diagram linking an email, photo and video to a cited answer through a shared evidence graph"
+        width={1200}
+        height={680}
+        caption="An evidence graph can connect clues across formats before the answer is written. Illustration: Argo, based on Graphon's stated workflow."
+      />
+      <H2>What does Graphon add?</H2>
+      <P>
+        Graphon describes a graph connecting material across files. It says the system infers its own schema, meaning it learns the kinds of things and relationships in the material instead of requiring a person to design every category beforehand.
+      </P>
+      <P>
+        That matters because personal and company records rarely arrive in a tidy format. An email thread, a slide deck and a video call can all refer to the same decision. If the memory system can link them, the assistant can answer with a smaller, more relevant group of clues. Graphon also says its answers include source citations, giving the reader a route to inspect the evidence.
+      </P>
+      <Figure
+        src="/blog/graphon-multimodal-memory-3.jpg"
+        alt="Graphon Labs page explaining its automatically maintained ontology"
+        width={1800}
+        height={1140}
+        caption="Graphon says it connects evidence across files and infers a schema without a hand-written ontology. Screenshot: Graphon Labs."
+      />
+      <H2>How are systems like this tested?</H2>
+      <P>
+        The tests below measure different kinds of memory, so their scores should be read separately. One test is <A href="https://www.graphonlabs.ai/">LoCoMo</A>, a benchmark for answering questions about long conversations. Graphon&apos;s <A href="https://www.graphonlabs.ai/benchmarks/locomo-graphon.json">downloadable results</A> list 1,448 answers judged correct out of 1,540, an accuracy of 94.03%. Its site reports 7.9 thousand tokens per question. A <strong>token</strong> is a small unit of text that an AI model processes. Using fewer tokens means bringing less material into each answer, though the published figure does not describe every cost of building the memory in the first place.
+      </P>
+      <Figure
+        src="/blog/graphon-multimodal-memory-4.jpg"
+        alt="Argo chart of Graphon reported LoCoMo result, 1,448 of 1,540 answers judged correct"
+        width={1200}
+        height={680}
+        caption="Graphon's downloadable LoCoMo results list 1,448 of 1,540 answers correct; its product page reports 7.9K tokens per question. Chart: Argo."
+      />
+      <P>
+        The chart shared with the original post shows a different test, ConvoMem. It labels Graphon V1 at 91.0% and 8.9 thousand tokens per question. The LoCoMo and ConvoMem figures are separate results, not two readings of the same experiment.
+      </P>
+      <Figure
+        src="/blog/graphon-multimodal-memory-5.jpg"
+        alt="ConvoMem accuracy versus tokens chart showing Graphon V1 at 91.0 percent and 8.9 thousand tokens"
+        width={1800}
+        height={2200}
+        caption="This shared chart is for ConvoMem, not LoCoMo: Graphon V1 is labeled 91.0% at 8.9K tokens. Source: Graphon-branded chart shared on X."
+      />
+      <P>
+        A second test, <A href="https://atmbench.github.io/index.html">ATM-Bench</A>, puts the problem closer to a person&apos;s accumulated digital life. Its tasks span email, images and video, and include conflicting records over time. The booking-versus-invoice example is one of its published cases. The correct answer requires choosing the later invoice over the earlier estimate.
+      </P>
+      <Figure
+        src="/blog/graphon-multimodal-memory-6.jpg"
+        alt="ATM-Bench example showing an earlier reservation email conflicting with a later invoice"
+        width={1800}
+        height={1140}
+        caption="ATM-Bench tests whether a memory system can prefer later evidence over an outdated booking estimate. Screenshot: ATM-Bench project."
+      />
+      <P>
+        On the <A href="https://atmbench.github.io/leaderboard.html">ATM-Bench public leaderboard</A>, Graphon V1 is listed first among memory-system submissions with an 81.71% question score using GPT-6 Astra as the answering model. The LoCoMo results use a GPT-4o judge; GPT-6 Astra is the answer model in this ATM-Bench submission. This is a result for that submitted setup. It tells us how Graphon performed on this benchmark, not how every deployment will perform on every person&apos;s records.
+      </P>
+      <Figure
+        src="/blog/graphon-multimodal-memory-7.jpg"
+        alt="ATM-Bench public leaderboard with Graphon V1 listed first among memory systems"
+        width={1800}
+        height={1140}
+        caption="The ATM-Bench submission lists Graphon V1 at 81.71% question score with GPT-6 Astra as answer model. Screenshot: ATM-Bench leaderboard."
+      />
+      <H2>What should a builder take from this?</H2>
+      <P>
+        Start with a question that crosses sources or time: Which document contains the final price? Who was in the meeting shown in this recording? What changed after the first plan? If an assistant can retrieve the right evidence, identify when it was created and show where its answer came from, the memory is doing useful work.
+      </P>
+      <P>
+        Graphon&apos;s approach is one answer to that design problem. Its reported scores make it worth studying. The more general lesson is to treat memory as connected evidence that can be checked, rather than a pile of notes that merely mention the same words.
+      </P>
+      <P>
+        Follow more AI explainers at https://myargoquest.com/blog.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "graphon-multimodal-memory",
+    title: "How Graphon connects the clues an AI assistant needs to remember",
+    description: "Graphon links documents, images, video and email so an AI assistant can retrieve evidence across formats and time.",
+    category: "ai-news",
+    date: "November 11, 2026",
+    isoDate: "2026-11-11T16:15",
+    readingTime: "5 min read",
+    image: "/blog/graphon-multimodal-memory-1.jpg",
+    Content: GraphonMultimodalMemoryContent,
+  },
   {
     slug: "parallel-agent-teams-explained",
     title: "Why small AI agent teams can outperform one giant team",
