@@ -13706,7 +13706,205 @@ function GraphonMultimodalMemoryContent() {
   )
 }
 
+/* ── Post: Inside the Argo engine rebuild: one manifest per feature, addons off by default, one memory ── */
+function EngineCoreV2ArchitectureContent() {
+  return (
+    <>
+      <P>
+        Last week&apos;s post, <A href="https://myargoquest.com/blog/engine-v2-onboarding">From an empty folder to a company of agents</A>, walked through the new on-ramp: the installer, <code>init</code>, and a skill that sets up a vault for you. This post is about what sits underneath that on-ramp: how the engine itself was rebuilt, one feature at a time, and why each piece is shaped the way it is.
+      </P>
+      <P>
+        The engine is the open-source app that indexes your markdown, runs the board and the project tracker, and hosts the agents that work in your notes. It grew fast. Each new feature arrived as a new surface: a route here, a page there, a timer file, a launcher subcommand, a paragraph in four separate docs. Nothing was ever removed. By early November the design notes counted 15 modules with five different lists of them in the docs, 26 command-line entry points, and 17 services plus 15 timers checked in by hand.
+      </P>
+      <P>
+        None of that was a missing feature. The cost was that adding one thing meant editing six places that all had to agree, and they drifted. The rebuild, which we called core v2, set out to give every feature exactly one place where it is wired, and to make everything else read from that place. A follow-up round, which we call r2, then started cutting what core v2 had exposed.
+      </P>
+      <H2>What are the layers now?</H2>
+      <P>
+        The engine now has three layers, stacked on top of your vault.
+      </P>
+      <Figure
+        src="/blog/engine-core-v2-architecture-1.jpg"
+        alt="Three stacked layers: seventeen addons off until listed, six core features on in every vault, and a base of vault index, search, editor, auth and the doctor, all over a markdown vault"
+        width={1600}
+        height={900}
+        priority
+        caption="The engine after the rebuild: a base, six core features, and seventeen addons that stay off until secondbrain.json lists them"
+      />
+      <UL items={[
+        <><strong>Base:</strong> what every vault needs to be a vault at all. The index over your markdown, keyword and vector search, the editor, login, and the health checks.</>,
+        <><strong>Core features:</strong> six features that ship on in every vault. They are <code>projects</code> (the tracker), <code>memory</code>, <code>org</code> (your roster of agents), <code>board</code> (the kanban board), <code>usage</code> (what each run cost) and <code>summaries</code> (a short summary per finished agent session).</>,
+        <><strong>Addons:</strong> optional features, seventeen of them, from the map and voice to social metrics and the dispatcher that wakes agents. Every addon is off until your <code>secondbrain.json</code> names it.</>,
+      ]} />
+      <P>
+        The line between core and addon was a decision, made before any code moved. The first plan had five core features; usage was added as the sixth when the plan was reviewed, and the dispatcher was confirmed as an addon because it is still a pilot.
+      </P>
+      <H2>What is a manifest?</H2>
+      <P>
+        A manifest is a small file, one per feature, that describes the feature as plain data: its name, whether it is core, its links in the navigation, its commands, its scheduled jobs, the tables it needs, the settings it reads, and where its docs live. Think of it as the label on a moving box. Whoever handles the box reads the label; nobody has to open the box to know where it goes.
+      </P>
+      <P>
+        The engine&apos;s own source says it in one sentence, at the top of the type that every manifest uses.
+      </P>
+      <Figure
+        src="/blog/engine-core-v2-architecture-2.jpg"
+        alt="The features/types.ts file on GitHub with the comment that says a feature manifest is the one place a feature is wired highlighted"
+        width={1920}
+        height={908}
+        caption="The rule in the code itself: a manifest is the one place a feature is wired (github.com/kon-rad/argo)"
+      />
+      <P>
+        The manifest is deliberately pure data. It imports no server code, so a command-line tool or a deploy step can read every manifest without starting the app or connecting to a database. Here is the board&apos;s, trimmed:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"export default defineFeature({\n  name: 'board',\n  core: true,\n  nav: [{ section: 'Work', label: 'Board', path: '/board' }],\n  cli: [{ command: 'board', entry: 'cli-board.js', summary: 'the kanban board' } /* and review */],\n  timers: [{ unit: 'secondbrain-board-reclaim', calendar: '*:0/5', command: 'board reclaim' }],\n  wrappers: ['cli-board'],\n  health: { label: 'the board tables answer', tables: ['boards', 'cards', 'card_comments', 'card_events', 'card_deps', 'card_runs'] },\n  docs: 'docs/kanban-board.md',\n});"}</code></pre>
+      <P>
+        Six different parts of the system read that one object.
+      </P>
+      <Figure
+        src="/blog/engine-core-v2-architecture-3.jpg"
+        alt="The board manifest in the middle with arrows to six readers: app.ts mounts routes, the meta API serves nav, the launcher dispatches commands, plan and apply generate systemd units, PATH wrappers, and doctor checks tables"
+        width={1600}
+        height={900}
+        caption="One manifest, six readers. Before the rebuild the same facts lived in app.ts, App.tsx, deploy.sh, the launcher, env.example and four docs"
+      />
+      <UL items={[
+        <><strong>The server</strong> mounts the feature&apos;s routes from it.</>,
+        <><strong>The web app</strong> asks the server for its menu, and the server builds that menu from the manifests of the features that are on.</>,
+        <><strong>The launcher</strong>, the one <code>secondbrain</code> command, looks up any word it does not know in the manifests&apos; command lists, so <code>secondbrain board</code> and <code>secondbrain memory</code> need no special code in the launcher.</>,
+        <><strong>The config generator</strong> turns each timer into a systemd service and timer pair. systemd is the Linux service manager that runs jobs on a schedule.</>,
+        <><strong>The wrapper step</strong> writes the small <code>cli-board</code>-style scripts that put each command on the machine&apos;s path.</>,
+        <><strong>The doctor</strong>, a command that checks an installation is healthy, confirms that every table a feature names exists, so a feature whose database migration never ran fails loudly in <code>secondbrain doctor</code> and <code>/api/health</code> instead of erroring on its first request.</>,
+      ]} />
+      <P>
+        The manifests were built first, before any other phase, because every later piece reads them. That ordering is the main reason the rest of the rebuild went quickly.
+      </P>
+      <H2>How do addons stay out of the way?</H2>
+      <P>
+        A registry file lists the six core manifests and then every addon manifest, as one combined list. Every reader filters that list by what your vault has turned on. A fresh vault therefore sees only the six core features: no addon routes are mounted, no addon timers are installed, and no addon links appear in the menu. Turning on two addons is one line in <code>secondbrain.json</code>:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"{ \"addons\": [\"map\", \"social\"] }"}</code></pre>
+      <P>
+        Moving the addons behind their manifests deleted twelve hand-written &quot;is this module on?&quot; blocks from the server&apos;s startup file, and the web app&apos;s hard-coded menu went with them.
+      </P>
+      <P>
+        Round 2 pushed the boundary further. The largest addon was an event app built for a conference, with its own contracts, wallet code and eleven test configurations, and it was the only addon the base startup knew by name. It now lives in its own self-contained package. Addons gained optional <code>boot</code> and <code>close</code> hooks, so the engine loads that package only when the addon is on, and its web page is loaded only when someone opens it. A vault that never turns it on builds and starts without any of its dependencies. Paths under the app that mention it went from 71 to 6.
+      </P>
+      <H2>How does one settings file become a running server?</H2>
+      <P>
+        Before the rebuild, a server&apos;s configuration was spread over an environment file, a settings file, hand-written unit files and a deploy script that decided which units to install with its own list of module checks. Now there is one path.
+      </P>
+      <Figure
+        src="/blog/engine-core-v2-architecture-4.jpg"
+        alt="A left to right flow: secondbrain.json with its server and addons blocks, one settings loader that validates each section, secondbrain plan which writes nothing, and secondbrain apply which writes the env file and units, with doctor and the health endpoint below"
+        width={1600}
+        height={900}
+        caption="Config flow: one settings file, one loader, plan shows the change, apply writes it, doctor checks it"
+      />
+      <UL items={[
+        <><strong>`secondbrain.json`</strong> gained a <code>server</code> block: the host, the system user, the install and vault folders, and the backup settings.</>,
+        <><strong>One loader</strong> reads that file. Round 2 found three different readers of it, and one bad field anywhere silently reset every setting to its defaults. Now there is a single loader, and each section is checked on its own: a broken <code>social</code> block falls back to its own defaults, the doctor names the bad field, and the rest of your settings load normally.</>,
+        <><strong>`secondbrain plan`</strong> reads the enabled manifests, renders the environment file and every unit, compares them with what is on disk, and writes nothing.</>,
+        <><strong>`secondbrain apply`</strong> writes them. <code>secondbrain upgrade</code> does the same but is a dry run unless you pass <code>--yes</code>.</>,
+      ]} />
+      <P>
+        The analogy is a building plan and a builder. <code>plan</code> is the drawing with the changes marked; <code>apply</code> is the builder doing exactly what the drawing shows. Read the plan before you apply it.
+      </P>
+      <P>
+        Round 2 then made the manifests the only source of scheduled jobs. Every feature and addon timer moved into its owning manifest, the three jobs that belong to no feature (the database backup, the vault sync and the embedding run) are declared once in the generator, and the deploy script calls <code>apply</code> instead of copying files. Seventeen hand-written timer files were deleted. The move also surfaced real drift: one usage sync timer ran every minute while its manifest said every five minutes. The generated version follows the manifest.
+      </P>
+      <P>
+        The doctor closes the loop. <code>secondbrain doctor</code> and the <code>/api/health</code> endpoint run the same checks: the database answers, the vector extension is installed, no migrations are pending, every enabled feature&apos;s tables exist, and the settings file passes its schema. Against an empty database during testing it reported three errors (the vector extension missing, migrations pending, the board&apos;s tables absent) and exited non-zero, which is the point: it fails before a user does.
+      </P>
+      <H2>Why did memory get rebuilt?</H2>
+      <P>
+        Memory was the one core feature that was not shaped like a feature. Agents had a store of their own per-agent notes, a generated prose file per agent that was injected when it woke up, a separate reflect model call that fed it, and, alongside all of it, a shared table of facts with no record of which agent a fact belonged to. Recall and remember were verbs hidden inside the org command.
+      </P>
+      <Figure
+        src="/blog/engine-core-v2-architecture-5.jpg"
+        alt="Before and after panels: on the left a per-agent memory table, a core.md file per bot, a reflect step, untagged facts and recall inside the org CLI; on the right one fact table tagged by agent, the episodes table, vault markdown, and the secondbrain memory command"
+        width={1600}
+        height={900}
+        caption="Memory before and after: the persona store was exported into memory_facts, then dropped, in one migration"
+      />
+      <P>
+        Now memory is one core feature with one store. Each fact is a single claim with a source, tagged with the agent it belongs to. A second table keeps one row per finished agent run, and the vault&apos;s own markdown stays searchable through recall. When an agent wakes, it gets the facts tagged with its own name instead of a prose file. Everything is reachable from one command, <code>secondbrain memory recall|remember|list|retire|stats</code>, and from a <code>/memory</code> page that lists facts, pending candidates and a retire button.
+      </P>
+      <P>
+        The risky part was deleting the old store without losing what agents had learned. The answer was a single migration: it copies every old row into the fact table, tagged with its agent, and drops the old table in the same transaction. If the copy fails, nothing is dropped. The module that held the old store went from 899 lines to 129.
+      </P>
+      <H2>Where does a feature&apos;s code live now?</H2>
+      <P>
+        Manifests fixed where a feature is wired, but not where its code lives. A review after core v2 found that one feature could still be spread over up to five places, and that the browser kept a single 1,476-line file retyping every server response by hand.
+      </P>
+      <P>
+        Round 2 has started on both, one slice at a time. For the board and the tracker, the router, the domain logic and the command now live in the feature&apos;s own folder beside its manifest. The old file paths remain as two-line forwarding stubs for one release, so nothing that imports them breaks.
+      </P>
+      <P>
+        On the browser side, search, the board and the tracker now each have their own small client, and their request and response shapes are defined once, as shared schemas that both the server and the browser compile against. For those three, a changed response shape now shows up as a type error in the build rather than a broken page. Writing those shared schemas found fields the server already returned that the browser&apos;s hand-written types had never listed. The shared browser file is down from 1,476 lines to 1,173.
+      </P>
+      <H2>How fast did it go, and how was it checked?</H2>
+      <P>
+        Core v2 merged in three days, November 3 to 5, as a series of small pull requests, one or a few per phase. Round 2&apos;s first five items merged between November 12 and 14.
+      </P>
+      <Figure
+        src="/blog/engine-core-v2-architecture-6.jpg"
+        alt="A dot chart of merge dates: core v2 phases 0 to 7 and the fallback model merged between November 3 and 5, and five round 2 items merged between November 12 and 14"
+        width={1600}
+        height={1000}
+        caption="Merge dates of every pull request in both rounds, November 2026 (UTC)"
+      />
+      <P>
+        Two pieces from those days are worth naming. The org compiler, which turns your roster files into the agent definitions each tool reads, was ported from Python to TypeScript so the engine needs no Python for it. It was checked against a real 34-agent roster, and its output matched the old compiler&apos;s exactly. And the dispatcher gained a fallback model: if an agent&apos;s model runs on a computer at home and that computer stops answering, the dispatcher runs the agent on a configured backup model instead, and retries a run once if it died on a provider error.
+      </P>
+      <P>
+        The build logs record a full test-suite count for each phase from 0 through the org compiler, from runs on the branch or on merged main.
+      </P>
+      <Figure
+        src="/blog/engine-core-v2-architecture-7.jpg"
+        alt="Left, a line of passing tests rising from 1,311 to 1,381 across the phases, then 1,367 after the persona tests were removed; right, before and after bars for settings readers, env reads, timer files, browser api.ts lines and event app paths"
+        width={1600}
+        height={900}
+        caption="Tests passing per phase from the build logs (branch or merged-main runs); the final dip is 14 tests deleted with the old memory store. Right: what round 2 removed"
+      />
+      <P>
+        The count rose from 1,311 passing tests at phase 0 to 1,381 after the org compiler, then dropped to 1,367 on purpose: the old memory store&apos;s 14 tests were deleted together with the store they tested. Nothing that remained failed. On the right are the round 2 measurements each pull request recorded: settings readers from three to one, direct environment reads outside the config schema from 62 to 10 (the remaining ten are deliberate and documented), hand-written timer files from 17 to none.
+      </P>
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Built and merged: all eight core v2 phases and the dispatcher fallback, plus five of the ten round 2 items, all described above.
+      </P>
+      <P>
+        Still a plan, stated plainly:
+      </P>
+      <UL items={[
+        <><strong>Feature folders and shared browser schemas are first slices.</strong> Only the board and the tracker have moved into their folders, and only search, the board and the tracker have shared schemas. The org feature, the largest, is next.</>,
+        <><strong>Round 2 items 6 to 10 have not started:</strong> one guard (the program that checks each agent action before it runs) instead of two copies that can drift apart, one Search page, a feature page that shows its cards, one test layout with a fast lane that needs no database, and docs generated from the manifests.</>,
+        <><strong>The fallback model has not been exercised in a live outage.</strong> Today it is covered by tests and configuration only.</>,
+        <><strong>The fifteen-minute fresh install is a target,</strong> not a measured time on a clean machine, and the onboarding docs have not yet shrunk to the two pages the design calls for.</>,
+      ]} />
+      <H2>What to take away</H2>
+      <P>
+        If you build a system that keeps growing, the cheapest structural change we found was to write down, per feature, the facts every other part needs, in one plain-data file, and make everything read it. Once that existed, deleting things became safe, and most of this rebuild was deleting things.
+      </P>
+      <P>
+        The engine is open source at <A href="https://github.com/kon-rad/argo">github.com/kon-rad/argo</A>; start with <code>app/server/src/features/</code> to see the manifests. More of this writing goes to <A href="https://x.com/myargoquest">x.com/myargoquest</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "engine-core-v2-architecture",
+    title: "Inside the Argo engine rebuild: one manifest per feature, addons off by default, one memory",
+    description: "How the Argo engine was rebuilt around feature manifests: a base, six core features, opt-in addons, generated config and units, and one memory store.",
+    category: "product-updates",
+    date: "November 14, 2026",
+    isoDate: "2026-11-14T17:21",
+    readingTime: "13 min read",
+    image: "/blog/engine-core-v2-architecture-1.jpg",
+    Content: EngineCoreV2ArchitectureContent,
+  },
   {
     slug: "graphon-multimodal-memory",
     title: "How Graphon connects the clues an AI assistant needs to remember",
