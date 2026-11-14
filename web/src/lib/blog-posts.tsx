@@ -14135,7 +14135,201 @@ function AgentSwarmsExplainedContent() {
   )
 }
 
+/* ── Post: "The Anthology of Balaji, summarized: technology, truth and building the future" ── */
+function AnthologyOfBalajiSummaryContent() {
+  return (
+    <>
+      <P>
+        Balaji Srinivasan&apos;s ideas on technology, truth and building companies are spread across about a decade of podcasts, posts and tweets. Eric Jorgenson went through hundreds of hours of that material and compiled it into one book. The book is free to download, and it asks readers to check its quotations against a primary source before citing them.
+      </P>
+      <P>
+        Jorgenson published it in 2023 as <A href="https://balajianthology.com">*The Anthology of Balaji: A Guide to Technology, Truth, and Building the Future*</A>. This post summarizes the book part by part. It reports what the book says and does not argue for or against it.
+      </P>
+      <Figure
+        src="/blog/anthology-of-balaji-summary-1.jpg"
+        alt="The dark blue cover of The Anthology of Balaji, subtitled A Guide to Technology, Truth, and Building the Future, by Eric Jorgenson with illustrations by Jack Butcher"
+        width={1100}
+        height={1700}
+        priority
+        caption="The cover of The Anthology of Balaji (2023). Source: Eric Jorgenson, balajianthology.com"
+      />
+      <H2>Who is Balaji, and how was the book made?</H2>
+      <P>
+        The book&apos;s timeline gives the background. Srinivasan earned a BS, MS and PhD in electrical engineering and an MS in chemical engineering at Stanford. In 2008 he co-founded Counsyl, a clinical genomics company that the book says was sold for 375 million USD in 2018. He joined the venture capital firm Andreessen Horowitz as a general partner in 2013, became chief technology officer of Coinbase in 2018 and published *The Network State* in 2022.
+      </P>
+      <Figure
+        src="/blog/anthology-of-balaji-summary-2.jpg"
+        alt="Portrait photo of Balaji Srinivasan in front of a TechCrunch Disrupt SF 2017 backdrop"
+        width={1920}
+        height={1366}
+        caption="Balaji Srinivasan at TechCrunch Disrupt SF in 2017. Photo: Kristyuhorton, Wikimedia Commons, CC BY-SA 4.0"
+      />
+      <P>
+        Jorgenson writes that he built the book &quot;entirely out of transcripts, tweets, and talks Balaji has shared.&quot; He is also the author of *The Almanack of Naval Ravikant*. Jack Butcher drew the illustrations and Srinivasan wrote the introduction.
+      </P>
+      <P>
+        The book has three parts and a reading list. Part I covers what technology does. Part II covers how to tell what is true. Part III is advice for people who want to build something. The reading list at the back groups Srinivasan&apos;s recommended books under math and science, books for founders, and history. The book invites readers to skip around, and notes that ideas often build on earlier ones.
+      </P>
+      <Figure
+        src="/blog/anthology-of-balaji-summary-3.jpg"
+        alt="Diagram of the book's structure: Part I Technology, Part II Truth and Part III Building the Future, each with its chapter titles, and a bonus reading list"
+        width={1600}
+        height={1000}
+        caption="How the book is organized: three parts and a reading list. Diagram by Argo, from the book's table of contents"
+      />
+      <H2>What does Part I say technology is for?</H2>
+      <P>
+        Part I opens with a statement about money: &quot;I look at money as a tool to build things I can&apos;t buy today.&quot; The book&apos;s examples are a trip to Mars, which no amount of money buys today, and the iPhone, which the richest person of a hundred years ago could not have bought.
+      </P>
+      <P>
+        From there Srinivasan defines the purpose of technology as reducing <strong>scarcity</strong> (having less of something than people want). A breakthrough is described as faster, smaller, cheaper or better, and each word means doing more with less. He argues that mortality is the main source of scarcity, because time has value only while lives are finite, and concludes: &quot;the ultimate purpose of technology is to eliminate mortality.&quot;
+      </P>
+      <P>
+        He also proposes a &quot;technology theory of value&quot; in place of the labor theory of value (the idea that a thing&apos;s worth comes from the hours of work put into it). His example is a chair: one made on an assembly line can be cheaper and better than a handmade one that took more hours.
+      </P>
+      <H3>What rules can hide</H3>
+      <P>
+        The book borrows the idea of the seen and the unseen from Frederic Bastiat, whom it calls a philosopher. A finished skyscraper is visible. One that was never built is not. Srinivasan&apos;s example: in 2009 &quot;it would have been remarkable to claim&quot; that 100 billion USD in company value was being held back by taxi and hotel rules, and &quot;Uber and Airbnb showed it was true.&quot; He asks what drug, aviation and securities rules might be holding back in the same way, and argues for letting early adopters take risks, as test pilots did for aviation.
+      </P>
+      <H3>Technology and political order</H3>
+      <P>
+        Part I states that &quot;what is politically feasible is a function of what is technologically feasible.&quot; The book&apos;s examples: accurate maps made explicit borders possible, and guns reduced the advantage of armored knights, which weakened feudal hierarchy.
+      </P>
+      <P>
+        Srinivasan describes the 20th century as centralized by broadcast media and factory production, with a peak in 1950: &quot;one telephone company, two superpowers, and three television stations.&quot; He says the personal computer, the internet and Bitcoin push in the opposite direction. He does not present decentralization as a cure. His description is a cycle of &quot;bundling, unbundling, then rebundling&quot; around new centers, and his short forecast is &quot;more upside, more downside.&quot;
+      </P>
+      <H3>The digital and physical future</H3>
+      <P>
+        The book describes a three-step pattern: a physical thing, then a scanned copy of it, then a version that is digital from the start. Paper became a scanned file and then a document that never existed on paper. In the book&apos;s words, cash may go &quot;to an online bank balance to cryptocurrency.&quot;
+      </P>
+      <P>
+        Srinivasan calls crypto &quot;programmable money&quot; and ties it to digital property rights: &quot;If you don&apos;t own private keys to something, you don&apos;t really own it.&quot; (A private key is the secret code that proves control of a crypto account.) He expects robots to turn labor into capital: in his words, &quot;once a robot can do something, you&apos;ve turned labor into capital.&quot; He describes the physical world as &quot;a printout of digital wealth.&quot;
+      </P>
+      <P>
+        On health, the book argues for continuous self-measurement and for research into reversing aging. Srinivasan prefers the term &quot;youth extension&quot; to life extension, because the goal he describes is more years of being young, not more years of old age.
+      </P>
+      <H2>How does Part II define truth?</H2>
+      <P>
+        Part II begins with an ordering of goals: &quot;truth, health, and wealth, in that order.&quot; It then separates kinds of truth by what makes each one true.
+      </P>
+      <UL items={[
+        <><strong>Political truth:</strong> true if enough people believe it. The book&apos;s examples are who the president is and where a border lies.</>,
+        <><strong>Technical truth:</strong> a fact that does not depend on belief. The book&apos;s examples are the result of an equation and the diameter of a virus under an electron microscope.</>,
+        <><strong>Scientific truth:</strong> established by independent replication (other people repeating the work and getting the same result). The book says: &quot;If it&apos;s not independently reproducible, it&apos;s not science.&quot;</>,
+        <><strong>Economic truth:</strong> Srinivasan argues that facts matter because a society whose account of itself rests on facts gains technological and economic strength over the medium to long term, and that a society built on false numbers falls behind. The book sorts statements into four kinds: a popular opinion is a platitude, a popular fact is a triviality, an unpopular opinion is a heresy and an unpopular fact is an innovation. It adds: &quot;Unpopular truth is a reliable source of profit.&quot;</>,
+        <><strong>Cryptographic truth:</strong> a record that anyone can check with math. His example is that there is no dispute over who owns which Bitcoin.</>,
+      ]} />
+      <Figure
+        src="/blog/anthology-of-balaji-summary-4.jpg"
+        alt="Page 106 of the book: the heading Economic Truth, a four-line list pairing popular and unpopular opinions and facts with platitude, triviality, heresy and innovation, last line highlighted, and the same four words in a two by two grid"
+        width={924}
+        height={1411}
+        caption="The book's grid of popular and unpopular opinions and facts (highlight added). Source: The Anthology of Balaji, p. 106, illustration by Jack Butcher"
+      />
+      <P>
+        The practical advice in this part is to ask for the raw data behind any statistic, and to argue with the people who produced a claim and not with those who pass it along: &quot;Argue with signal sources, not signal repeaters.&quot; Srinivasan also proposes a &quot;ledger of record&quot;, which he describes as &quot;the integration of all these crypto oracles.&quot; An <strong>oracle</strong> here is a source that publishes signed, time-stamped data to a blockchain (a shared record that many computers keep and no one can quietly rewrite), such as a weather sensor reporting a temperature. He wants the record to grow from &quot;who owns what Bitcoin&quot; to &quot;who said what things at what times.&quot;
+      </P>
+      <H2>What does the book say about media?</H2>
+      <P>
+        Three chapters of Part II cover media: Srinivasan&apos;s criticism of news companies, his advice to readers, and what he would build. His starting point is that media shapes behavior the way code shapes machines: &quot;If you are what you eat, then you think what you see.&quot;
+      </P>
+      <P>
+        He argues that news companies are corporations whose income rises with conflict, summarized as &quot;if it enrages, it engages.&quot; One example he gives is a New York Times editorial of January 13, 1920, which said a rocket could not work in space. The book notes that the paper took the statement back on July 17, 1969.
+      </P>
+      <P>
+        His recommendations are addressed to the reader:
+      </P>
+      <UL items={[
+        <><strong>Information diet:</strong> treat what you read the way you treat what you eat.</>,
+        <><strong>Dashboards before news:</strong> start the day with your own numbers, such as health and savings, before a news feed. The book&apos;s phrase is &quot;dashboards are better than newspapers.&quot;</>,
+        <><strong>Useful media:</strong> prefer material you check line by line as you apply it, such as a coding tutorial.</>,
+        <><strong>Direct distribution:</strong> people who run companies should publish to their own audience.</>,
+      ]} />
+      <P>
+        He also sketches a different kind of news outlet: writers who attach a prediction market bet to each post (a prediction market is a market where people stake money on whether a forecast comes true), and readers who pay individual creators directly. He calls those paying readers &quot;dollowers&quot;, for dollar-weighted followers.
+      </P>
+      <H2>What does Part III advise people who want to build?</H2>
+      <P>
+        Part III has three chapters: Believing, Founding and Evolving.
+      </P>
+      <H3>Believing</H3>
+      <P>
+        Srinivasan argues that wealth is created and not taken from someone else, and asks: &quot;who did Steve Jobs steal all the iPhones from?&quot; He connects financial independence to independence of thought and gives a formula for a <strong>personal runway</strong> (the number of years a person can live without a paycheck): current savings divided by yearly expenses. He also says that cutting the cost of living to a fifth is easier than multiplying net worth by five.
+      </P>
+      <Figure
+        src="/blog/anthology-of-balaji-summary-5.jpg"
+        alt="Page 171 of the book with the personal runway formula: current savings divided by yearly expenses equals personal runway"
+        width={924}
+        height={561}
+        caption="The personal runway formula in the book. Source: The Anthology of Balaji, p. 171"
+      />
+      <P>
+        The chapter also explains his interest in frontiers. In his account, when there is no new territory people compete over what already exists, and when a frontier opens they can leave and build. He names four frontiers today: the land, the internet, the sea and space. The chapter&apos;s last section, titled &quot;Don&apos;t Argue. Build.&quot;, includes the line: &quot;Don&apos;t argue about regulation. Build Uber. Don&apos;t argue about monetary policy. Build Bitcoin.&quot;
+      </P>
+      <H3>Founding</H3>
+      <P>
+        The Founding chapter covers starting and running a company. Its main points:
+      </P>
+      <UL items={[
+        <><strong>The idea maze:</strong> a founder should know why earlier companies with the same idea failed and what a new technology has changed.</>,
+        <><strong>Market size:</strong> calculate it early and often, and estimate it in at least two different ways.</>,
+        <><strong>Seven stages:</strong> &quot;An idea is not a mockup. A mockup is not a prototype. A prototype is not a program. A program is not a product. A product is not a business. And a business is not profits.&quot;</>,
+        <><strong>Launching:</strong> &quot;A new product can never be superior to an incumbent in all respects. Launch means criticism.&quot;</>,
+        <><strong>Hiring:</strong> &quot;Hire people who are hungry and can teach us something.&quot;</>,
+        <><strong>Alignment:</strong> &quot;Politics arises when one person&apos;s biggest win involves (or requires!) another person&apos;s loss.&quot;</>,
+        <><strong>Execution:</strong> for an unstructured problem, list the options, rank them, work through the list, and set a limit before changing strategy.</>,
+      ]} />
+      <Figure
+        src="/blog/anthology-of-balaji-summary-6.jpg"
+        alt="Page 213 of the book: a table of seven stages from idea to profits, with what each requires and the minimum time it takes"
+        width={880}
+        height={510}
+        caption="The seven stages from idea to profits, with minimum times. Source: The Anthology of Balaji, p. 213"
+      />
+      <H3>Evolving</H3>
+      <P>
+        The last chapter covers personal habits. Srinivasan recommends writing goals down, placing all meetings on one or two days of the week, and spending the first hours of the day offline. He describes skipping exercise and good food as taking on &quot;physical debt.&quot;
+      </P>
+      <P>
+        For learning, he calls &quot;the newest technical papers and the oldest books&quot; the best sources of facts few other people know, starts with practice problems before reading the text, and treats math, computer science and statistics as &quot;universal languages.&quot; Near its end the chapter says: &quot;There is always another train leaving the station, another rocket ship blasting off. Found it, fund it, or join it.&quot;
+      </P>
+      <H2>What should a reader know before quoting the book?</H2>
+      <P>
+        The book states its own limits in a note at the front. Jorgenson writes that the transcripts were &quot;edited for clarity and brevity (multiple times)&quot;, that &quot;everything in this book is taken out of context&quot;, and asks readers to &quot;verify phrasing with a primary source before citing Balaji from this text.&quot; The quotations in this post come from the book and carry the same caution.
+      </P>
+      <P>
+        Jorgenson&apos;s introduction describes the ideas as &quot;often divisive&quot; and says readers may not agree with them.
+      </P>
+      <H2>Where can you get the book?</H2>
+      <Figure
+        src="/blog/anthology-of-balaji-summary-7.jpg"
+        alt="Two buttons cropped from the balajianthology.com home page: Download Free PDF, highlighted, and Download Free .EPUB"
+        width={1330}
+        height={455}
+        caption="The free download buttons on the book's website (highlight added). Source: balajianthology.com"
+      />
+      <P>
+        The book&apos;s website, <A href="https://balajianthology.com">balajianthology.com</A>, links to the paperback, hardcover and Kindle editions. The same page offers a free PDF and EPUB download and a web version. The book says a fully cited version of the text is available on the site.
+      </P>
+      <P>
+        More posts like this one are on the <A href="https://myargoquest.com/blog">Argo blog</A> and at <A href="https://x.com/myargoquest">x.com/myargoquest</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "anthology-of-balaji-summary",
+    title: "\"The Anthology of Balaji, summarized: technology, truth and building the future\"",
+    description: "A part-by-part summary of The Anthology of Balaji, Eric Jorgenson's collection of Balaji Srinivasan's ideas on technology, truth and building.",
+    category: "crypto",
+    date: "November 15, 2026",
+    isoDate: "2026-11-15T18:01",
+    readingTime: "12 min read",
+    image: "/blog/anthology-of-balaji-summary-1.jpg",
+    Content: AnthologyOfBalajiSummaryContent,
+  },
   {
     slug: "agent-swarms-explained",
     title: "Agent swarms explained: how teams of AI agents split up one task, and how we know if it works",
