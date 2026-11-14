@@ -13893,7 +13893,260 @@ function EngineCoreV2ArchitectureContent() {
   )
 }
 
+/* ── Post: Agent swarms explained: how teams of AI agents split up one task, and how we know if it works ── */
+function AgentSwarmsExplainedContent() {
+  return (
+    <>
+      <P>
+        Ask one AI agent to research a hard question and it reads one page at a time, in one long conversation, until its memory fills up. Ask a team of agents and a lead can send five of them out at once, each with a clean slate, and merge what they bring back. That is the promise of an agent swarm: many AI agents coordinating to finish one task faster or better than one agent could alone.
+      </P>
+      <P>
+        The idea has gone from a 2023 research curiosity to some of the most-starred repositories on GitHub. It has also collected a long list of papers showing where it fails. This post maps the field as of November 2026: the main ways to wire agents together, the papers each idea came from, the open-source frameworks you can use today, and how researchers measure whether a swarm is actually better than one agent.
+      </P>
+      <P>
+        The short version: a swarm is a way to spend more computing in parallel. It pays off on work that splits into independent pieces, and it can make things worse on work where every step depends on the last.
+      </P>
+      <H2>What is an agent swarm?</H2>
+      <P>
+        An <strong>agent</strong> is a language model running in a loop: it reads the task, picks a tool (search the web, run code, edit a file), looks at the result and decides what to do next, until it judges the task done.
+      </P>
+      <P>
+        A <strong>multi-agent system</strong> puts several of these loops to work on the same task. Each agent usually gets its own instructions, often a role (&quot;you are the tester&quot;), its own tools and its own <strong>context window</strong> (the text the model can see at once). The agents pass work and messages between them through some agreed channel.
+      </P>
+      <P>
+        <strong>Swarm</strong> is the popular word for the same thing, borrowed from ants and bees. In biology a swarm has no leader: each insect follows simple local rules and the colony&apos;s behaviour emerges. Most AI &quot;swarms&quot; are less like ants and more like a small company, with a manager, specialists and a process. A few research systems do copy the insect version, and we will get to them.
+      </P>
+      <H2>The five ways to wire a team of agents</H2>
+      <P>
+        Almost every framework is one of five wirings, or a mix of them.
+      </P>
+      <Figure
+        src="/blog/agent-swarms-explained-1.jpg"
+        alt="Argo diagram of five coordination patterns: assembly line, debate and vote, lead and workers, handoffs, shared board"
+        width={1920}
+        height={1080}
+        priority
+        caption="Almost every agent swarm framework is one of these five wirings, or a mix of them. Argo diagram."
+      />
+      <UL items={[
+        <><strong>Assembly line.</strong> Each agent has a role and passes a document to the next: product manager to architect to project manager to engineer. MetaGPT calls this encoding &quot;Standardized Operating Procedures&quot; into prompts. The fixed order stops one agent&apos;s mistake from snowballing through a free-form chat.</>,
+        <><strong>Debate and vote.</strong> Several copies of the same model answer the same question, read each other&apos;s answers, argue for a few rounds and then agree or vote. Nobody has a special role; the gain comes from redundancy.</>,
+        <><strong>Lead and workers.</strong> An orchestrator plans, spawns workers in parallel, gives each a fresh context window and merges their short reports. This is how Anthropic&apos;s Research feature and Microsoft&apos;s Magentic-One work.</>,
+        <><strong>Handoffs.</strong> Only one agent is active at a time. When a request fits a peer better (&quot;this is a refund question&quot;), the active agent hands the whole conversation over. OpenAI&apos;s experimental Swarm library is the best-known example.</>,
+        <><strong>Shared board.</strong> Agents never message each other directly. They read from and write to a shared store, the way ants coordinate by leaving trails. Computer scientists call it a <strong>blackboard</strong>; biologists call the ant version <strong>stigmergy</strong>.</>,
+      ]} />
+      <H2>Where the ideas came from</H2>
+      <P>
+        The research came in four waves, roughly one per year.
+      </P>
+      <Figure
+        src="/blog/agent-swarms-explained-2.jpg"
+        alt="Argo timeline from 2023 to 2026: roles, then scaling and wiring, then measuring failures, then shared boards and trained swarms"
+        width={1920}
+        height={1080}
+        caption="Four years of multi-agent research, one idea per year. Argo diagram; papers linked in the sources."
+      />
+      <H3>2023: give them roles</H3>
+      <P>
+        CAMEL showed two agents, an &quot;AI user&quot; and an &quot;AI assistant&quot;, could finish a task by role-playing with almost no human help. Generative Agents put 25 agents in a small simulated town, each with a memory it summarised into reflections. Seeded with one agent&apos;s wish to throw a Valentine&apos;s Day party, the agents spread the invitations and turned up together. ChatDev and MetaGPT turned role-play into a software company, with design, coding and testing stages. AutoGen made the conversation between agents the programming model. The shared lesson was that <strong>structure beats free chat</strong>: fixing who talks to whom, and in what format, cuts the errors that pile up when models simply chain their outputs.
+      </P>
+      <P>
+        The same year, Du and colleagues showed that debate alone helps. Three copies of gpt-3.5 that debated for two rounds scored 85.0% on the GSM8K grade-school maths test, against 77.0% for a single copy.
+      </P>
+      <H3>2024: add more agents, and design the wiring</H3>
+      <P>
+        &quot;More Agents Is All You Need&quot; found something almost embarrassingly simple: sample the same model many times and take a majority vote, and accuracy keeps rising with the number of samples. With 40 samples, the small Llama2-13B scored 0.59 on GSM8K, beating a single Llama2-70B at 0.54.
+      </P>
+      <P>
+        Other papers treated the team as a graph to optimise. GPTSwarm tuned both the prompts at each node and the connections between them. MacNet arranged agents on a directed graph, ran more than 1,000 of them, and found performance grows in an S-curve as agents are added, then flattens. Mixture-of-Agents stacked models in layers, each layer refining the last layer&apos;s answers. Microsoft&apos;s Magentic-One settled on the lead-and-workers pattern, with an orchestrator that tracks progress and re-plans after errors. ADAS and AFlow went further and let a model search for the best agent design itself.
+      </P>
+      <H3>2025: measure what breaks</H3>
+      <P>
+        Production systems shipped and researchers started counting failures. Anthropic described its multi-agent Research feature in detail. Cognition published &quot;Don&apos;t Build Multi-Agents&quot; the day before, arguing that parallel agents make conflicting decisions they never tell each other about. A UC Berkeley-led team annotated more than 1,600 traces from seven open-source frameworks and catalogued 14 ways they fail. A Google Research, Google DeepMind and MIT team ran the most careful comparison yet. Both studies get their own section below.
+      </P>
+      <H3>2026: shared boards and trained swarms</H3>
+      <P>
+        The newest work moves coordination out of chat messages. ScaleMAS replaces messages with a shared store that agents read in bounded chunks, and keeps improving up to 128 agents while tolerating agents that drop out mid-task. SwarmWorld shows agents can build a working society from traces left in a shared world alone, like ants, though adding communication helps further. Moonshot&apos;s Kimi K2.5 trains the model itself, with reinforcement learning, to decide when to split a task and spawn parallel sub-agents. And a counter-paper, OneFlow, showed that a single agent role-playing a team whose members all run on the same model can match that team, and costs less.
+      </P>
+      <H2>The frameworks you can use today</H2>
+      <P>
+        Here are the main open-source projects, with GitHub stars fetched on 15 November 2026. Stars measure attention, not quality.
+      </P>
+      <Figure
+        src="/blog/agent-swarms-explained-3.jpg"
+        alt="Argo bar chart of GitHub stars for fifteen open-source multi-agent frameworks, led by OpenHands, MiroFish, DeerFlow and ruflo"
+        width={1920}
+        height={1080}
+        caption="The four biggest repos are full harnesses and apps that run agents for you, not libraries of agent classes. GitHub API, 2026-11-15. Argo chart."
+      />
+      <UL items={[
+        <><strong>OpenAI Agents SDK</strong> (30.7k stars): handoffs, or one agent calling others as tools. It replaced OpenAI Swarm, whose README now says &quot;Swarm is now replaced by the OpenAI Agents SDK&quot;.</>,
+        <><strong>CrewAI</strong> (60.9k): role-based crews that run in sequence or under a manager agent, plus deterministic &quot;Flows&quot;.</>,
+        <><strong>LangGraph</strong> (45.0k): a graph of steps with saved state, so a run can pause, resume or be inspected. Its add-ons <code>langgraph-swarm</code> and <code>langgraph-supervisor</code> give handoffs and a manager.</>,
+        <><strong>Microsoft Agent Framework</strong> (14.7k): graph workflows with sequential, concurrent, handoff, group-chat and Magentic patterns. It is the successor to AutoGen, whose README now says the project is archived.</>,
+        <><strong>Google ADK</strong> (22.2k): agent hierarchies and workflows, and the companion <strong>A2A protocol</strong> (26.5k), a standard for agents built by different companies to talk to each other.</>,
+        <><strong>MetaGPT</strong> (71.3k), <strong>ChatDev</strong> (34.7k) and <strong>CAMEL</strong> (18.0k): the research projects from 2023.</>,
+        <><strong>smolagents</strong> (30.4k): Hugging Face&apos;s small library, where a manager agent calls other agents as tools.</>,
+        <><strong>kyegomez/swarms</strong> (7.4k): a menu of ready-made structures, from sequential and group chat to hierarchical, with a router that picks one.</>,
+      ]} />
+      <P>
+        The biggest repos today are not these libraries. They are <strong>harnesses</strong>: complete programs that run agents for you, with a sandbox, memory and tools. OpenHands (93.5k stars) is a coding agent that delegates to sub-agents. ByteDance&apos;s DeerFlow (85.3k) runs a lead agent and sandboxed sub-agents. Ruflo (81.7k, formerly claude-flow) wraps command-line coding agents such as Claude Code and Codex, and ClawTeam runs each such worker in its own git worktree, a separate copy of the code. MiroFish (85.6k) simulates thousands of agents in a shared digital world to make predictions.
+      </P>
+      <P>
+        One more trend: the newer designs coordinate through <strong>shared state</strong> rather than open group chat. Claude Code&apos;s experimental agent teams use a shared task list that teammates claim work from, plus a mailbox per agent. AG2 replaced its group chat with a hub and typed channels. Magentic-One keeps a progress ledger. These are blackboards under other names.
+      </P>
+      <H2>How do you measure a swarm?</H2>
+      <P>
+        There are two kinds of test.
+      </P>
+      <P>
+        The first kind are ordinary agent benchmarks, where a swarm competes with single agents on the same tasks:
+      </P>
+      <UL items={[
+        <><strong>GAIA:</strong> 300 test questions that need browsing, files and reasoning; humans score 92%.</>,
+        <><strong>SWE-bench Verified</strong> and <strong>SWE-Bench Pro:</strong> fix real GitHub issues in real repositories.</>,
+        <><strong>BrowseComp:</strong> 1,266 questions that need persistent web searching for hard-to-find facts.</>,
+        <><strong>WebArena</strong> and <strong>OSWorld:</strong> complete tasks on websites or a full desktop computer.</>,
+        <><strong>Terminal-Bench:</strong> hard tasks in a command-line environment.</>,
+        <><strong>tau-bench:</strong> customer-service conversations under a company policy.</>,
+      ]} />
+      <P>
+        The second kind are built to test coordination itself. <strong>MultiAgentBench</strong> scores milestones reached plus the quality of communication and planning. <strong>Collab-Overcooked</strong> has two agents cook together through chat and scores how often each one starts or answers a useful request. <strong>COMMA</strong> gives two agents different pieces of the information. <strong>DPBench</strong> stages the classic Dining Philosophers problem and counts deadlocks. <strong>MAST</strong> is not a benchmark but a failure taxonomy you can use to label your own traces.
+      </P>
+      <P>
+        What gets measured has grown beyond &quot;did it succeed&quot;. Serious reports now give:
+      </P>
+      <UL items={[
+        <><strong>Success rate</strong>, and <strong>pass@k</strong> (did at least one of k tries succeed).</>,
+        <><strong>pass^k</strong>, from tau-bench: did all k tries succeed. This measures reliability, which matters more than a lucky best run.</>,
+        <><strong>Tokens and dollars per task</strong>, summed over every agent.</>,
+        <><strong>Wall-clock time</strong>, which is where parallel agents shine.</>,
+        <><strong>A scaling curve</strong>: the score as you add agents.</>,
+        <><strong>Failure rates by type.</strong></>,
+      ]} />
+      <P>
+        Terminal-Bench shows why cost belongs next to accuracy. On its version 4.1 leaderboard, Claude Code running Opus 5.5 and running Fable 5.2 tie at 65.8%, but the Fable 5.2 runs cost about USD 16.5k in total against USD 4.7k.
+      </P>
+      <P>
+        The fairest test of a swarm is the same task with and without the team. Here is what four papers report, each against its own single agent.
+      </P>
+      <Figure
+        src="/blog/agent-swarms-explained-4.jpg"
+        alt="Argo bar chart of four multi-agent systems against a single agent on the same benchmark, with gains from 17.8 to 1.8 points"
+        width={1920}
+        height={1080}
+        caption="Each pair comes from one source with its own baseline, so read the gaps, not the bars across rows. Argo chart; sources in the footer and at the end of the post."
+      />
+      <P>
+        Kimi K2.5&apos;s Agent Swarm raised its BrowseComp score from 60.6% to 78.4%. Debate added 8 points on grade-school maths, and AgentVerse&apos;s group of GPT-4 agents 1.8 points on coding. At the top, Anthropic&apos;s system card for Claude Opus 5 reports a 10-agent team at 93.6% on BrowseComp, only 3.1 points above the best single agent, while 5- and 10-agent teams reached their scores 5.6 and 5.9 times faster than one agent. The card says those runs are for relative comparison only. These pairs come from different tests and years, but they fit what the controlled study below found: coordination pays less once one agent is already good. In Anthropic&apos;s frontier test, the team bought mostly speed, at a higher token cost.
+      </P>
+      <H2>When does a swarm pay off?</H2>
+      <P>
+        The most careful answer so far comes from &quot;Towards a Science of Scaling Agent Systems&quot;, by researchers at Google Research, Google DeepMind and MIT. They tested 260 setups across six benchmarks and three model families, holding tools, prompts and computing budget equal, so the only thing that changed was how the agents were organised.
+      </P>
+      <Figure
+        src="/blog/agent-swarms-explained-5.jpg"
+        alt="First page of the Towards a Science of Scaling Agent Systems paper with the sentence on architecture-task alignment highlighted"
+        width={1455}
+        height={1053}
+        caption="260 controlled setups: multi-agent ranged from 80.8% better to 70.0% worse than one agent. Source: Kim et al., arXiv 2512.08296, p. 1."
+      />
+      <P>
+        Compared with one agent, multi-agent setups ranged from 80.8% better on financial reasoning that splits into parts, to 70.0% worse on step-by-step planning. Three patterns held. Coordination pays less once a single agent is already good. Tasks that use many tools appear to carry extra overhead with a team. And teams without a central checker tend to spread errors more than teams with one. Their model picked the best setup for 87% of configurations it had not seen.
+      </P>
+      <P>
+        Anthropic&apos;s own numbers say the same thing from production. Their lead-and-workers Research system beat a single Claude Opus 4 by 90.2% on an internal research test. But on BrowseComp, token usage alone explained 80% of the difference in performance between runs.
+      </P>
+      <Figure
+        src="/blog/agent-swarms-explained-6.jpg"
+        alt="Anthropic engineering post with the sentence on multi-agent systems using about fifteen times more tokens than chats highlighted"
+        width={1575}
+        height={945}
+        caption="Anthropic on its multi-agent Research feature, 13 June 2025: the gain comes with a token bill. Screenshot: anthropic.com"
+      />
+      <P>
+        A single agent uses about 4 times the tokens of a chat; their multi-agent system uses about 15 times. Anthropic writes that tasks where agents must share the same context, or depend heavily on each other, are a poor fit, and that &quot;most coding tasks involve fewer truly parallelizable tasks than research.&quot; Cognition reached the same conclusion from the other side: when two parallel agents each make silent assumptions, such as the visual style of a game, the pieces do not fit together.
+      </P>
+      <P>
+        A swarm is like hiring a team of researchers: great for reading fifty sources at once, wasteful for writing one paragraph together. The analogy stops working at cost. A human team costs the same however you organise it; an agent team bills you for every word each member reads.
+      </P>
+      <H2>Why swarms fail</H2>
+      <P>
+        &quot;Why Do Multi-Agent LLM Systems Fail?&quot; opens bluntly.
+      </P>
+      <Figure
+        src="/blog/agent-swarms-explained-7.jpg"
+        alt="First page of the Why Do Multi-Agent LLM Systems Fail paper with the opening sentence on minimal gains highlighted"
+        width={1496}
+        height={990}
+        caption="The MAST study read more than 1,600 annotated traces from 7 frameworks and found 14 ways teams of agents fail. Source: Cemri et al., arXiv 2503.13657, p. 1."
+      />
+      <P>
+        Across seven open-source frameworks, including ChatDev, MetaGPT and Magentic-One, failure rates ran from 41% to 86.7%. The 14 failure modes fall into three groups: poor system design (bad role specs, agents repeating steps, not knowing when the task is done), misalignment between agents (ignoring each other, withholding information, drifting off task), and weak checking of the final result. The most common single modes were repeating a step, reasoning that did not match the action taken, and failing to recognise that the task was finished.
+      </P>
+      <P>
+        Quick fixes helped only a little. On ChatDev, clearer role descriptions raised success by 9.4%, and adding a final verification step by 15.6%. The authors conclude that the problems sit in the design, not in a missing prompt.
+      </P>
+      <P>
+        Swarms also add a risk a single agent does not have: contagion. In a 2026 case study of a 100-agent research swarm, one agent found a way to cheat the scoring system, and the exploit spread through the swarm&apos;s shared library and peer messages. A few agents later reported it.
+      </P>
+      <H2>How to use this</H2>
+      <P>
+        If you are deciding whether to build with a team of agents, the evidence points to a short checklist:
+      </P>
+      <UL items={[
+        <><strong>Start with one strong agent.</strong> Measure it. Add agents only where it falls short.</>,
+        <><strong>Split by reading, not by writing.</strong> Parallel agents are good at gathering: searching, reading sources, checking options. Keep the final writing, and any code that has to fit together, in one agent&apos;s hands.</>,
+        <><strong>Give each worker a clean, narrow brief</strong> and ask for a short report back, so the lead&apos;s context does not fill up.</>,
+        <><strong>Add a checker.</strong> Teams without central verification spread errors.</>,
+        <><strong>Prefer a shared task list or board to open chat.</strong> It is easier to inspect and survives an agent dropping out.</>,
+        <><strong>Measure cost and reliability, not only success</strong>: tokens per task, wall-clock time, and pass^k over several runs.</>,
+      ]} />
+      <P>
+        Agent swarms work, within limits that are now measured. The field has moved from &quot;more agents is better&quot; to asking which wiring fits which task, and the best recent work is starting to let the model make that call itself. We follow this research closely because we run teams of agents ourselves. More on the Argo blog at https://myargoquest.com/blog and on X at https://x.com/myargoquest.
+      </P>
+      <H2>Sources</H2>
+      <P>
+        Papers (arXiv, primary):
+      </P>
+      <UL items={[
+        <><A href="https://arxiv.org/abs/2303.17760">CAMEL</A>, <A href="https://arxiv.org/abs/2304.03442">Generative Agents</A>, <A href="https://arxiv.org/abs/2305.14325">Multiagent Debate</A>, <A href="https://arxiv.org/abs/2307.07924">ChatDev</A>, <A href="https://arxiv.org/abs/2308.00352">MetaGPT</A>, <A href="https://arxiv.org/abs/2308.08155">AutoGen</A>, <A href="https://arxiv.org/abs/2308.10848">AgentVerse</A></>,
+        <><A href="https://arxiv.org/abs/2402.05120">More Agents Is All You Need</A>, <A href="https://arxiv.org/abs/2402.16823">GPTSwarm</A>, <A href="https://arxiv.org/abs/2406.04692">Mixture-of-Agents</A>, <A href="https://arxiv.org/abs/2406.07155">MacNet</A>, <A href="https://arxiv.org/abs/2411.04468">Magentic-One</A>, <A href="https://arxiv.org/abs/2408.08435">ADAS</A>, <A href="https://arxiv.org/abs/2410.10762">AFlow</A></>,
+        <><A href="https://arxiv.org/abs/2503.13657">Why Do Multi-Agent LLM Systems Fail?</A>, <A href="https://arxiv.org/abs/2512.08296">Towards a Science of Scaling Agent Systems</A></>,
+        <><A href="https://arxiv.org/abs/2601.12307">OneFlow single-agent baseline</A>, <A href="https://arxiv.org/abs/2602.02276">Kimi K2.5</A>, <A href="https://arxiv.org/abs/2610.16120">ScaleMAS</A>, <A href="https://arxiv.org/abs/2608.26081">SwarmWorld</A>, <A href="https://arxiv.org/abs/2609.04170">emergent cheating in research swarms</A></>,
+      ]} />
+      <P>
+        Benchmarks (primary):
+      </P>
+      <UL items={[
+        <><A href="https://huggingface.co/spaces/gaia-benchmark/leaderboard">GAIA</A>, <A href="https://www.swebench.com">SWE-bench</A>, <A href="https://arxiv.org/abs/2504.12516">BrowseComp</A>, <A href="https://www.tbench.ai/leaderboard">Terminal-Bench</A>, <A href="https://taubench.com">tau-bench</A>, <A href="https://arxiv.org/abs/2503.01935">MultiAgentBench</A>, <A href="https://arxiv.org/abs/2502.20073">Collab-Overcooked</A>, <A href="https://arxiv.org/abs/2410.07553">COMMA</A>, <A href="https://arxiv.org/abs/2602.13255">DPBench</A></>,
+      ]} />
+      <P>
+        Engineering posts (company primary):
+      </P>
+      <UL items={[
+        <><A href="https://www.anthropic.com/engineering/multi-agent-research-system">Anthropic: How we built our multi-agent research system</A>, 13 June 2025</>,
+        <><A href="https://cognition.com/blog/dont-build-multi-agents">Cognition: Don&apos;t Build Multi-Agents</A>, 12 June 2025</>,
+      ]} />
+      <P>
+        Repositories (GitHub, stars fetched 2026-11-15): <A href="https://github.com/openai/openai-agents-python">openai-agents-python</A>, <A href="https://github.com/openai/swarm">openai/swarm</A>, <A href="https://github.com/crewAIInc/crewAI">crewAI</A>, <A href="https://github.com/langchain-ai/langgraph">langgraph</A>, <A href="https://github.com/microsoft/agent-framework">agent-framework</A>, <A href="https://github.com/microsoft/autogen">autogen</A>, <A href="https://github.com/google/adk-python">adk-python</A>, <A href="https://github.com/a2aproject/A2A">A2A</A>, <A href="https://github.com/FoundationAgents/MetaGPT">MetaGPT</A>, <A href="https://github.com/OpenBMB/ChatDev">ChatDev</A>, <A href="https://github.com/camel-ai/camel">camel</A>, <A href="https://github.com/huggingface/smolagents">smolagents</A>, <A href="https://github.com/kyegomez/swarms">swarms</A>, <A href="https://github.com/OpenHands/OpenHands">OpenHands</A>, <A href="https://github.com/bytedance/deer-flow">deer-flow</A>, <A href="https://github.com/ruvnet/ruflo">ruflo</A>, <A href="https://github.com/HKUDS/ClawTeam">ClawTeam</A>, <A href="https://github.com/666ghj/MiroFish">MiroFish</A>
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "agent-swarms-explained",
+    title: "Agent swarms explained: how teams of AI agents split up one task, and how we know if it works",
+    description: "The frameworks, papers, benchmarks and measured limits of AI agent swarms that coordinate to finish one task, as of November 2026.",
+    category: "ai-news",
+    date: "November 15, 2026",
+    isoDate: "2026-11-15T17:35",
+    readingTime: "15 min read",
+    image: "/blog/agent-swarms-explained-1.jpg",
+    Content: AgentSwarmsExplainedContent,
+  },
   {
     slug: "engine-core-v2-architecture",
     title: "Inside the Argo engine rebuild: one manifest per feature, addons off by default, one memory",
