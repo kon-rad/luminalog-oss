@@ -13122,7 +13122,1291 @@ function MemorillaContent() {
   )
 }
 
+/* ── Post: "Qwen 4: what is confirmed before a 27B release" ── */
+function Qwen4ConfirmedContent() {
+  return (
+    <>
+      <P>
+        You see Qwen 4 27B in a headline and start thinking about the machine that could run it. Before choosing hardware, there is a more basic question: which released model would you actually download?
+      </P>
+      <P>
+        As checked on November 9, 2026, the primary sources reviewed for this article did not verify a public Qwen4-27B release. They did establish a Qwen 4 roadmap and a released architecture preview under a different model name. Those are useful pieces of evidence, with different meanings.
+      </P>
+      <P>
+        This is a guide to reading that evidence before turning it into a deployment plan. It does not offer a release date or measured hardware requirements for Qwen4-27B.
+      </P>
+      <H2>What Alibaba actually said</H2>
+      <P>
+        In its <A href="https://www.alibabacloud.com/en/press-room/alibaba-unveils-roadmap-on-full-stack-ai-strategy">September 22, 2026 announcement</A>, Alibaba said Qwen 4 was in training. That confirms a statement about the model family on that date.
+      </P>
+      <Figure
+        src="/blog/qwen-4-confirmed-1.jpg"
+        alt="Alibaba announcement dated September 22, 2026"
+        width={1920}
+        height={1327}
+        priority
+        caption="Source: Alibaba Cloud. The training statement is dated September 22, 2026."
+      />
+      <P>
+        A dated training announcement cannot tell us, by itself, whether a model is still training today. It also cannot establish that a particular downloadable version has shipped since then. To answer either question, we need newer evidence tied to the exact model.
+      </P>
+      <P>
+        The distinction matters when older announcements keep circulating alongside newer speculation. A sentence can be accurately quoted and still fail to answer the question a reader is asking now.
+      </P>
+      <H2>What the architecture preview tells us</H2>
+      <P>
+        There is a concrete artifact to inspect: <A href="https://huggingface.co/Qwen/Qwen3.8-Flash-Next">Qwen3.8-Flash-Next</A>. Qwen&apos;s model card describes it as an experimental preview of the architecture that will underpin Qwen4.
+      </P>
+      <Figure
+        src="/blog/qwen-4-confirmed-2.jpg"
+        alt="Qwen model card describing an architecture preview"
+        width={973}
+        height={403}
+        caption="Source: Qwen on Hugging Face. The card names Qwen3.8-Flash-Next."
+      />
+      <P>
+        An architecture is the arrangement of a model&apos;s computational parts. A preview lets developers study a particular implementation and the documentation attached to it. It gives the discussion something more substantial than an expected name.
+      </P>
+      <P>
+        It does not make every field in that model card a specification for another model. The preview&apos;s parameter counts and deployment instructions belong to the preview. A future 27B version would need its own documentation before we could report those details as established facts.
+      </P>
+      <P>
+        Think of a prototype vehicle showing a new engine layout. You can inspect the prototype. You still need the production vehicle&apos;s specification before claiming its weight or fuel consumption. The analogy concerns the evidence, not how neural networks are manufactured.
+      </P>
+      <H2>What the public catalog check found</H2>
+      <P>
+        At approximately 09:09 UTC on November 9, we queried Hugging Face&apos;s public model API for models under the official Qwen organization with Qwen4 in the name. That query returned an empty list.
+      </P>
+      <P>
+        A separate request for the exact Qwen/Qwen4-27B model endpoint returned HTTP 401 rather than a public model card. An inaccessible endpoint is not proof that a model does not exist. It may be private, gated, differently named, or absent.
+      </P>
+      <Figure
+        src="/blog/qwen-4-confirmed-3.jpg"
+        alt="Official Qwen organization model search"
+        width={1920}
+        height={1327}
+        caption="Source: Qwen on Hugging Face. Qwen4 name search captured November 9, 2026; not an audit of all providers."
+      />
+      <P>
+        Our conclusion is deliberately scoped: <strong>this check did not verify a public Qwen4-27B release</strong>. It was not a complete audit of every provider or private repository. A later announcement or catalog entry could change the result, which is why the date belongs beside it.
+      </P>
+      <H2>What would establish a release</H2>
+      <P>
+        For a release article, we would look for an official announcement naming the exact model and the artifact readers can use. For an open-weight release, that means the downloadable model files, configuration and licence. For API availability, it means a documented identifier and working access through the named provider.
+      </P>
+      <Figure
+        src="/blog/qwen-4-confirmed-4.jpg"
+        alt="Release verification sequence from announcement to test"
+        width={1600}
+        height={900}
+        caption="Argo editorial method: identify the model, inspect its files and licence, then test the access route."
+      />
+      <P>
+        These checks answer different questions. An announcement establishes what the publisher says it launched. Files let us inspect what was published. A licence tells us the stated terms. A successful inference test shows that the particular route we tested actually works.
+      </P>
+      <P>
+        We have not performed a Qwen4-27B inference test. We would not present a launch headline as a substitute for one.
+      </P>
+      <H2>How to prepare a deployment decision</H2>
+      <P>
+        Write down a task you want a local model to perform. For example, ask it to extract the affected component and reproduction steps from a fixed repository issue. Decide what a correct extraction must include before running the test.
+      </P>
+      <P>
+        When a verified model arrives, record its exact identity and the software used to run it. Test that task on your intended setup before making a performance claim. If the question is whether it fits on a particular machine, report the actual configuration and observed memory use alongside the result.
+      </P>
+      <Figure
+        src="/blog/qwen-4-confirmed-5.jpg"
+        alt="Separate evidence paths for the preview and a 27B model"
+        width={1600}
+        height={900}
+        caption="Argo diagram: a preview model card does not establish another model specification."
+      />
+      <P>
+        For now, this article provides no GPU shopping recommendation and no Qwen4-27B memory estimate. The evidence reviewed here does not support either. Readers can inspect the released preview on its own terms while waiting for documentation of the model they intend to deploy.
+      </P>
+      <H2>Where to check next</H2>
+      <P>
+        Go to the <A href="https://huggingface.co/Qwen">official Qwen organization</A>, read the exact model card, and compare it with the publisher&apos;s announcement. Keep the architecture preview and the eventual release separate in your notes. That makes it easier to update a plan when a real artifact appears.
+      </P>
+      <P>
+        Follow our source-backed explainers at <A href="https://myargoquest.com/blog">the Argo blog</A>.
+      </P>
+    </>
+  )
+}
+
+/* ── Post: Claude Fable 5.2 and Mythos 5.2: what changed ── */
+function ClaudeFableMythos52Content() {
+  return (
+    <>
+      <P>
+        An AI can write a plausible patch and still leave the difficult part of a project untouched. The real test comes when the problem spans several tools, the first approach fails, and someone has to decide what to try next.
+      </P>
+      <P>
+        That is the kind of work Anthropic is targeting with <A href="https://www.anthropic.com/claude-fable-and-mythos-5-2">Claude Fable 5.2 and Mythos 5.2</A>, announced on November 9. The release points toward longer technical projects, from software to physical devices. For a builder, the useful question is where this changes the work they can finish, and what they should verify before trusting it.
+      </P>
+      <Figure
+        src="/blog/claude-fable-mythos-52-1.jpg"
+        alt="Anthropic's announcement hero naming Claude Fable 5.2 and Mythos 5.2"
+        width={1500}
+        height={975}
+        priority
+        caption="The official November 9 release announcement page. Screenshot: Anthropic."
+      />
+      <H2>Why are there two names?</H2>
+      <P>
+        Fable and Mythos use the same underlying model. The distinction is in safeguards and access. Fable has additional controls for cybersecurity and biology. Organizations doing eligible work can apply for Mythos through Anthropic&apos;s verification programs.
+      </P>
+      <Figure
+        src="/blog/claude-fable-mythos-52-2.jpg"
+        alt="A branching diagram separates one underlying model into Fable safeguards and Mythos verified research access"
+        width={1600}
+        height={900}
+        caption="One model, two access paths. Conceptual explanation of Anthropic's release, not its model architecture. Diagram: Argo."
+      />
+      <P>
+        That matters when a team chooses a model for a particular job. Paying for a Claude subscription is not the same as having permission to use Mythos for every task. Establish which model the application can actually call, then test that configuration. A result obtained with one safeguard setup cannot simply be assigned to another.
+      </P>
+      <P>
+        The <A href="https://www.anthropic.com/claude/fable">Fable product page</A> lists the model for Pro, Max, Ultra, Team and Enterprise users, alongside platform and cloud access. Developers use <code>claude-fable-5-2</code> on the Claude API. Availability still needs checking for the account and service a team intends to use.
+      </P>
+      <Figure
+        src="/blog/claude-fable-mythos-52-3.jpg"
+        alt="Anthropic explains that Fable and Mythos share an underlying model with different safeguards and access routes"
+        width={1350}
+        height={870}
+        caption="Shared underlying model, different safeguards and access. Screenshot: Anthropic."
+      />
+      <H2>What should an application check before using it?</H2>
+      <P>
+        <A href="https://support.claude.com/en/articles/15363606-why-claude-switched-models-in-your-conversation-with-fable-models">Anthropic&apos;s fallback documentation</A> describes an important difference between Claude applications and the API. API customers must configure fallback behavior. Without it, a request blocked by safeguards can return HTTP 200 with a stop reason. HTTP 200 alone therefore does not establish that the requested task completed. A service can successfully deliver a response that says it could not do the job.
+      </P>
+      <P>
+        An application should inspect what happened, preserve the reason a task stopped, and make its next action explicit. Silently treating a blocked run as a finished result would turn a model limitation into an application error. Data-retention terms and access eligibility also need checking before sensitive material is submitted.
+      </P>
+      <H2>Does this replace the everyday coding model?</H2>
+      <P>
+        Anthropic still recommends starting with Opus 5.5 for most everyday coding and knowledge work. Fable is positioned for harder, more open-ended problems.
+      </P>
+      <P>
+        Consider two possible jobs. One is changing a label in a form with a clear test. The other is finding why a service fails only after several systems interact. The first has a narrow target. The second may require tracing assumptions, designing an experiment and revising the plan. These are illustrative tasks, but the distinction gives a team something more useful than choosing the highest-ranked model for every request.
+      </P>
+      <P>
+        An escalation rule can be simple: start with the existing setup, then move a task to the more capable model when a defined obstacle appears. Record the obstacle. Was it a failure to find the cause, an inability to use the tools, or an incorrect result after review? That record makes the next model choice easier to assess.
+      </P>
+      <H2>What should we take from the reported results?</H2>
+      <P>
+        The release includes a prototype operating-system experiment involving more than 1,000 subagents working for eight days. It also describes a separate mathematics experiment: roughly 1,000 agents formalized Fermat&apos;s Last Theorem in 30 hours. Formalizing a proof means translating it into a form a computer can check. It does not mean discovering the theorem.
+      </P>
+      <P>
+        These are different experiments with different goals. Combining their headlines into an operating system built in 30 hours would create a result Anthropic did not report. The mathematics figure describes one run per model, which limits what it tells us about repeatability.
+      </P>
+      <Figure
+        src="/blog/claude-fable-mythos-52-4.jpg"
+        alt="Anthropic benchmark footnotes describe safeguard settings, effort and evaluation conditions"
+        width={960}
+        height={1040}
+        caption="Benchmark methodology footnotes detailing effort levels and safeguard settings. Screenshot: Anthropic."
+      />
+      <P>
+        On FrontierCode 2.0, Anthropic reports 49.1% for Fable 5.2 and 32.4% for Fable 5.1, both at Xhigh effort. That setting gives the model more room to work on a problem. The comparison is useful because it names both the task collection and the effort setting; it remains a vendor-reported result.
+      </P>
+      <P>
+        A benchmark is a defined collection of tasks with a scoring rule. It can reveal a useful difference, but the score belongs to that setup. Before using it to justify a model change, ask what counted as success, which tools were available, and whether the model had the same budget as the comparison. A score is a reason to investigate a workload, not a forecast for an unrelated repository.
+      </P>
+      <H2>What does the hardware example add?</H2>
+      <P>
+        Anthropic reports a collaboration with Diode in which Fable produced the circuit-board, enclosure and software designs for three devices. Diode manufactured and assembled them, and Anthropic reports that all three worked. Design files crossed into real objects, but the physical work still involved people and manufacturing.
+      </P>
+      <Figure
+        src="/blog/claude-fable-mythos-52-5.jpg"
+        alt="Anthropic's hardware-engineering passage and circuit-board video poster from its release page"
+        width={1350}
+        height={870}
+        caption="The hardware demonstration includes human manufacturing and assembly. Source passage and video poster: Anthropic."
+      />
+      <P>
+        For a builder, this suggests a demanding evaluation. Inspect the artifacts at every boundary: does the code run, do the dimensions match, and can the person doing the next step use what was produced? A convincing rendering is not a manufacturing check. A generated test is not evidence that the test ran. Work becomes useful when its next consumer can verify and use it.
+      </P>
+      <H2>How do the price and speed claims work?</H2>
+      <P>
+        The <A href="https://claude.com/pricing">published pricing</A> is USD 8 per million input tokens and USD 40 per million output tokens for Fable 5.2 standard mode. Tokens are the pieces of text the service processes and generates. Fast mode costs USD 16 and USD 80 respectively. The standard unit rates are 20% lower than Fable 5.1&apos;s listed USD 10 and USD 50. Opus 5.5 standard pricing is USD 4 per million input tokens and USD 20 per million output tokens. Fable&apos;s unit rates are twice Opus&apos;s; actual task cost also depends on how many tokens and attempts the job needs.
+      </P>
+      <P>
+        For an arithmetic example, a run using 100,000 input tokens and 20,000 output tokens would cost USD 1.60 at standard rates or USD 3.20 in fast mode. That excludes caching, tool use, repeated attempts and other charges. It illustrates the rates, not a typical project budget.
+      </P>
+      <Figure
+        src="/blog/claude-fable-mythos-52-6.jpg"
+        alt="Anthropic's Fable product-page passage listing availability, token prices and fast-mode terms"
+        width={1350}
+        height={870}
+        caption="Published pricing and availability, checked November 10, 2026. Screenshot: Anthropic's Fable product page."
+      />
+      <P>
+        Anthropic reports output generation up to 30% faster than the 5.1 models, and up to 2.5 times faster token generation with fast mode. Those claims do not say a whole task finishes proportionally sooner. Waiting for a build or revisiting a failed approach can dominate the elapsed time. Measure the accepted outcome and the full bill together.
+      </P>
+      <P>
+        Start an evaluation with a task whose answer or acceptance test is already known. Hold the input, tool permissions and objective steady. Compare the existing setup with Fable, then record elapsed time, total cost and the human work needed to accept the result. That is a proposed test, not a test we have run for this article. It gives the release a practical next step: find out whether the harder work becomes verifiably easier.
+      </P>
+      <P>
+        Follow Argo&apos;s research and build notes at <A href="https://myargoquest.com/blog">myargoquest.com/blog</A>.
+      </P>
+    </>
+  )
+}
+
+/* ── Post: How deleting a few weights teaches an AI model new tasks ── */
+function DeletionTuningExplainedContent() {
+  return (
+    <>
+      <P>
+        An AI model can be capable in one setting and weak in another. To teach it a new task, the usual answer is to train again, changing many of the numbers inside it. Those numbers are called weights. They determine how strongly one part of the model influences another.
+      </P>
+      <P>
+        We recently looked at <A href="https://myargoquest.com/blog/weight-space-programming">models that directly edit weights</A>. A <A href="https://arxiv.org/abs/2611.10866">new NeurIPS 2026 paper</A> asks a simpler question: what if an AI model could learn a task by turning a very small number of its existing connections off, without writing any new weight values?
+      </P>
+      <P>
+        Jack Lu and his coauthors call the method <strong>Deletion Tuning</strong>. In the six reported reinforcement-learning runs, the final adaptation sets fewer than 0.05% of model weights to zero. At the largest model sizes they tested, it reached roughly the same accuracy as full fine-tuning across math reasoning, supervised question answering and self-distillation.
+      </P>
+      <Figure
+        src="/blog/deletion-tuning-explained-1.jpg"
+        alt="Title and abstract of the Deletion Tuning research paper"
+        width={1254}
+        height={753}
+        priority
+        caption="The paper asks whether deleting a small set of pretrained weights can teach new tasks. Source: Lu et al., arXiv 2611.10866, p. 1, CC BY 4.0."
+      />
+      <H2>How can removing a connection teach anything?</H2>
+      <P>
+        Picture a sound mixing desk. A recording contains many tracks. To make one instrument easier to hear, you might lower another track without recording a new sound. A model&apos;s weights are not separate tracks, so the analogy has limits. But it shows why removing an influence can change the result rather than merely damage it.
+      </P>
+      <P>
+        Deletion Tuning starts with a pretrained model whose weight values are frozen. It places a learnable switch beside each weight in a particular part of the model, the gate projection of its transformer blocks. During training, the switch is soft: the original weight is multiplied by a value between zero and one. This lets the training process adjust the switches gradually.
+      </P>
+      <P>
+        At the end, each switch becomes a binary choice. The weight keeps its original value, or it becomes zero. The saved task-specific adapter is the pattern of those choices, called a mask. The deployed model contains no newly learned weight values. <strong>The mask was learned through training; the method is not training-free.</strong>
+      </P>
+      <Figure
+        src="/blog/deletion-tuning-explained-2.jpg"
+        alt="Paper diagram shows pretrained weights, a learned gate mask and the deployed zeros"
+        width={1357}
+        height={607}
+        caption="Training learns which existing weights to keep or delete. The deployed model writes no new weight values. Source: Lu et al., Fig. 1, CC BY 4.0."
+      />
+      <H2>Why does the choice of weights matter?</H2>
+      <P>
+        Deleting weights at random would be an easy trick, but it is not what the authors tested. They first use a pruning score, called Wanda, to initialize the possible switches. Then they train the mask on the task. The question is whether learning which switches to flip matters more than simply removing a tiny fraction of connections.
+      </P>
+      <P>
+        The paper compares its learned mask with one-shot Wanda pruning, which removes weights without that training step. On the math tasks, one-shot removal stays close to the original model. The learned deletion mask improves substantially. For example, on the paper&apos;s Llama 8B math test, the base model scored 60.27%, one-shot Wanda scored 60.65%, and Deletion Tuning scored 83.55% at its best checkpoint.
+      </P>
+      <P>
+        That comparison is useful because it narrows the result. The model did not gain a skill because any deletion is beneficial. It gained the tested behavior after the training process found a task-specific deletion pattern.
+      </P>
+      <Figure
+        src="/blog/deletion-tuning-explained-3.jpg"
+        alt="Table contrasts the base model, one-shot Wanda pruning and learned Deletion Tuning masks"
+        width={1389}
+        height={710}
+        caption="A learned mask, not one-shot removal, drives the reported improvement. Source: Lu et al., Table 4, CC BY 4.0."
+      />
+      <H2>What did the experiments show?</H2>
+      <P>
+        The researchers tested two model families, from 0.5 billion to 30 billion parameters. They used three ways of teaching a model: reinforcement learning with checkable answers, supervised learning from examples, and self-distillation, where the student generates its own responses while a teacher supplies target probabilities for each token. The most direct comparison is with <strong>full fine-tuning</strong>, which can update every model weight.
+      </P>
+      <P>
+        In the reinforcement-learning experiments, the deletion mask came close to or matched full fine-tuning on the largest backbones. On Llama 8B math questions, Deletion Tuning scored 83.55% versus 83.24% for full fine-tuning. On a six-benchmark average for Qwen 7B, the scores were 52.32% and 51.89%. On the tested Qwen mixture-of-experts model at 30 billion total parameters, they were 58.54% and 58.43%.
+      </P>
+      <P>
+        The saved adapters were much smaller. For Llama 8B, the compressed deletion mask was 8.4 MB, compared with a 30,633 MB full fine-tuned checkpoint in the authors&apos; accounting. The 8.4 MB is the task-specific mask, not the total model footprint: the base model remains present in full. This is not a claim that it runs faster.
+      </P>
+      <Figure
+        src="/blog/deletion-tuning-explained-4.jpg"
+        alt="Table compares base, full fine-tuning and Deletion Tuning at four model scales"
+        width={1389}
+        height={607}
+        caption="At the larger tested scales, the deletion mask matched full fine-tuning with a far smaller saved adapter. Source: Lu et al., Table 2, CC BY 4.0."
+      />
+      <P>
+        Smaller models did not all reach full fine-tuning&apos;s score. The paper&apos;s claim is parity <strong>at the largest tested scale in each setting</strong>, not a universal win at every size.
+      </P>
+      <P>
+        The researchers also tested supervised fine-tuning on knowledge and reasoning benchmarks, and self-distillation on tool use and science questions. The deletion mask matched full fine-tuning at the largest model size they used for each of those settings. This matters because the method did not work only with one kind of training signal.
+      </P>
+      <Figure
+        src="/blog/deletion-tuning-explained-5.jpg"
+        alt="Two tables show supervised fine-tuning and self-distillation results beside full fine-tuning"
+        width={1389}
+        height={1107}
+        caption="The paper tests deletion masks beyond reinforcement learning, on supervised learning and self-distillation. Source: Lu et al., Tables 5 and 6, CC BY 4.0."
+      />
+      <H2>What happens to the model&apos;s earlier abilities?</H2>
+      <P>
+        Learning a new task can weaken an older one. The authors measured this during math reinforcement learning by retesting six earlier tasks, including general knowledge, instruction following and code generation. Across three Llama sizes, Deletion Tuning&apos;s average accuracy on the six-task suite stayed within one percentage point of the starting model. The full fine-tuned models ended 1.3 to 3.1 points below the start, while some comparison adapters fell as much as 5.4 points.
+      </P>
+      <P>
+        That is an encouraging retention result on the authors&apos; test suite. It does not yet show a model learning one new task after another indefinitely. The paper names a sequence of tasks as future work.
+      </P>
+      <Figure
+        src="/blog/deletion-tuning-explained-6.jpg"
+        alt="Six charts compare prior-task accuracy and distance from the base model during training"
+        width={1389}
+        height={961}
+        caption="In the authors' six-task retention test, Deletion Tuning stayed closer to the base model than the comparison methods. Source: Lu et al., Fig. 2, CC BY 4.0."
+      />
+      <H2>Where does this leave an engineer?</H2>
+      <P>
+        The <A href="https://github.com/agentic-learning-ai-lab/deleting-weights">authors released code</A> for training and evaluating masks under the three regimes. The most useful idea to borrow is the separation between how an adaptation is *learned* and how it is *stored*. A task may require a substantial training run while its final instruction to the model fits in a small file.
+      </P>
+      <P>
+        If you compare this approach with another adapter, check four things: accuracy on the new task, performance on older tasks, the size of the saved adapter, and training memory. The paper says its mask training uses less memory than full fine-tuning but more than LoRA, because it maintains a learnable switch for each candidate weight. A small final mask does not make every part of the process cheap.
+      </P>
+      <Figure
+        src="/blog/deletion-tuning-explained-7.jpg"
+        alt="Official code repository README introduces Deletion Tuning and its public implementation"
+        width={1296}
+        height={912}
+        caption="The authors' public repository makes the mask method and its training code inspectable. Source: Agentic Learning AI Lab GitHub repository."
+      />
+      <P>
+        The result changes a familiar intuition: learning need not always mean writing new numbers into a model. In these experiments, carefully learned deletions were enough to adapt large models while leaving most of their existing behavior intact. The open question is how well those masks work across a longer sequence of real tasks.
+      </P>
+      <P>
+        Read the <A href="https://arxiv.org/abs/2611.10866">paper</A>, explore the <A href="https://agenticlearning.ai/deleting-weights/">project page</A>, and follow more AI explanations at <A href="https://myargoquest.com/blog">Argo</A>.
+      </P>
+    </>
+  )
+}
+
+/* ── Post: Why small AI agent teams can outperform one giant team ── */
+function ParallelAgentTeamsExplainedContent() {
+  return (
+    <>
+      <P>
+        Suppose you have 100 AI agents and one difficult problem. You could ask all 100 to work alone, put them in one large group, or divide them into smaller teams. If you can check each answer automatically, which arrangement gives you the best result?
+      </P>
+      <P>
+        A <A href="https://arxiv.org/abs/2611.09798">new research paper</A> by Junlin Wang and colleagues tests those choices on long-running tasks, including writing fast GPU programs and completing formal proofs. Its answer is the middle option: run several small teams independently, let teammates exchange findings, and keep the best verified result.
+      </P>
+      <P>
+        With a budget of 100 agents using the researchers&apos; 27-billion-parameter model, ten teams of ten beat 100 independent agents on ten of twelve tasks. They also beat a single 100-agent team on all four tasks where the researchers ran that comparison. The result is about how to organize attempts at a checkable problem, not a claim that every meeting of AI agents improves every kind of work.
+      </P>
+      <Figure
+        src="/blog/parallel-agent-teams-explained-1.jpg"
+        alt="Title, authors and abstract of the parallel agent teams paper"
+        width={1286}
+        height={772}
+        priority
+        caption="The study compares ways to divide a fixed agent budget. Source: Wang et al., arXiv 2611.09798, p. 1, CC BY 4.0."
+      />
+      <H2>What does an AI agent team do here?</H2>
+      <P>
+        An <strong>agent</strong> in this study is a model working on a task in its own computing environment. It can try solutions and submit its best result. On most tested tasks it can call a scorer during the run; two machine-learning tasks are graded only at the end. The scorer, or <strong>verifier</strong>, gives a measurable result. For a GPU program, that might include whether the code works and how fast it runs.
+      </P>
+      <P>
+        The teams are simple. Each member keeps its own workspace and context, but everyone on the team can read and write to a shared forum. Members can report an experiment, post a useful partial result, or learn from a teammate&apos;s failed attempt. There are no assigned roles or manager in the main team setup. The best verified submission by any member becomes the team&apos;s result.
+      </P>
+      <P>
+        Think of ten small workshops trying to solve the same engineering problem. Inside a workshop, people can share discoveries. Between workshops, they work independently, so one group&apos;s early idea does not steer all the others toward the same answer. The analogy stops at the task boundary: these experiments have automatic scores, while most human work does not.
+      </P>
+      <Figure
+        src="/blog/parallel-agent-teams-explained-2.jpg"
+        alt="Diagram of independent agents, one large team and small parallel teams"
+        width={1286}
+        height={713}
+        caption="The paper compares three ways to spend the same number of agents. Source: Wang et al., Fig. 1, CC BY 4.0."
+      />
+      <H2>Why not run everyone alone?</H2>
+      <P>
+        Running many independent agents and choosing the best answer is called <strong>best-of-N</strong>. It works because different attempts produce different results. But if most solo attempts hit similar obstacles, adding more copies eventually has little effect. In the paper&apos;s experiments, 50 solo agents already achieved most of the improvement that 100 solo agents achieved.
+      </P>
+      <P>
+        A small team can raise the quality of each attempt. One member finds a promising direction; another tests it; others avoid repeating a known failure. The study found that a ten-agent team tended to score higher than one solo agent. The researchers then ran several such teams and selected the strongest result.
+      </P>
+      <P>
+        At a 100-agent budget, that combination won on ten of twelve tasks against 100 solo agents. The average score across the twelve tasks was 27% higher. The two exceptions matter: solo agents did better on the Kimi-Linear Decode task and slightly better on Active Learning. This is evidence for a useful arrangement on the tested tasks, not an instruction to replace every solo run with a team.
+      </P>
+      <Figure
+        src="/blog/parallel-agent-teams-explained-3.jpg"
+        alt="Twelve task charts comparing parallel teams and independent agents"
+        width={1316}
+        height={1207}
+        caption="Teams of ten beat solo agents on ten of twelve tasks at the 100-agent budget. Source: Wang et al., Fig. 2, CC BY 4.0."
+      />
+      <P>
+        The figure also shows the shape of the gain. As the budget grows, the solo-agent curve tends to flatten. The small-team curve continues rising for longer. That makes the result more interesting than a single winning score: it suggests that the organization of attempts changes what extra computing power buys.
+      </P>
+      <Figure
+        src="/blog/parallel-agent-teams-explained-4.jpg"
+        alt="Curves comparing total performance and marginal gains as agent budgets grow"
+        width={1286}
+        height={574}
+        caption="The small-team curve continues to gain as more agents are added. Source: Wang et al., Fig. 3, CC BY 4.0."
+      />
+      <H2>Why not make one huge team?</H2>
+      <P>
+        A large team lets more agents share what they know, but it produces only one team-level attempt. The agents may also converge on the first promising direction and stop exploring alternatives. By splitting them into separate groups, the system preserves several independent searches while retaining collaboration inside each group.
+      </P>
+      <P>
+        The paper directly tested 100-agent teams on four tasks. Ten teams of ten beat the single large team on each of those four. When the researchers held the overall budget at 100 agents and varied group size, the best size sat between the two extremes in every tested task. Ten-person teams led on three tasks; two 50-person teams reached the maximum score on the fourth. <strong>Ten is the paper&apos;s useful working choice, not a magic team size.</strong>
+      </P>
+      <Figure
+        src="/blog/parallel-agent-teams-explained-5.jpg"
+        alt="Four plots comparing team sizes at a fixed 100-agent budget"
+        width={1316}
+        height={515}
+        caption="On four tasks, an intermediate team size beat the two extreme arrangements. Source: Wang et al., Fig. 4, CC BY 4.0."
+      />
+      <H2>Does this mean cheaper AI work?</H2>
+      <P>
+        In a separate cost comparison across eight tasks with enough runs, the researchers compared their smaller 27-billion-parameter model with a frontier model. At their estimated equal dollar cost, several small-model teams beat five frontier-model solo runs on four of those tasks. That is an interesting cost comparison, but it depends on the paper&apos;s GPU-time and token-price accounting and on those particular tasks.
+      </P>
+      <P>
+        The more general lesson is about spending a fixed budget wisely. A higher-quality attempt from a team can be worth more than another low-quality independent sample, provided the verifier can reliably pick the best result.
+      </P>
+      <Figure
+        src="/blog/parallel-agent-teams-explained-6.jpg"
+        alt="Plots comparing estimated costs of small-model teams and frontier-model agents"
+        width={1316}
+        height={614}
+        caption="The authors compare verified scores at estimated equal dollar cost. Source: Wang et al., Fig. 5, CC BY 4.0."
+      />
+      <H2>Do teams need a manager?</H2>
+      <P>
+        Not in the paper&apos;s main setup. The agents share a forum as peers. To test the alternative, the researchers ran manager-led teams of ten on four tasks shown in the paper&apos;s comparison figure. In those runs, one agent assigned work and gathered reports, while workers did not directly share findings. The flat teams performed better in all four comparisons. The authors point to the manager as a communication bottleneck in this setup.
+      </P>
+      <P>
+        That finding belongs to this particular design, not every possible agent organization. Its practical point is straightforward: if agents can share a useful finding directly, routing every message through a coordinator may slow the exchange.
+      </P>
+      <Figure
+        src="/blog/parallel-agent-teams-explained-7.jpg"
+        alt="Charts comparing peer forums with manager-led agent teams"
+        width={1316}
+        height={594}
+        caption="The peer-sharing teams outperformed the manager-led teams in the tested comparisons. Source: Wang et al., Fig. 10, CC BY 4.0."
+      />
+      <H2>What can a builder take from it?</H2>
+      <P>
+        Start with a task whose outputs can be scored, such as a program tested by a benchmark or a proof checked by a formal verifier. Give each agent an independent workspace, then let small groups share attempts and results in a common forum. Keep groups separate so they explore different paths. Finally, score every group&apos;s best submission with the same verifier and choose the highest-scoring one.
+      </P>
+      <P>
+        Measure several group sizes before settling on ten. The paper&apos;s larger team sizes had only one to five runs each, and its main results come from one agent harness and a limited set of optimization tasks. Without a reliable verifier, choosing the best answer becomes a different problem.
+      </P>
+      <P>
+        The paper&apos;s most useful idea is the balance: collaboration can improve each attempt, while independent teams preserve multiple chances to find a stronger answer. Read the <A href="https://arxiv.org/abs/2611.09798">research paper</A> and follow more clear AI explanations at <A href="https://myargoquest.com/blog">Argo</A>.
+      </P>
+    </>
+  )
+}
+
+/* ── Post: How Graphon connects the clues an AI assistant needs to remember ── */
+function GraphonMultimodalMemoryContent() {
+  return (
+    <>
+      <P>
+        A reservation email says a hotel stay will cost one amount. A later invoice says something else. If you ask an AI assistant what you paid, which document should it trust?
+      </P>
+      <P>
+        The question sounds simple until the assistant has years of emails, images, videos and documents to search. It needs to recognize that both files concern the same stay, understand that the invoice came later, and use the final charge rather than the original estimate. That is a memory problem, not just a search problem.
+      </P>
+      <P>
+        <A href="https://www.graphonlabs.ai/">Graphon Labs</A> is building a memory system for that kind of task. Its central idea is to connect related evidence in a graph, then bring the relevant part of that graph into an assistant&apos;s answer.
+      </P>
+      <Figure
+        src="/blog/graphon-multimodal-memory-1.jpg"
+        alt="Graphon Labs homepage describing its multimodal memory product"
+        width={1800}
+        height={1140}
+        priority
+        caption="Graphon presents memory across video, images, audio and documents as one product. Screenshot: Graphon Labs."
+      />
+      <H2>Why is search alone not enough?</H2>
+      <P>
+        A search tool can retrieve the reservation email. A different query might retrieve the invoice. The assistant still has to work out that the two records describe the same trip and that the invoice supersedes the estimate.
+      </P>
+      <P>
+        The challenge gets harder when one clue is a person named in an email, another is that person in a photograph, and a third is something they said in a video. The information is spread across formats. A useful memory system needs to preserve the connections, not just store each file separately.
+      </P>
+      <P>
+        Graphon says it reads text, documents, images, audio and video to build a shared representation of their relationships. It retrieves the relevant subgraph when an agent asks a question. A <strong>graph</strong> is a set of things and connections between them. Here, the things might be people, events, files and dates. A connection might say that an invoice belongs to a booking, or that a face in a frame is the person named in an email.
+      </P>
+      <Figure
+        src="/blog/graphon-multimodal-memory-2.jpg"
+        alt="Diagram linking an email, photo and video to a cited answer through a shared evidence graph"
+        width={1200}
+        height={680}
+        caption="An evidence graph can connect clues across formats before the answer is written. Illustration: Argo, based on Graphon's stated workflow."
+      />
+      <H2>What does Graphon add?</H2>
+      <P>
+        Graphon describes a graph connecting material across files. It says the system infers its own schema, meaning it learns the kinds of things and relationships in the material instead of requiring a person to design every category beforehand.
+      </P>
+      <P>
+        That matters because personal and company records rarely arrive in a tidy format. An email thread, a slide deck and a video call can all refer to the same decision. If the memory system can link them, the assistant can answer with a smaller, more relevant group of clues. Graphon also says its answers include source citations, giving the reader a route to inspect the evidence.
+      </P>
+      <Figure
+        src="/blog/graphon-multimodal-memory-3.jpg"
+        alt="Graphon Labs page explaining its automatically maintained ontology"
+        width={1800}
+        height={1140}
+        caption="Graphon says it connects evidence across files and infers a schema without a hand-written ontology. Screenshot: Graphon Labs."
+      />
+      <H2>How are systems like this tested?</H2>
+      <P>
+        The tests below measure different kinds of memory, so their scores should be read separately. One test is <A href="https://www.graphonlabs.ai/">LoCoMo</A>, a benchmark for answering questions about long conversations. Graphon&apos;s <A href="https://www.graphonlabs.ai/benchmarks/locomo-graphon.json">downloadable results</A> list 1,448 answers judged correct out of 1,540, an accuracy of 94.03%. Its site reports 7.9 thousand tokens per question. A <strong>token</strong> is a small unit of text that an AI model processes. Using fewer tokens means bringing less material into each answer, though the published figure does not describe every cost of building the memory in the first place.
+      </P>
+      <Figure
+        src="/blog/graphon-multimodal-memory-4.jpg"
+        alt="Argo chart of Graphon reported LoCoMo result, 1,448 of 1,540 answers judged correct"
+        width={1200}
+        height={680}
+        caption="Graphon's downloadable LoCoMo results list 1,448 of 1,540 answers correct; its product page reports 7.9K tokens per question. Chart: Argo."
+      />
+      <P>
+        The chart shared with the original post shows a different test, ConvoMem. It labels Graphon V1 at 91.0% and 8.9 thousand tokens per question. The LoCoMo and ConvoMem figures are separate results, not two readings of the same experiment.
+      </P>
+      <Figure
+        src="/blog/graphon-multimodal-memory-5.jpg"
+        alt="ConvoMem accuracy versus tokens chart showing Graphon V1 at 91.0 percent and 8.9 thousand tokens"
+        width={1800}
+        height={2200}
+        caption="This shared chart is for ConvoMem, not LoCoMo: Graphon V1 is labeled 91.0% at 8.9K tokens. Source: Graphon-branded chart shared on X."
+      />
+      <P>
+        A second test, <A href="https://atmbench.github.io/index.html">ATM-Bench</A>, puts the problem closer to a person&apos;s accumulated digital life. Its tasks span email, images and video, and include conflicting records over time. The booking-versus-invoice example is one of its published cases. The correct answer requires choosing the later invoice over the earlier estimate.
+      </P>
+      <Figure
+        src="/blog/graphon-multimodal-memory-6.jpg"
+        alt="ATM-Bench example showing an earlier reservation email conflicting with a later invoice"
+        width={1800}
+        height={1140}
+        caption="ATM-Bench tests whether a memory system can prefer later evidence over an outdated booking estimate. Screenshot: ATM-Bench project."
+      />
+      <P>
+        On the <A href="https://atmbench.github.io/leaderboard.html">ATM-Bench public leaderboard</A>, Graphon V1 is listed first among memory-system submissions with an 81.71% question score using GPT-6 Astra as the answering model. The LoCoMo results use a GPT-4o judge; GPT-6 Astra is the answer model in this ATM-Bench submission. This is a result for that submitted setup. It tells us how Graphon performed on this benchmark, not how every deployment will perform on every person&apos;s records.
+      </P>
+      <Figure
+        src="/blog/graphon-multimodal-memory-7.jpg"
+        alt="ATM-Bench public leaderboard with Graphon V1 listed first among memory systems"
+        width={1800}
+        height={1140}
+        caption="The ATM-Bench submission lists Graphon V1 at 81.71% question score with GPT-6 Astra as answer model. Screenshot: ATM-Bench leaderboard."
+      />
+      <H2>What should a builder take from this?</H2>
+      <P>
+        Start with a question that crosses sources or time: Which document contains the final price? Who was in the meeting shown in this recording? What changed after the first plan? If an assistant can retrieve the right evidence, identify when it was created and show where its answer came from, the memory is doing useful work.
+      </P>
+      <P>
+        Graphon&apos;s approach is one answer to that design problem. Its reported scores make it worth studying. The more general lesson is to treat memory as connected evidence that can be checked, rather than a pile of notes that merely mention the same words.
+      </P>
+      <P>
+        Follow more AI explainers at https://myargoquest.com/blog.
+      </P>
+    </>
+  )
+}
+
+/* ── Post: Inside the Argo engine rebuild: one manifest per feature, addons off by default, one memory ── */
+function EngineCoreV2ArchitectureContent() {
+  return (
+    <>
+      <P>
+        Last week&apos;s post, <A href="https://myargoquest.com/blog/engine-v2-onboarding">From an empty folder to a company of agents</A>, walked through the new on-ramp: the installer, <code>init</code>, and a skill that sets up a vault for you. This post is about what sits underneath that on-ramp: how the engine itself was rebuilt, one feature at a time, and why each piece is shaped the way it is.
+      </P>
+      <P>
+        The engine is the open-source app that indexes your markdown, runs the board and the project tracker, and hosts the agents that work in your notes. It grew fast. Each new feature arrived as a new surface: a route here, a page there, a timer file, a launcher subcommand, a paragraph in four separate docs. Nothing was ever removed. By early November the design notes counted 15 modules with five different lists of them in the docs, 26 command-line entry points, and 17 services plus 15 timers checked in by hand.
+      </P>
+      <P>
+        None of that was a missing feature. The cost was that adding one thing meant editing six places that all had to agree, and they drifted. The rebuild, which we called core v2, set out to give every feature exactly one place where it is wired, and to make everything else read from that place. A follow-up round, which we call r2, then started cutting what core v2 had exposed.
+      </P>
+      <H2>What are the layers now?</H2>
+      <P>
+        The engine now has three layers, stacked on top of your vault.
+      </P>
+      <Figure
+        src="/blog/engine-core-v2-architecture-1.jpg"
+        alt="Three stacked layers: seventeen addons off until listed, six core features on in every vault, and a base of vault index, search, editor, auth and the doctor, all over a markdown vault"
+        width={1600}
+        height={900}
+        priority
+        caption="The engine after the rebuild: a base, six core features, and seventeen addons that stay off until secondbrain.json lists them"
+      />
+      <UL items={[
+        <><strong>Base:</strong> what every vault needs to be a vault at all. The index over your markdown, keyword and vector search, the editor, login, and the health checks.</>,
+        <><strong>Core features:</strong> six features that ship on in every vault. They are <code>projects</code> (the tracker), <code>memory</code>, <code>org</code> (your roster of agents), <code>board</code> (the kanban board), <code>usage</code> (what each run cost) and <code>summaries</code> (a short summary per finished agent session).</>,
+        <><strong>Addons:</strong> optional features, seventeen of them, from the map and voice to social metrics and the dispatcher that wakes agents. Every addon is off until your <code>secondbrain.json</code> names it.</>,
+      ]} />
+      <P>
+        The line between core and addon was a decision, made before any code moved. The first plan had five core features; usage was added as the sixth when the plan was reviewed, and the dispatcher was confirmed as an addon because it is still a pilot.
+      </P>
+      <H2>What is a manifest?</H2>
+      <P>
+        A manifest is a small file, one per feature, that describes the feature as plain data: its name, whether it is core, its links in the navigation, its commands, its scheduled jobs, the tables it needs, the settings it reads, and where its docs live. Think of it as the label on a moving box. Whoever handles the box reads the label; nobody has to open the box to know where it goes.
+      </P>
+      <P>
+        The engine&apos;s own source says it in one sentence, at the top of the type that every manifest uses.
+      </P>
+      <Figure
+        src="/blog/engine-core-v2-architecture-2.jpg"
+        alt="The features/types.ts file on GitHub with the comment that says a feature manifest is the one place a feature is wired highlighted"
+        width={1920}
+        height={908}
+        caption="The rule in the code itself: a manifest is the one place a feature is wired (github.com/kon-rad/argo)"
+      />
+      <P>
+        The manifest is deliberately pure data. It imports no server code, so a command-line tool or a deploy step can read every manifest without starting the app or connecting to a database. Here is the board&apos;s, trimmed:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"export default defineFeature({\n  name: 'board',\n  core: true,\n  nav: [{ section: 'Work', label: 'Board', path: '/board' }],\n  cli: [{ command: 'board', entry: 'cli-board.js', summary: 'the kanban board' } /* and review */],\n  timers: [{ unit: 'secondbrain-board-reclaim', calendar: '*:0/5', command: 'board reclaim' }],\n  wrappers: ['cli-board'],\n  health: { label: 'the board tables answer', tables: ['boards', 'cards', 'card_comments', 'card_events', 'card_deps', 'card_runs'] },\n  docs: 'docs/kanban-board.md',\n});"}</code></pre>
+      <P>
+        Six different parts of the system read that one object.
+      </P>
+      <Figure
+        src="/blog/engine-core-v2-architecture-3.jpg"
+        alt="The board manifest in the middle with arrows to six readers: app.ts mounts routes, the meta API serves nav, the launcher dispatches commands, plan and apply generate systemd units, PATH wrappers, and doctor checks tables"
+        width={1600}
+        height={900}
+        caption="One manifest, six readers. Before the rebuild the same facts lived in app.ts, App.tsx, deploy.sh, the launcher, env.example and four docs"
+      />
+      <UL items={[
+        <><strong>The server</strong> mounts the feature&apos;s routes from it.</>,
+        <><strong>The web app</strong> asks the server for its menu, and the server builds that menu from the manifests of the features that are on.</>,
+        <><strong>The launcher</strong>, the one <code>secondbrain</code> command, looks up any word it does not know in the manifests&apos; command lists, so <code>secondbrain board</code> and <code>secondbrain memory</code> need no special code in the launcher.</>,
+        <><strong>The config generator</strong> turns each timer into a systemd service and timer pair. systemd is the Linux service manager that runs jobs on a schedule.</>,
+        <><strong>The wrapper step</strong> writes the small <code>cli-board</code>-style scripts that put each command on the machine&apos;s path.</>,
+        <><strong>The doctor</strong>, a command that checks an installation is healthy, confirms that every table a feature names exists, so a feature whose database migration never ran fails loudly in <code>secondbrain doctor</code> and <code>/api/health</code> instead of erroring on its first request.</>,
+      ]} />
+      <P>
+        The manifests were built first, before any other phase, because every later piece reads them. That ordering is the main reason the rest of the rebuild went quickly.
+      </P>
+      <H2>How do addons stay out of the way?</H2>
+      <P>
+        A registry file lists the six core manifests and then every addon manifest, as one combined list. Every reader filters that list by what your vault has turned on. A fresh vault therefore sees only the six core features: no addon routes are mounted, no addon timers are installed, and no addon links appear in the menu. Turning on two addons is one line in <code>secondbrain.json</code>:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"{ \"addons\": [\"map\", \"social\"] }"}</code></pre>
+      <P>
+        Moving the addons behind their manifests deleted twelve hand-written &quot;is this module on?&quot; blocks from the server&apos;s startup file, and the web app&apos;s hard-coded menu went with them.
+      </P>
+      <P>
+        Round 2 pushed the boundary further. The largest addon was an event app built for a conference, with its own contracts, wallet code and eleven test configurations, and it was the only addon the base startup knew by name. It now lives in its own self-contained package. Addons gained optional <code>boot</code> and <code>close</code> hooks, so the engine loads that package only when the addon is on, and its web page is loaded only when someone opens it. A vault that never turns it on builds and starts without any of its dependencies. Paths under the app that mention it went from 71 to 6.
+      </P>
+      <H2>How does one settings file become a running server?</H2>
+      <P>
+        Before the rebuild, a server&apos;s configuration was spread over an environment file, a settings file, hand-written unit files and a deploy script that decided which units to install with its own list of module checks. Now there is one path.
+      </P>
+      <Figure
+        src="/blog/engine-core-v2-architecture-4.jpg"
+        alt="A left to right flow: secondbrain.json with its server and addons blocks, one settings loader that validates each section, secondbrain plan which writes nothing, and secondbrain apply which writes the env file and units, with doctor and the health endpoint below"
+        width={1600}
+        height={900}
+        caption="Config flow: one settings file, one loader, plan shows the change, apply writes it, doctor checks it"
+      />
+      <UL items={[
+        <><strong>`secondbrain.json`</strong> gained a <code>server</code> block: the host, the system user, the install and vault folders, and the backup settings.</>,
+        <><strong>One loader</strong> reads that file. Round 2 found three different readers of it, and one bad field anywhere silently reset every setting to its defaults. Now there is a single loader, and each section is checked on its own: a broken <code>social</code> block falls back to its own defaults, the doctor names the bad field, and the rest of your settings load normally.</>,
+        <><strong>`secondbrain plan`</strong> reads the enabled manifests, renders the environment file and every unit, compares them with what is on disk, and writes nothing.</>,
+        <><strong>`secondbrain apply`</strong> writes them. <code>secondbrain upgrade</code> does the same but is a dry run unless you pass <code>--yes</code>.</>,
+      ]} />
+      <P>
+        The analogy is a building plan and a builder. <code>plan</code> is the drawing with the changes marked; <code>apply</code> is the builder doing exactly what the drawing shows. Read the plan before you apply it.
+      </P>
+      <P>
+        Round 2 then made the manifests the only source of scheduled jobs. Every feature and addon timer moved into its owning manifest, the three jobs that belong to no feature (the database backup, the vault sync and the embedding run) are declared once in the generator, and the deploy script calls <code>apply</code> instead of copying files. Seventeen hand-written timer files were deleted. The move also surfaced real drift: one usage sync timer ran every minute while its manifest said every five minutes. The generated version follows the manifest.
+      </P>
+      <P>
+        The doctor closes the loop. <code>secondbrain doctor</code> and the <code>/api/health</code> endpoint run the same checks: the database answers, the vector extension is installed, no migrations are pending, every enabled feature&apos;s tables exist, and the settings file passes its schema. Against an empty database during testing it reported three errors (the vector extension missing, migrations pending, the board&apos;s tables absent) and exited non-zero, which is the point: it fails before a user does.
+      </P>
+      <H2>Why did memory get rebuilt?</H2>
+      <P>
+        Memory was the one core feature that was not shaped like a feature. Agents had a store of their own per-agent notes, a generated prose file per agent that was injected when it woke up, a separate reflect model call that fed it, and, alongside all of it, a shared table of facts with no record of which agent a fact belonged to. Recall and remember were verbs hidden inside the org command.
+      </P>
+      <Figure
+        src="/blog/engine-core-v2-architecture-5.jpg"
+        alt="Before and after panels: on the left a per-agent memory table, a core.md file per bot, a reflect step, untagged facts and recall inside the org CLI; on the right one fact table tagged by agent, the episodes table, vault markdown, and the secondbrain memory command"
+        width={1600}
+        height={900}
+        caption="Memory before and after: the persona store was exported into memory_facts, then dropped, in one migration"
+      />
+      <P>
+        Now memory is one core feature with one store. Each fact is a single claim with a source, tagged with the agent it belongs to. A second table keeps one row per finished agent run, and the vault&apos;s own markdown stays searchable through recall. When an agent wakes, it gets the facts tagged with its own name instead of a prose file. Everything is reachable from one command, <code>secondbrain memory recall|remember|list|retire|stats</code>, and from a <code>/memory</code> page that lists facts, pending candidates and a retire button.
+      </P>
+      <P>
+        The risky part was deleting the old store without losing what agents had learned. The answer was a single migration: it copies every old row into the fact table, tagged with its agent, and drops the old table in the same transaction. If the copy fails, nothing is dropped. The module that held the old store went from 899 lines to 129.
+      </P>
+      <H2>Where does a feature&apos;s code live now?</H2>
+      <P>
+        Manifests fixed where a feature is wired, but not where its code lives. A review after core v2 found that one feature could still be spread over up to five places, and that the browser kept a single 1,476-line file retyping every server response by hand.
+      </P>
+      <P>
+        Round 2 has started on both, one slice at a time. For the board and the tracker, the router, the domain logic and the command now live in the feature&apos;s own folder beside its manifest. The old file paths remain as two-line forwarding stubs for one release, so nothing that imports them breaks.
+      </P>
+      <P>
+        On the browser side, search, the board and the tracker now each have their own small client, and their request and response shapes are defined once, as shared schemas that both the server and the browser compile against. For those three, a changed response shape now shows up as a type error in the build rather than a broken page. Writing those shared schemas found fields the server already returned that the browser&apos;s hand-written types had never listed. The shared browser file is down from 1,476 lines to 1,173.
+      </P>
+      <H2>How fast did it go, and how was it checked?</H2>
+      <P>
+        Core v2 merged in three days, November 3 to 5, as a series of small pull requests, one or a few per phase. Round 2&apos;s first five items merged between November 12 and 14.
+      </P>
+      <Figure
+        src="/blog/engine-core-v2-architecture-6.jpg"
+        alt="A dot chart of merge dates: core v2 phases 0 to 7 and the fallback model merged between November 3 and 5, and five round 2 items merged between November 12 and 14"
+        width={1600}
+        height={1000}
+        caption="Merge dates of every pull request in both rounds, November 2026 (UTC)"
+      />
+      <P>
+        Two pieces from those days are worth naming. The org compiler, which turns your roster files into the agent definitions each tool reads, was ported from Python to TypeScript so the engine needs no Python for it. It was checked against a real 34-agent roster, and its output matched the old compiler&apos;s exactly. And the dispatcher gained a fallback model: if an agent&apos;s model runs on a computer at home and that computer stops answering, the dispatcher runs the agent on a configured backup model instead, and retries a run once if it died on a provider error.
+      </P>
+      <P>
+        The build logs record a full test-suite count for each phase from 0 through the org compiler, from runs on the branch or on merged main.
+      </P>
+      <Figure
+        src="/blog/engine-core-v2-architecture-7.jpg"
+        alt="Left, a line of passing tests rising from 1,311 to 1,381 across the phases, then 1,367 after the persona tests were removed; right, before and after bars for settings readers, env reads, timer files, browser api.ts lines and event app paths"
+        width={1600}
+        height={900}
+        caption="Tests passing per phase from the build logs (branch or merged-main runs); the final dip is 14 tests deleted with the old memory store. Right: what round 2 removed"
+      />
+      <P>
+        The count rose from 1,311 passing tests at phase 0 to 1,381 after the org compiler, then dropped to 1,367 on purpose: the old memory store&apos;s 14 tests were deleted together with the store they tested. Nothing that remained failed. On the right are the round 2 measurements each pull request recorded: settings readers from three to one, direct environment reads outside the config schema from 62 to 10 (the remaining ten are deliberate and documented), hand-written timer files from 17 to none.
+      </P>
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Built and merged: all eight core v2 phases and the dispatcher fallback, plus five of the ten round 2 items, all described above.
+      </P>
+      <P>
+        Still a plan, stated plainly:
+      </P>
+      <UL items={[
+        <><strong>Feature folders and shared browser schemas are first slices.</strong> Only the board and the tracker have moved into their folders, and only search, the board and the tracker have shared schemas. The org feature, the largest, is next.</>,
+        <><strong>Round 2 items 6 to 10 have not started:</strong> one guard (the program that checks each agent action before it runs) instead of two copies that can drift apart, one Search page, a feature page that shows its cards, one test layout with a fast lane that needs no database, and docs generated from the manifests.</>,
+        <><strong>The fallback model has not been exercised in a live outage.</strong> Today it is covered by tests and configuration only.</>,
+        <><strong>The fifteen-minute fresh install is a target,</strong> not a measured time on a clean machine, and the onboarding docs have not yet shrunk to the two pages the design calls for.</>,
+      ]} />
+      <H2>What to take away</H2>
+      <P>
+        If you build a system that keeps growing, the cheapest structural change we found was to write down, per feature, the facts every other part needs, in one plain-data file, and make everything read it. Once that existed, deleting things became safe, and most of this rebuild was deleting things.
+      </P>
+      <P>
+        The engine is open source at <A href="https://github.com/kon-rad/argo">github.com/kon-rad/argo</A>; start with <code>app/server/src/features/</code> to see the manifests. More of this writing goes to <A href="https://x.com/myargoquest">x.com/myargoquest</A>.
+      </P>
+    </>
+  )
+}
+
+/* ── Post: Agent swarms explained: how teams of AI agents split up one task, and how we know if it works ── */
+function AgentSwarmsExplainedContent() {
+  return (
+    <>
+      <P>
+        Ask one AI agent to research a hard question and it reads one page at a time, in one long conversation, until its memory fills up. Ask a team of agents and a lead can send five of them out at once, each with a clean slate, and merge what they bring back. That is the promise of an agent swarm: many AI agents coordinating to finish one task faster or better than one agent could alone.
+      </P>
+      <P>
+        The idea has gone from a 2023 research curiosity to some of the most-starred repositories on GitHub. It has also collected a long list of papers showing where it fails. This post maps the field as of November 2026: the main ways to wire agents together, the papers each idea came from, the open-source frameworks you can use today, and how researchers measure whether a swarm is actually better than one agent.
+      </P>
+      <P>
+        The short version: a swarm is a way to spend more computing in parallel. It pays off on work that splits into independent pieces, and it can make things worse on work where every step depends on the last.
+      </P>
+      <H2>What is an agent swarm?</H2>
+      <P>
+        An <strong>agent</strong> is a language model running in a loop: it reads the task, picks a tool (search the web, run code, edit a file), looks at the result and decides what to do next, until it judges the task done.
+      </P>
+      <P>
+        A <strong>multi-agent system</strong> puts several of these loops to work on the same task. Each agent usually gets its own instructions, often a role (&quot;you are the tester&quot;), its own tools and its own <strong>context window</strong> (the text the model can see at once). The agents pass work and messages between them through some agreed channel.
+      </P>
+      <P>
+        <strong>Swarm</strong> is the popular word for the same thing, borrowed from ants and bees. In biology a swarm has no leader: each insect follows simple local rules and the colony&apos;s behaviour emerges. Most AI &quot;swarms&quot; are less like ants and more like a small company, with a manager, specialists and a process. A few research systems do copy the insect version, and we will get to them.
+      </P>
+      <H2>The five ways to wire a team of agents</H2>
+      <P>
+        Almost every framework is one of five wirings, or a mix of them.
+      </P>
+      <Figure
+        src="/blog/agent-swarms-explained-1.jpg"
+        alt="Argo diagram of five coordination patterns: assembly line, debate and vote, lead and workers, handoffs, shared board"
+        width={1920}
+        height={1080}
+        priority
+        caption="Almost every agent swarm framework is one of these five wirings, or a mix of them. Argo diagram."
+      />
+      <UL items={[
+        <><strong>Assembly line.</strong> Each agent has a role and passes a document to the next: product manager to architect to project manager to engineer. MetaGPT calls this encoding &quot;Standardized Operating Procedures&quot; into prompts. The fixed order stops one agent&apos;s mistake from snowballing through a free-form chat.</>,
+        <><strong>Debate and vote.</strong> Several copies of the same model answer the same question, read each other&apos;s answers, argue for a few rounds and then agree or vote. Nobody has a special role; the gain comes from redundancy.</>,
+        <><strong>Lead and workers.</strong> An orchestrator plans, spawns workers in parallel, gives each a fresh context window and merges their short reports. This is how Anthropic&apos;s Research feature and Microsoft&apos;s Magentic-One work.</>,
+        <><strong>Handoffs.</strong> Only one agent is active at a time. When a request fits a peer better (&quot;this is a refund question&quot;), the active agent hands the whole conversation over. OpenAI&apos;s experimental Swarm library is the best-known example.</>,
+        <><strong>Shared board.</strong> Agents never message each other directly. They read from and write to a shared store, the way ants coordinate by leaving trails. Computer scientists call it a <strong>blackboard</strong>; biologists call the ant version <strong>stigmergy</strong>.</>,
+      ]} />
+      <H2>Where the ideas came from</H2>
+      <P>
+        The research came in four waves, roughly one per year.
+      </P>
+      <Figure
+        src="/blog/agent-swarms-explained-2.jpg"
+        alt="Argo timeline from 2023 to 2026: roles, then scaling and wiring, then measuring failures, then shared boards and trained swarms"
+        width={1920}
+        height={1080}
+        caption="Four years of multi-agent research, one idea per year. Argo diagram; papers linked in the sources."
+      />
+      <H3>2023: give them roles</H3>
+      <P>
+        CAMEL showed two agents, an &quot;AI user&quot; and an &quot;AI assistant&quot;, could finish a task by role-playing with almost no human help. Generative Agents put 25 agents in a small simulated town, each with a memory it summarised into reflections. Seeded with one agent&apos;s wish to throw a Valentine&apos;s Day party, the agents spread the invitations and turned up together. ChatDev and MetaGPT turned role-play into a software company, with design, coding and testing stages. AutoGen made the conversation between agents the programming model. The shared lesson was that <strong>structure beats free chat</strong>: fixing who talks to whom, and in what format, cuts the errors that pile up when models simply chain their outputs.
+      </P>
+      <P>
+        The same year, Du and colleagues showed that debate alone helps. Three copies of gpt-3.5 that debated for two rounds scored 85.0% on the GSM8K grade-school maths test, against 77.0% for a single copy.
+      </P>
+      <H3>2024: add more agents, and design the wiring</H3>
+      <P>
+        &quot;More Agents Is All You Need&quot; found something almost embarrassingly simple: sample the same model many times and take a majority vote, and accuracy keeps rising with the number of samples. With 40 samples, the small Llama2-13B scored 0.59 on GSM8K, beating a single Llama2-70B at 0.54.
+      </P>
+      <P>
+        Other papers treated the team as a graph to optimise. GPTSwarm tuned both the prompts at each node and the connections between them. MacNet arranged agents on a directed graph, ran more than 1,000 of them, and found performance grows in an S-curve as agents are added, then flattens. Mixture-of-Agents stacked models in layers, each layer refining the last layer&apos;s answers. Microsoft&apos;s Magentic-One settled on the lead-and-workers pattern, with an orchestrator that tracks progress and re-plans after errors. ADAS and AFlow went further and let a model search for the best agent design itself.
+      </P>
+      <H3>2025: measure what breaks</H3>
+      <P>
+        Production systems shipped and researchers started counting failures. Anthropic described its multi-agent Research feature in detail. Cognition published &quot;Don&apos;t Build Multi-Agents&quot; the day before, arguing that parallel agents make conflicting decisions they never tell each other about. A UC Berkeley-led team annotated more than 1,600 traces from seven open-source frameworks and catalogued 14 ways they fail. A Google Research, Google DeepMind and MIT team ran the most careful comparison yet. Both studies get their own section below.
+      </P>
+      <H3>2026: shared boards and trained swarms</H3>
+      <P>
+        The newest work moves coordination out of chat messages. ScaleMAS replaces messages with a shared store that agents read in bounded chunks, and keeps improving up to 128 agents while tolerating agents that drop out mid-task. SwarmWorld shows agents can build a working society from traces left in a shared world alone, like ants, though adding communication helps further. Moonshot&apos;s Kimi K2.5 trains the model itself, with reinforcement learning, to decide when to split a task and spawn parallel sub-agents. And a counter-paper, OneFlow, showed that a single agent role-playing a team whose members all run on the same model can match that team, and costs less.
+      </P>
+      <H2>The frameworks you can use today</H2>
+      <P>
+        Here are the main open-source projects, with GitHub stars fetched on 15 November 2026. Stars measure attention, not quality.
+      </P>
+      <Figure
+        src="/blog/agent-swarms-explained-3.jpg"
+        alt="Argo bar chart of GitHub stars for fifteen open-source multi-agent frameworks, led by OpenHands, MiroFish, DeerFlow and ruflo"
+        width={1920}
+        height={1080}
+        caption="The four biggest repos are full harnesses and apps that run agents for you, not libraries of agent classes. GitHub API, 2026-11-15. Argo chart."
+      />
+      <UL items={[
+        <><strong>OpenAI Agents SDK</strong> (30.7k stars): handoffs, or one agent calling others as tools. It replaced OpenAI Swarm, whose README now says &quot;Swarm is now replaced by the OpenAI Agents SDK&quot;.</>,
+        <><strong>CrewAI</strong> (60.9k): role-based crews that run in sequence or under a manager agent, plus deterministic &quot;Flows&quot;.</>,
+        <><strong>LangGraph</strong> (45.0k): a graph of steps with saved state, so a run can pause, resume or be inspected. Its add-ons <code>langgraph-swarm</code> and <code>langgraph-supervisor</code> give handoffs and a manager.</>,
+        <><strong>Microsoft Agent Framework</strong> (14.7k): graph workflows with sequential, concurrent, handoff, group-chat and Magentic patterns. It is the successor to AutoGen, whose README now says the project is archived.</>,
+        <><strong>Google ADK</strong> (22.2k): agent hierarchies and workflows, and the companion <strong>A2A protocol</strong> (26.5k), a standard for agents built by different companies to talk to each other.</>,
+        <><strong>MetaGPT</strong> (71.3k), <strong>ChatDev</strong> (34.7k) and <strong>CAMEL</strong> (18.0k): the research projects from 2023.</>,
+        <><strong>smolagents</strong> (30.4k): Hugging Face&apos;s small library, where a manager agent calls other agents as tools.</>,
+        <><strong>kyegomez/swarms</strong> (7.4k): a menu of ready-made structures, from sequential and group chat to hierarchical, with a router that picks one.</>,
+      ]} />
+      <P>
+        The biggest repos today are not these libraries. They are <strong>harnesses</strong>: complete programs that run agents for you, with a sandbox, memory and tools. OpenHands (93.5k stars) is a coding agent that delegates to sub-agents. ByteDance&apos;s DeerFlow (85.3k) runs a lead agent and sandboxed sub-agents. Ruflo (81.7k, formerly claude-flow) wraps command-line coding agents such as Claude Code and Codex, and ClawTeam runs each such worker in its own git worktree, a separate copy of the code. MiroFish (85.6k) simulates thousands of agents in a shared digital world to make predictions.
+      </P>
+      <P>
+        One more trend: the newer designs coordinate through <strong>shared state</strong> rather than open group chat. Claude Code&apos;s experimental agent teams use a shared task list that teammates claim work from, plus a mailbox per agent. AG2 replaced its group chat with a hub and typed channels. Magentic-One keeps a progress ledger. These are blackboards under other names.
+      </P>
+      <H2>How do you measure a swarm?</H2>
+      <P>
+        There are two kinds of test.
+      </P>
+      <P>
+        The first kind are ordinary agent benchmarks, where a swarm competes with single agents on the same tasks:
+      </P>
+      <UL items={[
+        <><strong>GAIA:</strong> 300 test questions that need browsing, files and reasoning; humans score 92%.</>,
+        <><strong>SWE-bench Verified</strong> and <strong>SWE-Bench Pro:</strong> fix real GitHub issues in real repositories.</>,
+        <><strong>BrowseComp:</strong> 1,266 questions that need persistent web searching for hard-to-find facts.</>,
+        <><strong>WebArena</strong> and <strong>OSWorld:</strong> complete tasks on websites or a full desktop computer.</>,
+        <><strong>Terminal-Bench:</strong> hard tasks in a command-line environment.</>,
+        <><strong>tau-bench:</strong> customer-service conversations under a company policy.</>,
+      ]} />
+      <P>
+        The second kind are built to test coordination itself. <strong>MultiAgentBench</strong> scores milestones reached plus the quality of communication and planning. <strong>Collab-Overcooked</strong> has two agents cook together through chat and scores how often each one starts or answers a useful request. <strong>COMMA</strong> gives two agents different pieces of the information. <strong>DPBench</strong> stages the classic Dining Philosophers problem and counts deadlocks. <strong>MAST</strong> is not a benchmark but a failure taxonomy you can use to label your own traces.
+      </P>
+      <P>
+        What gets measured has grown beyond &quot;did it succeed&quot;. Serious reports now give:
+      </P>
+      <UL items={[
+        <><strong>Success rate</strong>, and <strong>pass@k</strong> (did at least one of k tries succeed).</>,
+        <><strong>pass^k</strong>, from tau-bench: did all k tries succeed. This measures reliability, which matters more than a lucky best run.</>,
+        <><strong>Tokens and dollars per task</strong>, summed over every agent.</>,
+        <><strong>Wall-clock time</strong>, which is where parallel agents shine.</>,
+        <><strong>A scaling curve</strong>: the score as you add agents.</>,
+        <><strong>Failure rates by type.</strong></>,
+      ]} />
+      <P>
+        Terminal-Bench shows why cost belongs next to accuracy. On its version 4.1 leaderboard, Claude Code running Opus 5.5 and running Fable 5.2 tie at 65.8%, but the Fable 5.2 runs cost about USD 16.5k in total against USD 4.7k.
+      </P>
+      <P>
+        The fairest test of a swarm is the same task with and without the team. Here is what four papers report, each against its own single agent.
+      </P>
+      <Figure
+        src="/blog/agent-swarms-explained-4.jpg"
+        alt="Argo bar chart of four multi-agent systems against a single agent on the same benchmark, with gains from 17.8 to 1.8 points"
+        width={1920}
+        height={1080}
+        caption="Each pair comes from one source with its own baseline, so read the gaps, not the bars across rows. Argo chart; sources in the footer and at the end of the post."
+      />
+      <P>
+        Kimi K2.5&apos;s Agent Swarm raised its BrowseComp score from 60.6% to 78.4%. Debate added 8 points on grade-school maths, and AgentVerse&apos;s group of GPT-4 agents 1.8 points on coding. At the top, Anthropic&apos;s system card for Claude Opus 5 reports a 10-agent team at 93.6% on BrowseComp, only 3.1 points above the best single agent, while 5- and 10-agent teams reached their scores 5.6 and 5.9 times faster than one agent. The card says those runs are for relative comparison only. These pairs come from different tests and years, but they fit what the controlled study below found: coordination pays less once one agent is already good. In Anthropic&apos;s frontier test, the team bought mostly speed, at a higher token cost.
+      </P>
+      <H2>When does a swarm pay off?</H2>
+      <P>
+        The most careful answer so far comes from &quot;Towards a Science of Scaling Agent Systems&quot;, by researchers at Google Research, Google DeepMind and MIT. They tested 260 setups across six benchmarks and three model families, holding tools, prompts and computing budget equal, so the only thing that changed was how the agents were organised.
+      </P>
+      <Figure
+        src="/blog/agent-swarms-explained-5.jpg"
+        alt="First page of the Towards a Science of Scaling Agent Systems paper with the sentence on architecture-task alignment highlighted"
+        width={1455}
+        height={1053}
+        caption="260 controlled setups: multi-agent ranged from 80.8% better to 70.0% worse than one agent. Source: Kim et al., arXiv 2512.08296, p. 1."
+      />
+      <P>
+        Compared with one agent, multi-agent setups ranged from 80.8% better on financial reasoning that splits into parts, to 70.0% worse on step-by-step planning. Three patterns held. Coordination pays less once a single agent is already good. Tasks that use many tools appear to carry extra overhead with a team. And teams without a central checker tend to spread errors more than teams with one. Their model picked the best setup for 87% of configurations it had not seen.
+      </P>
+      <P>
+        Anthropic&apos;s own numbers say the same thing from production. Their lead-and-workers Research system beat a single Claude Opus 4 by 90.2% on an internal research test. But on BrowseComp, token usage alone explained 80% of the difference in performance between runs.
+      </P>
+      <Figure
+        src="/blog/agent-swarms-explained-6.jpg"
+        alt="Anthropic engineering post with the sentence on multi-agent systems using about fifteen times more tokens than chats highlighted"
+        width={1575}
+        height={945}
+        caption="Anthropic on its multi-agent Research feature, 13 June 2025: the gain comes with a token bill. Screenshot: anthropic.com"
+      />
+      <P>
+        A single agent uses about 4 times the tokens of a chat; their multi-agent system uses about 15 times. Anthropic writes that tasks where agents must share the same context, or depend heavily on each other, are a poor fit, and that &quot;most coding tasks involve fewer truly parallelizable tasks than research.&quot; Cognition reached the same conclusion from the other side: when two parallel agents each make silent assumptions, such as the visual style of a game, the pieces do not fit together.
+      </P>
+      <P>
+        A swarm is like hiring a team of researchers: great for reading fifty sources at once, wasteful for writing one paragraph together. The analogy stops working at cost. A human team costs the same however you organise it; an agent team bills you for every word each member reads.
+      </P>
+      <H2>Why swarms fail</H2>
+      <P>
+        &quot;Why Do Multi-Agent LLM Systems Fail?&quot; opens bluntly.
+      </P>
+      <Figure
+        src="/blog/agent-swarms-explained-7.jpg"
+        alt="First page of the Why Do Multi-Agent LLM Systems Fail paper with the opening sentence on minimal gains highlighted"
+        width={1496}
+        height={990}
+        caption="The MAST study read more than 1,600 annotated traces from 7 frameworks and found 14 ways teams of agents fail. Source: Cemri et al., arXiv 2503.13657, p. 1."
+      />
+      <P>
+        Across seven open-source frameworks, including ChatDev, MetaGPT and Magentic-One, failure rates ran from 41% to 86.7%. The 14 failure modes fall into three groups: poor system design (bad role specs, agents repeating steps, not knowing when the task is done), misalignment between agents (ignoring each other, withholding information, drifting off task), and weak checking of the final result. The most common single modes were repeating a step, reasoning that did not match the action taken, and failing to recognise that the task was finished.
+      </P>
+      <P>
+        Quick fixes helped only a little. On ChatDev, clearer role descriptions raised success by 9.4%, and adding a final verification step by 15.6%. The authors conclude that the problems sit in the design, not in a missing prompt.
+      </P>
+      <P>
+        Swarms also add a risk a single agent does not have: contagion. In a 2026 case study of a 100-agent research swarm, one agent found a way to cheat the scoring system, and the exploit spread through the swarm&apos;s shared library and peer messages. A few agents later reported it.
+      </P>
+      <H2>How to use this</H2>
+      <P>
+        If you are deciding whether to build with a team of agents, the evidence points to a short checklist:
+      </P>
+      <UL items={[
+        <><strong>Start with one strong agent.</strong> Measure it. Add agents only where it falls short.</>,
+        <><strong>Split by reading, not by writing.</strong> Parallel agents are good at gathering: searching, reading sources, checking options. Keep the final writing, and any code that has to fit together, in one agent&apos;s hands.</>,
+        <><strong>Give each worker a clean, narrow brief</strong> and ask for a short report back, so the lead&apos;s context does not fill up.</>,
+        <><strong>Add a checker.</strong> Teams without central verification spread errors.</>,
+        <><strong>Prefer a shared task list or board to open chat.</strong> It is easier to inspect and survives an agent dropping out.</>,
+        <><strong>Measure cost and reliability, not only success</strong>: tokens per task, wall-clock time, and pass^k over several runs.</>,
+      ]} />
+      <P>
+        Agent swarms work, within limits that are now measured. The field has moved from &quot;more agents is better&quot; to asking which wiring fits which task, and the best recent work is starting to let the model make that call itself. We follow this research closely because we run teams of agents ourselves. More on the Argo blog at https://myargoquest.com/blog and on X at https://x.com/myargoquest.
+      </P>
+      <H2>Sources</H2>
+      <P>
+        Papers (arXiv, primary):
+      </P>
+      <UL items={[
+        <><A href="https://arxiv.org/abs/2303.17760">CAMEL</A>, <A href="https://arxiv.org/abs/2304.03442">Generative Agents</A>, <A href="https://arxiv.org/abs/2305.14325">Multiagent Debate</A>, <A href="https://arxiv.org/abs/2307.07924">ChatDev</A>, <A href="https://arxiv.org/abs/2308.00352">MetaGPT</A>, <A href="https://arxiv.org/abs/2308.08155">AutoGen</A>, <A href="https://arxiv.org/abs/2308.10848">AgentVerse</A></>,
+        <><A href="https://arxiv.org/abs/2402.05120">More Agents Is All You Need</A>, <A href="https://arxiv.org/abs/2402.16823">GPTSwarm</A>, <A href="https://arxiv.org/abs/2406.04692">Mixture-of-Agents</A>, <A href="https://arxiv.org/abs/2406.07155">MacNet</A>, <A href="https://arxiv.org/abs/2411.04468">Magentic-One</A>, <A href="https://arxiv.org/abs/2408.08435">ADAS</A>, <A href="https://arxiv.org/abs/2410.10762">AFlow</A></>,
+        <><A href="https://arxiv.org/abs/2503.13657">Why Do Multi-Agent LLM Systems Fail?</A>, <A href="https://arxiv.org/abs/2512.08296">Towards a Science of Scaling Agent Systems</A></>,
+        <><A href="https://arxiv.org/abs/2601.12307">OneFlow single-agent baseline</A>, <A href="https://arxiv.org/abs/2602.02276">Kimi K2.5</A>, <A href="https://arxiv.org/abs/2610.16120">ScaleMAS</A>, <A href="https://arxiv.org/abs/2608.26081">SwarmWorld</A>, <A href="https://arxiv.org/abs/2609.04170">emergent cheating in research swarms</A></>,
+      ]} />
+      <P>
+        Benchmarks (primary):
+      </P>
+      <UL items={[
+        <><A href="https://huggingface.co/spaces/gaia-benchmark/leaderboard">GAIA</A>, <A href="https://www.swebench.com">SWE-bench</A>, <A href="https://arxiv.org/abs/2504.12516">BrowseComp</A>, <A href="https://www.tbench.ai/leaderboard">Terminal-Bench</A>, <A href="https://taubench.com">tau-bench</A>, <A href="https://arxiv.org/abs/2503.01935">MultiAgentBench</A>, <A href="https://arxiv.org/abs/2502.20073">Collab-Overcooked</A>, <A href="https://arxiv.org/abs/2410.07553">COMMA</A>, <A href="https://arxiv.org/abs/2602.13255">DPBench</A></>,
+      ]} />
+      <P>
+        Engineering posts (company primary):
+      </P>
+      <UL items={[
+        <><A href="https://www.anthropic.com/engineering/multi-agent-research-system">Anthropic: How we built our multi-agent research system</A>, 13 June 2025</>,
+        <><A href="https://cognition.com/blog/dont-build-multi-agents">Cognition: Don&apos;t Build Multi-Agents</A>, 12 June 2025</>,
+      ]} />
+      <P>
+        Repositories (GitHub, stars fetched 2026-11-15): <A href="https://github.com/openai/openai-agents-python">openai-agents-python</A>, <A href="https://github.com/openai/swarm">openai/swarm</A>, <A href="https://github.com/crewAIInc/crewAI">crewAI</A>, <A href="https://github.com/langchain-ai/langgraph">langgraph</A>, <A href="https://github.com/microsoft/agent-framework">agent-framework</A>, <A href="https://github.com/microsoft/autogen">autogen</A>, <A href="https://github.com/google/adk-python">adk-python</A>, <A href="https://github.com/a2aproject/A2A">A2A</A>, <A href="https://github.com/FoundationAgents/MetaGPT">MetaGPT</A>, <A href="https://github.com/OpenBMB/ChatDev">ChatDev</A>, <A href="https://github.com/camel-ai/camel">camel</A>, <A href="https://github.com/huggingface/smolagents">smolagents</A>, <A href="https://github.com/kyegomez/swarms">swarms</A>, <A href="https://github.com/OpenHands/OpenHands">OpenHands</A>, <A href="https://github.com/bytedance/deer-flow">deer-flow</A>, <A href="https://github.com/ruvnet/ruflo">ruflo</A>, <A href="https://github.com/HKUDS/ClawTeam">ClawTeam</A>, <A href="https://github.com/666ghj/MiroFish">MiroFish</A>
+      </P>
+    </>
+  )
+}
+
+/* ── Post: "The Anthology of Balaji, summarized: technology, truth and building the future" ── */
+function AnthologyOfBalajiSummaryContent() {
+  return (
+    <>
+      <P>
+        Balaji Srinivasan&apos;s ideas on technology, truth and building companies are spread across about a decade of podcasts, posts and tweets. Eric Jorgenson went through hundreds of hours of that material and compiled it into one book. The book is free to download, and it asks readers to check its quotations against a primary source before citing them.
+      </P>
+      <P>
+        Jorgenson published it in 2023 as <A href="https://balajianthology.com">*The Anthology of Balaji: A Guide to Technology, Truth, and Building the Future*</A>. This post summarizes the book part by part. It reports what the book says and does not argue for or against it.
+      </P>
+      <Figure
+        src="/blog/anthology-of-balaji-summary-1.jpg"
+        alt="The dark blue cover of The Anthology of Balaji, subtitled A Guide to Technology, Truth, and Building the Future, by Eric Jorgenson with illustrations by Jack Butcher"
+        width={1100}
+        height={1700}
+        priority
+        caption="The cover of The Anthology of Balaji (2023). Source: Eric Jorgenson, balajianthology.com"
+      />
+      <H2>Who is Balaji, and how was the book made?</H2>
+      <P>
+        The book&apos;s timeline gives the background. Srinivasan earned a BS, MS and PhD in electrical engineering and an MS in chemical engineering at Stanford. In 2008 he co-founded Counsyl, a clinical genomics company that the book says was sold for 375 million USD in 2018. He joined the venture capital firm Andreessen Horowitz as a general partner in 2013, became chief technology officer of Coinbase in 2018 and published *The Network State* in 2022.
+      </P>
+      <Figure
+        src="/blog/anthology-of-balaji-summary-2.jpg"
+        alt="Portrait photo of Balaji Srinivasan in front of a TechCrunch Disrupt SF 2017 backdrop"
+        width={1920}
+        height={1366}
+        caption="Balaji Srinivasan at TechCrunch Disrupt SF in 2017. Photo: Kristyuhorton, Wikimedia Commons, CC BY-SA 4.0"
+      />
+      <P>
+        Jorgenson writes that he built the book &quot;entirely out of transcripts, tweets, and talks Balaji has shared.&quot; He is also the author of *The Almanack of Naval Ravikant*. Jack Butcher drew the illustrations and Srinivasan wrote the introduction.
+      </P>
+      <P>
+        The book has three parts and a reading list. Part I covers what technology does. Part II covers how to tell what is true. Part III is advice for people who want to build something. The reading list at the back groups Srinivasan&apos;s recommended books under math and science, books for founders, and history. The book invites readers to skip around, and notes that ideas often build on earlier ones.
+      </P>
+      <Figure
+        src="/blog/anthology-of-balaji-summary-3.jpg"
+        alt="Diagram of the book's structure: Part I Technology, Part II Truth and Part III Building the Future, each with its chapter titles, and a bonus reading list"
+        width={1600}
+        height={1000}
+        caption="How the book is organized: three parts and a reading list. Diagram by Argo, from the book's table of contents"
+      />
+      <H2>What does Part I say technology is for?</H2>
+      <P>
+        Part I opens with a statement about money: &quot;I look at money as a tool to build things I can&apos;t buy today.&quot; The book&apos;s examples are a trip to Mars, which no amount of money buys today, and the iPhone, which the richest person of a hundred years ago could not have bought.
+      </P>
+      <P>
+        From there Srinivasan defines the purpose of technology as reducing <strong>scarcity</strong> (having less of something than people want). A breakthrough is described as faster, smaller, cheaper or better, and each word means doing more with less. He argues that mortality is the main source of scarcity, because time has value only while lives are finite, and concludes: &quot;the ultimate purpose of technology is to eliminate mortality.&quot;
+      </P>
+      <P>
+        He also proposes a &quot;technology theory of value&quot; in place of the labor theory of value (the idea that a thing&apos;s worth comes from the hours of work put into it). His example is a chair: one made on an assembly line can be cheaper and better than a handmade one that took more hours.
+      </P>
+      <H3>What rules can hide</H3>
+      <P>
+        The book borrows the idea of the seen and the unseen from Frederic Bastiat, whom it calls a philosopher. A finished skyscraper is visible. One that was never built is not. Srinivasan&apos;s example: in 2009 &quot;it would have been remarkable to claim&quot; that 100 billion USD in company value was being held back by taxi and hotel rules, and &quot;Uber and Airbnb showed it was true.&quot; He asks what drug, aviation and securities rules might be holding back in the same way, and argues for letting early adopters take risks, as test pilots did for aviation.
+      </P>
+      <H3>Technology and political order</H3>
+      <P>
+        Part I states that &quot;what is politically feasible is a function of what is technologically feasible.&quot; The book&apos;s examples: accurate maps made explicit borders possible, and guns reduced the advantage of armored knights, which weakened feudal hierarchy.
+      </P>
+      <P>
+        Srinivasan describes the 20th century as centralized by broadcast media and factory production, with a peak in 1950: &quot;one telephone company, two superpowers, and three television stations.&quot; He says the personal computer, the internet and Bitcoin push in the opposite direction. He does not present decentralization as a cure. His description is a cycle of &quot;bundling, unbundling, then rebundling&quot; around new centers, and his short forecast is &quot;more upside, more downside.&quot;
+      </P>
+      <H3>The digital and physical future</H3>
+      <P>
+        The book describes a three-step pattern: a physical thing, then a scanned copy of it, then a version that is digital from the start. Paper became a scanned file and then a document that never existed on paper. In the book&apos;s words, cash may go &quot;to an online bank balance to cryptocurrency.&quot;
+      </P>
+      <P>
+        Srinivasan calls crypto &quot;programmable money&quot; and ties it to digital property rights: &quot;If you don&apos;t own private keys to something, you don&apos;t really own it.&quot; (A private key is the secret code that proves control of a crypto account.) He expects robots to turn labor into capital: in his words, &quot;once a robot can do something, you&apos;ve turned labor into capital.&quot; He describes the physical world as &quot;a printout of digital wealth.&quot;
+      </P>
+      <P>
+        On health, the book argues for continuous self-measurement and for research into reversing aging. Srinivasan prefers the term &quot;youth extension&quot; to life extension, because the goal he describes is more years of being young, not more years of old age.
+      </P>
+      <H2>How does Part II define truth?</H2>
+      <P>
+        Part II begins with an ordering of goals: &quot;truth, health, and wealth, in that order.&quot; It then separates kinds of truth by what makes each one true.
+      </P>
+      <UL items={[
+        <><strong>Political truth:</strong> true if enough people believe it. The book&apos;s examples are who the president is and where a border lies.</>,
+        <><strong>Technical truth:</strong> a fact that does not depend on belief. The book&apos;s examples are the result of an equation and the diameter of a virus under an electron microscope.</>,
+        <><strong>Scientific truth:</strong> established by independent replication (other people repeating the work and getting the same result). The book says: &quot;If it&apos;s not independently reproducible, it&apos;s not science.&quot;</>,
+        <><strong>Economic truth:</strong> Srinivasan argues that facts matter because a society whose account of itself rests on facts gains technological and economic strength over the medium to long term, and that a society built on false numbers falls behind. The book sorts statements into four kinds: a popular opinion is a platitude, a popular fact is a triviality, an unpopular opinion is a heresy and an unpopular fact is an innovation. It adds: &quot;Unpopular truth is a reliable source of profit.&quot;</>,
+        <><strong>Cryptographic truth:</strong> a record that anyone can check with math. His example is that there is no dispute over who owns which Bitcoin.</>,
+      ]} />
+      <Figure
+        src="/blog/anthology-of-balaji-summary-4.jpg"
+        alt="Page 106 of the book: the heading Economic Truth, a four-line list pairing popular and unpopular opinions and facts with platitude, triviality, heresy and innovation, last line highlighted, and the same four words in a two by two grid"
+        width={924}
+        height={1411}
+        caption="The book's grid of popular and unpopular opinions and facts (highlight added). Source: The Anthology of Balaji, p. 106, illustration by Jack Butcher"
+      />
+      <P>
+        The practical advice in this part is to ask for the raw data behind any statistic, and to argue with the people who produced a claim and not with those who pass it along: &quot;Argue with signal sources, not signal repeaters.&quot; Srinivasan also proposes a &quot;ledger of record&quot;, which he describes as &quot;the integration of all these crypto oracles.&quot; An <strong>oracle</strong> here is a source that publishes signed, time-stamped data to a blockchain (a shared record that many computers keep and no one can quietly rewrite), such as a weather sensor reporting a temperature. He wants the record to grow from &quot;who owns what Bitcoin&quot; to &quot;who said what things at what times.&quot;
+      </P>
+      <H2>What does the book say about media?</H2>
+      <P>
+        Three chapters of Part II cover media: Srinivasan&apos;s criticism of news companies, his advice to readers, and what he would build. His starting point is that media shapes behavior the way code shapes machines: &quot;If you are what you eat, then you think what you see.&quot;
+      </P>
+      <P>
+        He argues that news companies are corporations whose income rises with conflict, summarized as &quot;if it enrages, it engages.&quot; One example he gives is a New York Times editorial of January 13, 1920, which said a rocket could not work in space. The book notes that the paper took the statement back on July 17, 1969.
+      </P>
+      <P>
+        His recommendations are addressed to the reader:
+      </P>
+      <UL items={[
+        <><strong>Information diet:</strong> treat what you read the way you treat what you eat.</>,
+        <><strong>Dashboards before news:</strong> start the day with your own numbers, such as health and savings, before a news feed. The book&apos;s phrase is &quot;dashboards are better than newspapers.&quot;</>,
+        <><strong>Useful media:</strong> prefer material you check line by line as you apply it, such as a coding tutorial.</>,
+        <><strong>Direct distribution:</strong> people who run companies should publish to their own audience.</>,
+      ]} />
+      <P>
+        He also sketches a different kind of news outlet: writers who attach a prediction market bet to each post (a prediction market is a market where people stake money on whether a forecast comes true), and readers who pay individual creators directly. He calls those paying readers &quot;dollowers&quot;, for dollar-weighted followers.
+      </P>
+      <H2>What does Part III advise people who want to build?</H2>
+      <P>
+        Part III has three chapters: Believing, Founding and Evolving.
+      </P>
+      <H3>Believing</H3>
+      <P>
+        Srinivasan argues that wealth is created and not taken from someone else, and asks: &quot;who did Steve Jobs steal all the iPhones from?&quot; He connects financial independence to independence of thought and gives a formula for a <strong>personal runway</strong> (the number of years a person can live without a paycheck): current savings divided by yearly expenses. He also says that cutting the cost of living to a fifth is easier than multiplying net worth by five.
+      </P>
+      <Figure
+        src="/blog/anthology-of-balaji-summary-5.jpg"
+        alt="Page 171 of the book with the personal runway formula: current savings divided by yearly expenses equals personal runway"
+        width={924}
+        height={561}
+        caption="The personal runway formula in the book. Source: The Anthology of Balaji, p. 171"
+      />
+      <P>
+        The chapter also explains his interest in frontiers. In his account, when there is no new territory people compete over what already exists, and when a frontier opens they can leave and build. He names four frontiers today: the land, the internet, the sea and space. The chapter&apos;s last section, titled &quot;Don&apos;t Argue. Build.&quot;, includes the line: &quot;Don&apos;t argue about regulation. Build Uber. Don&apos;t argue about monetary policy. Build Bitcoin.&quot;
+      </P>
+      <H3>Founding</H3>
+      <P>
+        The Founding chapter covers starting and running a company. Its main points:
+      </P>
+      <UL items={[
+        <><strong>The idea maze:</strong> a founder should know why earlier companies with the same idea failed and what a new technology has changed.</>,
+        <><strong>Market size:</strong> calculate it early and often, and estimate it in at least two different ways.</>,
+        <><strong>Seven stages:</strong> &quot;An idea is not a mockup. A mockup is not a prototype. A prototype is not a program. A program is not a product. A product is not a business. And a business is not profits.&quot;</>,
+        <><strong>Launching:</strong> &quot;A new product can never be superior to an incumbent in all respects. Launch means criticism.&quot;</>,
+        <><strong>Hiring:</strong> &quot;Hire people who are hungry and can teach us something.&quot;</>,
+        <><strong>Alignment:</strong> &quot;Politics arises when one person&apos;s biggest win involves (or requires!) another person&apos;s loss.&quot;</>,
+        <><strong>Execution:</strong> for an unstructured problem, list the options, rank them, work through the list, and set a limit before changing strategy.</>,
+      ]} />
+      <Figure
+        src="/blog/anthology-of-balaji-summary-6.jpg"
+        alt="Page 213 of the book: a table of seven stages from idea to profits, with what each requires and the minimum time it takes"
+        width={880}
+        height={510}
+        caption="The seven stages from idea to profits, with minimum times. Source: The Anthology of Balaji, p. 213"
+      />
+      <H3>Evolving</H3>
+      <P>
+        The last chapter covers personal habits. Srinivasan recommends writing goals down, placing all meetings on one or two days of the week, and spending the first hours of the day offline. He describes skipping exercise and good food as taking on &quot;physical debt.&quot;
+      </P>
+      <P>
+        For learning, he calls &quot;the newest technical papers and the oldest books&quot; the best sources of facts few other people know, starts with practice problems before reading the text, and treats math, computer science and statistics as &quot;universal languages.&quot; Near its end the chapter says: &quot;There is always another train leaving the station, another rocket ship blasting off. Found it, fund it, or join it.&quot;
+      </P>
+      <H2>What should a reader know before quoting the book?</H2>
+      <P>
+        The book states its own limits in a note at the front. Jorgenson writes that the transcripts were &quot;edited for clarity and brevity (multiple times)&quot;, that &quot;everything in this book is taken out of context&quot;, and asks readers to &quot;verify phrasing with a primary source before citing Balaji from this text.&quot; The quotations in this post come from the book and carry the same caution.
+      </P>
+      <P>
+        Jorgenson&apos;s introduction describes the ideas as &quot;often divisive&quot; and says readers may not agree with them.
+      </P>
+      <H2>Where can you get the book?</H2>
+      <Figure
+        src="/blog/anthology-of-balaji-summary-7.jpg"
+        alt="Two buttons cropped from the balajianthology.com home page: Download Free PDF, highlighted, and Download Free .EPUB"
+        width={1330}
+        height={455}
+        caption="The free download buttons on the book's website (highlight added). Source: balajianthology.com"
+      />
+      <P>
+        The book&apos;s website, <A href="https://balajianthology.com">balajianthology.com</A>, links to the paperback, hardcover and Kindle editions. The same page offers a free PDF and EPUB download and a web version. The book says a fully cited version of the text is available on the site.
+      </P>
+      <P>
+        More posts like this one are on the <A href="https://myargoquest.com/blog">Argo blog</A> and at <A href="https://x.com/myargoquest">x.com/myargoquest</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "anthology-of-balaji-summary",
+    title: "\"The Anthology of Balaji, summarized: technology, truth and building the future\"",
+    description: "A part-by-part summary of The Anthology of Balaji, Eric Jorgenson's collection of Balaji Srinivasan's ideas on technology, truth and building.",
+    category: "crypto",
+    date: "November 15, 2026",
+    isoDate: "2026-11-15T18:01",
+    readingTime: "12 min read",
+    image: "/blog/anthology-of-balaji-summary-1.jpg",
+    Content: AnthologyOfBalajiSummaryContent,
+  },
+  {
+    slug: "agent-swarms-explained",
+    title: "Agent swarms explained: how teams of AI agents split up one task, and how we know if it works",
+    description: "The frameworks, papers, benchmarks and measured limits of AI agent swarms that coordinate to finish one task, as of November 2026.",
+    category: "ai-news",
+    date: "November 15, 2026",
+    isoDate: "2026-11-15T17:35",
+    readingTime: "15 min read",
+    image: "/blog/agent-swarms-explained-1.jpg",
+    Content: AgentSwarmsExplainedContent,
+  },
+  {
+    slug: "engine-core-v2-architecture",
+    title: "Inside the Argo engine rebuild: one manifest per feature, addons off by default, one memory",
+    description: "How the Argo engine was rebuilt around feature manifests: a base, six core features, opt-in addons, generated config and units, and one memory store.",
+    category: "product-updates",
+    date: "November 14, 2026",
+    isoDate: "2026-11-14T17:21",
+    readingTime: "13 min read",
+    image: "/blog/engine-core-v2-architecture-1.jpg",
+    Content: EngineCoreV2ArchitectureContent,
+  },
+  {
+    slug: "graphon-multimodal-memory",
+    title: "How Graphon connects the clues an AI assistant needs to remember",
+    description: "Graphon links documents, images, video and email so an AI assistant can retrieve evidence across formats and time.",
+    category: "ai-news",
+    date: "November 11, 2026",
+    isoDate: "2026-11-11T16:15",
+    readingTime: "5 min read",
+    image: "/blog/graphon-multimodal-memory-1.jpg",
+    Content: GraphonMultimodalMemoryContent,
+  },
+  {
+    slug: "parallel-agent-teams-explained",
+    title: "Why small AI agent teams can outperform one giant team",
+    description: "A new study finds that several small teams sharing notes can beat many solo AI agents when a scorer can choose the best result.",
+    category: "ai-news",
+    date: "November 11, 2026",
+    isoDate: "2026-11-11T20:33",
+    readingTime: "7 min read",
+    image: "/blog/parallel-agent-teams-explained-1.jpg",
+    Content: ParallelAgentTeamsExplainedContent,
+  },
+  {
+    slug: "deletion-tuning-explained",
+    title: "How deleting a few weights teaches an AI model new tasks",
+    description: "Deletion Tuning learns which tiny set of model weights to switch off, matching full fine-tuning at the largest tested scales.",
+    category: "ai-news",
+    date: "November 11, 2026",
+    isoDate: "2026-11-11T19:53",
+    readingTime: "7 min read",
+    image: "/blog/deletion-tuning-explained-1.jpg",
+    Content: DeletionTuningExplainedContent,
+  },
+  {
+    slug: "claude-fable-mythos-52",
+    title: "Claude Fable 5.2 and Mythos 5.2: what changed",
+    description: "How Anthropic's new models differ in access, what their technical-work results show, and when to try them beyond everyday coding.",
+    category: "ai-news",
+    date: "November 10, 2026",
+    isoDate: "2026-11-10T07:08",
+    readingTime: "6 min read",
+    image: "/blog/claude-fable-mythos-52-1.jpg",
+    Content: ClaudeFableMythos52Content,
+  },
+  {
+    slug: "qwen-4-confirmed",
+    title: "\"Qwen 4: what is confirmed before a 27B release\"",
+    description: "\"How to separate Qwen 4 release evidence from an architecture preview, and what to check before planning a local deployment.\"",
+    category: "ai-news",
+    date: "November 9, 2026",
+    isoDate: "2026-11-09T09:42",
+    readingTime: "4 min read",
+    image: "/blog/qwen-4-confirmed-1.jpg",
+    Content: Qwen4ConfirmedContent,
+  },
   {
     slug: "memorilla",
     title: "Memorilla - 16 memory tokens let a frozen LLM read thousands of documents at once",
