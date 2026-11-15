@@ -461,7 +461,7 @@ final class AppServices: ObservableObject {
             credits: credits,
             speech: AppleSpeechTranscriber(),
             ocr: ocr,
-            voice: VapiVoiceCallService(api: api, ai: ai, currentDEK: { [weak keys] in keys?.currentDataKey }),
+            voice: LocalVoiceCallService(api: api, ai: ai),
             leaderboard: ProxyLeaderboardService(api: api),
             soul: ProxySoulService(api: api),
             consentStore: consentStore,

@@ -24,9 +24,13 @@ packages:
   GoogleSignIn:
     url: https://github.com/google/GoogleSignIn-iOS
     from: 8.0.0
-  Vapi:
-    url: https://github.com/VapiAI/ios
-    branch: main
+  # On-device speech for voice calls: Silero VAD, Parakeet speech-to-text and
+  # Kokoro text-to-speech as Core ML models (downloaded on first call, never
+  # bundled). Pinned exactly: the model manifests and the manager APIs move
+  # between releases, so bump this deliberately and re-test a call.
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio
+    exactVersion: 0.18.3
   PostHog:
     url: https://github.com/PostHog/posthog-ios
     from: 3.0.0
@@ -72,8 +76,8 @@ targets:
         product: RevenueCatUI
       - package: GoogleSignIn
         product: GoogleSignIn
-      - package: Vapi
-        product: Vapi
+      - package: FluidAudio
+        product: FluidAudio
       - package: PostHog
         product: PostHog
       - package: Reown
@@ -114,7 +118,7 @@ targets:
           UIColorName: LaunchBackground
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        # Keeps the VAPI voice call's mic + audio alive when the screen locks
+        # Keeps the voice call's mic + audio alive when the screen locks
         # or the app backgrounds (paired with isIdleTimerDisabled while active).
         UIBackgroundModes:
           - audio

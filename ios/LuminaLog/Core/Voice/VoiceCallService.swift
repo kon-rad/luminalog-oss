@@ -2,8 +2,7 @@ import Foundation
 
 /// Errors surfaced by `VoiceCallService` implementations.
 enum VoiceCallError: LocalizedError {
-    /// The Vapi iOS SDK is not integrated yet (deferred to the
-    /// backend-integration task — see `VapiVoiceCallService`).
+    /// Voice calls are not available in this build.
     case sdkNotIntegrated
     /// The proxy refused to issue a per-call configuration.
     case callConfigFailed(String)
@@ -11,13 +10,9 @@ enum VoiceCallError: LocalizedError {
     /// decrypts server-side (1c-E not built), so it can't run once the server holds
     /// no key. Gated off rather than 500-ing mid-call.
     case unavailableInPrivateMode
-    /// The user has not granted microphone access. Without it the call still
-    /// connects and the assistant still greets — but NO customer audio ever reaches
-    /// Vapi, which ends the call as
-    /// `call.in-progress.error-assistant-did-not-receive-customer-audio`. Because
-    /// the assistant did speak, the ADR-0093 end-classifier would call that a normal
-    /// end, so the user just sees a companion that never responds. Fail loudly and
-    /// early instead (ADR-0110).
+    /// The user has not granted microphone access. Without it the assistant would
+    /// greet and then never hear a word, so the user just sees a companion that
+    /// never responds. Fail loudly and early instead (ADR-0110).
     case microphonePermissionDenied
 
     var errorDescription: String? {
@@ -36,11 +31,14 @@ enum VoiceCallError: LocalizedError {
 
 /// One state-change or transcript event during a voice call.
 ///
-/// In production these map 1:1 onto Vapi SDK delegate events (architecture
-/// spec §5.5); in demo mode `MockVoiceCallService` emits a scripted sequence.
+/// In production `LocalVoiceCallService` emits these from its on-device speech
+/// pipeline; in demo mode `MockVoiceCallService` emits a scripted sequence.
 enum VoiceCallEvent: Equatable, Sendable {
     /// Transport/session setup has begun.
     case connecting
+    /// Still setting up, with a short user-facing status line (for example the
+    /// first-call download of the on-device speech models).
+    case preparing(String)
     /// The call is live; the duration timer should start.
     case connected
     /// The assistant is idle and waiting for the user.
@@ -59,7 +57,7 @@ enum VoiceCallEvent: Equatable, Sendable {
 }
 
 /// Real-time voice conversation with the AI companion (design §8,
-/// architecture §5.5). Vapi is the transport; our proxy is the brain.
+/// architecture §5.5). Speech runs on the device; our proxy is the brain.
 @MainActor
 protocol VoiceCallService: AnyObject {
 

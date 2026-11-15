@@ -821,7 +821,7 @@ final class ProxyAIService: AIService {
 
     /// Builds the Model-1 voice-call context: profile + focal/today's entries (fast,
     /// local-only lookups) plus a best-effort semantic search over PAST entries, so it
-    /// can be baked into the Vapi system prompt at call start. Mirrors `buildModel1ChatBody`.
+    /// can be sent with each voice turn. Mirrors `buildModel1ChatBody`.
     ///
     /// The PAST-entries search is a network round trip (`ServerSemanticIndex` →
     /// `/v1/rag/search`) and is bounded to `voiceRagBudgetSeconds`: a slow/cold search
@@ -893,6 +893,27 @@ final class ProxyAIService: AIService {
             focalEntry: mirrorFocal ?? focal?.content,
             memoryContext: memoryContext
         )
+    }
+
+    /// Per-turn retrieval for a local voice call. Semantic search over PAST entries
+    /// (today's are already in the call-start context), formatted on device from the
+    /// matched chunks. The whole step, including the local entry fetch, is bounded to
+    /// `voiceRagBudgetSeconds`: a slow or cold search costs the turn its extra context,
+    /// never its reply.
+    func voiceTurnContext(query: String) async -> String {
+        guard DevFlags.aiModel1, let journals else { return "" }
+        return await Self.withBudget(
+            seconds: Self.voiceRagBudgetSeconds, fallback: "",
+            onTimeout: { Self.logger.error("voice turn retrieval missed its budget, turn runs without it") }
+        ) {
+            let entries = (try? await journals.fetchAllEntries()) ?? []
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = .current
+            let past = entries.filter { !calendar.isDateInToday($0.createdAt) }
+            return await Model1Requests.journalContext(
+                from: past, query: query, now: self.now(), searcher: self.coordinator
+            )
+        }
     }
 
     /// Races `operation` against a `seconds` deadline, returning `fallback` if the

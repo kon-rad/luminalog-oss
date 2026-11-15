@@ -19,7 +19,7 @@ AI-powered journaling app. Native SwiftUI, iOS 17+.
 - **Chats** — chat list, streaming text chat with the AI companion
   (journal-aware via the proxy), auto-titling.
 - **Voice call** — immersive call screen (breathing orb, live transcript,
-  mute/end controls) saving a transcript chat; Vapi service behind a protocol.
+  mute/end controls) saving a transcript chat; on-device speech (FluidAudio) behind a protocol.
 - **Profile & settings** — editable display name/bio/avatar (downscaled JPEG
   upload), subscription row, sign out, two-step account deletion.
 - **Paywall** — RevenueCat-backed offerings, purchase + restore flows driven
@@ -42,7 +42,7 @@ is usable offline with nothing leaving the device (see
 | Google Sign-In redirect | `GOOGLE_REVERSED_CLIENT_ID` build setting in `project.yml` |
 | AI/media proxy | `LUMINALOG_API_URL` Info.plist key (set in `project.yml`, defaults to `http://localhost:3200`) — chat, summaries, prompts, media uploads |
 | RevenueCat | `REVENUECAT_API_KEY` Info.plist key (add it in `project.yml`); without it the demo subscription mock is used |
-| Vapi voice calls | The Vapi iOS SDK is **not** integrated yet — `VapiVoiceCallService` is a placeholder behind `VoiceCallService`; demo mode uses `MockVoiceCallService` |
+| Voice calls | `LocalVoiceCallService` runs speech on device (Silero VAD, Parakeet, Kokoro via FluidAudio) and posts each turn's text to `/v1/ai/voice-turn`. The speech models download on the first call; demo mode uses `MockVoiceCallService` |
 
 ## Tests
 

@@ -45,6 +45,9 @@ final class VoiceCallViewModel: ObservableObject {
     // MARK: - Published state
 
     @Published private(set) var phase: Phase = .connecting
+    /// Status line under the connecting spinner (model download progress on the
+    /// first call). Nil shows the default "Connecting…".
+    @Published private(set) var connectingDetail: String?
     @Published private(set) var speakingState: SpeakingState = .listening
     @Published private(set) var transcript: [ChatMessage] = []
     /// In-progress assistant caption while it speaks.
@@ -154,6 +157,9 @@ final class VoiceCallViewModel: ObservableObject {
         case .connecting:
             phase = .connecting
 
+        case .preparing(let detail):
+            connectingDetail = detail
+
         case .connected:
             phase = .active
             speakingState = .listening
@@ -178,11 +184,10 @@ final class VoiceCallViewModel: ObservableObject {
             if message.role == .assistant {
                 assistantPartial = nil
             }
-            // Zero-knowledge (Model-1): the server no longer persists voice turns (it
-            // can't decrypt), so persist each finalized transcript message to the chat
-            // ourselves (client-encrypted). Best-effort — a failed write never disrupts
-            // the live call.
-            if DevFlags.aiModel1, let chatId = chat?.id {
+            // Speech runs on device and the server persists nothing, so persist each
+            // finalized transcript message to the chat ourselves (client-encrypted).
+            // Best-effort: a failed write never disrupts the live call.
+            if let chatId = chat?.id {
                 Task { [weak self] in
                     try? await self?.chats.appendMessage(message, to: chatId)
                 }

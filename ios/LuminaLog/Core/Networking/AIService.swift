@@ -24,7 +24,7 @@ struct EntryAIBundle: Sendable {
 }
 
 /// Plaintext context for a zero-knowledge (Model-1) voice call, built ON DEVICE at
-/// call start and baked into the Vapi assistant's system prompt so the server never
+/// call start and sent with each voice turn's prompt context so the server never
 /// decrypts mid-call. Mirrors the Model-1 text-chat context.
 struct VoiceCallContext: Sendable {
     let name: String
@@ -91,8 +91,14 @@ protocol AIService: AnyObject {
 
     /// Zero-knowledge (Model-1) only: build the plaintext voice-call context on-device
     /// (name, bio, profile, on-device RAG, focal entry) so it can be injected into the
-    /// Vapi system prompt. Returns nil off the ZK path (the server builds context then).
+    /// voice prompt. Returns nil off the ZK path.
     func voiceCallContext(chatId: String?, journalId: String?) async throws -> VoiceCallContext?
+
+    /// Per-turn retrieval for a local voice call: the past journal passages most
+    /// relevant to what the user just said, formatted as plaintext context. Built on
+    /// device and bounded by a short budget; returns "" when there is nothing (or no
+    /// time) to add, so a slow search never delays the spoken reply.
+    func voiceTurnContext(query: String) async -> String
 
     /// Zero-knowledge zoom-pyramid position track: one tier's positioned dots. Plain
     /// read, not a job (see the route's own doc comment: no LLM call on this path).
@@ -196,6 +202,9 @@ extension AIService {
     /// Default: no client-built voice context (non-ZK paths and mocks). Only the
     /// zero-knowledge `ProxyAIService` overrides this.
     func voiceCallContext(chatId: String?, journalId: String?) async throws -> VoiceCallContext? { nil }
+
+    /// Default: no per-turn retrieval (mocks and non-ZK paths).
+    func voiceTurnContext(query: String) async -> String { "" }
 
     /// Default: only the zero-knowledge `ProxyAIService` reads period positions.
     func periodPositions(periodType: String) async throws -> [PeriodPositionPoint] {
