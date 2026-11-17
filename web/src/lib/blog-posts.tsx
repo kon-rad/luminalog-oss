@@ -14318,7 +14318,110 @@ function AnthologyOfBalajiSummaryContent() {
   )
 }
 
+/* ── Post: Qwen4-Max ships as a hosted model, with open weights still ahead ── */
+function Qwen4MaxWhatShippedAndWhatsNextContent() {
+  return (
+    <>
+      <P>
+        A builder choosing a model needs a simpler answer than a leaderboard graphic: what can I call today, what does it accept, and what evidence says it will finish my task? <A href="https://www.alibabacloud.com/en/press-room/alibaba-unveils-qwen4-max">Alibaba&apos;s November 16 release</A> gives a clear answer to the first two questions for Qwen4-Max. The third still needs independent testing.
+      </P>
+      <P>
+        Qwen4-Max is available as a hosted production model. Smaller open-weight Qwen4 models are promised for later, so this release should not be described as an open-weight download.
+      </P>
+      <Figure
+        src="/blog/qwen4-max-what-shipped-and-whats-next-1.jpg"
+        alt="Official QwenCloud Qwen4-Max model listing"
+        width={1920}
+        height={1230}
+        priority
+        caption="The official QwenCloud listing names Qwen4-Max and its model features. Screenshot: QwenCloud."
+      />
+      <H2>What shipped?</H2>
+      <P>
+        Alibaba lists the production model as <A href="https://help.aliyun.com/en/model-studio/qwen4-max">`qwen4-max` in Model Studio</A>. It accepts text, image and video input and produces text. Its API supports function calling, web search and structured JSON output. Those features make it usable in a tool-using agent today, subject to the provider&apos;s access rules and a builder&apos;s own evaluation.
+      </P>
+      <Figure
+        src="/blog/qwen4-max-what-shipped-and-whats-next-2.jpg"
+        alt="Diagram of Qwen4-Max on QwenCloud: text, image and video input, text output, one-million-token context window"
+        width={1600}
+        height={900}
+        caption="QwenCloud lists text, image and video input, text output and a 1M-token context window. Argo diagram."
+      />
+      <P>
+        A separate <code>qwen4-max-preview</code> appeared earlier under a Token Plan. The <A href="https://help.aliyun.com/en/model-studio/qwen4-max-preview">preview documentation</A> describes a November 11 to 25 window and recommends moving to the production model. The two names are not interchangeable when reporting an evaluation: a result from a preview can reflect a different model state from the production API.
+      </P>
+      <H2>How does the sparse design work?</H2>
+      <P>
+        Alibaba says the model has 2.4 trillion total parameters but activates 71 billion per token. Parameters are learned weights. In a sparse mixture-of-experts model, a routing mechanism chooses a subset of those weights for each token rather than using the entire model every time. Imagine a large workshop where only the relevant specialist benches are powered for a particular job. The analogy stops at quality: which benches are selected, and how reliably they cooperate, must still be measured on real tasks.
+      </P>
+      <P>
+        The documented context window is one million tokens. That is an input-capacity limit, not a guarantee that the model will remember or correctly use every detail in a long repository or conversation. For an agent, successful tool use, recovery after errors, and cost per completed task matter at least as much as the maximum window.
+      </P>
+      <Figure
+        src="/blog/qwen4-max-what-shipped-and-whats-next-3.jpg"
+        alt="Qwen official Video-Index benchmark comparison with model legend"
+        width={1600}
+        height={930}
+        caption="Qwen-reported Video-Index comparison from its official 16 November 2026 chart posted on X; not independently reproduced."
+      />
+      <H2>What do the numbers establish?</H2>
+      <P>
+        Alibaba reports that on its proprietary Work360 benchmark, Qwen4-Max used 35% fewer tokens than Qwen3.8-Max at High reasoning effort and cut average cost per task by about 60%. It also reports sixth place on Code Arena. The comparison names a predecessor and an effort setting, which is useful. But the Work360 tasks and scoring are not independently reproducible from the release alone, and leaderboard ranks can change. These are vendor-reported results, not a field test by Argo.
+      </P>
+      <Figure
+        src="/blog/qwen4-max-what-shipped-and-whats-next-4.jpg"
+        alt="Qwen official DeepSWE v1.1 benchmark comparison with model legend"
+        width={1600}
+        height={930}
+        caption="Qwen-reported DeepSWE v1.1 comparison from its official 16 November 2026 chart posted on X; not independently reproduced."
+      />
+      <Figure
+        src="/blog/qwen4-max-what-shipped-and-whats-next-5.jpg"
+        alt="Qwen official Agents' Last Exam v1.1 benchmark comparison with model legend"
+        width={1600}
+        height={930}
+        caption="Qwen-reported Agents' Last Exam v1.1 comparison from its official 16 November 2026 chart posted on X; not independently reproduced."
+      />
+      <Figure
+        src="/blog/qwen4-max-what-shipped-and-whats-next-6.jpg"
+        alt="Qwen official Automationbench-AA benchmark comparison with model legend"
+        width={1600}
+        height={930}
+        caption="Qwen-reported Automationbench-AA comparison from its official 16 November 2026 chart posted on X; not independently reproduced."
+      />
+      <P>
+        The <A href="https://help.aliyun.com/en/model-studio/qwen4-max">production documentation</A> also matters for pricing. Alibaba&apos;s announcement cites a low cached-input price. A cache hit is a specific billing condition; it is not the price of every input token or every agent run. Before adopting the model, test a representative workflow, count retries and output tokens, and compare completed-task cost under the region and plan actually used.
+      </P>
+      <Figure
+        src="/blog/qwen4-max-what-shipped-and-whats-next-7.jpg"
+        alt="Argo diagram showing qwen4-max list prices"
+        width={1600}
+        height={900}
+        caption="QwenCloud list prices in USD per million tokens, checked 17 November 2026. Argo diagram."
+      />
+      <H2>What should a builder do next?</H2>
+      <P>
+        Use the production model ID, not the retiring preview ID. Test a small suite of real tasks with fixed prompts and tools. Record completion rate, latency, token consumption and the exact API region. Keep the open-weight question separate: Alibaba has announced smaller open-weight Qwen4 models, but has not released them in this announcement.
+      </P>
+      <P>
+        Read the <A href="https://www.alibabacloud.com/en/press-room/alibaba-unveils-qwen4-max">release</A> and <A href="https://help.aliyun.com/en/model-studio/qwen4-max">model documentation</A>, and follow more model analysis at <A href="https://myargoquest.com/blog">Argo</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "qwen4-max-what-shipped-and-whats-next",
+    title: "Qwen4-Max ships as a hosted model, with open weights still ahead",
+    description: "Alibaba's Qwen4-Max release, sparse architecture, API access, and the limits of its benchmark claims.",
+    category: "ai-news",
+    date: "November 17, 2026",
+    isoDate: "2026-11-17T21:29",
+    readingTime: "4 min read",
+    image: "/blog/qwen4-max-what-shipped-and-whats-next-1.jpg",
+    Content: Qwen4MaxWhatShippedAndWhatsNextContent,
+  },
   {
     slug: "anthology-of-balaji-summary",
     title: "\"The Anthology of Balaji, summarized: technology, truth and building the future\"",
