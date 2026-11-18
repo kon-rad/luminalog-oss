@@ -14509,7 +14509,50 @@ function CaliforniaOpenaiAgentSecurityLawsuitContent() {
   )
 }
 
+/* ── Post: "Argo build log, Day 36: A 2.4 trillion parameter model that uses 71 billion at a time" ── */
+function ArgoBuildLogDay36Content() {
+  return (
+    <>
+      <P>
+        Argo is a private AI journal for people who want to own their data, their memory and their story. By 2027 we are working toward USD 1 million in monthly recurring revenue, 100,000 followers across Instagram and YouTube, and a modular, hackable wearable built in public. Today&apos;s work showed our value of teaching what we build: the one thing we shipped is an explainer that separates what a model maker claims from what a reader can check.
+      </P>
+      <H2>Highlights</H2>
+      <UL items={[
+        <>A new AI news post went live on the Argo blog: <A href="https://myargoquest.com/blog/qwen4-max-what-shipped-and-whats-next">Qwen4-Max ships as a hosted model, with open weights still ahead</A>, with seven images including diagrams and official charts.</>,
+      ]} />
+      <H2>Content and classes</H2>
+      <P>
+        Alibaba released Qwen4-Max as a hosted model in its Model Studio. It takes text, image and video in, writes text out, and its API supports function calling, web search and structured JSON output, which is what an agent needs to use tools.
+      </P>
+      <P>
+        The idea worth understanding is the sparse design. Alibaba says the model has 2.4 trillion parameters (the learned weights) but activates only 71 billion of them for each token. In a mixture-of-experts model, a router picks a small set of specialist weights for each piece of text instead of running the whole model every time. Think of a large workshop where only the benches needed for the current job have their power switched on.
+      </P>
+      <P>
+        The post also says plainly where the numbers stop. Alibaba reports that on its own Work360 benchmark the model used 35% fewer tokens than its predecessor and cut average cost per task by about 60%. Those tasks and their scoring can&apos;t be reproduced from the release alone, so we label the charts as vendor-reported. A one-million-token context window is likewise a limit on input size, not a promise that the model uses every detail well.
+      </P>
+      <H2>Next</H2>
+      <UL items={[
+        <>Keep working toward an Argo Journal update that is available to users, and verify its version.</>,
+        <>Finish and publish a YouTube tutorial with a public link.</>,
+      ]} />
+      <P>
+        Read the AI news posts and every build log at <A href="https://myargoquest.com/blog">the Argo blog</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "argo-build-log-day-36",
+    title: "\"Argo build log, Day 36: A 2.4 trillion parameter model that uses 71 billion at a time\"",
+    description: "A new Argo AI news post explains Qwen4-Max, its sparse mixture-of-experts design, and which of its benchmark claims can be checked.",
+    category: "product-updates",
+    date: "November 18, 2026",
+    isoDate: "2026-11-18T07:13",
+    readingTime: "2 min read",
+    Content: ArgoBuildLogDay36Content,
+  },
   {
     slug: "california-openai-agent-security-lawsuit",
     title: "What California's OpenAI agent-security lawsuit actually alleges",
