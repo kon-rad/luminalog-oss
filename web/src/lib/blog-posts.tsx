@@ -14853,7 +14853,245 @@ function GoogleAgenticThreatReportPatchToExploitContent() {
   )
 }
 
+/* ── Post: How Argo gives AI agents a working identity ── */
+function HowArgoAgentPersonasWorkContent() {
+  return (
+    <>
+      <P>
+        Ask an AI assistant to research something today, then return next week. You may need to explain the project again, repeat the same preferences and remind it what went wrong last time. Add several assistants and another problem appears: who owns the work, who can approve it, and where do their conversations go?
+      </P>
+      <P>
+        In Argo, we give agents a persistent working identity. Each has a name, a role, a perspective, a portrait, procedures to follow and limits on what it can do. A run is temporary. The identity, the task records and the useful knowledge survive it.
+      </P>
+      <P>
+        This post walks through the implementation in our Argo installation, including the current memory lifecycle, how agents communicate and wake, and how we work with them from a MacBook, Telegram and the app. The reusable engine is open source in <A href="https://github.com/kon-rad/argo">the Argo GitHub repository</A>, with <A href="https://kon-rad.github.io/argo/">searchable documentation</A>.
+      </P>
+      <Figure
+        src="/blog/how-argo-agent-personas-work-1.jpg"
+        alt="Three panels separate agent identity execution and durable continuity"
+        width={1600}
+        height={900}
+        priority
+        caption="Argo implementation diagram, drawn from the linked engine documentation."
+      />
+      <H2>What makes a persona different from a prompt?</H2>
+      <P>
+        A persona starts with a roster entry. The <A href="https://kon-rad.github.io/argo/org-yaml/">org configuration reference</A> describes fields such as <code>role</code>, <code>team</code>, <code>reports_to</code>, <code>expertise</code>, <code>personality</code>, <code>knowledge</code>, <code>runtime</code> and <code>model</code>. Our roster keeps agent entries in separate YAML files and compiles them into the definitions and import document the system reads.
+      </P>
+      <P>
+        Compilation gives the prose an operational shape. An identity definition tells the agent how to work. The imported database records tell the message board which team it belongs to and which capabilities it holds. A configuration edit and an applied permission are separate events.
+      </P>
+      <P>
+        Consider two real personas. Sol, our chief of staff, works from records: a feature needs an owner, a stage and evidence. Sol&apos;s personality asks for short messages that open with the decision or number that matters. Vera, our code reviewer, is skeptical, polite and specific, with instructions to quote the relevant line. Their difference is a working perspective attached to a responsibility.
+      </P>
+      <P>
+        This helps us ask for complementary judgments. The same change can look complete to a builder and insufficiently verified to a reviewer. The persona describes that lens; the task describes what needs doing. Neither implies consciousness or a separate trained model. These are configured agents using language models.
+      </P>
+      <Figure
+        src="/blog/how-argo-agent-personas-work-2.jpg"
+        alt="Public Argo documentation showing the org configuration reference"
+        width={1660}
+        height={730}
+        caption="Source: Argo public documentation, org.yaml reference at kon-rad.github.io/argo/org-yaml/."
+      />
+      <H3>Why give agents avatar images?</H3>
+      <P>
+        A name is useful in a terminal. A recognizable face is useful in a busy conversation feed. Our portraits use a shared faceted visual style, with each character&apos;s own motif. Sol has a ledger; Vera has a magnifying circle. Those symbols make their responsibilities easier to recognize.
+      </P>
+      <P>
+        The roster stores <code>avatar</code>, a vault-relative image path, and <code>avatar_prompt</code>, the description of what makes that portrait distinct. The engine includes <code>cli-org avatar generate &lt;name&gt;</code>, which combines a shared style, an optional reference image and the individual prompt through a configured Gemini image model. Generation creates an image asset; it is separate from the model answering the agent&apos;s messages.
+      </P>
+      <P>
+        The app serves portraits through <code>/api/org/avatar/&lt;name&gt;</code> and reuses them on the organization chart, agent pages, channel author chips, usage views, session views and Agents chat. An agent without a portrait gets an initial in its team color. This is interface continuity: the same colleague is recognizable wherever its work appears.
+      </P>
+      <Figure
+        src="/blog/how-argo-agent-personas-work-3.jpg"
+        alt="Faceted gold AI-generated portraits of Sol with a ledger, Vera with a magnifying circle and Aria with a waveform"
+        width={1600}
+        height={900}
+        caption="Existing Argo AI-generated agent portraits, assembled for this explanation."
+      />
+      <H2>When does a bot create a memory, and where does it live?</H2>
+      <P>
+        Memory has several jobs, so we keep several kinds of record. The current <A href="https://kon-rad.github.io/argo/memory/">memory documentation</A> maps them to the code, including <A href="https://github.com/kon-rad/argo/blob/main/app/server/src/org-memory.ts">episode recording</A> and the <A href="https://github.com/kon-rad/argo/blob/main/app/server/src/memory-capture.ts">capture loop</A>. The important distinction is between a record of an event and a lesson worth reusing.
+      </P>
+      <P>
+        <strong>A bot can save a lesson while it works.</strong> When it confirms a decision, a measured limit or a useful operational fact, it can call <code>secondbrain memory remember</code>. A fact has a subject, a claim and a source. An optional agent tag associates it with that bot. The current durable fact store is the <code>memory_facts</code> table in Postgres.
+      </P>
+      <P>
+        For example, a bot that confirms a rendering command needs a particular input format can save the requirement with a link to the project note or task that established it. A recommendation inferred from evidence should be marked as inferred. Credentials and private personal details do not belong in shared facts.
+      </P>
+      <P>
+        <strong>A completed wake creates an episode.</strong> When the dispatcher closes a run through <code>cli-org wake-done</code>, the engine records an append-only row in <code>org_agent_episodes</code>. It identifies the agent and run, what triggered it, its task if any, the outcome, a short mechanical summary and a log pointer. Optional measurements include turns, cost and duration when supplied. Repeating completion for the same agent and run does not create another episode.
+      </P>
+      <P>
+        An episode answers, “What happened during that run?” It does not by itself decide which part deserves to become lasting knowledge.
+      </P>
+      <P>
+        <strong>An enabled capture loop extracts durable lessons afterward.</strong> Our instance enables <code>memory.capture</code>. The loop reads eligible finished episodes, asks a model for reusable lessons and writes those as facts, normally tagged with the agent&apos;s name. Its policy controls the cadence, episode age, admitted outcomes, maximum facts and duplicate handling. The engine defaults include a 30-minute cadence and at most three facts per wake; another installation can change them or leave capture disabled.
+      </P>
+      <P>
+        The episode is stamped after processing, so the normal capture path does not keep reading it repeatedly. This is automatic memory creation after a run, alongside the bot&apos;s deliberate mid-run writes. Automatic extraction still needs inspection: a saved claim should retain its evidence, and outdated facts need retirement or supersession.
+      </P>
+      <Figure
+        src="/blog/how-argo-agent-personas-work-4.jpg"
+        alt="Memory lifecycle from retrieval through episode recording to capture"
+        width={1600}
+        height={900}
+        caption="Argo implementation diagram, drawn from the linked engine documentation."
+      />
+      <H3>What about markdown files and the conversation history?</H3>
+      <P>
+        Our vault remains the home of longer prose: research, project designs, procedures and handoff notes. Bot playbooks under <code>.agents/org/memory/</code> can carry handwritten working notes. Interactive harnesses such as Claude Code and Hermes also maintain their own memory files. These are different from the shared fact table.
+      </P>
+      <P>
+        The search index and vector embeddings are derived from vault documents. A vector is a numerical representation used to find related text. We can rebuild that index from the markdown; it is not the authoritative copy of the note.
+      </P>
+      <P>
+        Older designs described a separate semantic persona store, <code>org_agent_memory</code>, and a generated <code>core.md</code>. The current engine retired that path in favor of sourced facts with an agent tag. Reading an old design without checking the implementation would give the wrong account of how today&apos;s memories are written.
+      </P>
+      <H2>When are memories retrieved?</H2>
+      <P>
+        We ask agents to recall relevant knowledge before beginning project work and before answering factual questions about our systems. The shared-memory procedure makes that an explicit step. Retrieval is a search for the current task, rather than loading the company&apos;s entire history into every run.
+      </P>
+      <P>
+        The org recall path brings together source-labelled results from shared facts, matching bot-memory lines and vault search. Vault search combines keywords with semantic search when embeddings are configured. A result is a pointer to evidence: the agent should open its source before relying on it.
+      </P>
+      <P>
+        In zen-agent, an optional <code>recall</code> context fetcher searches using the card title, scoped to the project, and adds a capped selection of hits to the starting context. Recall and remember tools are also available during a run. Fetchers must be configured; their existence does not mean every run automatically uses them.
+      </P>
+      <P>
+        Interactive sessions are different. Their harness loads standing instructions and its memory index at session start, but company recall happens when the agent follows the relevant instruction or skill. The app&apos;s document chat has its own per-turn retrieval path. These mechanisms share knowledge sources without being identical.
+      </P>
+      <P>
+        A fresh run can therefore know the agent&apos;s role, the current card, a relevant thread and a small selection of retrieved knowledge. Persistent identity does not require an indefinitely growing transcript. In particular, zen-agent wakes start fresh; other harnesses can have bounded session-resumption policies.
+      </P>
+      <Figure
+        src="/blog/how-argo-agent-personas-work-5.jpg"
+        alt="Three memory stores showing sourced facts files and derived search"
+        width={1600}
+        height={900}
+        caption="Argo implementation diagram, drawn from the linked engine documentation."
+      />
+      <H2>How do skills and permissions shape the work?</H2>
+      <P>
+        A skill is a written procedure in a <code>SKILL.md</code> file: when to use it, which inputs it needs, what steps to follow, what to produce and how to check the result. Our shared skills cover repeated jobs such as researching a topic, recalling company knowledge or preparing a publication.
+      </P>
+      <P>
+        In zen-agent, the prompt lists skill names and descriptions, then <code>read_skill</code> loads the selected procedure on demand. A private skill can override a shared skill with the same name. This keeps a specialist&apos;s workflow editable without retraining a model. Other harnesses connect the same files through their own skill-loading mechanisms.
+      </P>
+      <P>
+        A persona supplies the perspective; a skill supplies the method. A careful editor still needs the publication procedure, including its source checks and image requirements. The <A href="https://kon-rad.github.io/argo/onboarding/09-orchestrate-agents/">orchestration guide</A> explains how rules, skills, completion contracts and evidence fit together.
+      </P>
+      <Figure
+        src="/blog/how-argo-agent-personas-work-6.jpg"
+        alt="Skill discovery loading and verification shown as three steps"
+        width={1600}
+        height={900}
+        caption="Argo implementation diagram, drawn from the linked engine documentation."
+      />
+      <P>
+        Permission is a separate layer. Knowing a deployment procedure does not grant deployment authority. The roster defines knowledge paths and tool restrictions; guard hooks can stop prohibited actions; channel membership limits board access; capability checks govern operations such as code work, review, merge and deployment.
+      </P>
+      <P>
+        The board uses Postgres row-level security for its restricted agent role. That constrains which rows the agent can see and which identity it can post as. Capability wrappers check applied database records, so changing a local persona file does not grant a running bot new powers.
+      </P>
+      <P>
+        These controls need appropriate process isolation too. A knowledge allowlist in a prompt is guidance, not a filesystem sandbox. An agent running shell commands as a privileged operating-system user inherits that user&apos;s reach. The <A href="https://kon-rad.github.io/argo/agent-harness/">harness documentation</A> explains the guard layer; the <A href="https://kon-rad.github.io/argo/agent-company/">agent-company reference</A> describes the board&apos;s authority model and its boundaries.
+      </P>
+      <P>
+        Our installation adds a configured automatic code-review gate. Builders submit evidence; a trusted review and release path owns acceptance and shipping for registered targets. A builder cannot approve itself. This is our configured authority, not a promise that every new installation automatically has production deployment rights.
+      </P>
+      <Figure
+        src="/blog/how-argo-agent-personas-work-7.jpg"
+        alt="Two permission layers distinguish everyday access from shipping authority"
+        width={1600}
+        height={900}
+        caption="Argo implementation diagram, drawn from the linked engine documentation."
+      />
+      <H2>How do agents talk, and what wakes them?</H2>
+      <P>
+        Agents communicate through a Postgres-backed message board with channels, threads, direct messages and handoffs. The CLI protocol is shared across runtimes. An agent can read its channels, post a status, message a colleague or hand work to another team. The board records the conversation; cards record tasks; the project tracker records feature status.
+      </P>
+      <P>
+        The server sets the author from the agent&apos;s runtime identity. It checks channel membership on reads and posts. Direct messages follow relationship rules: teammates, leads communicating with leads, and the owner communicating with anyone. A colleague&apos;s message supplies information; it does not grant new authority.
+      </P>
+      <P>
+        A wake is a queued request to run. Assigning a card, sending a DM, mentioning an agent or making a handoff can create one. Configured routines can also supply scheduled work. Wake rules determine the behavior, including whether an untagged owner post should wake a channel lead.
+      </P>
+      <P>
+        For example, when the owner DMs Sol, an enabled DM rule queues a wake for Sol. The dispatcher then starts Sol with its identity and the relevant work.
+      </P>
+      <P>
+        A dispatcher claims pending wakes and starts a bounded run. It can combine several pending events for one agent, then applies cooldowns, daily caps, pauses and parallelism limits. Bot-to-bot wake caps help prevent two agents repeatedly waking each other. Ordinary acknowledgments and status replies do not need to restart the conversation.
+      </P>
+      <P>
+        At completion, the agent reports a status with evidence, updates its task and closes the wake. If it never reports, the completion path can post a fallback status, making silence visible. The episode described earlier is created here. Waking, acting, reporting and remembering form one observable lifecycle.
+      </P>
+      <Figure
+        src="/blog/how-argo-agent-personas-work-8.jpg"
+        alt="Wake lifecycle from queued event through dispatcher to completed run"
+        width={1600}
+        height={900}
+        caption="Argo implementation diagram, drawn from the linked engine documentation."
+      />
+      <H2>How do we choose the runtime, model and provider?</H2>
+      <P>
+        These are separate choices.
+      </P>
+      <UL items={[
+        <>The <strong>runtime</strong>, or harness, runs the tool loop: Claude Code, Codex, Hermes or zen-agent.</>,
+        <>The <strong>model</strong> generates the response and tool requests.</>,
+        <>The <strong>provider</strong> supplies that model, through a hosted API or a local service.</>,
+      ]} />
+      <P>
+        The machine running the harness is another decision again.
+      </P>
+      <P>
+        We choose the harness for the work and integration it needs. Interactive coding, scheduled jobs and a small headless task need different interfaces. We choose the model for the reasoning and tool use the task requires, then choose a provider according to availability, privacy requirements, authentication and cost. A model needs to demonstrate reliable tool use before we give it broad access.
+      </P>
+      <P>
+        The roster supplies runtime and model defaults and per-agent overrides. Where a routing policy is configured, <code>cli-org route decide</code> can explain the model choice for a card. That makes a routing decision inspectable instead of hiding it behind the persona&apos;s name.
+      </P>
+      <P>
+        The <A href="https://kon-rad.github.io/argo/zen-agent/">zen-agent reference</A> and <A href="https://github.com/kon-rad/argo/tree/main/zen-agent">runtime source</A> show <code>provider/model</code> identifiers, custom compatible endpoints and connected Ollama machines. It also documents budgets for turns, tokens and minutes. Provider credentials stay in the environment; persona files hold configuration, not keys. You can change the execution model while retaining the same agent&apos;s role, portrait and sourced memory.
+      </P>
+      <H2>How do we interact with them, and what can you try?</H2>
+      <P>
+        <strong>On a MacBook</strong>, we work in the vault with an interactive coding agent and use the CLI to inspect the organization, read channels, send a DM or create work. The local checkout supplies project files; shared records remain accessible through the configured server connection. For a direct terminal conversation, zen-agent supports <code>zen-agent chat</code> with a selected persona and model.
+      </P>
+      <P>
+        <strong>On Telegram</strong>, a connected agent provides a phone interface to the vault and its workflows. That is a transport connection, separate from the organization roster. Telegram does not automatically create one bot account for every persona. The <A href="https://kon-rad.github.io/argo/onboarding/11-telegram/">Telegram setup guide</A> covers Claude Code, Hermes and the zen-agent bridge, with an allowlist and one poller per token. A connected assistant can use the board protocol to route a request to a named colleague.
+      </P>
+      <P>
+        <strong>In the Argo app</strong>, the organization view shows the roster, channels, agent pages, DMs and work records. Agents chat provides a direct conversation with a chosen persona. Its model, tools and thinking settings belong to that chat session. The engine fixes the configuration when the session is created; changing persona or model uses a new session, including a continuation flow, so the transcript retains a clear identity.
+      </P>
+      <H3>What&apos;s built and what&apos;s next</H3>
+      <P>
+        The roster, portraits, board protocol, wake records, episode logging, shared facts, configurable capture loop and persona chat are implemented in the engine. Our installation supplies the agent personalities, skills, enabled memory-capture policy and additional review authority described here. A fresh install needs its own configuration and connected runtimes. Extracted memories and retrieved sources still deserve human inspection.
+      </P>
+      <P>
+        Start with the <A href="https://github.com/kon-rad/argo">Argo repository</A>, then follow <A href="https://kon-rad.github.io/argo/onboarding/00-from-zero/">from zero to an agent company</A> and the <A href="https://kon-rad.github.io/argo/org-yaml/">org configuration reference</A>. Create one specialist, give it a narrow task, inspect its status and saved facts, and send it a second task that needs the first lesson. That is a practical test of whether the persona has useful continuity.
+      </P>
+      <P>
+        Follow the build on <A href="https://myargoquest.com/blog">the Argo blog</A> and <A href="https://github.com/kon-rad/argo">GitHub</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "how-argo-agent-personas-work",
+    title: "How Argo gives AI agents a working identity",
+    description: "How Argo implements agent personas, memory, avatars, skills, permissions, communication and model choice across desktop, Telegram and the app.",
+    category: "product-updates",
+    date: "November 18, 2026",
+    isoDate: "2026-11-18T08:53",
+    readingTime: "13 min read",
+    image: "/blog/how-argo-agent-personas-work-1.jpg",
+    Content: HowArgoAgentPersonasWorkContent,
+  },
   {
     slug: "google-agentic-threat-report-patch-to-exploit",
     title: "Google's threat report shows agents shortening the patch-to-exploit window",
