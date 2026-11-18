@@ -474,7 +474,11 @@ extension Chat {
             rawTranscript: (try? cipher.openedIfPresent(data["rawTranscript"], "chats.rawTranscript")) ?? nil,
             journalId: data["journalId"] as? String,
             journalTitle: data["journalTitle"] as? String,
-            mirrorId: data["mirrorId"] as? String
+            mirrorId: data["mirrorId"] as? String,
+            interviewId: data["interviewId"] as? String,
+            interviewSection: data["interviewSection"] as? String,
+            interviewItem: data["interviewItem"] as? String,
+            interviewSectionDone: data["interviewSectionDone"] as? Bool
         )
     }
 
@@ -490,6 +494,11 @@ extension Chat {
         if let journalId { data["journalId"] = journalId }
         if let journalTitle { data["journalTitle"] = journalTitle }
         if let mirrorId { data["mirrorId"] = mirrorId }
+        // Structure only (ids and question keys): nothing the user said.
+        if let interviewId { data["interviewId"] = interviewId }
+        if let interviewSection { data["interviewSection"] = interviewSection }
+        if let interviewItem { data["interviewItem"] = interviewItem }
+        if let interviewSectionDone { data["interviewSectionDone"] = interviewSectionDone }
         return data
     }
 }

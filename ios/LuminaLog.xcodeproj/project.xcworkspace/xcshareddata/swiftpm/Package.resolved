@@ -1,5 +1,5 @@
 {
-  "originHash" : "3bba3974f8e93090bbae716573cdddb92bcda342a3c5cc5e0591f265551e5eb2",
+  "originHash" : "a67bd0bda2d9ccbc7adae4be5c0b6795a57031574b6399db2dcbd4da200637af",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -38,21 +38,21 @@
       }
     },
     {
-      "identity" : "daily-client-ios",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/daily-co/daily-client-ios",
-      "state" : {
-        "revision" : "276f9aff6bbdb36d58e763b7c0d77167ab5f51ca",
-        "version" : "0.37.0"
-      }
-    },
-    {
       "identity" : "firebase-ios-sdk",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/firebase/firebase-ios-sdk",
       "state" : {
         "revision" : "fdc352fabaf5916e7faa1f96ad02b1957e93e5a5",
         "version" : "11.15.0"
+      }
+    },
+    {
+      "identity" : "fluidaudio",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/FluidInference/FluidAudio",
+      "state" : {
+        "revision" : "c8b41f98eae668794dd0083bbe028fe7e6585051",
+        "version" : "0.18.3"
       }
     },
     {
@@ -134,15 +134,6 @@
       "state" : {
         "revision" : "040d087ac2267d2ddd4cca36c757d1c6a05fdbfe",
         "version" : "101.0.0"
-      }
-    },
-    {
-      "identity" : "ios",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/VapiAI/ios",
-      "state" : {
-        "branch" : "main",
-        "revision" : "5fdb73d8a4475bc1d97d351e31426f3682f4663e"
       }
     },
     {

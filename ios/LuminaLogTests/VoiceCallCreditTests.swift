@@ -22,7 +22,7 @@ final class VoiceCallCreditTests: XCTestCase {
         private let broadcaster = VoiceCallEventBroadcaster()
         private(set) var endCalls = 0
         var events: AsyncStream<VoiceCallEvent> { broadcaster.makeStream() }
-        func startCall(chatId: String, journalId: String?, journalTitle: String?) async throws {}
+        func startCall(chatId: String, journalId: String?, journalTitle: String?, interview: LifeInterviewSitting?) async throws {}
         func endCall() async { endCalls += 1; broadcaster.send(.ended(reason: nil)) }
         func setMuted(_ muted: Bool) {}
         func emit(_ event: VoiceCallEvent) { broadcaster.send(event) }

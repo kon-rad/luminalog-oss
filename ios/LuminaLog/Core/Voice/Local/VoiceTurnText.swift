@@ -116,6 +116,14 @@ struct VoiceTurnRequest: Encodable, Equatable {
     var memoryContext: String?
     var focalEntry: String?
     var now: String?
+    /// Present when the turn belongs to a Life Story Interview sitting.
+    var interview: Interview?
+
+    struct Interview: Encodable, Equatable {
+        let section: String
+        let item: String
+        let resumed: Bool
+    }
 
     /// How many prior messages ride along with each turn.
     static let historyLimit = 20
@@ -126,7 +134,8 @@ struct VoiceTurnRequest: Encodable, Equatable {
         history: [ChatMessage],
         context: VoiceCallContext?,
         ragContext: String,
-        now: String
+        now: String,
+        interview: Interview? = nil
     ) {
         self.chatId = chatId
         self.message = message
@@ -134,6 +143,11 @@ struct VoiceTurnRequest: Encodable, Equatable {
             Turn(role: $0.role == .assistant ? "assistant" : "user", content: $0.text)
         }
         self.name = context?.name
+        self.now = now
+        self.interview = interview
+        // An interview is the user's own telling: the interviewer gets their name
+        // and nothing from the journal.
+        guard interview == nil else { return }
         self.bio = context?.bio
         self.profile = context?.profile
         self.todayContext = context?.todayContext
@@ -142,6 +156,5 @@ struct VoiceTurnRequest: Encodable, Equatable {
         // Per-turn retrieval wins; fall back to the call-start retrieval when the
         // turn has none (backchannel, slow search, empty index).
         self.ragContext = ragContext.isEmpty ? context?.ragContext : ragContext
-        self.now = now
     }
 }

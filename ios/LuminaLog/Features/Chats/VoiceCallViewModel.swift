@@ -61,6 +61,10 @@ final class VoiceCallViewModel: ObservableObject {
     @Published private(set) var lowCreditWarning = false
     /// True once the call was auto-ended because the credit budget ran out.
     @Published private(set) var outOfCredits = false
+    /// Life Story Interview: the question the interviewer is on.
+    @Published private(set) var interviewItemKey: String?
+    /// Life Story Interview: true once the interviewer has closed the section.
+    @Published private(set) var interviewSectionComplete = false
 
     private let voice: VoiceCallService
     private let chats: ChatRepository
@@ -68,6 +72,8 @@ final class VoiceCallViewModel: ObservableObject {
     let journalTitle: String?
     private let journalId: String?
     private let mirrorId: String?
+    /// Set when this call is one sitting of the Life Story Interview.
+    let interview: LifeInterviewSitting?
 
     private var eventsTask: Task<Void, Never>?
     private var timerTask: Task<Void, Never>?
@@ -79,13 +85,15 @@ final class VoiceCallViewModel: ObservableObject {
     /// at `.connected` and raised live if the user tops up mid-call.
     private var budgetSeconds = 0
 
-    init(voice: VoiceCallService, chats: ChatRepository, credits: CreditService, journalId: String? = nil, journalTitle: String? = nil, mirrorId: String? = nil) {
+    init(voice: VoiceCallService, chats: ChatRepository, credits: CreditService, journalId: String? = nil, journalTitle: String? = nil, mirrorId: String? = nil, interview: LifeInterviewSitting? = nil) {
         self.voice = voice
         self.chats = chats
         self.credits = credits
         self.journalId = journalId
         self.mirrorId = mirrorId
         self.journalTitle = journalTitle
+        self.interview = interview
+        self.interviewItemKey = interview?.startItem
     }
 
     deinit {
@@ -98,6 +106,18 @@ final class VoiceCallViewModel: ObservableObject {
 
     var durationText: String {
         String(format: "%d:%02d", elapsedSeconds / 60, elapsedSeconds % 60)
+    }
+
+    /// The question to show on screen during an interview sitting.
+    var interviewItem: LifeInterviewItem? {
+        interview?.section.item(interviewItemKey)
+    }
+
+    /// "2 of 4" for the current question, nil outside an interview.
+    var interviewPositionText: String? {
+        guard let section = interview?.section,
+              let index = section.items.firstIndex(where: { $0.key == interviewItemKey }) else { return nil }
+        return "\(index + 1) of \(section.items.count)"
     }
 
     // MARK: - Lifecycle
@@ -127,9 +147,19 @@ final class VoiceCallViewModel: ObservableObject {
         }
 
         do {
-            let chat = try await chats.createChat(kind: .voice, title: "Voice call", journalId: journalId, journalTitle: journalTitle, mirrorId: mirrorId)
+            let chat: Chat
+            if let interview {
+                chat = try await chats.createInterviewChat(
+                    title: interview.chatTitle,
+                    interviewId: interview.interviewId,
+                    section: interview.section.key,
+                    item: interview.startItem
+                )
+            } else {
+                chat = try await chats.createChat(kind: .voice, title: "Voice call", journalId: journalId, journalTitle: journalTitle, mirrorId: mirrorId)
+            }
             self.chat = chat
-            try await voice.startCall(chatId: chat.id, journalId: journalId, journalTitle: journalTitle)
+            try await voice.startCall(chatId: chat.id, journalId: journalId, journalTitle: journalTitle, interview: interview)
         } catch {
             Self.logger.error("start call failed: \(error.localizedDescription, privacy: .public)")
             stopTimer()
@@ -190,6 +220,16 @@ final class VoiceCallViewModel: ObservableObject {
             if let chatId = chat?.id {
                 Task { [weak self] in
                     try? await self?.chats.appendMessage(message, to: chatId)
+                }
+            }
+
+        case .interviewProgress(let item, let sectionComplete):
+            if let item { interviewItemKey = item }
+            if sectionComplete { interviewSectionComplete = true }
+            // Saved on the chat so the section can be resumed, or shown as done.
+            if let chatId = chat?.id {
+                Task { [weak self] in
+                    try? await self?.chats.updateInterviewProgress(chatId: chatId, item: item, sectionDone: sectionComplete)
                 }
             }
 

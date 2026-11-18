@@ -46,6 +46,8 @@ struct LuminaLogApp: App {
         // daily-report generation, constellation rebuild) are available for testing.
         // Release builds never reach this branch, so production is unaffected.
         UserDefaults.standard.register(defaults: [DevFlags.devModeKey: true])
+        // Life Story Interview: visible in debug builds until it is device-tested.
+        UserDefaults.standard.register(defaults: [DevFlags.lifeInterviewKey: true])
         #endif
 
         // Upgrade the legacy `ll-force-dark` boolean to the three-way theme setting

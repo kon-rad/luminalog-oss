@@ -153,6 +153,14 @@ describe('mergeConsecutiveRoles', () => {
 })
 
 describe('voiceTurn route, life interview', () => {
+  it('ignores progress tags outside the current section while still speaking the reply', async () => {
+    chatCompletion.mockResolvedValue(streamReply(['[#C1] Tell me more.']))
+    const res = mockRes()
+    await voiceTurnHandler({ body: body({ interview: { section: 'B', item: 'B2' } }) } as any, res)
+    expect(res.written.join('')).not.toContain('"interview"')
+    expect(res.written.join('')).toContain('Tell me more.')
+  })
+
   it('uses the interviewer prompt and no journal context', async () => {
     chatCompletion.mockResolvedValue(streamReply(['[#B2] ', 'What changed?']))
     await voiceTurnHandler(

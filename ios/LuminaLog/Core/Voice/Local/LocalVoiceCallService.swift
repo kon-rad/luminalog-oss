@@ -48,6 +48,18 @@ final class LocalVoiceCallService: VoiceCallService {
     private var neuralVoiceFailed = false
     private var lastStatusLine = ""
     private var memoryObserver: NSObjectProtocol?
+    /// Set when the call is one sitting of the Life Story Interview.
+    private var sitting: LifeInterviewSitting?
+    /// The question the interviewer is on, as last reported by the server.
+    private var interviewItem: String?
+
+    /// Turn-taking for an interview: people pause to remember, so wait about
+    /// 1.5 s of silence (6 frames) before treating the answer as finished.
+    static let interviewTurnConfig: VoiceTurnDetector.Config = {
+        var config = VoiceTurnDetector.Config.default
+        config.endSilenceFrames = 6
+        return config
+    }()
 
     init(
         api: ProxyAPIClient,
@@ -83,7 +95,7 @@ final class LocalVoiceCallService: VoiceCallService {
         broadcaster.makeStream()
     }
 
-    func startCall(chatId: String, journalId: String?, journalTitle: String?) async throws {
+    func startCall(chatId: String, journalId: String?, journalTitle: String?, interview: LifeInterviewSitting?) async throws {
         // Microphone first: a call that cannot hear the user must fail loudly (ADR-0110).
         guard await requestMicPermission() else {
             Self.logger.error("mic permission denied, refusing to start the call")
@@ -94,6 +106,8 @@ final class LocalVoiceCallService: VoiceCallService {
         broadcaster.send(.connecting)
         resetCallState()
         self.chatId = chatId
+        sitting = interview
+        interviewItem = interview?.startItem
         generation += 1
         let callGeneration = generation
 
@@ -121,7 +135,10 @@ final class LocalVoiceCallService: VoiceCallService {
         guard callGeneration == generation else { return }
 
         let audio = VoiceAudioIO()
-        let pipeline = VoiceCapturePipeline(classifier: engines.classifier)
+        let pipeline = VoiceCapturePipeline(
+            classifier: engines.classifier,
+            config: interview == nil ? .default : Self.interviewTurnConfig
+        )
         await pipeline.reset()
         let microphone = audio.microphone()
         audio.onInterruption = { [weak self] in
@@ -151,7 +168,7 @@ final class LocalVoiceCallService: VoiceCallService {
         broadcaster.send(.connected)
 
         // The greeting is spoken locally, instantly, with no network round trip.
-        let greeting = VoiceTurnText.firstMessage(name: context?.name ?? "")
+        let greeting = interview?.openingLine ?? VoiceTurnText.firstMessage(name: context?.name ?? "")
         assistantActive = true
         turnTask = Task { [weak self] in
             await self?.speak(lines: [greeting], generation: callGeneration, addToHistory: true)
@@ -237,7 +254,9 @@ final class LocalVoiceCallService: VoiceCallService {
         // Retrieval over past entries for THIS turn, on device (the query goes to
         // our search index as text; entries are decrypted only on the phone).
         let ragStart = Date()
-        let ragContext = VoiceTurnText.isBackchannel(text) ? "" : await ai.voiceTurnContext(query: text)
+        // An interview uses no journal context, so it skips the search entirely.
+        let skipRetrieval = sitting != nil || VoiceTurnText.isBackchannel(text)
+        let ragContext = skipRetrieval ? "" : await ai.voiceTurnContext(query: text)
         guard turnGeneration == generation else { return }
         let ragMs = Self.milliseconds(since: ragStart)
 
@@ -247,7 +266,14 @@ final class LocalVoiceCallService: VoiceCallService {
             history: priorHistory,
             context: context,
             ragContext: ragContext,
-            now: VoiceCallClock.localNowStamp()
+            now: VoiceCallClock.localNowStamp(),
+            interview: sitting.map {
+                VoiceTurnRequest.Interview(
+                    section: $0.section.key,
+                    item: interviewItem ?? $0.startItem,
+                    resumed: $0.resumed
+                )
+            }
         )
 
         let (sentences, sentenceFeed) = AsyncStream<String>.makeStream()
@@ -264,8 +290,12 @@ final class LocalVoiceCallService: VoiceCallService {
             for try await payload in api.streamEvents(path: "/v1/ai/voice-turn", body: request) {
                 guard turnGeneration == generation else { break }
                 guard let data = payload.data(using: .utf8),
-                      let chunk = try? JSONDecoder().decode(Delta.self, from: data),
-                      let delta = chunk.delta, !delta.isEmpty else { continue }
+                      let chunk = try? JSONDecoder().decode(Delta.self, from: data) else { continue }
+                if let progress = chunk.interview {
+                    if let item = progress.item { interviewItem = item }
+                    broadcaster.send(.interviewProgress(item: progress.item, sectionComplete: progress.sectionComplete))
+                }
+                guard let delta = chunk.delta, !delta.isEmpty else { continue }
                 if !receivedAny {
                     receivedAny = true
                     firstTokenMs = Self.milliseconds(since: requestStart)
@@ -397,6 +427,8 @@ final class LocalVoiceCallService: VoiceCallService {
         teardown()
         history = []
         context = nil
+        sitting = nil
+        interviewItem = nil
         spokenText = ""
         carriedSamples = []
         neuralVoiceFailed = false
@@ -409,6 +441,12 @@ final class LocalVoiceCallService: VoiceCallService {
 
     private struct Delta: Decodable {
         let delta: String?
+        let interview: InterviewProgress?
+    }
+
+    private struct InterviewProgress: Decodable {
+        let item: String?
+        let sectionComplete: Bool
     }
 
     /// Mutable per-turn timing shared between the request loop and playback

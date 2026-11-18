@@ -27,6 +27,7 @@ struct SettingsView: View {
     @State private var showProfileDetail = false
     @State private var showLeaderboard = false
     @State private var showUserFacts = false
+    @State private var showLifeStory = false
     @State private var showInbox = false
     @State private var showStory = false
     /// Mirrors `DevFlags.periodSummaries` so the DEBUG developer toggle redraws the Story rows.
@@ -181,6 +182,9 @@ struct SettingsView: View {
                     if DevFlags.userFacts {
                         userFactsRow
                     }
+                    if DevFlags.lifeInterview {
+                        lifeStoryRow
+                    }
                     inboxRow
                     if let message = viewModel.errorMessage {
                         errorBanner(message)
@@ -232,6 +236,9 @@ struct SettingsView: View {
             }
             .navigationDestination(isPresented: $showUserFacts) {
                 UserFactsView(viewModel: UserFactsViewModel(services: services), onPrompt: onPrompt)
+            }
+            .navigationDestination(isPresented: $showLifeStory) {
+                LifeStoryView(services: services)
             }
             .navigationDestination(isPresented: $showRecordings) {
                 RecordingsRecoveryView(
@@ -478,6 +485,44 @@ struct SettingsView: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Story map")
         .accessibilityHint("Opens your journal as a map you can zoom from all time down to one entry")
+    }
+
+    // MARK: - Life Story Interview row
+
+    private var lifeStoryRow: some View {
+        Button { showLifeStory = true } label: {
+            HStack(spacing: Spacing.m) {
+                Image(systemName: "book.pages")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.accentWarm)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.small, style: .continuous)
+                            .fill(Color.accentWarm.opacity(0.12))
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Life story")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("A guided interview about your whole life")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.6))
+            }
+            .padding(Spacing.m)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous)
+                    .fill(Color.cardBackground)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Life story")
+        .accessibilityHint("Opens the guided interview about your life and your past interviews")
     }
 
     // MARK: - What Argo knows row

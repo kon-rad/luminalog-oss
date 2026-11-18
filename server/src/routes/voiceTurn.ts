@@ -100,12 +100,14 @@ export async function voiceTurnHandler(req: Request, res: Response): Promise<voi
 
     let systemPrompt: string
     let markerParser: InterviewMarkerParser | null = null
+    let validInterviewItems = new Set<string>()
     if (body.interview) {
       const section = findLifeInterviewSection(body.interview.section)
       if (!section) {
         res.status(400).json({ error: 'Unknown interview section' })
         return
       }
+      validInterviewItems = new Set(section.items.map((item) => item.key))
       const known = section.items.some((i) => i.key === body.interview!.item)
       systemPrompt = PROMPTS.lifeInterview({
         name: body.name,
@@ -186,7 +188,10 @@ export async function voiceTurnHandler(req: Request, res: Response): Promise<voi
           let delta = raw
           if (markerParser) {
             const parsed = markerParser.feed(raw)
-            if (parsed.marker) res.write(`data: ${JSON.stringify({ interview: parsed.marker })}\n\n`)
+            if (parsed.marker && (parsed.marker.sectionComplete ||
+                (parsed.marker.item !== null && validInterviewItems.has(parsed.marker.item)))) {
+              res.write(`data: ${JSON.stringify({ interview: parsed.marker })}\n\n`)
+            }
             delta = parsed.text
           }
           if (delta) {
