@@ -22,7 +22,7 @@ private final class HangingSearcher: SemanticIndexCoordinating {
 /// Regression coverage for the "chat/call with this entry has no context" bug:
 /// `voiceCallContext` bundles a fast, local-only focal-entry lookup together with a
 /// network round trip (`coordinator.search`) that ranks PAST entries for RAG. Before
-/// the fix, a stalled search blocked the whole function, and `VapiVoiceCallService`'s
+/// the fix, a stalled search blocked the whole function, and the voice call service's
 /// outer 3s all-or-nothing timeout then discarded the ALREADY-COMPUTED focal entry
 /// along with the slow RAG context. The focal entry must survive a hung search.
 @MainActor

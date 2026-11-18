@@ -3,6 +3,7 @@ import express, { NextFunction, Request, Response } from 'express'
 import { config } from './config'
 import { healthRouter } from './routes/health'
 import { chatRouter } from './routes/chat'
+import { voiceTurnRouter } from './routes/voiceTurn'
 import { aiRouter } from './routes/ai'
 import { vapiRouter } from './routes/vapi'
 import { revenueCatRouter, entitlementRouter } from './routes/revenuecat'
@@ -33,6 +34,7 @@ app.use(express.json({ limit: '10mb' }))
 
 app.use('/health', healthRouter)
 app.use('/v1/ai/chat', chatRouter)
+app.use('/v1/ai/voice-turn', voiceTurnRouter) // stateless: one turn of a local (on-device STT/TTS) voice call; no audio, no DEK
 app.use('/v1/ai/info-answer', infoAnswerRouter) // stateless: drafts agent info-request answers from client context
 app.use('/v1/ai', aiRouter)
 app.use('/v1/vapi', vapiRouter)

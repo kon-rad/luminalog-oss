@@ -5,7 +5,7 @@ import OSLog
 ///
 /// Plays a three-exchange conversation: connecting → connected → alternating
 /// listening / userSpeaking / assistantSpeaking, emitting finalized
-/// transcript messages along the way. Unlike production (where the Vapi
+/// transcript messages along the way. Unlike production (where the live
 /// webhook persists transcripts server-side), the mock persists each
 /// finalized message into the `.voice` chat via `ChatRepository` so the call
 /// shows up in chat history immediately.

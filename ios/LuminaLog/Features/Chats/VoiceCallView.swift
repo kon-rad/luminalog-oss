@@ -107,7 +107,7 @@ struct VoiceCallView: View {
             HStack(spacing: Spacing.s) {
                 ProgressView()
                     .tint(Color.accentWarm)
-                Text("Connecting…")
+                Text(viewModel.connectingDetail ?? "Connecting…")
                     .font(.uiBody)
                     .foregroundStyle(Color.textSecondary)
             }

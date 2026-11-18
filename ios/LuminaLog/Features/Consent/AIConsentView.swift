@@ -21,7 +21,7 @@ struct AIConsentView: View {
                     VStack(alignment: .leading, spacing: Spacing.s) {
                         providerRow("Morpheus or Venice AI", "summaries, reflections, chat, and prompts, processed either inside a secure hardware enclave (Morpheus) or through Venice AI's anonymized, encrypted-in-transit pipeline")
                         providerRow("Deepgram (with Together AI or Venice AI as backup)", "transcribing your voice & video entries")
-                        providerRow("Vapi, Deepgram & Venice AI", "live voice calls: Vapi carries the call audio, Deepgram transcribes it, and Venice AI runs the conversational model")
+                        providerRow("Venice AI", "live voice calls: your voice is transcribed and the reply is spoken on this iPhone, so no audio leaves it; the text of each turn and the journal passages it needs go to Venice AI, which runs the conversational model")
                     }
                     .padding(Spacing.m)
                     .background(RoundedRectangle(cornerRadius: CornerRadius.large, style: .continuous).fill(Color.cardBackground))

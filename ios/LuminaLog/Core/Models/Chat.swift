@@ -1,6 +1,6 @@
 import Foundation
 
-/// Whether a chat is a text conversation or a Vapi voice call.
+/// Whether a chat is a text conversation or a voice call.
 enum ChatKind: String, Codable, CaseIterable, Sendable {
     case text
     case voice
