@@ -151,3 +151,78 @@ describe('mergeConsecutiveRoles', () => {
     ])
   })
 })
+
+describe('voiceTurn route, life interview', () => {
+  it('uses the interviewer prompt and no journal context', async () => {
+    chatCompletion.mockResolvedValue(streamReply(['[#B2] ', 'What changed?']))
+    await voiceTurnHandler(
+      { body: body({ interview: { section: 'B', item: 'B2', resumed: true } }) } as any,
+      mockRes(),
+    )
+
+    const system = chatCompletion.mock.calls[0][0][0].content as string
+    expect(system).toContain('life story interview')
+    expect(system).toContain('B2 (Turning point)')
+    expect(system).toContain('the current question is B2')
+    expect(system).toContain('coming back')
+    for (const leaked of ['TODAY-ENTRY', 'PAST-ENTRY', 'MEMORY-LADDER', 'FOCAL-ENTRY', 'A builder.']) {
+      expect(system).not.toContain(leaked)
+    }
+  })
+
+  it('strips the leading tag from speech and reports it as an interview event', async () => {
+    chatCompletion.mockResolvedValue(streamReply(['[#', 'B3', '] Thank you. ', 'A happy early memory?']))
+    const res = mockRes()
+    await voiceTurnHandler({ body: body({ interview: { section: 'B', item: 'B2' } }) } as any, res)
+
+    expect(res.written).toEqual([
+      'data: {"interview":{"item":"B3","sectionComplete":false}}\n\n',
+      'data: {"delta":"Thank you. "}\n\n',
+      'data: {"delta":"A happy early memory?"}\n\n',
+      'data: [DONE]\n\n',
+    ])
+  })
+
+  it('reports the end of the section', async () => {
+    chatCompletion.mockResolvedValue(streamReply(['[#DONE] That is the end of this part.']))
+    const res = mockRes()
+    await voiceTurnHandler({ body: body({ interview: { section: 'G', item: 'G2' } }) } as any, res)
+    expect(res.written[0]).toBe('data: {"interview":{"item":null,"sectionComplete":true}}\n\n')
+    expect(res.written[1]).toBe('data: {"delta":"That is the end of this part."}\n\n')
+  })
+
+  it('speaks an untagged reply unchanged', async () => {
+    chatCompletion.mockResolvedValue(streamReply(['Take ', 'your time.']))
+    const res = mockRes()
+    await voiceTurnHandler({ body: body({ interview: { section: 'A' } }) } as any, res)
+    expect(res.written).toEqual([
+      'data: {"delta":"Take "}\n\n',
+      'data: {"delta":"your time."}\n\n',
+      'data: [DONE]\n\n',
+    ])
+  })
+
+  it('falls back to the first question when the item is unknown', async () => {
+    chatCompletion.mockResolvedValue(streamReply(['ok']))
+    await voiceTurnHandler({ body: body({ interview: { section: 'D', item: 'Z9' } }) } as any, mockRes())
+    expect(chatCompletion.mock.calls[0][0][0].content).toContain('the current question is D1')
+  })
+
+  it('rejects an unknown section', async () => {
+    const res = mockRes()
+    await voiceTurnHandler({ body: body({ interview: { section: 'X' } }) } as any, res)
+    expect(res.statusCode).toBe(400)
+    expect(chatCompletion).not.toHaveBeenCalled()
+  })
+
+  it('serves the script behind auth', () => {
+    const layer = (voiceTurnRouter as any).stack.find(
+      (l: any) => l.route?.path === '/interview-script' && l.route?.methods?.get,
+    )
+    expect(layer).toBeTruthy()
+    expect(layer.route.stack[0].name).toBe('firebaseAuth')
+    const res = mockRes()
+    layer.route.stack[1].handle({} as any, res)
+    expect(res.body.sections.map((s: any) => s.key)).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G'])
+  })
+})
