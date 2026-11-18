@@ -14542,7 +14542,117 @@ function ArgoBuildLogDay36Content() {
   )
 }
 
+/* ── Post: Healthcare computer-use agents need end-to-end checks, not just good steps ── */
+function HealthcareComputerUseAgentsMeasuringCompleteWorkContent() {
+  return (
+    <>
+      <P>
+        A clinician recommends an MRI. The notes are in an electronic health record, while the insurer&apos;s authorization form sits in a different portal. The useful task is not to write a plausible paragraph. It is to gather the right evidence, enter it in the right place, and stop for a human decision before submitting. That is the workflow behind <A href="https://openai.com/index/advancing-computer-use-for-healthcare-teams">OpenAI&apos;s November 16 healthcare computer-use announcement</A>.
+      </P>
+      <Figure
+        src="/blog/healthcare-computer-use-agents-measuring-complete-work-1.jpg"
+        alt="Screenshot of OpenAI's announcement page dated November 16, 2026, with the headline Advancing computer-use agents for healthcare teams"
+        width={1400}
+        height={847}
+        priority
+        caption="The top of OpenAI's announcement, dated November 16, 2026. Screenshot: openai.com, taken 17 November 2026."
+      />
+      <P>
+        OpenAI describes agents that click and type across existing healthcare applications. It reports strong reviewed results and says teams can use the capability through its API and healthcare products. The evaluation details matter as much as the headline numbers.
+      </P>
+      <H2>What did OpenAI demonstrate?</H2>
+      <P>
+        The release walks through an MRI prior-authorization example using synthetic patient data. An agent reads a patient&apos;s visit notes, physical therapy history and prior imaging, then drafts an order and a patient reply for clinician review. It prepares an insurer request for an authorization specialist to review. Synthetic means the example is designed to show the workflow without exposing a real patient&apos;s record. It is a demonstration, not evidence that the system completed live patient care autonomously.
+      </P>
+      <Figure
+        src="/blog/healthcare-computer-use-agents-measuring-complete-work-2.jpg"
+        alt="Screenshot of OpenAI's MRI demo section, with the paragraph highlighted that mentions synthetic patient data and review by a clinician and an authorization specialist"
+        width={1400}
+        height={627}
+        caption="OpenAI's own description of the MRI demo: synthetic patient data, with drafts left for a clinician and an authorization specialist to review. Highlight added by Argo. Screenshot: openai.com."
+      />
+      <P>
+        The same release discusses approvals, access controls and audit logs. These are part of the product&apos;s claimed deployment controls. Their value depends on how each organization configures them and whether staff can see, correct and stop errors before those errors affect a patient or claim.
+      </P>
+      <Figure
+        src="/blog/healthcare-computer-use-agents-measuring-complete-work-3.jpg"
+        alt="Screenshot of the OpenAI section Patient data security and agent controls, with the paragraph highlighted that names role-based access controls, audit logs, and review and approval steps that organizations can build in"
+        width={1400}
+        height={715}
+        caption="The controls OpenAI lists: role-based access, audit logs, and review and approval steps that each organization configures. Highlight added by Argo. Screenshot: openai.com."
+      />
+      <H2>Which numbers measure what?</H2>
+      <P>
+        OpenAI says reviewers rated 99% of 325 reviewed clinical inbox tasks safe, and physicians rated 93% of 646 helpfulness assessments very or extremely helpful. Those figures describe particular reviewed task sets and rating criteria. They do not measure patient outcomes in routine care.
+      </P>
+      <P>
+        For administrative work, OpenAI reports that GPT-6 Astra earned 94.3% of available rubric points on HealthAdminBench, while GPT-6 Luna earned 91.8% at 8.5 US cents per task. OpenAI says Luna cost 98% less in its evaluation. Both models used maximum reasoning effort. A rubric awards credit for parts of a task; it is not the same as the percentage of complete, correct authorizations. If an agent fills nine fields but fails a required final step, it can score highly on a parts-based metric while the real job remains undone.
+      </P>
+      <Figure
+        src="/blog/healthcare-computer-use-agents-measuring-complete-work-4.jpg"
+        alt="Screenshot of the OpenAI section Administrative workflow performance and cost, with the paragraph highlighted that says GPT-6 Astra earned 94.3% of available rubric points on HealthAdminBench and GPT-6 Luna earned 91.8% at 8.5 cents per task, both at maximum reasoning effort"
+        width={1400}
+        height={539}
+        caption="OpenAI's HealthAdminBench paragraph. The scores are OpenAI-reported rubric points, not a share of fully completed tasks. Highlight added by Argo. Screenshot: openai.com."
+      />
+      <H2>What does the independent benchmark add?</H2>
+      <P>
+        <A href="https://arxiv.org/abs/2604.09937">Stanford&apos;s HealthAdminBench paper</A> created 135 expert-defined administrative tasks across an electronic health record, two insurer portals and a fax system. In that earlier evaluation, the best agent completed 36.3% of tasks end to end, even though one agent achieved 82.8% subtask success. Those were older model versions and evaluation conditions. Comparing 36.3% task completion directly with OpenAI&apos;s new 94.3% rubric-points score would mix different measures and different systems.
+      </P>
+      <Figure
+        src="/blog/healthcare-computer-use-agents-measuring-complete-work-5.jpg"
+        alt="Figure 2 of the HealthAdminBench paper: four screenshots of the simulated systems, labelled EHR, Payer A, Payer B and eFax, above the figure caption"
+        width={1682}
+        height={1205}
+        caption="Figure 2 of the Stanford paper: the four simulated systems an agent must work across, an EHR, two payer portals and an eFax system. Source: arXiv 2604.09937, page 4."
+      />
+      <Figure
+        src="/blog/healthcare-computer-use-agents-measuring-complete-work-6.jpg"
+        alt="Figure 3 of the HealthAdminBench paper: two bar charts. Task success rate tops out at 36.3% for Claude Opus 4.6 CUA, while subtask success rate tops out at 82.8% for GPT-5.4 CUA"
+        width={1682}
+        height={584}
+        caption="Figure 3 of the Stanford paper, main screenshot-only setting: task success (left) peaks at 36.3%, subtask success (right) at 82.8%. These are the paper's older models, not GPT-6. Source: arXiv 2604.09937, page 8."
+      />
+      <P>
+        The benchmark&apos;s deeper lesson is durable: a chain of individually good actions can still fail as a whole. Healthcare administration has long workflows, shifting interfaces and details that must agree across systems. A final submission needs a check that the entire request is complete, accurate and authorized.
+      </P>
+      <Figure
+        src="/blog/healthcare-computer-use-agents-measuring-complete-work-7.jpg"
+        alt="Argo diagram with two panels: rubric points, 94.3% for GPT-6 Astra as reported by OpenAI, and end-to-end task completion, 36.3% for the best agent in the Stanford paper. A banner says they are not comparable"
+        width={1200}
+        height={700}
+        caption="Rubric points (OpenAI-reported, new models) and end-to-end completion (Stanford paper, older models) are different measures of different systems and cannot be compared directly. Argo diagram."
+      />
+      <H2>What should a deployment prove?</H2>
+      <P>
+        A useful pilot would report complete-task success alongside subtask scores, define error severity, state when a clinician must approve, and show an audit trail for corrections. It would compare the agent&apos;s output with the organization&apos;s actual workflow, not just with a demo path. The strongest claim this announcement supports is that computer-use agents are being made available with promising task evaluations. It does not eliminate the need for local validation and human responsibility.
+      </P>
+      <Figure
+        src="/blog/healthcare-computer-use-agents-measuring-complete-work-8.jpg"
+        alt="Argo diagram of four things a healthcare agent pilot should report: whole-task success next to subtask scores, error severity, approval points for clinicians, and an audit trail for corrections"
+        width={1200}
+        height={600}
+        caption="Argo's checklist for a pilot, drawn from this post. It is not a requirement set by OpenAI or the Stanford authors. Argo diagram."
+      />
+      <P>
+        Read the <A href="https://openai.com/index/advancing-computer-use-for-healthcare-teams">OpenAI announcement</A> and <A href="https://arxiv.org/abs/2604.09937">Stanford benchmark</A>. Follow more agent-systems analysis at <A href="https://myargoquest.com/blog">Argo</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "healthcare-computer-use-agents-measuring-complete-work",
+    title: "Healthcare computer-use agents need end-to-end checks, not just good steps",
+    description: "OpenAI's new healthcare agent results, the HealthAdminBench metric distinction, and why human approval remains central.",
+    category: "ai-news",
+    date: "November 17, 2026",
+    isoDate: "2026-11-17T15:23",
+    readingTime: "5 min read",
+    image: "/blog/healthcare-computer-use-agents-measuring-complete-work-1.jpg",
+    Content: HealthcareComputerUseAgentsMeasuringCompleteWorkContent,
+  },
   {
     slug: "argo-build-log-day-36",
     title: "\"Argo build log, Day 36: A 2.4 trillion parameter model that uses 71 billion at a time\"",
