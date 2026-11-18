@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import SocialLinks from '@/components/SocialLinks'
 import Hero from '@/components/landing/Hero'
+import VoiceFeaturesSection from '@/components/landing/VoiceFeaturesSection'
 import JournalingSection from '@/components/landing/JournalingSection'
 import InsightsCarousel from '@/components/landing/InsightsCarousel'
 import CaptureSplit from '@/components/landing/CaptureSplit'
@@ -22,6 +23,7 @@ export default function JournalLanding() {
       <span id="top" />
 
       <Hero />
+      <VoiceFeaturesSection />
       <JournalingSection />
       <InsightsCarousel />
       <CaptureSplit />

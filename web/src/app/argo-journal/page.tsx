@@ -6,11 +6,11 @@ import JournalLanding from '@/components/landing/JournalLanding'
 // taken by the signed-in app's entries route under (app), so the marketing
 // page lives at /argo-journal, the product's name.
 export const metadata: Metadata = {
-  title: 'Argo Journal: Record, reflect, and grow with your private AI journaling app',
-  description: 'Argo Journal is The Merge, a new category of journaling. Capture your life in text, voice, video, or photos and talk to a private AI that remembers everything, helps you see your patterns, and grows your mind, spirit, and ability to articulate yourself. Your journal is encrypted so only you hold the key, and you choose what you share with the AI.',
+  title: 'Argo Journal: Private journaling, voice conversations and your life story',
+  description: 'An encrypted AI journal for your daily life. Explore on-device voice calls and a guided Life Story Interview, coming in the next iPhone update.',
   openGraph: {
-    title: 'Argo Journal: Record, reflect, and grow with your private AI journaling app',
-    description: 'The Merge: a daily practice of merging with a private AI built entirely from your own life. It remembers everything, shows you patterns you couldn\'t see alone, and helps you grow more articulate and whole.',
+    title: 'Argo Journal: Your voice. Your life story.',
+    description: 'Coming in the next iPhone update: on-device speech for voice calls and a seven-part Life Story Interview. Learn what stays on your phone and what reaches the AI.',
     images: ['/logo-icon.png'],
   },
 }
