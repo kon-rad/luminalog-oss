@@ -14641,7 +14641,131 @@ function HealthcareComputerUseAgentsMeasuringCompleteWorkContent() {
   )
 }
 
+/* ── Post: What OpenAI's scientist survey measures, and what it cannot ── */
+function ScientistsChatgptPilotAssistanceNotDiscoveryContent() {
+  return (
+    <>
+      <P>
+        A scientist asks an AI tool to suggest an experiment. Did that save time, improve the experiment, or accelerate discovery? Those are three different questions. <A href="https://openai.com/index/science-at-the-frontier">OpenAI&apos;s November 16 report</A> can say something useful about the first, through scientists&apos; own estimates of time saved, but it does not directly measure the other two.
+      </P>
+      <Figure
+        src="/blog/scientists-chatgpt-pilot-assistance-not-discovery-1.jpg"
+        alt="Text of OpenAI's Science at the frontier page, with the phrase would have taken 1.9 times as long without AI highlighted"
+        width={1575}
+        height={578}
+        priority
+        caption="OpenAI's summary page gives the sample sizes and the 1.9 times estimate. Screenshot: openai.com as archived by the Internet Archive on 16 November 2026, shown without the site's styling."
+      />
+      <P>
+        OpenAI studied messages from a pilot of its ChatGPT for Academic Researchers program and surveyed a subset of participating scientists. The report is unusually detailed about methods and limits, which makes its findings more useful when read carefully.
+      </P>
+      <Figure
+        src="/blog/scientists-chatgpt-pilot-assistance-not-discovery-2.jpg"
+        alt="Title and abstract of the OpenAI paper Science at the Frontier: How Scientists Use ChatGPT, by Chris Liao, Carl Shan and Aaron Chatterji"
+        width={1530}
+        height={1276}
+        caption="Title page and abstract of the full report, Science at the Frontier: How Scientists Use ChatGPT. Source: OpenAI report PDF, page 1."
+      />
+      <H2>Who was studied?</H2>
+      <P>
+        The <A href="https://cdn.openai.com/pdf/0e4b2466-0be0-4326-8bf7-117d809e14d2/Science%20at%20the%20Frontier.pdf">full report</A> analyzes more than 580,000 scientific messages from 1,819 pilot participants. That is behavioral data about requests made to ChatGPT, grouped by research activity. OpenAI says researchers used automated classifiers to categorize messages rather than reading the underlying messages or model responses themselves.
+      </P>
+      <Figure
+        src="/blog/scientists-chatgpt-pilot-assistance-not-discovery-3.jpg"
+        alt="Section 2.1.1 of the OpenAI report, with the 1,819 scientists, the 580,186 scientific messages and the statement that researchers did not view the underlying messages highlighted"
+        width={1570}
+        height={1060}
+        caption="The report's sample construction: 1,819 scientists, 580,186 messages classified as scientific, and no researcher access to the underlying messages. Source: OpenAI report PDF, page 4."
+      />
+      <P>
+        A separate survey ran from September 30 to October 7. It produced 270 valid completed responses, of which 251 respondents consented to analysis. Survey answers are not the same data as message categories. A message can show that a scientist asked for help with code or literature. It cannot, by itself, prove that the resulting code was correct or the literature review complete.
+      </P>
+      <Figure
+        src="/blog/scientists-chatgpt-pilot-assistance-not-discovery-4.jpg"
+        alt="Section 2.2 of the OpenAI report, with two phrases highlighted: Out of 270 valid completed responses, 251, and at the same quality (Q5)"
+        width={1570}
+        height={1363}
+        caption="The survey method: run from September 30 to October 7, 270 valid completed responses, 251 consenting to analysis, and a question asking respondents to estimate time needed without AI. Source: OpenAI report PDF, page 9."
+      />
+      <H2>Where did AI help, according to participants?</H2>
+      <P>
+        OpenAI says scientists used ChatGPT across the research process, including literature work, coding, analysis and idea development. Some supplied a precise question; others asked the model to refine or suggest one. This looks more like an assistant within a research workflow than a system independently running the whole scientific process.
+      </P>
+      <Figure
+        src="/blog/scientists-chatgpt-pilot-assistance-not-discovery-5.jpg"
+        alt="Figure 3 of the OpenAI report: bar charts of the share of scientific messages and the share of scientists using AI across ten research workflows, led by reading and writing"
+        width={1646}
+        height={1077}
+        caption="Figure 3 sorts the pilot's scientific messages by research workflow, from reading and writing to analysis, software and ideation. Source: OpenAI report PDF, page 10."
+      />
+      <Figure
+        src="/blog/scientists-chatgpt-pilot-assistance-not-discovery-6.jpg"
+        alt="Figure 7 of the OpenAI report: stacked bars showing, for five ideation tasks, the share of messages where the question was scientist-supplied, AI-refined or AI-formulated, plus a small share with insufficient evidence"
+        width={1646}
+        height={1114}
+        caption="Figure 7 breaks ideation messages down by the role requested of the AI: working from the scientist's own question, refining it, or formulating one. Source: OpenAI report PDF, page 18."
+      />
+      <P>
+        Surveyed scientists estimated that comparable work at the same quality would have taken 1.9 times as long without AI. That is a self-estimate. No randomized no-AI control group or independent timing measure produced that number. It is evidence of perceived time savings among respondents, not a demonstrated causal speedup for all researchers.
+      </P>
+      <Figure
+        src="/blog/scientists-chatgpt-pilot-assistance-not-discovery-7.jpg"
+        alt="Figure 15 of the OpenAI report: a scatter of eight workflows plotting share of time using AI against the self-reported productivity ratio, with the survey questions and method notes"
+        width={1646}
+        height={1419}
+        caption="Figure 15 plots the survey's self-reported productivity ratio for 8 workflows. The notes describe it as time required without AI divided by time with AI, as estimated by respondents. Source: OpenAI report PDF, page 31."
+      />
+      <H2>Why does the sample limit the claim?</H2>
+      <P>
+        The report&apos;s own limitations paragraph is direct. Participants applied for expanded AI access, then chose whether to answer a survey about AI use. People who want such access may use the tool differently from scientists who do not. OpenAI therefore says the findings may not generalize to the wider scientific population. The report also examines a relationship between reported AI use and reported productivity gains using only eight workflow averages, too few to establish a broad rule.
+      </P>
+      <Figure
+        src="/blog/scientists-chatgpt-pilot-assistance-not-discovery-8.jpg"
+        alt="Paragraph from the OpenAI report beginning These results have two limitations, with the lines on generalizing to the broader population of scientists and on only 8 workflow averages highlighted"
+        width={1920}
+        height={394}
+        caption="The report's own limitations paragraph: a selected group of respondents, and a correlation based on only 8 workflow averages. Source: OpenAI report PDF, page 31."
+      />
+      <P>
+        An <A href="https://arxiv.org/abs/2609.28504">earlier AI-in-science preprint from Google and Google DeepMind researchers</A> examines other data sources, including Gemini interactions and a different scientist survey. It helps show that AI adoption can be studied in multiple ways. Its figures should not be combined with OpenAI&apos;s pilot as if the populations or measurements matched.
+      </P>
+      <Figure
+        src="/blog/scientists-chatgpt-pilot-assistance-not-discovery-9.jpg"
+        alt="Title page and abstract of the separate preprint AI in Science: Early Insights, arXiv 2609.28504, which studies Gemini interactions, specialized AI models and a survey of scientists"
+        width={1356}
+        height={1356}
+        caption="A separate, Google-led study, not OpenAI's report: the preprint AI in Science: Early Insights draws on Gemini interactions and its own survey of scientists. Source: arXiv 2609.28504, page 1."
+      />
+      <H2>What would prove faster discovery?</H2>
+      <P>
+        The stronger test would compare comparable research tasks with and without AI, check output quality independently, and follow whether ideas become reproducible results, experiments or publications. It would also sample beyond early adopters. The OpenAI study does not claim to have completed that test. Its narrower contribution is a detailed view of how a selected group of scientists put AI into their daily work.
+      </P>
+      <Figure
+        src="/blog/scientists-chatgpt-pilot-assistance-not-discovery-10.jpg"
+        alt="Diagram of three levels of evidence: behavioural logs and self-reported survey estimates are in OpenAI's report, actual research outcomes are not measured"
+        width={1600}
+        height={900}
+        caption="Three levels of evidence. OpenAI's report contains message logs and self-reported survey estimates; it does not measure research outcomes. Argo diagram."
+      />
+      <P>
+        That distinction should guide the headline. AI is already part of these researchers&apos; workflow. Whether it changes the pace of discovery remains a question for longitudinal, independent evidence. Read the <A href="https://cdn.openai.com/pdf/0e4b2466-0be0-4326-8bf7-117d809e14d2/Science%20at%20the%20Frontier.pdf">report</A> and follow more research coverage at <A href="https://myargoquest.com/blog">Argo</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "scientists-chatgpt-pilot-assistance-not-discovery",
+    title: "What OpenAI's scientist survey measures, and what it cannot",
+    description: "OpenAI's scientist-use data shows research assistance, while its survey cannot prove faster scientific discovery.",
+    category: "ai-news",
+    date: "November 17, 2026",
+    isoDate: "2026-11-17T15:30",
+    readingTime: "5 min read",
+    image: "/blog/scientists-chatgpt-pilot-assistance-not-discovery-1.jpg",
+    Content: ScientistsChatgptPilotAssistanceNotDiscoveryContent,
+  },
   {
     slug: "healthcare-computer-use-agents-measuring-complete-work",
     title: "Healthcare computer-use agents need end-to-end checks, not just good steps",
