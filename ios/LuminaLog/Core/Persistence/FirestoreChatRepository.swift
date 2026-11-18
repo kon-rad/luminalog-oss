@@ -97,6 +97,25 @@ final class FirestoreChatRepository: ChatRepository {
         return chat
     }
 
+    func createInterviewChat(title: String, interviewId: String, section: String, item: String) async throws -> Chat {
+        guard let uid = auth.currentUserId else { throw AuthServiceError.notSignedIn }
+        guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
+        let chat = Chat(
+            userId: uid, kind: .voice, title: title,
+            interviewId: interviewId, interviewSection: section, interviewItem: item
+        )
+        try await chatsRef.document(chat.id).setData(try chat.firestoreData(cipher: cipher))
+        return chat
+    }
+
+    func updateInterviewProgress(chatId: String, item: String?, sectionDone: Bool) async throws {
+        var data: [String: Any] = [:]
+        if let item { data["interviewItem"] = item }
+        if sectionDone { data["interviewSectionDone"] = true }
+        guard !data.isEmpty else { return }
+        try await chatsRef.document(chatId).updateData(data)
+    }
+
     func appendMessage(_ message: ChatMessage, to chatId: String) async throws {
         guard let cipher = keys.currentCipher else { throw CryptoUnavailableError.keyNotLoaded }
         let batch = db.batch()

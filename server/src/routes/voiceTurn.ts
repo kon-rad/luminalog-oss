@@ -4,6 +4,13 @@ import { firebaseAuth } from '../middleware/firebaseAuth'
 import { requireAiConsent } from '../middleware/requireAiConsent'
 import { chatCompletion, resolveVoiceProvider } from '../services/aiClient'
 import { PROMPTS } from '../services/prompts'
+import {
+  CHALLENGE_PROBES,
+  InterviewMarkerParser,
+  LIFE_INTERVIEW_SCRIPT,
+  SCENE_PROBES,
+  findLifeInterviewSection,
+} from '../services/lifeInterviewScript'
 
 /**
  * One turn of a LOCAL voice call (on-device speech-to-text and text-to-speech).
@@ -18,6 +25,13 @@ import { PROMPTS } from '../services/prompts'
  *
  * POST /v1/ai/voice-turn
  * Returns: SSE, `data: {"delta":"..."}` chunks then `data: [DONE]`.
+ *
+ * With an `interview` field the turn belongs to a Life Story Interview sitting:
+ * the interviewer prompt replaces the companion prompt, no journal context is
+ * used, and the reply's leading tag is stripped and reported as
+ * `data: {"interview":{"item":"B3","sectionComplete":false}}`.
+ *
+ * GET /v1/ai/voice-turn/interview-script returns the sections and questions.
  */
 
 export const voiceTurnRouter = Router()
@@ -44,6 +58,13 @@ const BODY_SCHEMA = z.object({
   memoryContext: z.string().optional().default(''),
   focalEntry: z.string().optional().default(''),
   now: z.string().optional().default(''),
+  interview: z
+    .object({
+      section: z.string().min(1).max(2),
+      item: z.string().max(6).optional(),
+      resumed: z.boolean().optional().default(false),
+    })
+    .optional(),
 })
 
 /**
@@ -77,16 +98,39 @@ export async function voiceTurnHandler(req: Request, res: Response): Promise<voi
     }
     const body = parsed.data
 
-    const systemPrompt = PROMPTS.voiceChat(
-      body.name,
-      body.bio,
-      body.profile,
-      body.ragContext,
-      body.focalEntry || undefined,
-      body.now || undefined,
-      body.todayContext || undefined,
-      body.memoryContext || undefined,
-    )
+    let systemPrompt: string
+    let markerParser: InterviewMarkerParser | null = null
+    let validInterviewItems = new Set<string>()
+    if (body.interview) {
+      const section = findLifeInterviewSection(body.interview.section)
+      if (!section) {
+        res.status(400).json({ error: 'Unknown interview section' })
+        return
+      }
+      validInterviewItems = new Set(section.items.map((item) => item.key))
+      const known = section.items.some((i) => i.key === body.interview!.item)
+      systemPrompt = PROMPTS.lifeInterview({
+        name: body.name,
+        section,
+        currentItem: known ? body.interview.item! : section.items[0].key,
+        resumed: body.interview.resumed,
+        sceneProbes: SCENE_PROBES,
+        challengeProbes: CHALLENGE_PROBES,
+        currentDateTime: body.now || undefined,
+      })
+      markerParser = new InterviewMarkerParser()
+    } else {
+      systemPrompt = PROMPTS.voiceChat(
+        body.name,
+        body.bio,
+        body.profile,
+        body.ragContext,
+        body.focalEntry || undefined,
+        body.now || undefined,
+        body.todayContext || undefined,
+        body.memoryContext || undefined,
+      )
+    }
     const turns = mergeConsecutiveRoles([
       ...body.history.slice(-MAX_HISTORY_MESSAGES),
       { role: 'user', content: body.message },
@@ -134,25 +178,42 @@ export async function voiceTurnHandler(req: Request, res: Response): Promise<voi
       lineBuffer = lines.pop() ?? ''
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue
-        const raw = line.slice(6).trim()
-        if (raw === '[DONE]') continue
+        const payload = line.slice(6).trim()
+        if (payload === '[DONE]') continue
         try {
-          const chunk = JSON.parse(raw) as { choices?: Array<{ delta?: { content?: string } }> }
-          const delta = chunk.choices?.[0]?.delta?.content ?? ''
+          const chunk = JSON.parse(payload) as { choices?: Array<{ delta?: { content?: string } }> }
+          const raw = chunk.choices?.[0]?.delta?.content ?? ''
+          if (!raw) continue
+          if (firstTokenMs < 0) firstTokenMs = Date.now() - started
+          let delta = raw
+          if (markerParser) {
+            const parsed = markerParser.feed(raw)
+            if (parsed.marker && (parsed.marker.sectionComplete ||
+                (parsed.marker.item !== null && validInterviewItems.has(parsed.marker.item)))) {
+              res.write(`data: ${JSON.stringify({ interview: parsed.marker })}\n\n`)
+            }
+            delta = parsed.text
+          }
           if (delta) {
-            if (firstTokenMs < 0) firstTokenMs = Date.now() - started
             chars += delta.length
             res.write(`data: ${JSON.stringify({ delta })}\n\n`)
           }
         } catch {}
       }
     }
+    // A reply that ended while a possible tag was still being held back.
+    const held = markerParser?.flush() ?? ''
+    if (held) {
+      chars += held.length
+      res.write(`data: ${JSON.stringify({ delta: held })}\n\n`)
+    }
 
     // Lengths and timings only: no transcript or journal content is logged.
     console.log(
       `[voice-turn] ok chat=${body.chatId.slice(0, 8)} provider=${provider.name} model=${provider.chatModel} ` +
         `firstTokenMs=${firstTokenMs} totalMs=${Date.now() - started} chars=${chars} ` +
-        `history=${body.history.length} ragChars=${body.ragContext.length}`,
+        `history=${body.history.length} ragChars=${body.ragContext.length}` +
+        (body.interview ? ` interview=${body.interview.section}` : ''),
     )
     res.write('data: [DONE]\n\n')
     res.end()
@@ -168,3 +229,8 @@ export async function voiceTurnHandler(req: Request, res: Response): Promise<voi
 }
 
 voiceTurnRouter.post('/', firebaseAuth, requireAiConsent, voiceTurnHandler)
+
+/** The interview's sections and questions. Static, no user data. */
+voiceTurnRouter.get('/interview-script', firebaseAuth, (_req: Request, res: Response) => {
+  res.json(LIFE_INTERVIEW_SCRIPT)
+})

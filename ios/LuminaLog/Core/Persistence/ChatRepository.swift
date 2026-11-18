@@ -30,6 +30,13 @@ protocol ChatRepository: AnyObject {
 
     /// Delete a chat and its messages.
     func deleteChat(id: String) async throws
+
+    /// Create the voice chat for one sitting of a Life Story Interview.
+    func createInterviewChat(title: String, interviewId: String, section: String, item: String) async throws -> Chat
+
+    /// Record how far an interview sitting has got. `item` nil leaves the last
+    /// question unchanged.
+    func updateInterviewProgress(chatId: String, item: String?, sectionDone: Bool) async throws
 }
 
 extension ChatRepository {
@@ -37,6 +44,14 @@ extension ChatRepository {
     func createChat(kind: ChatKind, title: String, journalId: String?, journalTitle: String?) async throws -> Chat {
         try await createChat(kind: kind, title: title, journalId: journalId, journalTitle: journalTitle, mirrorId: nil)
     }
+
+    /// Default for repositories that do not store interview progress (test
+    /// fakes): a plain voice chat.
+    func createInterviewChat(title: String, interviewId: String, section: String, item: String) async throws -> Chat {
+        try await createChat(kind: .voice, title: title)
+    }
+
+    func updateInterviewProgress(chatId: String, item: String?, sectionDone: Bool) async throws {}
 
     /// Convenience for callers that don't need journal context.
     func createChat(kind: ChatKind, title: String) async throws -> Chat {

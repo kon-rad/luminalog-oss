@@ -31,6 +31,15 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
     /// Id of the Mirror reflection this chat is about, if any
     /// (`dailyEncouragements/{uid}/messages/{id}`). Display label lives in `journalTitle`.
     var mirrorId: String?
+    /// Life Story Interview sitting: the interview this call belongs to. Every
+    /// sitting of one interview shares this id (see `LifeInterview`).
+    var interviewId: String?
+    /// Section of the interview this sitting covers, "A" to "G".
+    var interviewSection: String?
+    /// The last question the sitting reached, for example "B3".
+    var interviewItem: String?
+    /// True once the interviewer closed the section in this sitting.
+    var interviewSectionDone: Bool?
 
     init(
         id: String = UUID().uuidString,
@@ -48,7 +57,11 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
         rawTranscript: String? = nil,
         journalId: String? = nil,
         journalTitle: String? = nil,
-        mirrorId: String? = nil
+        mirrorId: String? = nil,
+        interviewId: String? = nil,
+        interviewSection: String? = nil,
+        interviewItem: String? = nil,
+        interviewSectionDone: Bool? = nil
     ) {
         self.id = id
         self.userId = userId
@@ -66,5 +79,9 @@ struct Chat: Codable, Equatable, Identifiable, Sendable {
         self.journalId = journalId
         self.journalTitle = journalTitle
         self.mirrorId = mirrorId
+        self.interviewId = interviewId
+        self.interviewSection = interviewSection
+        self.interviewItem = interviewItem
+        self.interviewSectionDone = interviewSectionDone
     }
 }

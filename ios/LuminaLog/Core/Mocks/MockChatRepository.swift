@@ -58,6 +58,24 @@ final class MockChatRepository: ChatRepository {
         return chat
     }
 
+    func createInterviewChat(title: String, interviewId: String, section: String, item: String) async throws -> Chat {
+        let chat = Chat(
+            userId: MockData.userId, kind: .voice, title: title,
+            interviewId: interviewId, interviewSection: section, interviewItem: item
+        )
+        chatStore.insert(chat, at: 0)
+        messageStore[chat.id] = []
+        broadcastChats()
+        return chat
+    }
+
+    func updateInterviewProgress(chatId: String, item: String?, sectionDone: Bool) async throws {
+        guard let index = chatStore.firstIndex(where: { $0.id == chatId }) else { return }
+        if let item { chatStore[index].interviewItem = item }
+        if sectionDone { chatStore[index].interviewSectionDone = true }
+        broadcastChats()
+    }
+
     func appendMessage(_ message: ChatMessage, to chatId: String) async throws {
         messageStore[chatId, default: []].append(message)
         if let index = chatStore.firstIndex(where: { $0.id == chatId }) {

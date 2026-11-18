@@ -25,10 +25,11 @@ struct VoiceCallView: View {
         journalId: String? = nil,
         journalTitle: String? = nil,
         mirrorId: String? = nil,
+        interview: LifeInterviewSitting? = nil,
         onViewTranscript: @escaping (Chat) -> Void,
         onInsufficientCredits: (() -> Void)? = nil
     ) {
-        _viewModel = StateObject(wrappedValue: VoiceCallViewModel(voice: voice, chats: chats, credits: credits, journalId: journalId, journalTitle: journalTitle, mirrorId: mirrorId))
+        _viewModel = StateObject(wrappedValue: VoiceCallViewModel(voice: voice, chats: chats, credits: credits, journalId: journalId, journalTitle: journalTitle, mirrorId: mirrorId, interview: interview))
         self.onViewTranscript = onViewTranscript
         self.onInsufficientCredits = onInsufficientCredits
     }
@@ -136,10 +137,15 @@ struct VoiceCallView: View {
             journalContextLabel
                 .padding(.top, Spacing.xs)
 
-            Text("Voice chat with your journal")
-                .font(.captionText)
-                .foregroundStyle(Color.textSecondary)
-                .padding(.top, Spacing.xs)
+            if let interview = viewModel.interview {
+                interviewHeader(interview)
+                    .padding(.top, Spacing.xs)
+            } else {
+                Text("Voice chat with your journal")
+                    .font(.captionText)
+                    .foregroundStyle(Color.textSecondary)
+                    .padding(.top, Spacing.xs)
+            }
 
             if viewModel.lowCreditWarning {
                 Label("Low on credits, call will end soon", systemImage: "exclamationmark.circle.fill")
@@ -167,6 +173,50 @@ struct VoiceCallView: View {
                 .padding(.bottom, Spacing.l)
         }
         .padding(.horizontal, Spacing.m)
+    }
+
+    // MARK: - Life Story Interview
+
+    /// Section name and the question being asked, so the user can read it again
+    /// while they think.
+    private func interviewHeader(_ interview: LifeInterviewSitting) -> some View {
+        VStack(spacing: Spacing.s) {
+            Text("Life story · \(interview.section.title)")
+                .font(.captionText.weight(.medium))
+                .foregroundStyle(Color.accentWarm)
+
+            if viewModel.interviewSectionComplete {
+                Text("That's the end of this part. You can end the call when you're ready.")
+                    .font(.uiBody)
+                    .foregroundStyle(Color.textPrimary)
+                    .multilineTextAlignment(.center)
+            } else if let item = viewModel.interviewItem {
+                VStack(spacing: Spacing.xs) {
+                    Text(item.question)
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: Spacing.s) {
+                        if let position = viewModel.interviewPositionText {
+                            Text(position)
+                        }
+                        Text("Say \u{201C}skip\u{201D} to move on")
+                    }
+                    .font(.captionText)
+                    .foregroundStyle(Color.textSecondary)
+                }
+                .padding(Spacing.m)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)
+                        .fill(Color.white.opacity(0.06))
+                )
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Current question: \(item.question)")
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: viewModel.interviewItemKey)
     }
 
     private var animationMode: some View {
@@ -283,10 +333,14 @@ struct VoiceCallView: View {
                 .foregroundStyle(Color.accentWarm)
 
             VStack(spacing: Spacing.s) {
-                Text("Call ended")
+                Text(viewModel.interview == nil ? "Call ended" : (viewModel.interviewSectionComplete ? "Section complete" : "Saved"))
                     .font(.journalTitle)
                     .foregroundStyle(Color.textPrimary)
-                Text(reason ?? "Your conversation was saved to Chats.")
+                Text(reason ?? (viewModel.interview == nil
+                    ? "Your conversation was saved to Chats."
+                    : (viewModel.interviewSectionComplete
+                        ? "This part of your life story is saved."
+                        : "You can pick this part up where you left off.")))
                     .font(.uiBody)
                     .foregroundStyle(Color.textSecondary)
                     .multilineTextAlignment(.center)

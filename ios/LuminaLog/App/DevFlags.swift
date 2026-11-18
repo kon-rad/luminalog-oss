@@ -17,6 +17,7 @@ enum DevFlags {
     static let periodSummariesKey = "ll-period-summaries"
     static let userFactsKey = "ll-user-facts"
     static let storyMapKey = "ll-story-map"
+    static let lifeInterviewKey = "ll-life-interview"
 
     /// Selects the zero-knowledge AI path. When ON the client decrypts context
     /// locally and sends it as PLAINTEXT to the AI endpoints, and — because the
@@ -76,6 +77,14 @@ enum DevFlags {
             #endif
         }
         set { UserDefaults.standard.set(newValue, forKey: periodSummariesKey) }
+    }
+
+    /// Shows the Life Story Interview (the Menu row and its screens). Registered ON
+    /// in DEBUG builds only (see LuminaLogApp.init) until it has been run on a
+    /// device; release builds never show it unless the key is set.
+    static var lifeInterview: Bool {
+        get { UserDefaults.standard.bool(forKey: lifeInterviewKey) }
+        set { UserDefaults.standard.set(newValue, forKey: lifeInterviewKey) }
     }
 
     /// Gates "What Argo knows": the extraction reconciler, the Settings row, and the

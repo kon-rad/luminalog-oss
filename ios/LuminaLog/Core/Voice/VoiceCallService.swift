@@ -54,6 +54,9 @@ enum VoiceCallEvent: Equatable, Sendable {
     case ended(reason: String?)
     /// The call failed to connect or dropped with an error.
     case failed(message: String)
+    /// Life Story Interview only: the interviewer moved to question `item`, or
+    /// closed the section (`sectionComplete`).
+    case interviewProgress(item: String?, sectionComplete: Bool)
 }
 
 /// Real-time voice conversation with the AI companion (design §8,
@@ -70,13 +73,22 @@ protocol VoiceCallService: AnyObject {
     /// Pass `journalId`/`journalTitle` to anchor the AI on a specific entry.
     /// Throws when the call cannot be set up at all; failures after setup
     /// are reported via `events` (`.failed`).
-    func startCall(chatId: String, journalId: String?, journalTitle: String?) async throws
+    /// Pass `interview` to run the call as one sitting of the Life Story
+    /// Interview instead of an open conversation.
+    func startCall(chatId: String, journalId: String?, journalTitle: String?, interview: LifeInterviewSitting?) async throws
 
     /// Hang up. Emits `.ended` on the event stream.
     func endCall() async
 
     /// Mute or unmute the user's microphone.
     func setMuted(_ muted: Bool)
+}
+
+extension VoiceCallService {
+    /// An ordinary call with the companion.
+    func startCall(chatId: String, journalId: String?, journalTitle: String?) async throws {
+        try await startCall(chatId: chatId, journalId: journalId, journalTitle: journalTitle, interview: nil)
+    }
 }
 
 /// Shared multicast helper for `VoiceCallService` implementations — same
