@@ -14754,7 +14754,117 @@ function ScientistsChatgptPilotAssistanceNotDiscoveryContent() {
   )
 }
 
+/* ── Post: Google's threat report shows agents shortening the patch-to-exploit window ── */
+function GoogleAgenticThreatReportPatchToExploitContent() {
+  return (
+    <>
+      <P>
+        A software vendor fixes a vulnerability and publishes an update. A defender now has a patch to apply. An attacker can compare the old and new code to learn what changed. Google&apos;s <A href="https://cloud.google.com/blog/topics/threat-intelligence/agentic-threat-activity-crosses-a-significant-threshold">November 16 AI Threat Tracker</A> says agentic frameworks are compressing that interval between disclosure and attempted exploitation.
+      </P>
+      <Figure
+        src="/blog/google-agentic-threat-report-patch-to-exploit-1.jpg"
+        alt="Top of Google's GTIG AI Threat Tracker page, titled Agentic Threat Activity Crosses a Significant Threshold and dated November 16, 2026, with the start of the executive summary"
+        width={1920}
+        height={1230}
+        priority
+        caption="The primary source: Google Threat Intelligence Group's AI Threat Tracker, dated November 16, 2026, with the title highlighted. Screenshot: Google Cloud Threat Intelligence blog."
+      />
+      <P>
+        The report is specific enough to move past a generic warning that AI might be used in cyberattacks. It describes tools, observed activity and a patch-analysis workflow. It also leaves open how common this activity is across the wider internet.
+      </P>
+      <Figure
+        src="/blog/google-agentic-threat-report-patch-to-exploit-2.jpg"
+        alt="Diagram: a timeline from patch disclosure through the exposure window to defense, above three columns sorting the report's evidence into observed in use, experimentation and not established"
+        width={1600}
+        height={930}
+        caption="What the report's evidence covers between a patch being published and applied: tools GTIG says it observed in use, tools it describes as experimentation, and claims the report does not establish. Argo diagram."
+      />
+      <H2>What did Google actually observe?</H2>
+      <P>
+        Google Threat Intelligence Group says it found an exposed staging server running a multi-agent framework it calls <code>exploit_agent</code>. The reported system compared software before and after a patch, analyzed the difference for vulnerabilities, drafted exploits and executed them without a person in that loop. That is an account of one observed framework and its behavior, not evidence that every intrusion is now autonomous.
+      </P>
+      <Figure
+        src="/blog/google-agentic-threat-report-patch-to-exploit-3.jpg"
+        alt="Blue-lit row of server cabinets in a data center, one labelled NETWORK-2"
+        width={1880}
+        height={1255}
+        caption="Illustrative stock photo of data center cabinets, not infrastructure from the report. Photo: panumas nikhomkhai / Pexels"
+      />
+      <P>
+        The report names several other tools. GTIG says it observed CAIRN and PentAGI deployed in intrusion activity. It describes CyberStrikeAI and HexStrike AI as experimentation. Those verbs matter. A tool existing on GitHub, a threat actor testing it, and a confirmed intrusion are different evidence levels. <A href="https://cloud.google.com/blog/topics/threat-intelligence/artex-and-friends-enter-agentic-offensive-frameworks">Google&apos;s earlier ARTEX analysis</A> provides further context for how offensive frameworks combine agents and tools.
+      </P>
+      <Figure
+        src="/blog/google-agentic-threat-report-patch-to-exploit-4.jpg"
+        alt="Passage from the GTIG report with one sentence highlighted: GTIG observed CAIRN and PentAGI deployed in the wild and saw experimentation with CyberStrikeAI and HexStrike AI"
+        width={1920}
+        height={1082}
+        caption="The sentence where GTIG separates tools it observed deployed in the wild from tools it saw in experimentation. Screenshot: Google Cloud Threat Intelligence blog."
+      />
+      <H2>Why does patch comparison matter?</H2>
+      <P>
+        A patch is a clue. Comparing the fixed code with the prior version narrows the search to the changed area, and an agent can repeat that analysis across many projects. Think of a repair notice that tells a burglar which window was recently reinforced. The analogy stops at the exploit: a code difference does not guarantee a working attack. Google itself notes that LLM-generated exploits sometimes fail and create extra verification work.
+      </P>
+      <Figure
+        src="/blog/google-agentic-threat-report-patch-to-exploit-5.jpg"
+        alt="Close-up of a monitor showing lines of syntax-highlighted Python source code with line numbers"
+        width={1920}
+        height={1282}
+        caption="Illustrative stock photo of source code on a screen, not code from the report. Photo: Chris Ried / Unsplash"
+      />
+      <P>
+        This is mainly an acceleration story about known or newly patched vulnerabilities, often called n-days. The report does not establish that agents suddenly discover large numbers of novel zero-days. Its own trend discussion says zero-day counts rose much less steeply than overall disclosed and exploited vulnerabilities before an August spike in its dataset.
+      </P>
+      <Figure
+        src="/blog/google-agentic-threat-report-patch-to-exploit-6.jpg"
+        alt="GTIG report passage and its Figure 3, a bar chart of vulnerabilities exploited per month from January 2025 to August 2026 split into zero-days and n-days, with the zero-day sentence highlighted"
+        width={1920}
+        height={1658}
+        caption="GTIG's Figure 3 and the sentence above it: zero-day exploits rose from a 2025 average of 8 a month to 11 a month in 2026 before a spike to 22 in August. Counts are GTIG's own. Screenshot: Google Cloud Threat Intelligence blog."
+      />
+      <H2>What does the evidence not show?</H2>
+      <P>
+        The raw telemetry behind Google&apos;s observations is not public in the report. We can say GTIG reported seeing these frameworks and describe the behavior it documented. We cannot turn that into a measured global share of attacks, a universal time-to-exploit figure, or a claim that human operators have disappeared. Google&apos;s data reflects its visibility and classification decisions.
+      </P>
+      <P>
+        The practical response follows from the narrower finding. Defenders need to reduce the time exposed after a patch is released, know which systems are internet-facing, and check whether their detections catch the actual chained behavior. Those actions are already useful without assuming the most dramatic possible future.
+      </P>
+      <Figure
+        src="/blog/google-agentic-threat-report-patch-to-exploit-7.jpg"
+        alt="A person in a cap and glasses reading dense terminal output on two monitors in a dark room"
+        width={1880}
+        height={1253}
+        caption="Illustrative stock photo of someone reviewing terminal output, not a person or system from the report. Photo: Mikhail Nilov / Pexels"
+      />
+      <H2>What changes for agent builders?</H2>
+      <P>
+        The same architecture that makes legitimate agents useful can make offensive work faster: a coordinator, specialist tools, feedback from execution, and persistence across steps. For a legitimate system, this is a reminder to limit its network and tool permissions and to log decisions and effects. For defenders, the evidence calls for faster verification and remediation of known flaws, not a vague belief that a model is magic.
+      </P>
+      <Figure
+        src="/blog/google-agentic-threat-report-patch-to-exploit-8.jpg"
+        alt="Top of Google's earlier analysis page, titled ARTEX and Friends: Enter Agentic Offensive Frameworks and dated October 30, 2026, credited to Google Threat Intelligence Group and Mandiant"
+        width={1920}
+        height={1230}
+        caption="Google's earlier ARTEX analysis, dated October 30, 2026, describes how such frameworks coordinate agents and tools. Screenshot: Google Cloud Threat Intelligence blog."
+      />
+      <P>
+        Read the <A href="https://cloud.google.com/blog/topics/threat-intelligence/agentic-threat-activity-crosses-a-significant-threshold">GTIG report</A> and follow agent-systems research at <A href="https://myargoquest.com/blog">Argo</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "google-agentic-threat-report-patch-to-exploit",
+    title: "Google's threat report shows agents shortening the patch-to-exploit window",
+    description: "What Google observed in agentic offensive frameworks, and what its new report does not establish.",
+    category: "ai-news",
+    date: "November 17, 2026",
+    isoDate: "2026-11-17T15:35",
+    readingTime: "5 min read",
+    image: "/blog/google-agentic-threat-report-patch-to-exploit-1.jpg",
+    Content: GoogleAgenticThreatReportPatchToExploitContent,
+  },
   {
     slug: "scientists-chatgpt-pilot-assistance-not-discovery",
     title: "What OpenAI's scientist survey measures, and what it cannot",
