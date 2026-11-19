@@ -15080,7 +15080,200 @@ function HowArgoAgentPersonasWorkContent() {
   )
 }
 
+/* ── Post: Agent harness benchmarks explained: what an AI agent score is really measuring ── */
+function AgentHarnessBenchmarksExplainedContent() {
+  return (
+    <>
+      <P>
+        On the public leaderboard for Terminal-Bench 2.0, a test of 89 hard tasks in a computer terminal, the model Claude Opus 4.6 appears more than once. Run by a program called Meta-Harness, it resolves 76.4% of the tasks. Run by Claude Code, it resolves 58.0%. The model is the same and the tasks are the same. The scores are 18.4 points apart.
+      </P>
+      <P>
+        The thing that changed is the <strong>harness</strong>: the program that runs the model in a loop, hands it tools, decides what it gets to read and stops it when it is done. Most headlines about AI scores name only the model. A growing set of benchmarks now names the harness too, and some change nothing else.
+      </P>
+      <P>
+        This post maps those benchmarks as of November 2026: the ones that score a whole agent on real tasks, the ones that swap only the harness, and the ones that test memory, which matters most for an agent that works over your own notes and files. It ends with a short list of questions to ask of any agent score. Our earlier post on <A href="https://myargoquest.com/blog/agent-swarms-explained">agent swarms</A> covered how teams of agents are measured. This one goes a level down, to the single program around the model.
+      </P>
+      <H2>What is a harness, and why does it get its own benchmarks?</H2>
+      <P>
+        A language model does one thing: it reads text and writes text. An <strong>agent</strong> is a model that can act, and acting needs a program around it. That program sends the model a task, reads its reply, runs the command or search the model asked for, feeds the result back, and repeats. It also decides which tools exist, how much of the history stays in view when the conversation gets long, what is written to memory, and when to stop. That program is the harness. Leaderboards also call it the agent, the scaffold or the framework.
+      </P>
+      <P>
+        A <strong>benchmark</strong> is a fixed set of tasks plus a grader, a program that decides pass or fail. So every agent score has three inputs: the model, the harness and the benchmark.
+      </P>
+      <Figure
+        src="/blog/agent-harness-benchmarks-explained-1.jpg"
+        alt="Argo diagram of three boxes, the model, the harness and the benchmark, adding up to one score"
+        width={1920}
+        height={1080}
+        priority
+        caption="A score has three inputs. A harness benchmark holds the model and the tasks still and changes only the program around the model. Argo diagram."
+      />
+      <P>
+        Think of a race. The model is the engine. The harness is the car around it and the crew that services it: the tires, the fuel plan, the timing of each stop. The benchmark is the track and the stopwatch. A lap time is the combined result of all of them, and you cannot read the engine&apos;s power off it alone.
+      </P>
+      <Figure
+        src="/blog/agent-harness-benchmarks-explained-2.jpg"
+        alt="A pit crew working on a red race car during a pit stop, seen from above"
+        width={1080}
+        height={720}
+        caption="The engine is one part of what wins a race. The car, the crew and the stops are the rest. Photo: Paul Krüger / Unsplash."
+      />
+      <P>
+        The analogy stops working in one place. A car takes months to rebuild. A harness is software, and a team can change it between two runs on the same afternoon. That is why two scores for the same model can differ so much, and why the harness needs measuring on its own.
+      </P>
+      <H2>Which benchmarks score a whole agent on real tasks?</H2>
+      <P>
+        These give an agent a job and check the result. Four are worth knowing.
+      </P>
+      <UL items={[
+        <><strong>Terminal-Bench</strong> gives the agent a terminal and a task. Version 2.0 has 89 tasks, and its paper says each one has &quot;a unique environment, human-written solution, and comprehensive tests for verification&quot;. <strong>Its leaderboard lists the model and the agent in separate columns, so the same model can be compared across harnesses.</strong></>,
+        <><strong>SWE-bench</strong> asks the agent to fix real software bugs: 2,294 problems drawn from GitHub issues in 12 Python projects, graded by each project&apos;s own tests. Its site now defaults to a view with &quot;every model in the same mini-SWE-agent environment&quot;, which holds the harness still, so that table compares models.</>,
+        <><strong>HAL</strong>, the Holistic Agent Leaderboard from Princeton, calls itself the &quot;standardized, cost-aware, and third-party leaderboard for evaluating agents&quot;. Its team runs the agents itself, or reproduces submitted results, across nine benchmarks and reports cost beside accuracy, because, in its words, agents &quot;can be 100x more expensive while only being 1% better&quot;. HAL has paused adding new models while it works on measuring reliability.</>,
+        <><strong>tau-bench</strong> has the agent play a customer-service worker with tools and a rulebook. It introduced a measure called pass^k: the chance that a task succeeds on all k tries in a row. In the 2024 paper, even the best agents succeeded on under half the tasks, and in the retail tasks fewer than 25% were solved on all eight tries.</>,
+      ]} />
+      <Figure
+        src="/blog/agent-harness-benchmarks-explained-3.jpg"
+        alt="The Terminal-Bench 2.0 leaderboard, with separate columns for model and agent and a resolution rate for each pair"
+        width={1920}
+        height={1117}
+        caption="Terminal-Bench lists the model and the agent (the harness) in separate columns. Screenshot: tbench.ai, 2026-11-16."
+      />
+      <H2>Which studies change only the harness?</H2>
+      <P>
+        A task benchmark shows that harnesses differ. To learn how much, someone has to hold the model fixed and swap the harness on purpose. Several 2026 papers do this.
+      </P>
+      <UL items={[
+        <><strong>Harness-Bench</strong> ran seven harnesses, among them Claude Code, Codex, OpenCode, Hermes and Goose, on ten models and 274 general tasks (300 with a smaller multimodal set). It found that &quot;no harness performs best across all ten backends&quot;. For nine of the ten models, the gap between the best and worst harness was 5.0 to 9.5 points. For one locally hosted model, Qwen3.8-27B, it was 39.2 points. Each combination was run once.</>,
+        <><strong>MASEval</strong> crossed three frameworks with three models on three benchmarks and concluded that &quot;framework choice matters as much as model choice&quot;. On average, scores spread 12.4 points across frameworks and 14.2 points across models. Its most striking single case was a 30.9-point gap for one model on one task set.</>,
+        <><strong>MAFBench</strong> fixed the model and compared nine multi-agent frameworks. Its summary: &quot;Architectural design, not only model intelligence, governs performance.&quot; One framework took over 60 times as long as a direct call to the model to answer a trivial question.</>,
+        <><strong>SkillsBench</strong> tested one harness feature, skills, which are packaged instructions an agent loads for a kind of task. Curated skills raised the average pass rate from 33.9% to 50.5%. A second study, SWE-Skills-Bench, found that 92 of 98 public skills had no statistically significant effect. Tested one at a time, most of those skills did nothing and a few did a lot.</>,
+      ]} />
+      <Figure
+        src="/blog/agent-harness-benchmarks-explained-4.jpg"
+        alt="Argo bar chart of four cases where one model scored differently under two harnesses, with gaps of 18.4, 35.6, 30.9 and 39.2 points"
+        width={1920}
+        height={1080}
+        caption="Four published cases of one model under two harnesses, picked as large gaps and not typical ones. The pairs are not comparable with each other. Argo chart from tbench.ai, HAL, MASEval and Harness-Bench."
+      />
+      <P>
+        The evidence does not all point one way. The chart shows large gaps, and other studies found small ones. METR is a research group that measures how long a task an agent can finish. A research note by one of its researchers tested Claude Code and Codex against METR&apos;s default harnesses and reported that &quot;neither Claude Code nor Codex outperform the default scaffolds METR uses&quot;. Another study of three open-source harnesses found pass rates within 0 to 8 points of each other, while the tokens spent per solved task differed by up to 40 times. A harness can change the bill long before it changes the score.
+      </P>
+      <H2>How is an agent&apos;s memory benchmarked?</H2>
+      <P>
+        An agent that helps you over weeks has to remember. Memory benchmarks plant facts in a long history, ask about them later and grade the answers.
+      </P>
+      <UL items={[
+        <><strong>LongMemEval</strong> has 500 questions over long chat histories. It tests five abilities: extracting a fact, reasoning across sessions, reasoning about time, handling a fact that changed, and declining to answer when the history does not say.</>,
+        <><strong>LoCoMo</strong> is widely quoted by memory products. Its public release is ten very long conversations, each between two speakers generated by language models.</>,
+        <><strong>BEAM</strong> has 100 conversations and 2,000 questions, with conversations of up to 10 million tokens.</>,
+        <><strong>MemoryAgentBench</strong> feeds text in pieces and tests four skills: accurate retrieval, learning during the test, long-range understanding and selective forgetting.</>,
+      ]} />
+      <P>
+        LoCoMo also shows the harness problem very clearly. In 2025 two memory companies, Mem0 and Zep, each published LoCoMo results for Zep&apos;s product. In April, Mem0&apos;s paper put Zep at 65.99%. Zep answered with its own test and claimed 84%. Mem0 reran that test and reported 58.44%. Zep then acknowledged an error in its calculation and replaced the 84% with a corrected 75.14%.
+      </P>
+      <Figure
+        src="/blog/agent-harness-benchmarks-explained-5.jpg"
+        alt="Argo bar chart of four published LoCoMo scores for the Zep memory product, from 58.44 percent to 84 percent"
+        width={1920}
+        height={1080}
+        caption="One memory product, one benchmark, four published scores. Argo chart from the Mem0 paper and a public GitHub thread between the two companies."
+      />
+      <P>
+        Two more results belong beside those. In Mem0&apos;s own table, simply giving the model the whole conversation scored 72.90%, above every memory product in that table. And Letta, a third company, reported 74.0% from an agent that kept the conversations in plain files and searched them with ordinary file tools. Its conclusion was that &quot;memory is more about how agents manage context than the exact retrieval mechanism used&quot;. Put plainly: even in a memory test, the setup around the memory product (who runs it, with which prompt, and how answers are counted) can move the score by tens of points.
+      </P>
+      <P>
+        The answer key has problems too. An independent audit of LoCoMo reports that 99 of its 1,540 questions have wrong reference answers, which would cap a perfect system near 93.6%, and that the grading model accepted 62.81% of answers written to be vague and wrong. The audit is not peer reviewed and its authors build a competing memory product, so treat it as a strong lead and not a verdict.
+      </P>
+      <Figure
+        src="/blog/agent-harness-benchmarks-explained-6.jpg"
+        alt="The README of the LoCoMo audit repository on GitHub, with the finding that 99 of 1,540 questions have wrong golden answers highlighted"
+        width={1435}
+        height={753}
+        caption="An independent audit of LoCoMo's answer key. It is not peer reviewed, and its authors build a competing memory product. Screenshot: github.com/dial481/locomo-audit"
+      />
+      <H2>Is there a benchmark for a second brain?</H2>
+      <P>
+        A second brain is an agent that works over one person&apos;s long-lived notes and files: it looks things up, keeps them current and acts on them. No public benchmark we found tests all of that. Three recent ones test parts of it.
+      </P>
+      <UL items={[
+        <><strong>HippoCamp</strong> builds whole personal file systems, 42.4 GB across more than 2,000 real files, and asks 581 questions about them. The best commercial models reached 48.3% on its user-profiling questions. The files stay still: its tasks are questions about the files, not edits to them.</>,
+        <><strong>LongMemEval-V2</strong> tests whether an agent learns from records of past agent work in the same environment. Its authors&apos; best method stored those records as files and let a coding agent search them. It scored 72.5%, against 48.5% for the strongest search-based baseline and 69.3% for an off-the-shelf coding agent.</>,
+        <><strong>DolphinBench</strong> grades tasks finished through tool calls after the agent has taken in about 500,000 tokens of one person&apos;s messages. It is a vendor&apos;s benchmark: Mem0 wrote it, and Mem0&apos;s product is among the systems tested, so read its rankings with that in mind. Its framing sentence is still the clearest in the field: &quot;Memory performance reflects the capabilities of the model, the harness, and the memory system working together.&quot;</>,
+      ]} />
+      <P>
+        Two things were missing from everything we read. We found no benchmark where the truth is the state of a notes folder after months of edits, and none where several agents read and write one shared memory and are scored on keeping it consistent. That describes our search, and a test we missed may exist.
+      </P>
+      <H2>Can the benchmark itself be wrong?</H2>
+      <P>
+        Yes, and the careful ones say so in public.
+      </P>
+      <P>
+        A 2025 paper proposing a checklist for agent benchmarks found that one popular benchmark &quot;counts empty responses as successful&quot;, and that flaws like this can move a score &quot;by up to 100% in relative terms&quot;. In 2026 a Berkeley team built an exploit agent, a program whose only job was to trick the graders. It scored 100% on Terminal-Bench&apos;s 89 tasks and on SWE-bench Verified without solving a task. That was a demonstration of what the graders allowed, not a finding that leaderboard entries cheated. Separately, Terminal-Bench&apos;s maintainers removed one entry after finding encrypted solutions stored inside the agent, and announced stricter submission rules.
+      </P>
+      <Figure
+        src="/blog/agent-harness-benchmarks-explained-7.jpg"
+        alt="The HAL leaderboard page for CORE-Bench Hard, showing a known-issue notice about overstated costs and a table with a scaffold column next to the model column"
+        width={1920}
+        height={1222}
+        caption="HAL publishes its own corrections above the table, and lists the scaffold beside the model. Screenshot: hal.cs.princeton.edu, 2026-11-16."
+      />
+      <P>
+        HAL&apos;s page for one benchmark, CORE-Bench Hard, shows what careful reporting looks like. It lists the scaffold beside the model: Claude Opus 4.5 scores 77.78% under a Claude Code scaffold and 42.22% under HAL&apos;s original one. With the older Claude Opus 4.1 the order reverses: 51.11% under HAL&apos;s original scaffold and 42.22% under Claude Code. Above the table, HAL warns that its own cost figures are overstated for some rows and not yet recalculated, which is why this post quotes none of them.
+      </P>
+      <H2>How to read an agent score</H2>
+      <P>
+        Before trusting a number, ask these of it.
+      </P>
+      <UL items={[
+        <><strong>Which harness ran the model?</strong> If the source names only the model, you are missing a third of the inputs.</>,
+        <><strong>Who ran it?</strong> A team scoring its own product, a team scoring a rival, and a third party are three different kinds of evidence.</>,
+        <><strong>How many runs?</strong> One run cannot separate a real gap from luck. Look for a confidence interval or a repeated-run measure such as pass^k.</>,
+        <><strong>What did it cost?</strong> Two harnesses with the same score can differ many times over in tokens spent.</>,
+        <><strong>How is it graded?</strong> Tests that check the end result are stronger than a model judging another model&apos;s answer. Ask whether anyone has audited the answer key.</>,
+        <><strong>Could a simple baseline match it?</strong> In memory tests, compare against pasting in the whole history, and against plain files with search.</>,
+        <><strong>Is it the largest gap or the typical one?</strong> Papers lead with the biggest difference they found.</>,
+      ]} />
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Our own agents run on off-the-shelf harnesses with our skills and checks around them. We have not run any of the public benchmarks in this post on them, so we make no claim about where our setup would rank. What we do run is small and private: a small recorded set of memory questions that we re-run whenever we change our agents&apos; memory.
+      </P>
+      <P>
+        Next, we would like a version of that check that others can run, built around the two missing tests named above: notes that change over time, and more than one agent using them. It is a plan, not yet built.
+      </P>
+      <P>
+        The short version: an agent score describes a model, a harness and a benchmark together. When you compare two scores, check which of the three changed.
+      </P>
+      <P>
+        Follow along on the blog and at <A href="https://x.com/myargoquest">x.com/myargoquest</A>.
+      </P>
+      <H2>Sources</H2>
+      <UL items={[
+        <>Terminal-Bench 2.0: <A href="https://arxiv.org/abs/2601.11868">paper</A>, <A href="https://www.tbench.ai/?version=2.0">leaderboard</A>, <A href="https://www.tbench.ai/news/leaderboard-integrity-update">integrity update</A></>,
+        <>SWE-bench: <A href="https://arxiv.org/abs/2310.06770">paper</A>, <A href="https://www.swebench.com/">leaderboards</A></>,
+        <>HAL: <A href="https://hal.cs.princeton.edu/">home</A>, <A href="https://hal.cs.princeton.edu/corebench_hard">CORE-Bench Hard</A></>,
+        <>tau-bench: <A href="https://arxiv.org/abs/2406.12045">paper</A></>,
+        <>Harness studies: <A href="https://arxiv.org/abs/2605.27922">Harness-Bench</A>, <A href="https://arxiv.org/abs/2603.08835">MASEval</A>, <A href="https://arxiv.org/abs/2602.03128">MAFBench</A>, <A href="https://arxiv.org/abs/2602.12670">SkillsBench</A>, <A href="https://arxiv.org/abs/2603.15401">SWE-Skills-Bench</A>, <A href="https://metr.org/notes/2026-02-13-measuring-time-horizon-using-claude-code-and-codex/">METR scaffold note</A>, <A href="https://arxiv.org/abs/2607.22585">The Scaffold Effect</A></>,
+        <>Memory: <A href="https://arxiv.org/abs/2410.10813">LongMemEval</A>, <A href="https://github.com/snap-research/locomo">LoCoMo</A>, <A href="https://arxiv.org/abs/2510.27246">BEAM</A>, <A href="https://arxiv.org/abs/2507.05257">MemoryAgentBench</A></>,
+        <>The LoCoMo dispute: <A href="https://arxiv.org/abs/2504.19413">Mem0 paper</A>, <A href="https://github.com/getzep/zep-papers/issues/5">the GitHub thread</A>, <A href="https://www.letta.com/blog/benchmarking-ai-agent-memory">Letta&apos;s post</A>, <A href="https://github.com/dial481/locomo-audit">the audit</A></>,
+        <>Second brain: <A href="https://arxiv.org/abs/2604.01221">HippoCamp</A>, <A href="https://arxiv.org/abs/2605.12493">LongMemEval-V2</A>, <A href="https://arxiv.org/abs/2609.24971">DolphinBench</A></>,
+        <>Benchmark validity: <A href="https://arxiv.org/abs/2507.02825">the checklist paper</A>, <A href="https://rdi.berkeley.edu/blog/trustworthy-benchmarks-cont/">the Berkeley exploit report</A></>,
+      ]} />
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "agent-harness-benchmarks-explained",
+    title: "Agent harness benchmarks explained: what an AI agent score is really measuring",
+    description: "The benchmarks that test the program around an AI model, from coding tasks to agent memory, and how to read their scores, as of November 2026.",
+    category: "ai-news",
+    date: "November 16, 2026",
+    isoDate: "2026-11-16T16:53",
+    readingTime: "13 min read",
+    image: "/blog/agent-harness-benchmarks-explained-1.jpg",
+    Content: AgentHarnessBenchmarksExplainedContent,
+  },
   {
     slug: "how-argo-agent-personas-work",
     title: "How Argo gives AI agents a working identity",
