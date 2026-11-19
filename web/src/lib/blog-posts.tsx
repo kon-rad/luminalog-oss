@@ -15420,7 +15420,186 @@ function HowAnAgentLearnsToKeepBetterNotesContent() {
   )
 }
 
+/* ── Post: GPT-6.2 Astra and Sol: price, performance and model choice ── */
+function Gpt62AstraSolPriceAndPerformanceContent() {
+  return (
+    <>
+      <P>
+        If you run a coding agent or a research agent on an OpenAI model, a new release asks you two practical questions: will it do my tasks better, and will it cost less per finished task? On November 17, 2026, OpenAI released two models, GPT-6.2 Astra and GPT-6.2 Sol, and the answers differ for each.
+      </P>
+      <P>
+        OpenAI reported gains in its release. Artificial Analysis, Epoch AI and Vals AI also published benchmark results. Together, the figures describe different tasks and settings, including coding.
+      </P>
+      <P>
+        This post explains the model choices, their API prices and the published benchmark results. OpenAI&apos;s live announcement page blocked our reader, so announcement figures below were checked against the Internet Archive copy and are cited as reported by <A href="https://the-decoder.com/openai-launches-gpt-6-2-astra-and-sol-with-lower-api-prices-and-some-benchmark-gains">The Decoder</A>. Prices come directly from OpenAI&apos;s API documentation.
+      </P>
+      <H2>What did OpenAI release?</H2>
+      <P>
+        Two models with different jobs. OpenAI&apos;s <A href="https://developers.openai.com/api/docs/models">model documentation</A> describes Astra as &quot;Our most capable model for your hardest projects, from start to finish&quot; and Sol as &quot;Our go-to model for everyday work, from coding to powering agents at scale.&quot; The Decoder reports that OpenAI aims Astra at demanding professional work and Sol at everyday tasks. Sol keeps GPT-6.1 Sol&apos;s price.
+      </P>
+      <Figure
+        src="/blog/gpt-6-2-astra-sol-price-and-performance-1.jpg"
+        alt="OpenAI API documentation Models page: a Choosing a model section names GPT-6.2 Astra as the flagship model for complex reasoning and coding and GPT-6.2 Sol to balance intelligence and cost, above flagship cards labelled Astra and Sol"
+        width={1920}
+        height={1327}
+        priority
+        caption="OpenAI's API documentation names GPT-6.2 Astra as its flagship model for complex reasoning and coding and GPT-6.2 Sol as the choice to balance intelligence and cost. Screenshot: OpenAI API documentation, 18 November 2026."
+      />
+      <P>
+        In the API they are <code>gpt-6.2-astra</code> and <code>gpt-6.2-sol</code>. Both accept up to 1,050,000 tokens of context and return up to 128,000 tokens of output. A token is a chunk of text, roughly three quarters of an English word on average. The <A href="https://developers.openai.com/api/docs/models/gpt-6.2-astra">Astra model page</A> lists a knowledge cutoff of May 18, 2026, and the <A href="https://developers.openai.com/api/docs/models/gpt-6.2-sol">Sol page</A> lists June 1, 2026.
+      </P>
+      <Figure
+        src="/blog/gpt-6-2-astra-sol-price-and-performance-2.jpg"
+        alt="OpenAI model page for GPT-6.2 Astra, model ID gpt-6.2-astra, price $8 input and $40 output, with three lines highlighted: 1,050,000 context window, 128,000 max output tokens and May 18, 2026 knowledge cutoff"
+        width={1920}
+        height={1327}
+        caption="The GPT-6.2 Astra model page lists a 1,050,000-token context window, 128,000 max output tokens and a May 18, 2026 knowledge cutoff. Screenshot: OpenAI API documentation, 18 November 2026."
+      />
+      <P>
+        The Decoder reports both models are available to Plus, Pro, Enterprise and Edu users in ChatGPT Work and Codex.
+      </P>
+      <H2>API prices and cost per task</H2>
+      <P>
+        All prices here are in US dollars per one million tokens, from OpenAI&apos;s model pages:
+      </P>
+      <UL items={[
+        <><strong>GPT-6.2 Astra:</strong> $8 input, $0.40 cached input, $40 output.</>,
+        <><strong>GPT-6 Astra (the previous Astra):</strong> $10 input, $1 cached input, $50 output.</>,
+        <><strong>GPT-6.2 Sol:</strong> $2 input, $0.10 cached input, $10 output.</>,
+        <><strong>GPT-6.1 Sol (the previous Sol):</strong> the same $2, $0.10 and $10.</>,
+      ]} />
+      <P>
+        So Astra is 20% cheaper than GPT-6 Astra on regular input and output, and its cached input price fell from $1 to $0.40. Cached input means tokens the provider has already processed in a recent request, such as a long system prompt an agent sends on every step, billed at a lower rate. Sol&apos;s price did not change.
+      </P>
+      <Figure
+        src="/blog/gpt-6-2-astra-sol-price-and-performance-3.jpg"
+        alt="Two-panel table of API list prices in US dollars per 1 million tokens. Astra: input $10.00 to $8.00, cached input $1.00 to $0.40, output $50.00 to $40.00. Sol: input $2.00, cached input $0.10 and output $10.00, unchanged from GPT-6.1 Sol"
+        width={1200}
+        height={660}
+        caption="OpenAI API list prices in US dollars per 1 million tokens, read on 18 November 2026: GPT-6.2 Astra against GPT-6 Astra, and GPT-6.2 Sol against GPT-6.1 Sol. Argo diagram from OpenAI's model pages."
+      />
+      <P>
+        List price is half the bill. The other half is how many tokens a model spends to finish a task.
+      </P>
+      <H2>Published performance results</H2>
+      <P>
+        According to The Decoder&apos;s report of OpenAI&apos;s announcement, Astra scores 5.2 points higher than GPT-6 Astra on Agents&apos; Last Exam v1.1 at under a third of the cost, and 9 percentage points higher on Terminal-Bench-Science, also at under a third of the cost. On GDPval-v2, a set of professional work tasks, OpenAI reports a 6.2 percentage point gain over the predecessor with 22% fewer output tokens. OpenAI also reports that Sol trails Astra by 0.5 points on FrontierCode 2.0 at one fifth of the cost.
+      </P>
+      <Figure
+        src="/blog/gpt-6-2-astra-sol-price-and-performance-4.jpg"
+        alt="Four cards of results reported by OpenAI: Agents' Last Exam plus 5.2 points, Terminal-Bench-Science 0.1 plus 9 percentage points, GDPval v2 plus 6.2 percentage points with 22% fewer output tokens, and FrontierCode 2.0 with GPT-6.2 Sol within 0.5 points of GPT-6.2 Astra at about one-fifth the cost"
+        width={1200}
+        height={660}
+        caption="Four results OpenAI reported in its 17 November 2026 announcement. The first three compare GPT-6.2 Astra with GPT-6 Astra; the fourth compares GPT-6.2 Sol with GPT-6.2 Astra. Argo diagram from OpenAI's announcement."
+      />
+      <P>
+        These figures are from OpenAI&apos;s evaluations under the benchmark settings reported in its announcement.
+      </P>
+      <H3>Results from other evaluators</H3>
+      <P>
+        Artificial Analysis, Epoch AI and Vals AI run their own tests across multiple models. Their scores describe their published test settings, not every workload.
+      </P>
+      <Figure
+        src="/blog/gpt-6-2-astra-sol-price-and-performance-5.jpg"
+        alt="Artificial Analysis page for GPT-6.2 Astra with the highlighted sentence that GPT-6.2 Astra (Max) scores 62 on the Artificial Analysis Intelligence Index, above a median of 43 for comparable models"
+        width={1920}
+        height={1222}
+        caption="Artificial Analysis lists GPT-6.2 Astra (Max) at 62 on its Intelligence Index, against a median of 43 for comparable models. Screenshot: Artificial Analysis, 18 November 2026."
+      />
+      <UL items={[
+        <><strong>Artificial Analysis, Intelligence Index:</strong> an average across many reasoning and knowledge tests. On its <A href="https://artificialanalysis.ai/models/gpt-6-2-astra">model pages</A>, Astra scores 62 at its highest reasoning effort and Sol 57. The Decoder reports Claude Fable 5.2 at 65, Gemini 4 Carbon at 60 and Claude Opus 5.5 at 59. Effort matters: Artificial Analysis shows Astra dropping to 60 at High effort and 46 at Low.</>,
+        <><strong>Epoch AI, Capabilities Index:</strong> a single scale built from many benchmarks. Epoch&apos;s <A href="https://epoch.ai/benchmarks">benchmarks page</A> lists Astra at 174 as the top score, and The Decoder reports that it ties Claude Fable 5.2. The Decoder also reports that Astra solved 7 of 68 FrontierMath Erdős problems, verified with the Lean proof checker, against a previous record of 3 of 68 held by GPT-6.1 Sol.</>,
+        <><strong>Vals AI, Vals Index:</strong> on <A href="https://www.vals.ai/">vals.ai</A>, Astra ranks 7th at 67.66% and Sol 9th at 66.06%, 1.6 points apart.</>,
+      ]} />
+      <Figure
+        src="/blog/gpt-6-2-astra-sol-price-and-performance-6.jpg"
+        alt="Vals AI home page, Latest Reports section, with the GPT-6.2 Astra report card: Vals Index 67.7%, ranking 7/41; Vals Science Index 68.4%, ranking 1/27; Terminal-Bench-Science 71.4%, ranking 1/47"
+        width={1920}
+        height={1571}
+        caption="Vals AI's report card for GPT-6.2 Astra shows 67.7% on the Vals Index, ranked 7th, and first place on the Vals Science Index. Screenshot: Vals AI, 18 November 2026."
+      />
+      <P>
+        Epoch&apos;s picture is not all upward. The Decoder reports that Epoch found Astra behind Fable 5.2 on real-world research tasks and barely ahead of GPT-6 Astra.
+      </P>
+      <Figure
+        src="/blog/gpt-6-2-astra-sol-price-and-performance-7.jpg"
+        alt="Epoch AI benchmarks page with an Epoch Capabilities Index card showing 174 and the highlighted label top ECI: GPT-6.2 Astra, above a chart of the index over time"
+        width={1920}
+        height={1327}
+        caption="Epoch AI's benchmarks page lists 174 as the top Epoch Capabilities Index score, held by GPT-6.2 Astra. Screenshot: Epoch AI, 18 November 2026."
+      />
+      <H2>Coding and response quality</H2>
+      <P>
+        This is the result most likely to change a builder&apos;s plan. The Decoder reports that on the Artificial Analysis Coding Agent Index, Astra stayed at GPT-6 Astra&apos;s level, and Sol dropped 3 points from GPT-6.1 Sol. The Decoder traces Sol&apos;s drop to a 14-point fall on SWE-Atlas-QnA-AA, where the model omits key facts from its answers more often than its predecessor did.
+      </P>
+      <P>
+        OpenAI&apos;s coding comparison pairs Sol with Astra, while the Artificial Analysis result compares Sol with its predecessor. For agents that spend much of their time reading and explaining code, test GPT-6.2 Sol against the current model on your own tasks before switching.
+      </P>
+      <H3>Cost per finished task</H3>
+      <P>
+        Here the independent data supports OpenAI&apos;s direction. Vals AI measures $10.68 per test for Astra and $3.18 for Sol. The Decoder reports GPT-6 Astra at $21.28 on the same index, so Astra halves the cost per task against its predecessor, a larger cut than the 20% price drop alone. The Decoder also reports that Vals counts an average of 91,000 output tokens per task for Astra, the fewest in its top 10.
+      </P>
+      <Figure
+        src="/blog/gpt-6-2-astra-sol-price-and-performance-8.jpg"
+        alt="Bar chart of Vals Index cost per test in US dollars: GPT-6 Astra $21.28, GPT-6.2 Astra $10.68 with 67.66% on the Vals Index, GPT-6.2 Sol $3.18 with 66.06%"
+        width={1200}
+        height={620}
+        caption="Cost per test on the Vals Index in US dollars. The GPT-6.2 Astra and Sol figures are from Vals AI; the GPT-6 Astra figure is from The Decoder's report. Argo diagram."
+      />
+      <P>
+        One cost is not in dollars. Artificial Analysis measured Astra&apos;s time to first answer token at 178.49 seconds at Max effort on 18 November 2026, against a median of 12.23 seconds for models in a similar price tier. For a batch job that is fine. For an agent a person is waiting on, it is a long pause.
+      </P>
+      <H3>Factual accuracy on hard questions</H3>
+      <P>
+        The Decoder reports Artificial Analysis hallucination rates on its AA-Omniscience test at maximum effort: 59% for Astra and 55% for Sol. Artificial Analysis defines the rate as the share of incorrect answers among all answers that were not correct, which also include refusals and partial answers. So 59% does not mean 59% of all answers are wrong. It means that when Astra did not know, it guessed wrong more often than it declined. The Decoder notes the questions are unusually hard.
+      </P>
+      <H2>Safety classifications and choosing a model</H2>
+      <P>
+        OpenAI&apos;s system card states that both models reach the &quot;Critical&quot; cybersecurity threshold in OpenAI&apos;s Preparedness Framework, its internal scale for dangerous capabilities, as GPT-6 Astra did. OpenAI is adding stricter safeguards on risky cyber requests and says these will also limit some legitimate security research. OpenAI Daybreak already gives vetted security researchers access to other models with fewer guardrails, and OpenAI says it will work to bring the GPT-6.2 models to it. OpenAI also says Astra is the first model it has released externally at the &quot;High&quot; threshold for AI self-improvement. OpenAI&apos;s system card states both classifications.
+      </P>
+      <Figure
+        src="/blog/gpt-6-2-astra-sol-price-and-performance-9.jpg"
+        alt="Safety Overview section of OpenAI's GPT-6.2 Astra and Sol system card, which says both models meet the Critical threshold for Cybersecurity capabilities and GPT-6.2 Astra meets the High threshold for AI Self-Improvement capabilities"
+        width={1428}
+        height={924}
+        caption="OpenAI's system card says both models meet the Critical threshold for cybersecurity and that GPT-6.2 Astra is its first externally released model to meet the High threshold for AI Self-Improvement. Source: OpenAI, GPT-6.2 Astra and Sol system card, Safety Overview."
+      />
+      <H3>What to test before switching</H3>
+      <UL items={[
+        <><strong>Run your own tasks at a fixed effort level:</strong> the Artificial Analysis effort breakdown shows scores move by double digits between Low and Xhigh.</>,
+        <><strong>Count cost per completed task, not per token:</strong> log input, cached input and output tokens, plus retries.</>,
+        <><strong>Re-test code questions on Sol:</strong> the SWE-Atlas-QnA-AA drop is the one independent warning sign.</>,
+        <><strong>Measure latency where a person waits:</strong> Astra&apos;s first-token delay may rule it out for chat-style agents.</>,
+      ]} />
+      <Figure
+        src="/blog/gpt-6-2-astra-sol-price-and-performance-10.jpg"
+        alt="Bar chart of Artificial Analysis Intelligence Index scores by reasoning effort. GPT-6.2 Astra: Low 46, Medium 57, High 60, Xhigh 62, Max 62. GPT-6.2 Sol: Low 41, Medium 53, High 55, Xhigh 56, Max 57"
+        width={1200}
+        height={680}
+        caption="Artificial Analysis Intelligence Index scores for GPT-6.2 Astra and GPT-6.2 Sol at each of five reasoning effort levels, read on 18 November 2026. Argo diagram from Artificial Analysis model pages."
+      />
+      <P>
+        The takeaway: Astra is a cheaper general model that Artificial Analysis and Vals AI both measure as somewhat stronger than GPT-6 Astra, but its coding score stayed flat, and Sol kept its price while its coding score slipped. Pick by your workload, and test it.
+      </P>
+      <P>
+        Follow our model analysis at https://myargoquest.com/blog and on X at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "gpt-6-2-astra-sol-price-and-performance",
+    title: "GPT-6.2 Astra and Sol: price, performance and model choice",
+    description: "A practical comparison of GPT-6.2 Astra and Sol on API price, benchmark results, coding performance and safety classifications.",
+    category: "ai-news",
+    date: "November 18, 2026",
+    isoDate: "2026-11-18T17:10",
+    readingTime: "10 min read",
+    image: "/blog/gpt-6-2-astra-sol-price-and-performance-1.jpg",
+    Content: Gpt62AstraSolPriceAndPerformanceContent,
+  },
   {
     slug: "how-an-agent-learns-to-keep-better-notes",
     title: "How Meta's Self-Improving Memory teaches an agent to keep better notes",
