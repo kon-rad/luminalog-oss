@@ -1,18 +1,20 @@
 import Foundation
 
-/// One personalized daily journaling prompt, anchored to a life area
-/// (`area` — e.g. "Relationships") with the personalized `text` question.
-/// The server returns five of these per day, one per area, in carousel order.
+/// A life-area prompt or the optional daily narrative identity Story question.
 struct DailyPromptItem: Codable, Equatable, Sendable, Identifiable {
-    /// Fixed life-area label, shown as the card's chip. Stable across users.
+    /// Life-area or Story type label, shown as the card chip.
     var area: String
     /// The personalized question (one sentence, ends with "?").
     var text: String
+    var storyType: String? = nil
 
     /// Stable within a day's set — areas are unique, so the label identifies the card.
-    var id: String { area }
+    var id: String { storyType.map { "story:\($0)" } ?? area }
 
-    init(area: String, text: String) {
+    var entryPrompt: String { storyType == nil ? text : "Story: \(area)\n\(text)" }
+
+    init(area: String, text: String, storyType: String? = nil) {
+        self.storyType = storyType
         self.area = area
         self.text = text
     }

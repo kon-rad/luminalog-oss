@@ -59,6 +59,7 @@ final class HomeViewModel: ObservableObject {
 
     private let journals: JournalRepository
     private let profiles: ProfileRepository
+    private let promptNow: () -> Date
     private let ai: AIService
     private let dailyReports: DailyReportRepository
     private let activity: AppActivityMonitor
@@ -90,7 +91,8 @@ final class HomeViewModel: ObservableObject {
     /// emission is in flight (skeleton state).
     @Published private(set) var listItems: [HomeListItem]?
 
-    init(journals: JournalRepository, profiles: ProfileRepository, ai: AIService, dailyReports: DailyReportRepository, activity: AppActivityMonitor, drafts: DraftStore) {
+    init(journals: JournalRepository, profiles: ProfileRepository, ai: AIService, dailyReports: DailyReportRepository, activity: AppActivityMonitor, drafts: DraftStore, promptNow: @escaping () -> Date = Date.init) {
+        self.promptNow = promptNow
         self.activity = activity
         self.journals = journals
         self.profiles = profiles
@@ -297,9 +299,7 @@ final class HomeViewModel: ObservableObject {
     /// timezone); otherwise asks the AI service once and caches the result
     /// in memory.
     ///
-    /// Known limitation: resolution only runs on profile emissions, so if
-    /// the app stays open across midnight the displayed prompt is not
-    /// refreshed until the next emission or screen recreation (v1 tradeoff).
+    /// Home also checks local day rollover on foreground and once a minute.
     private func resolveDailyPromptIfNeeded() async {
         if let prompts = todaysProfilePrompts() {
             promptState = .loaded(prompts)
@@ -325,7 +325,7 @@ final class HomeViewModel: ObservableObject {
             }
             // Persist so subsequent app launches skip the LLM call.
             if var updated = profile {
-                updated.dailyPrompt = UserProfile.DailyPrompt(items: prompts)
+                updated.dailyPrompt = UserProfile.DailyPrompt(items: prompts, date: promptNow())
                 try? await profiles.update(updated)
             }
         } catch {
@@ -348,7 +348,7 @@ final class HomeViewModel: ObservableObject {
         if let timezone = TimeZone(identifier: profile.timezone) {
             calendar.timeZone = timezone
         }
-        guard calendar.isDate(dailyPrompt.date, inSameDayAs: Date()) else { return nil }
+        guard calendar.isDate(dailyPrompt.date, inSameDayAs: promptNow()) else { return nil }
         let items = dailyPrompt.items
         return items.isEmpty ? nil : items
     }
@@ -359,4 +359,44 @@ final class HomeViewModel: ObservableObject {
         if case .loaded(let prompts) = promptState { return prompts.first?.text }
         return nil
     }
+
+    // MARK: - Daily Story prompt
+
+    private var storyRotation: StoryPromptRotation? {
+        guard let profile else { return nil }
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone(identifier: profile.timezone) ?? .current
+        return StoryPromptRotation(userID: profile.id, calendar: calendar)
+    }
+
+    var hasMutedStoryTypes: Bool { !(storyRotation?.muted.isEmpty ?? true) }
+
+    var displayedPrompts: [DailyPromptItem] {
+        guard case .loaded(let prompts) = promptState else { return [] }
+        let areas = prompts.filter { $0.storyType == nil }
+        guard let type = storyRotation?.selection(on: promptNow()) else { return areas }
+        let story = prompts.first { $0.storyType == type.rawValue } ?? type.fallback
+        return [story] + areas
+    }
+
+    func muteStoryType(_ type: String) {
+        storyRotation?.mute(type)
+        objectWillChange.send()
+    }
+
+    func restoreStoryTypes() {
+        storyRotation?.restore()
+        objectWillChange.send()
+    }
+
+    private var lastPromptDay: String?
+    func refreshPromptDay() async {
+        guard let key = storyRotation?.dayKey(promptNow()) else { return }
+        defer { lastPromptDay = key }
+        guard let previous = lastPromptDay, previous != key else { return }
+        fetchedPrompts = nil
+        promptState = .loading
+        await resolveDailyPromptIfNeeded()
+    }
+
 }

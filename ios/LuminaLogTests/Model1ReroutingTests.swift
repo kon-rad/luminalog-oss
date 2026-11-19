@@ -69,7 +69,7 @@ final class Model1ReroutingTests: XCTestCase {
     }
 
     @MainActor
-    private func makeService(entries: [JournalEntry]) -> ProxyAIService {
+    private func makeService(entries: [JournalEntry], profile: UserProfile? = nil) -> ProxyAIService {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [BodyCapturingURLProtocol.self]
         let session = URLSession(configuration: config)
@@ -78,7 +78,8 @@ final class Model1ReroutingTests: XCTestCase {
             tokenProvider: StubTokenProvider(),
             session: session
         )
-        return ProxyAIService(api: api, journals: MockJournalRepository(entries: entries))
+        return ProxyAIService(api: api, journals: MockJournalRepository(entries: entries),
+                              profiles: profile.map { MockProfileRepository(profile: $0) })
     }
 
     private func capturedBody() throws -> [String: Any] {
@@ -134,6 +135,28 @@ final class Model1ReroutingTests: XCTestCase {
         XCTAssertEqual(body["journalId"] as? String, "e1")
         XCTAssertEqual(body["content"] as? String, "secret plaintext")
         XCTAssertEqual(body["type"] as? String, "voice")
+    }
+
+    @MainActor
+    func testStoryRequestSelectsTypeAndResponsePrependsItWithoutLosingAreas() async throws {
+        DevFlags.aiModel1 = true
+        var profile = MockData.profile
+        profile.id = UUID().uuidString
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone(identifier: profile.timezone) ?? .current
+        let rotation = StoryPromptRotation(userID: profile.id, calendar: calendar)
+        let type = try XCTUnwrap(rotation.selection(on: Date()))
+        let story = type.fallback
+        let payload: [String: Any] = [
+            "story": ["area": story.area, "text": story.text, "storyType": type.rawValue],
+            "prompts": [["area": "Work", "text": "Work question?"]], "text": "Work question?"
+        ]
+        BodyCapturingURLProtocol.responseJSON = try JSONSerialization.data(withJSONObject: payload)
+        let result = try await makeService(entries: [], profile: profile).dailyPrompt()
+        XCTAssertEqual(try capturedBody()["storyType"] as? String, type.rawValue)
+        XCTAssertEqual(result.first, story)
+        XCTAssertEqual(result.last?.text, "Work question?")
+        UserDefaults.standard.removeObject(forKey: "story-prompts.\(profile.id).history")
     }
 
     // MARK: Daily-prompt request-body construction (flag ON)

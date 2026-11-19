@@ -73,6 +73,7 @@ final class CreateEntryViewModel: ObservableObject {
     // MARK: Dependencies & identity
 
     var promptText: String?
+    private(set) var startWithAudio = false
 
     private let deps: CreateEntryDependencies
     /// Stable id shared by the draft and its saved entry. Reused when resuming.
@@ -90,6 +91,7 @@ final class CreateEntryViewModel: ObservableObject {
     private var dictationSessionId = UUID()
 
     init(request: CreateEntryRequest, dependencies: CreateEntryDependencies) {
+        self.startWithAudio = request.startWithAudio
         let trimmedPrompt = request.promptText?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         self.promptText = (trimmedPrompt?.isEmpty ?? true) ? nil : trimmedPrompt

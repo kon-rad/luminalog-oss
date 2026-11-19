@@ -18,6 +18,7 @@ import { decryptMedia } from '../crypto/mediaCipher'
 import { nextStats, dayIndex, type GoalStats } from '../services/dailyGoalStreak'
 import { updateConstellationForDay } from '../services/constellation/constellationService'
 import { ensureSoulMinted, refreshSoulImage } from '../services/chain/soulService'
+import { isStoryType, storyPrompt } from '../services/storyPrompts'
 import { DAILY_PROMPT_AREAS, parseDailyPrompts, fallbackDailyPrompts } from '../services/dailyPrompts'
 import {
   parseEncouragements, fallbackEncouragements,
@@ -296,6 +297,7 @@ export async function dailyPromptHandler(req: Request, res: Response): Promise<v
       entries?: Array<{ id?: string; type?: string; title?: string; content?: string }>
       profile?: ProfileFields
       name?: string
+      storyType?: unknown
     }
 
     // ── Model 1 (zero-knowledge) branch ──────────────────────────────────────
@@ -320,14 +322,22 @@ export async function dailyPromptHandler(req: Request, res: Response): Promise<v
       profile = body.profile ?? {}
     }
 
+    if (body.storyType !== undefined && !isStoryType(body.storyType)) {
+      res.status(400).json({ error: 'Invalid storyType' }); return
+    }
+    const type = isStoryType(body.storyType) ? body.storyType : undefined
     const systemPrompt = PROMPTS.dailyPrompts({
-      name, profile, journalContext: context, areas: DAILY_PROMPT_AREAS,
+      name, profile, journalContext: context, areas: DAILY_PROMPT_AREAS, storyType: type,
     })
-    let prompts = parseDailyPrompts(await generate(systemPrompt, 'Generate the prompts now.'))
-    if (!prompts) prompts = parseDailyPrompts(await generate(systemPrompt, 'Generate the prompts now.'))
+    let raw = await generate(systemPrompt, 'Generate the prompts now.')
+    let prompts = parseDailyPrompts(raw)
+    if (!prompts) {
+      raw = await generate(systemPrompt, 'Generate the prompts now.')
+      prompts = parseDailyPrompts(raw)
+    }
     if (!prompts) prompts = fallbackDailyPrompts()
 
-    res.json({ prompts, text: prompts[0].text, sourceEntryIds })
+    res.json({ prompts, text: prompts[0].text, sourceEntryIds, ...(type ? { story: storyPrompt(type, raw) } : {}) })
   } catch (err: any) {
     console.error('[ai/daily-prompt]', err)
     res.status(500).json({ error: err.message })

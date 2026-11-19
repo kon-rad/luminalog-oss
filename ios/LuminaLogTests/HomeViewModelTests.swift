@@ -65,6 +65,59 @@ final class HomeViewModelTests: XCTestCase {
         XCTAssertTrue(condition(), message)
     }
 
+    @MainActor
+    func testStoryCardUsesExistingCacheAndMuteControlsKeepAreaPrompts() async throws {
+        let ai = SpyAIService()
+        var profile = makeProfile(promptText: "Cached area?", promptDate: Date())
+        profile.id = UUID().uuidString
+        let viewModel = HomeViewModel(
+            journals: MockJournalRepository(), profiles: MockProfileRepository(profile: profile), ai: ai,
+            dailyReports: MockDailyReportRepository(), activity: AppActivityMonitor(),
+            drafts: DraftStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
+        )
+        viewModel.start()
+        await waitUntil("profile loaded") { viewModel.profile != nil && viewModel.displayedPrompts.count == 2 }
+        let first = try XCTUnwrap(viewModel.displayedPrompts.first?.storyType)
+        XCTAssertEqual(viewModel.displayedPrompts.last?.text, "Cached area?")
+        XCTAssertEqual(ai.dailyPromptCalls, 0)
+        viewModel.muteStoryType(first)
+        XCTAssertNotEqual(viewModel.displayedPrompts.first?.storyType, first)
+        for type in StoryPromptType.allCases { viewModel.muteStoryType(type.rawValue) }
+        XCTAssertEqual(viewModel.displayedPrompts.map(\.text), ["Cached area?"])
+        XCTAssertTrue(viewModel.hasMutedStoryTypes)
+        viewModel.restoreStoryTypes()
+        XCTAssertEqual(viewModel.displayedPrompts.count, 2)
+        XCTAssertFalse(viewModel.hasMutedStoryTypes)
+        UserDefaults.standard.removeObject(forKey: "story-prompts.\(profile.id).history")
+    }
+
+    @MainActor
+    func testLocalMidnightInvalidatesBothProfileAndInMemoryPromptCaches() async throws {
+        let ai = SpyAIService()
+        var clock = Date()
+        var profile = makeProfile(promptText: "Cached yesterday?", promptDate: clock)
+        profile.id = UUID().uuidString
+        let model = HomeViewModel(
+            journals: MockJournalRepository(), profiles: MockProfileRepository(profile: profile), ai: ai,
+            dailyReports: MockDailyReportRepository(), activity: AppActivityMonitor(),
+            drafts: DraftStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)),
+            promptNow: { clock }
+        )
+        model.start()
+        await waitUntil("cached profile loaded") { model.displayedPrompts.count == 2 }
+        await model.refreshPromptDay()
+        XCTAssertEqual(ai.dailyPromptCalls, 0)
+        clock = clock.addingTimeInterval(86400)
+        await model.refreshPromptDay()
+        XCTAssertEqual(ai.dailyPromptCalls, 1)
+        await model.refreshPromptDay()
+        XCTAssertEqual(ai.dailyPromptCalls, 1, "same day uses the fetched cache")
+        clock = clock.addingTimeInterval(86400)
+        await model.refreshPromptDay()
+        XCTAssertEqual(ai.dailyPromptCalls, 2, "the in-memory cache expires too")
+        UserDefaults.standard.removeObject(forKey: "story-prompts.\(profile.id).history")
+    }
+
     // MARK: - Daily prompt
 
     @MainActor

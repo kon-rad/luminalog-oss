@@ -8,8 +8,10 @@ struct CreateEntryRequest: Identifiable, Equatable {
     var promptText: String?
     /// When set, the Create flow reopens this existing draft instead of a new one.
     var resumeDraftId: String?
+    var startWithAudio: Bool = false
 
-    init(promptText: String? = nil, resumeDraftId: String? = nil) {
+    init(promptText: String? = nil, resumeDraftId: String? = nil, startWithAudio: Bool = false) {
+        self.startWithAudio = startWithAudio
         self.promptText = promptText
         self.resumeDraftId = resumeDraftId
     }
