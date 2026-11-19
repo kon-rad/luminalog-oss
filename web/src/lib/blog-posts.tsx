@@ -15740,7 +15740,178 @@ function HowGeminiTasksActsForYouContent() {
   )
 }
 
+/* ── Post: How Gemini's new history and AI-training settings work ── */
+function HowGeminisHistoryAndTrainingSettingsWorkContent() {
+  return (
+    <>
+      <P>
+        Picture someone who uses Gemini to plan meals, draft work emails and talk through a hard week. They want to scroll back and find last month&apos;s recipe. They do not want those conversations used to train the next AI model. Until this month, Google&apos;s Gemini app made them pick one: keep your history and allow training, or switch both off.
+      </P>
+      <Figure
+        src="/blog/how-geminis-history-and-training-settings-work-1.jpg"
+        alt="Man sitting at a kitchen table with fruit and a mug, looking down at a tablet in his hands"
+        width={1920}
+        height={1080}
+        priority
+        caption="Illustrative photo of someone using a device at home, not a person from the story. Photo: Vitaly Gariev / Unsplash."
+      />
+      <P>
+        On November 16, 2026, <A href="https://blog.google/innovation-and-ai/products/gemini-app/updated-controls/">Google announced</A> that those two choices are being separated. In the same update, it changed what happens when history is off: those chats will now be kept for around two months, where <A href="https://techcrunch.com/2026/11/17/google-to-keep-gemini-chats-for-two-months-up-from-72-hours-even-with-history-off">TechCrunch reports</A> the earlier figure was 72 hours.
+      </P>
+      <Figure
+        src="/blog/how-geminis-history-and-training-settings-work-2.jpg"
+        alt="Google blog post titled We're updating controls in the Gemini app, dated Nov 16, 2026, with the phrase about history-off chats being saved for around two months highlighted"
+        width={1920}
+        height={1327}
+        caption="Google's 16 November 2026 post announces separate history and training controls and says history-off chats will be saved for around two months. Screenshot: blog.google."
+      />
+      <P>
+        This post explains what each setting now controls, what happens to a single chat under each choice, and what the change does not alter.
+      </P>
+      <H3>The previous setting</H3>
+      <P>
+        Gemini had one switch, called Keep Activity. According to TechCrunch, it governed two separate things at once: whether your conversations were saved to your account so you could see them again, and whether Google could use them to train its generative AI models (the systems that write the replies).
+      </P>
+      <Figure
+        src="/blog/how-geminis-history-and-training-settings-work-3.jpg"
+        alt="TechCrunch article headline: Google to keep Gemini chats for 2 months, up from 72 hours, even with history off"
+        width={1920}
+        height={1327}
+        caption="TechCrunch's 17 November 2026 article reports the earlier 72-hour retention period. Screenshot: techcrunch.com."
+      />
+      <P>
+        With Keep Activity on, you got a saved history and your chats could be used for training. With it off, you lost the history, your chats were not used for training, and TechCrunch says an archived version of Google&apos;s privacy page from November 12 described those chats as kept for 72 hours.
+      </P>
+      <P>
+        That design tied a convenience to a consent. A person who only cared about privacy from training had to give up the ability to find old conversations.
+      </P>
+      <Figure
+        src="/blog/how-geminis-history-and-training-settings-work-4.jpg"
+        alt="Diagram comparing Gemini controls: before, one Keep Activity switch and history-off chats kept 72 hours as reported by TechCrunch; after, separate History and training settings and history-off chats kept around two months"
+        width={1200}
+        height={600}
+        caption="One Keep Activity switch became two settings, and history-off retention went from 72 hours (reported by TechCrunch) to around two months (Google). Argo diagram."
+      />
+      <H2>What do the two new settings control?</H2>
+      <P>
+        Google&apos;s post puts it in one line: &quot;New settings let you keep your Gemini chat history, while opting out of generative AI model training.&quot;
+      </P>
+      <P>
+        The first setting is <strong>History</strong>. It decides whether your chats are saved where you can see them, in Gemini History. Google&apos;s <A href="https://support.google.com/gemini/answer/13594961">Gemini privacy hub</A> says that with History on, chats are deleted automatically after 18 months by default, and you can change that to 3 months, 36 months, or keep them indefinitely. With History off, &quot;Your future chats won&apos;t appear in your History.&quot;
+      </P>
+      <Figure
+        src="/blog/how-geminis-history-and-training-settings-work-5.jpg"
+        alt="Top of Google's Gemini Apps Privacy Hub help page, showing its title, last-updated date and table of contents"
+        width={1920}
+        height={1327}
+        caption="The Gemini Apps Privacy Hub is the help page where Google describes the History setting, the training setting and retention periods. Screenshot: support.google.com."
+      />
+      <P>
+        The second setting controls training. The privacy hub describes it as letting you choose &quot;whether Google uses your chat content, including text &amp; attachments, to train generative AI models.&quot; With it off, &quot;Your future chats won&apos;t be used to train generative AI models, unless you provide feedback.&quot; That last clause matters, and we come back to it below.
+      </P>
+      <P>
+        A household analogy helps. History is like a filing cabinet in your own room: you decide whether to keep copies and for how long. The training setting is like a consent form for a research study: it decides whether your papers can be used as study material. The new design lets you keep the cabinet and decline the study. The analogy stops working at one point: even with the cabinet closed, Google still holds a copy for a while, as the next section explains.
+      </P>
+      <Figure
+        src="/blog/how-geminis-history-and-training-settings-work-6.jpg"
+        alt="Open metal filing cabinet drawer packed with paper index cards"
+        width={1920}
+        height={1278}
+        caption="A filing cabinet, the post's analogy for the History setting. Photo: Maksym Kaharlytskyi / Unsplash."
+      />
+      <H2>What happens to a chat in each case?</H2>
+      <P>
+        Take one chat, a long conversation about a medical appointment, and follow it through the possible choices.
+      </P>
+      <UL items={[
+        <><strong>History on, training on.</strong> The chat appears in your history and stays there for 18 months by default, or whatever period you chose. It can be used to train Google&apos;s generative AI models.</>,
+        <><strong>History on, training off.</strong> This is the new combination. The chat appears in your history on the same schedule, and it is not used for training unless you give feedback on it.</>,
+        <><strong>History off, training off.</strong> The chat does not appear in your history. Google still keeps it with your account for around two months. In Google&apos;s words, these chats are &quot;used to respond to you, process your feedback, and protect Google, its users, and the public.&quot;</>,
+        <><strong>Temporary chat.</strong> The privacy hub says temporary chats are not used to train Google&apos;s AI models and, like history-off chats, are kept with your account for around two months.</>,
+      ]} />
+      <Figure
+        src="/blog/how-geminis-history-and-training-settings-work-7.jpg"
+        alt="Table diagram of four Gemini cases (history on with training on, history on with training off, history off, temporary chat) showing whether the chat appears in history, whether it trains AI models, and how long it is kept"
+        width={1200}
+        height={700}
+        caption="What happens to one chat under each choice, from Google's blog post and the Gemini Apps Privacy Hub. Argo diagram."
+      />
+      <P>
+        So the person from the opening now has a clean answer: turn History on, turn training off. Their recipe stays findable, and their conversations stay out of the training data, with the feedback exception below.
+      </P>
+      <H2>Retention, review and rollout</H2>
+      <P>
+        Google&apos;s blog gives three purposes: responding to you, processing your feedback, and protecting Google, its users and the public. The privacy hub adds detail. Gemini uses the last 24 hours of a chat as context to reply, and keeping chats longer helps, for example, if there is a system failure. Google also says it is &quot;continuing to invest in safety and security measures.&quot;
+      </P>
+      <Figure
+        src="/blog/how-geminis-history-and-training-settings-work-8.jpg"
+        alt="Gemini Apps Privacy Hub answer on temporary and history-off chats, with the words are retained with your account for around two months highlighted"
+        width={1920}
+        height={1328}
+        caption="The Privacy Hub says temporary chats and history-off chats are retained with the account for around two months, and lists what they are used for. Screenshot: support.google.com, captured 18 November 2026."
+      />
+      <P>
+        The reasonable reading on Google&apos;s side is that a short window makes it harder to investigate abuse, such as someone using the assistant to plan fraud, after the fact. Two months gives investigators time.
+      </P>
+      <P>
+        The reasonable reading on the privacy side is the arithmetic. Seventy-two hours is three days. Around two months is roughly 60 days, about twenty times longer. A person who switched history off specifically so that less of their life sat on a server now has much more of it there, even if that copy is not used for training. TechCrunch reports that Google did not answer questions about what prompted the change.
+      </P>
+      <P>
+        Both readings can be true at once. The trade-off is between a longer safety window and a smaller footprint of stored conversations, and Google has chosen the safety window.
+      </P>
+      <H3>Human review</H3>
+      <P>
+        Some rules on Google&apos;s privacy hub sit alongside the two settings, and Google&apos;s post does not mention changing them.
+      </P>
+      <P>
+        <strong>Human review continues.</strong> The hub says that with training off, future chats &quot;will be reviewed and used to improve Google services in other ways, and to protect Google, its users, and the public.&quot; It also says: &quot;Reviewed chats are retained for up to three years.&quot; Those reviewed chats &quot;are not deleted when you delete your history.&quot;
+      </P>
+      <Figure
+        src="/blog/how-geminis-history-and-training-settings-work-9.jpg"
+        alt="Gemini Apps Privacy Hub answer on human review, with the sentence Reviewed chats are retained for up to three years highlighted"
+        width={1110}
+        height={780}
+        caption="The Privacy Hub's human review answer says reviewed chats are retained for up to three years. Screenshot: support.google.com, captured 18 November 2026."
+      />
+      <P>
+        <strong>Feedback is the exception to the training opt-out.</strong> When you give feedback on a reply, that conversation can be used even if training is off. The hub&apos;s wording is that chats won&apos;t be used for training &quot;unless you provide feedback.&quot; If the goal is to keep a sensitive chat entirely out of these processes, giving feedback on it works against that goal.
+      </P>
+      <P>
+        <strong>History length is still yours to set.</strong> The 18-month default and the 3-month, 36-month and indefinite options remain, and you can delete history by hand at any time.
+      </P>
+      <H3>Rollout and defaults</H3>
+      <P>
+        Google&apos;s post says it will &quot;start rolling out these changes globally in the Gemini app in the coming weeks.&quot; Some people will see the old Keep Activity wording for a while.
+      </P>
+      <P>
+        Google&apos;s blog does not say how existing users are moved over. TechCrunch reports that people who had Keep Activity off will have both new settings off by default, and people who had it on will keep their history on and can choose separately whether their chats are used for training. In other words, nobody who had opted out is opted back in, but people who had Keep Activity on should not assume training is now off. They need to check.
+      </P>
+      <P>
+        Neither Google source says what a brand-new account starts with, so that is worth checking on day one as well.
+      </P>
+      <H2>What can you check in your own settings?</H2>
+      <P>
+        The practical step is short. Once the update reaches your account, open Gemini History (myactivity.google.com/product/gemini) and look at both settings, not just one. If you want your chats findable but not used for training, set History on and training off. If you turn History off to store less, know that chats are still kept for around two months, and any chat a reviewer reads can be kept for up to three years. Avoid submitting feedback in conversations you consider sensitive. At Argo, we build a private AI journal on the principle that your data and memory belong to you, which is why we read changes like this one closely.
+      </P>
+      <P>
+        Follow more AI news explained on the <A href="https://myargoquest.com/blog">Argo blog</A> and on <A href="https://x.com/myargoquest">X</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "how-geminis-history-and-training-settings-work",
+    title: "How Gemini's new history and AI-training settings work",
+    description: "Google split Gemini's chat history from AI-training consent and now keeps history-off chats about two months. What each setting controls.",
+    category: "ai-news",
+    date: "November 18, 2026",
+    isoDate: "2026-11-18T17:11",
+    readingTime: "9 min read",
+    image: "/blog/how-geminis-history-and-training-settings-work-1.jpg",
+    Content: HowGeminisHistoryAndTrainingSettingsWorkContent,
+  },
   {
     slug: "how-gemini-tasks-acts-for-you",
     title: "How Gemini Tasks acts for you, and what it needs access to",
