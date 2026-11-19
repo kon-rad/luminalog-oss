@@ -109,6 +109,7 @@ enum Model1Requests {
         let name: String
         let profile: [String: String]
         let entries: [Entry]
+        var storyType: String? = nil
 
         struct Entry: Encodable {
             let id: String

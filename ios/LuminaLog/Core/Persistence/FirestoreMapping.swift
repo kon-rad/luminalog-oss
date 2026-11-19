@@ -73,7 +73,7 @@ extension JournalEntry {
                 wordCount: data["wordCount"] as? Int ?? 0,
                 emotion: EmotionScore(firestore: data["emotion"] as? [String: Any]),
                 excludeFromShare: data["excludeFromShare"] as? Bool ?? false,
-                promptText: data["promptText"] as? String
+                promptText: try (data["promptText"] as? String) ?? cipher.openedIfPresent(data["promptText"], "journals.promptText")
             )
         } catch {
             return nil
@@ -105,7 +105,7 @@ extension JournalEntry {
         if let cognitiveMap { data["cognitiveMap"] = try cognitiveMap.firestoreData(cipher: cipher) }
         data["excludeFromShare"] = excludeFromShare
         if let emotion { data["emotion"] = emotion.firestoreData() }
-        if let promptText { data["promptText"] = promptText }
+        if let promptText { data["promptText"] = try cipher.sealed(promptText, "journals.promptText") }
         return data
     }
 }
@@ -419,7 +419,7 @@ extension UserProfile.DailyPrompt {
             guard let area = item["area"] as? String,
                   let text = try? cipher.openedIfPresent(item["text"], "users.dailyPrompt.prompts.text")
             else { return nil }
-            return DailyPromptItem(area: area, text: text)
+            return DailyPromptItem(area: area, text: text, storyType: (item["storyType"] as? String).flatMap { $0.isEmpty ? nil : $0 })
         }
         self.init(
             text: text,
@@ -440,6 +440,7 @@ extension UserProfile.DailyPrompt {
                 [
                     "area": item.area,
                     "text": try cipher.sealed(item.text, "users.dailyPrompt.prompts.text"),
+                    "storyType": item.storyType ?? "",
                 ]
             }
         }

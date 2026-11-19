@@ -8,7 +8,7 @@ private struct CardHeightKey: PreferenceKey {
     }
 }
 
-/// The daily-prompt hero on Home: a swipeable carousel of five area-anchored
+/// The daily-prompt hero on Home: a Story card followed by five area-anchored
 /// prompts (design §2). Each page shows the life-area chip and its personalized
 /// question; below sit ◀ / ▶ arrows, page dots (current highlighted), and a
 /// single "Start Journaling" button that seeds the Create flow with the
@@ -18,6 +18,9 @@ struct DailyPromptCarousel: View {
     let prompts: [DailyPromptItem]
     /// Invoked with the visible prompt when "Start Journaling" is tapped.
     let onStart: (DailyPromptItem) -> Void
+    var onTalk: ((DailyPromptItem) -> Void)? = nil
+    var onMute: ((String) -> Void)? = nil
+    var onRestore: (() -> Void)? = nil
 
     @State private var selection = 0
     /// Measured from the tallest card's natural content height; drives the TabView frame.
@@ -53,6 +56,24 @@ struct DailyPromptCarousel: View {
             controls
 
             startButton
+            if current.storyType != nil {
+                Button("Talk") { onTalk?(current) }
+                    .frame(minHeight: 44)
+                Button("Fewer like this") {
+                    if let type = current.storyType { onMute?(type) }
+                }
+                .font(.captionText)
+                .frame(minHeight: 44)
+            }
+            if let onRestore {
+                Button("Restore Story prompt types", action: onRestore)
+                    .font(.captionText)
+                    .frame(minHeight: 44)
+            }
+        }
+        .onChange(of: prompts.map(\.id)) { _, _ in
+            selection = 0
+            cardHeight = 160
         }
         .onPreferenceChange(CardHeightKey.self) { h in
             if h > 0 { cardHeight = h }
@@ -181,7 +202,7 @@ struct DailyPromptCarousel: View {
 
     private var startButton: some View {
         Button { onStart(current) } label: {
-            Text("Start Journaling")
+            Text(current.storyType == nil ? "Start Journaling" : "Write")
                 .font(.uiBody.weight(.semibold))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity, minHeight: 44)

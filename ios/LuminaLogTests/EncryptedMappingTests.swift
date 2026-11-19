@@ -7,6 +7,28 @@ final class EncryptedMappingTests: XCTestCase {
     private let cipher = FieldCipher(key: SymmetricKey(size: .bits256))
     private let created = Date(timeIntervalSince1970: 1_760_000_000)
 
+    func testPromptAttributionIsEncryptedAndLegacyTextStillReadable() throws {
+        let question = StoryPromptType.scene.fallback.entryPrompt
+        let entry = JournalEntry(id: "e", userId: "u", type: .text, title: "t", content: "c", promptText: question)
+        var data = try entry.firestoreData(cipher: cipher)
+        XCTAssertNil(data["promptText"] as? String)
+        XCTAssertNotNil(EncryptedField(data: data["promptText"]))
+        XCTAssertEqual(JournalEntry(documentId: "e", data: data, cipher: cipher)?.promptText, question)
+        data["promptText"] = "Legacy prompt?"
+        XCTAssertEqual(JournalEntry(documentId: "e", data: data, cipher: cipher)?.promptText, "Legacy prompt?")
+        data["promptText"] = ["broken": true]
+        XCTAssertNil(JournalEntry(documentId: "e", data: data, cipher: cipher))
+    }
+
+    func testStoryPromptCacheEncryptsQuestionAndPreservesType() throws {
+        let value = UserProfile.DailyPrompt(items: [StoryPromptType.choice.fallback])
+        let data = try value.firestoreData(cipher: cipher)
+        let items = try XCTUnwrap(data["prompts"] as? [[String: Any]])
+        XCTAssertNil(items[0]["text"] as? String)
+        let decoded = try XCTUnwrap(UserProfile.DailyPrompt(data: data, cipher: cipher))
+        XCTAssertEqual(decoded.items, value.items)
+    }
+
     func testJournalEntryEncryptsContentAndDecodesBack() throws {
         let entry = JournalEntry(
             id: "e1", userId: "u1", type: .text, title: "My Title",
