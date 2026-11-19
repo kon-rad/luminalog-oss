@@ -15262,7 +15262,176 @@ function AgentHarnessBenchmarksExplainedContent() {
   )
 }
 
+/* ── Post: How Meta's Self-Improving Memory teaches an agent to keep better notes ── */
+function HowAnAgentLearnsToKeepBetterNotesContent() {
+  return (
+    <>
+      <P>
+        Picture an assistant who forgets everything at the end of each day. The only thing that survives the night is a folder of notes it wrote for itself. If those notes are a growing diary, tomorrow&apos;s assistant spends the morning rereading. If they are a short index, it gets straight to work.
+      </P>
+      <P>
+        That is the problem a team in Meta AI&apos;s RAM group set out to study. Their work, <A href="https://facebookresearch.github.io/RAM/blogs/self_improving_memory">Self-Improving Memory</A>, was announced on November 17 by co-author Jason Weston. The authors are Tong Chen, Chuanyang Jin, Eryk Helenowski, Weizhe Yuan, Jason Weston, Ilia Kulikov, Xian Li and Swarnadeep Saha. It is a research blog post with figures, not a peer-reviewed paper, and the page links no code.
+      </P>
+      <Figure
+        src="/blog/how-an-agent-learns-to-keep-better-notes-1.jpg"
+        alt="The Self-Improving Memory page on the RAM at Meta AI blog: the lower part of Figure 1, its caption with 56.0 vs 44.6 highlighted, and the Overview section"
+        width={1920}
+        height={1327}
+        priority
+        caption="The post's Figure 1 caption and Overview: optimized prompts score 56.0 against 44.6 for the best hand-written ones, and the fine-tuned model scores 43.1 with generic prompts against 37.6. Screenshot: RAM @ Meta AI blog, facebookresearch.github.io."
+      />
+      <P>
+        The idea has two stages. First, the model rewrites the instructions that tell it how to keep notes, and keeps the versions that score best. Then it is fine-tuned so that it behaves that way even when the instructions are removed.
+      </P>
+      <Figure
+        src="/blog/how-an-agent-learns-to-keep-better-notes-2.jpg"
+        alt="Diagram of the two stages: harness optimization changes the LOAD and OFFLOAD prompts and scores 56.0, harness distillation changes the model weights and scores 43.1 with generic prompts"
+        width={1600}
+        height={900}
+        caption="Stage 1 changes the memory prompts and keeps the weights fixed. Stage 2 changes the weights and tests with generic prompts. Scores are the authors' reported means over three tasks. Argo diagram."
+      />
+      <H2>What does an agent&apos;s memory look like here?</H2>
+      <P>
+        The agent in this study works through a stream of related subtasks. Every subtask starts in a fresh session with an empty context window (the text the model can see at once). The only thing that carries over is a memory directory: a folder of files the agent reads and writes with ordinary file tools.
+      </P>
+      <P>
+        Two prompts control that folder. An <strong>OFFLOAD</strong> prompt runs after each subtask and tells the agent to update its memory with what it learned. A <strong>LOAD</strong> prompt runs before the next subtask and tells it to pull in what is relevant. Together, these prompts and tools form the harness (the scaffolding around a model that decides what it sees and what it can do).
+      </P>
+      <Figure
+        src="/blog/how-an-agent-learns-to-keep-better-notes-3.jpg"
+        alt="Figure 3 from the Meta post: the generic harness runs LOAD and OFFLOAD around each subtask with a memory folder carrying over, next to the Discover, Demonstrate and Distill steps"
+        width={1888}
+        height={696}
+        caption="Figure 3 of the post. Left: LOAD and OFFLOAD prompts run before and after each subtask, and only the memory directory carries over. Right: the Discover, Demonstrate and Distill steps. Figure: RAM @ Meta AI blog."
+      />
+      <P>
+        The baseline, the generic harness, keeps LOAD and OFFLOAD short and leaves strategy to the model. The authors also wrote four specific strategies by hand: Summary, Retrieval, Skill and Hypothesis. In their pilot, none of the four won on all three test tasks. The tasks come from Continual Learning Bench, an <A href="https://arxiv.org/abs/2606.05661">academic benchmark</A> built to measure whether AI systems improve with experience, and are named Database, Codebase and Spectrum.
+      </P>
+      <Figure
+        src="/blog/how-an-agent-learns-to-keep-better-notes-4.jpg"
+        alt="Figure 2 from the Meta post: the Database, Codebase and Spectrum tasks with example subtasks, and a bar chart of five harnesses where a different one is best on each task"
+        width={1888}
+        height={576}
+        caption="Figure 2 of the post. Left: the three tasks with an example subtask each. Right: test scores of the generic harness and the four hand-written ones, with a marker on the best per task. Figure: RAM @ Meta AI blog."
+      />
+      <H2>How does the agent rewrite its own instructions?</H2>
+      <P>
+        The first stage is called harness optimization. A second copy of the model, the meta agent, plays the role of reviewer. It reads the task agent&apos;s full transcripts, its scores on each subtask and the final state of its memory folder. It looks for repeated failures and writes a revised pair of LOAD and OFFLOAD prompts.
+      </P>
+      <P>
+        The loop is a search, not a single rewrite. It starts with the four hand-written strategies. Each candidate runs the whole task stream five times. The four best by average score become parents, the meta agent writes a revision of each, and the revisions join the pool to be scored. The authors pick the winner using a held-out set of subtasks the meta agent never sees.
+      </P>
+      <P>
+        Think of a coach who watches game footage, rewrites the playbook, and keeps whichever version wins more often. Where it stops: the coach and the player are the same model, Kimi-K2.6, so the model is reviewing its own play.
+      </P>
+      <Figure
+        src="/blog/how-an-agent-learns-to-keep-better-notes-5.jpg"
+        alt="A football coach kneeling on a pitch at night, pointing at a tactics board while two players listen"
+        width={1880}
+        height={1253}
+        caption="A coach talks players through a tactics board, an illustration of the playbook analogy. Photo: Quyn Phạm / Pexels"
+      />
+      <H2>What does a better memory prompt look like?</H2>
+      <P>
+        The clearest example in the post is the Codebase task, where the agent fixes problems in a software repository. The generic harness scored 33.5 on the test subtasks. The hand-written Summary strategy scored 34.3, and the best hand-written strategy scored 43.7.
+      </P>
+      <P>
+        The meta agent&apos;s report on the Summary runs found notes growing into one large file and the agent rediscovering the repository layout every time. The next revision told the agent to reuse recorded file paths and keep rules learned from failures. It scored 52.2. The report on that version found an append-only file with no index linking a symptom to its fix. The following revision asked for a compact quickstart file, an indexed registry of fixes and a separate file per fix. It scored 55.7.
+      </P>
+      <Figure
+        src="/blog/how-an-agent-learns-to-keep-better-notes-6.jpg"
+        alt="Figure 7 from the Meta post: Codebase prompts and scores from generic 33.5 and Summary 34.3 to revisions scoring 52.2 and 55.7, with a weaker revision at 36.6 and the meta agent's reports between them"
+        width={1888}
+        height={744}
+        caption="Figure 7 of the post: how the meta agent revised the Codebase prompts. Each box shows a LOAD and OFFLOAD pair and its test score, and each report is the diagnosis that led to the next revision. Figure: RAM @ Meta AI blog."
+      />
+      <P>
+        The post gives examples of what this looks like on disk: a <code>QUICKSTART.md</code> for repository facts, a <code>REGISTRY.md</code> for reusable fixes, a <code>SCHEMA.md</code> for schema facts, plus recorded details such as column types, price units and timestamp encodings. Not every rewrite helped: a different Summary revision that kept details of only the last two fixes scored 36.6, barely above where it started.
+      </P>
+      <H2>How do the better prompts end up in the model&apos;s weights?</H2>
+      <P>
+        The second stage, harness distillation, solves a practical problem. An optimized prompt only helps while it is in use, and a different one was chosen for each task. The authors want one model that behaves well under the plain, generic prompt.
+      </P>
+      <P>
+        They run the model with each task&apos;s best prompt and record its reasoning, tool calls and tool results. Then they edit the recordings, replacing the optimized LOAD and OFFLOAD text with the generic text while keeping the model&apos;s own responses. The result looks like a model that was given vague instructions and organized its memory well anyway. They fine-tune on those recordings using LoRA (a method that trains a small set of added weights instead of the whole model), at rank 64 on the attention layers.
+      </P>
+      <P>
+        Think of a cook who follows a detailed recipe card until the steps become habit, then cooks without the card. Where it stops: as the numbers below show, only part of what the card taught survives without it.
+      </P>
+      <H2>What did the numbers show?</H2>
+      <P>
+        These are the authors&apos; own results, reported in a blog post. Across the three tasks, the optimized harnesses averaged 56.0. The best hand-written strategy for each task averaged 44.6, and the generic harness averaged 36.1. That is 11.4 points over the best human design and 19.9 over generic. The largest gain was on Codebase, at 20.6 points over the best hand-written strategy.
+      </P>
+      <Figure
+        src="/blog/how-an-agent-learns-to-keep-better-notes-7.jpg"
+        alt="Figure 4 from the Meta post: test scores by task for no memory, compaction, generic, best human-written and optimized harnesses, with 95% confidence interval error bars and averages 20.4, 37.1, 36.1, 44.6 and 56.0"
+        width={1888}
+        height={448}
+        caption="Figure 4 of the post: test scores on Database, Codebase and Spectrum and their average. Optimized harnesses average 56.0, the best human-written 44.6 and generic 36.1. Error bars are 95% confidence intervals. Figure: RAM @ Meta AI blog."
+      />
+      <P>
+        On Spectrum, the generic and optimized harnesses scored almost the same on the first subtask, 21.7 and 21.9, but reached test averages of 42.5 and 49.9. The gap opens as memory accumulates.
+      </P>
+      <P>
+        After distillation, with only the generic prompt at test time, the trained model averaged 43.1. A model fine-tuned the same way on runs that used the generic prompt reached 37.6. The 5.5-point difference held across ten matched evaluation seeds. The authors say they hypothesize the gain reflects better memory organization and retrieval, alongside task solving, and that proving it would need direct analysis of behaviour.
+      </P>
+      <Figure
+        src="/blog/how-an-agent-learns-to-keep-better-notes-8.jpg"
+        alt="Figure 5 from the Meta post: test scores with the generic harness for no fine-tuning, fine-tuning on generic runs and fine-tuning on optimized runs, averaging 36.1, 37.6 and 43.1"
+        width={1888}
+        height={384}
+        caption="Figure 5 of the post: all three models run with the generic harness. Fine-tuning on optimized-prompt runs averages 43.1, fine-tuning on generic runs 37.6 and no fine-tuning 36.1. Figure: RAM @ Meta AI blog."
+      />
+      <H3>Scope of the evaluation</H3>
+      <P>
+        The search mostly fails. Of 44 revisions the meta agent wrote, 37 did not beat the best score from earlier rounds. Database and Spectrum reached their best, 53.8 and 49.9, in the first round of revisions and gained nothing after. Only Codebase kept climbing, to 64.3 by the fourth round. The method works only because bad revisions are scored and discarded.
+      </P>
+      <Figure
+        src="/blog/how-an-agent-learns-to-keep-better-notes-9.jpg"
+        alt="Figure 6 from the Meta post: line charts of subtask scores across train and test for each task, and dot plots of every harness evaluated at each search step with a best-so-far line"
+        width={1904}
+        height={544}
+        caption="Figure 6 of the post. Left: scores subtask by subtask, with the dashed line at the train and test split. Right: each dot is one evaluated harness, and the line tracks the best score so far. Figure: RAM @ Meta AI blog."
+      />
+      <P>
+        The reported scores are the best of many candidates, which the authors flag, and the best of several noisy runs tends to flatter the winner. The study covers three tasks and one model. There is no paper, released prompt set or code to reproduce it yet.
+      </P>
+      <P>
+        A broader warning comes from a separate group. In <A href="https://arxiv.org/abs/2611.07624">Beneath the Surface</A>, an arXiv preprint from November 5, Xiaobo Wang and colleagues tested four methods for evolving agent harnesses. They found higher benchmark scores did not reliably mean efficient or transferable improvement: every evolved agent solved some new tasks while losing some it had solved before, and most reliability gains raised running cost. Meta&apos;s post reports averages, not which subtasks were lost or what the optimized prompts cost in tokens.
+      </P>
+      <H2>Why does this matter for a personal second brain?</H2>
+      <P>
+        The setup is close to how we build at Argo: our agents keep memory as markdown files edited with file tools, and our journal and second brain depend on what gets written down and found again. The most useful part for us needs no training. On the Codebase task, a short quickstart plus an indexed registry beat a growing log by a wide margin. Anyone can try that structure in their own agent&apos;s notes today, and measure it.
+      </P>
+      <Figure
+        src="/blog/how-an-agent-learns-to-keep-better-notes-10.jpg"
+        alt="An open metal filing cabinet drawer packed with index cards separated by labelled tab dividers"
+        width={1920}
+        height={1278}
+        caption="An indexed card drawer, an illustration of the quickstart-plus-registry idea. Photo: Maksym Kaharlytskyi / Unsplash"
+      />
+      <P>
+        The takeaway: on the authors&apos; three tasks, a model searching over its own note-keeping rules beat the best human-written rules, and training kept part of that gain. The evidence is narrow until a paper with prompts and code follows.
+      </P>
+      <P>
+        Follow more research explainers at https://myargoquest.com/blog and on X at https://x.com/myargoquest.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "how-an-agent-learns-to-keep-better-notes",
+    title: "How Meta's Self-Improving Memory teaches an agent to keep better notes",
+    description: "How Meta AI's agent improves its memory prompts, distills the strategy into model weights, and performs on three benchmark tasks.",
+    category: "ai-news",
+    date: "November 18, 2026",
+    isoDate: "2026-11-18T17:10",
+    readingTime: "10 min read",
+    image: "/blog/how-an-agent-learns-to-keep-better-notes-1.jpg",
+    Content: HowAnAgentLearnsToKeepBetterNotesContent,
+  },
   {
     slug: "agent-harness-benchmarks-explained",
     title: "Agent harness benchmarks explained: what an AI agent score is really measuring",
