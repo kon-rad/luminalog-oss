@@ -16078,7 +16078,163 @@ function ValsGameFramingTargetingStudyContent() {
   )
 }
 
+/* ── Post: "Argo Journal: on-device voice and a Life Story Interview" ── */
+function ArgoJournalVoiceLifeStoryContent() {
+  return (
+    <>
+      <P>
+        You might open your journal knowing exactly what happened today, but struggle to find the first sentence. On another day, the thing you want to remember reaches much further back: a turning point, an early memory, or the years that changed what you believe.
+      </P>
+      <P>
+        Those are different kinds of reflection. One starts with whatever is on your mind. The other needs a little structure to help you find your way through a much longer story.
+      </P>
+      <P>
+        We have built two additions to Argo Journal for these moments: live voice calls that process speech on your iPhone, and a guided Life Story Interview that you can take in separate sittings. Both implementations have been merged into our open-source app. They are being prepared for a forthcoming update and are not yet available in the current App Store version.
+      </P>
+      <H2>Talk without starting with a blank page</H2>
+      <P>
+        A voice call gives you another way to reflect. You speak, Argo answers, and the conversation becomes a transcript you can return to. In an ordinary companion call, Argo can draw on selected journal context, such as relevant passages from previous entries, to keep the conversation connected to what you have written before.
+      </P>
+      <P>
+        The change in this update is where the speech work happens. Your iPhone listens to the microphone, turns your words into text, and speaks the reply. We have replaced the app&apos;s previous voice-service client with speech processing on the phone.
+      </P>
+      <P>
+        The phone still needs an internet connection to get the AI&apos;s reply. The text of your turn, recent conversation, and selected journal context go to our server and then to the AI provider. The resulting reply comes back as text, which your phone speaks aloud.
+      </P>
+      <Figure
+        src="/blog/argo-journal-voice-life-story-1.jpg"
+        alt="Diagram showing speech processing on the iPhone and bidirectional text exchange with the AI service."
+        width={1600}
+        height={1000}
+        priority
+        caption="Argo live-call data flow. Speech processing is local; AI replies still need an internet connection."
+      />
+      <P>
+        That distinction matters. <strong>On-device speech means the microphone audio and journal encryption key stay on the iPhone during these calls. It does not mean the AI conversation is fully offline, or that the text stays on the phone.</strong>
+      </P>
+      <P>
+        The first call downloads the speech models, with progress shown in the app. After that, the models can be reused. The phone uses a local generated voice when supported, with the system voice as its alternative. This describes live calls; it is not a statement about every recording feature in the journal.
+      </P>
+      <H2>A conversation you can interrupt</H2>
+      <P>
+        When you remember another detail while Argo is talking, you can speak over it. The app stops its reply and listens. The aim is to let you correct a detail or follow a thought while you still have it, instead of waiting for the end of a prepared answer.
+      </P>
+      <P>
+        The greeting is also spoken locally. Once the speech setup is ready, the phone can say hello without waiting for the AI service to generate that opening line. If the AI cannot be reached for a later turn, the app tells you directly rather than leaving you in silence.
+      </P>
+      <P>
+        The transcript is saved encrypted, using the journal&apos;s existing chat storage. Encryption protects the stored record; the AI still processes the text you send during the call.
+      </P>
+      <Figure
+        src="/blog/argo-journal-voice-life-story-2.jpg"
+        alt="Argo public implementation notes describing on-device speech and the text sent to the server."
+        width={1200}
+        height={840}
+        caption="Source: Argo on GitHub. The implementation separates speech on the phone from text processing by the AI."
+      />
+      <H2>Give your life story some structure</H2>
+      <P>
+        A daily conversation can begin anywhere. The Life Story Interview begins with a set of questions about your life as a whole.
+      </P>
+      <P>
+        The structure follows psychologist Dan P. McAdams&apos; <A href="https://cpb-us-e1.wpmucdn.com/sites.northwestern.edu/dist/4/3901/files/2020/11/The-Life-Story-Interview-II-2007.pdf">Life Story Interview II</A>, with our own wording of the questions. It starts with the chapters of your life, then moves through memorable scenes, what comes next, challenges, beliefs, and a theme that runs through the story. The key scenes are divided into two parts, making seven parts in the app.
+      </P>
+      <P>
+        You do not have to tell your whole life in one call. You can choose a part, answer by voice, end the sitting, and return later. The app shows the current question and its position within that part, so you can see what you are being asked without having to remember the spoken prompt.
+      </P>
+      <Figure
+        src="/blog/argo-journal-voice-life-story-3.jpg"
+        alt="The seven Life Story Interview parts, including bright and hard key scenes, future plans, challenges, beliefs and a life theme."
+        width={1600}
+        height={1000}
+        caption="The interview groups its questions into seven parts that can be taken in separate sittings."
+      />
+      <P>
+        For example, the life-chapters part asks you to think about the stretches of your life as chapters in a book. You decide where one chapter ends and another begins. The questions provide a starting point; the names and meaning come from you.
+      </P>
+      <P>
+        Some parts ask about painful events. The app asks for confirmation before those parts begin. You can say “skip” to pass on a question, or end the call. The interview also waits longer through a quiet pause than an ordinary call, giving you more room to remember before treating your answer as finished.
+      </P>
+      <Figure
+        src="/blog/argo-journal-voice-life-story-4.jpg"
+        alt="Flow diagram showing confirmation before sensitive interview parts, with Begin and Not now choices and a reminder to skip or end a call."
+        width={1600}
+        height={1000}
+        caption="The app asks before beginning parts about hard experiences. During the interview, you can say skip or end the call."
+      />
+      <H2>An interviewer that asks and listens</H2>
+      <P>
+        We give interview mode a different instruction from an ordinary companion call: ask one question at a time, listen, and use brief follow-up questions to invite a little more detail.
+      </P>
+      <P>
+        The interviewer is instructed to avoid advice, personality judgments, and suggested lessons or meanings. It is an AI, not a therapist. These are rules in the interview prompt, not a guarantee that a model will follow every instruction perfectly. Checking real conversations against those rules is part of preparing the feature for release.
+      </P>
+      <P>
+        Interview mode also leaves your existing journal out of the conversation. It sends your name, the interview turn and recent conversation, plus the information needed to keep its place in the questions. It does not send the journal passages and profile context used in ordinary companion calls.
+      </P>
+      <Figure
+        src="/blog/argo-journal-voice-life-story-5.jpg"
+        alt="Comparison showing journal context in ordinary calls and its exclusion from Life Story Interview turns; both send conversation text to the AI."
+        width={1600}
+        height={1000}
+        caption="The interview uses what you tell it in the sitting, without adding journal passages or profile context. Both modes still send conversation text to the AI."
+      />
+      <P>
+        That choice keeps the interview centered on the account you choose to give during the sitting. It does not mean the interview is processed entirely on your phone: its text still goes to the AI to get the next reply.
+      </P>
+      <Figure
+        src="/blog/argo-journal-voice-life-story-6.jpg"
+        alt="Argo public implementation notes for interview progress, encrypted transcripts and exclusion of journal context."
+        width={1200}
+        height={840}
+        caption="Source: Argo on GitHub. Interview mode excludes journal context and saves progress for another sitting."
+      />
+      <H2>Return to the question where you stopped</H2>
+      <P>
+        The app saves the question reached in each sitting. When you continue a part, a new sitting can open at that question. Previous sittings remain available as encrypted transcripts, so resuming does not replace the conversation you already had.
+      </P>
+      <P>
+        You can also start another interview, keep earlier interviews, or take a part again. The app lists the interviews separately and shows which parts are complete. Deleting an interview removes its sittings and transcripts.
+      </P>
+      <P>
+        The record in this first version is the transcript of each sitting. It does not automatically turn your answers into an autobiography, compare interviews, or score your personality.
+      </P>
+      <Figure
+        src="/blog/argo-journal-voice-life-story-7.jpg"
+        alt="Flow diagram showing a sitting ending, saved question progress, and a new sitting returning to the last question."
+        width={1600}
+        height={1000}
+        caption="Encrypted transcripts of previous sittings remain available when you return to your last question."
+      />
+      <H2>What&apos;s built and what&apos;s next</H2>
+      <P>
+        Both additions are implemented in the open-source app. The voice work has been merged, and the Life Story Interview now has its screens, script, saved progress, and transcript links. Automated tests for both the server and the iPhone simulator have passed.
+      </P>
+      <P>
+        Release preparation still includes the production server update and completing an interview on a real device. We want to check the speech, the longer pause, and how well the interviewer stays with the questions before enabling it in a public build. The Life Story Interview is not enabled for public releases yet.
+      </P>
+      <P>
+        The current <A href="https://apps.apple.com/us/app/id6781137459">Argo Journal App Store listing</A> is the place to get the app. These additions will require a future app update; installing the current version does not enable them.
+      </P>
+      <P>
+        If you want to inspect how we built them, the public implementation notes cover <A href="https://github.com/kon-rad/luminalog-oss/pull/9">on-device voice calls</A> and the <A href="https://github.com/kon-rad/luminalog-oss/pull/10">Life Story Interview</A>. Follow release updates at <A href="https://myargoquest.com/argo-journal">myargoquest.com/argo-journal</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "argo-journal-voice-life-story",
+    title: "\"Argo Journal: on-device voice and a Life Story Interview\"",
+    description: "\"Two additions to Argo Journal: live calls with on-device speech, and a guided Life Story Interview you can take in parts.\"",
+    category: "consumer-ai",
+    date: "November 18, 2026",
+    isoDate: "2026-11-18T06:48",
+    readingTime: "7 min read",
+    image: "/blog/argo-journal-voice-life-story-1.jpg",
+    Content: ArgoJournalVoiceLifeStoryContent,
+  },
   {
     slug: "vals-game-framing-targeting-study",
     title: "How game framing changed AI target identification in Vals's study",
