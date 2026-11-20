@@ -16393,7 +16393,147 @@ function CybazaarBriefToPaidDeliveryContent() {
   )
 }
 
+/* ── Post: How AI coordination could reshape companies ── */
+function OrganizingIntelligenceContent() {
+  return (
+    <>
+      <P>
+        A software team can have excellent programmers and still struggle to ship a product. Someone has to connect the pieces, explain decisions and catch mismatches between what one person builds and another expects. Improving each programmer&apos;s skill solves part of that problem. Improving how the team works together changes something else: how much useful work the whole organization can do as it grows.
+      </P>
+      <P>
+        That distinction drives <A href="https://storage.googleapis.com/deepmind-media/papers/organizing-intelligence.pdf">Organizing Intelligence</A>, a paper by Alex Imas, Andrew Koh and Shane Legg at Google DeepMind, dated October 29, 2026. The authors build an economic model connecting AI capabilities to company size, employment and wages. This is theoretical research describing possible outcomes under its assumptions, rather than a forecast of Google&apos;s operations.
+      </P>
+      <P>
+        The useful question is how individual intelligence becomes organizational output. A strong model answering a question alone and a company serving a market are different units of analysis.
+      </P>
+      <Figure
+        src="/blog/organizing-intelligence-1.jpg"
+        alt="Paper title, authors and October 29 2026 date above the abstract"
+        width={1292}
+        height={528}
+        priority
+        caption="Organizing Intelligence by Alex Imas, Andrew Koh and Shane Legg, October 29, 2026. Source: Google DeepMind paper."
+      />
+      <H2>What changes when AI gets better at teamwork?</H2>
+      <P>
+        The paper separates <strong>competence</strong>, the ability to perform productive tasks, from <strong>coordination</strong>, the ability to combine work across agents. An agent can be a person or an AI instance. Coding and writing belong to competence. Passing useful information and keeping work aligned belong to coordination.
+      </P>
+      <P>
+        For a fixed team composition, greater competence raises output without changing the model&apos;s preferred team size. Better coordination changes the return from adding another member. The same organization can remain productive at a larger scale.
+      </P>
+      <P>
+        Think of a restaurant. A faster cook can prepare more food. A better system for connecting orders, preparation and service can help a larger kitchen function. The analogy illustrates the distinction; it does not establish that restaurants follow the paper&apos;s equations. Those equations let the researchers examine what happens when capabilities and staffing change together.
+      </P>
+      <Figure
+        src="/blog/organizing-intelligence-2.jpg"
+        alt="Two panels distinguish task competence from coordination that changes productive team scale"
+        width={1600}
+        height={900}
+        caption="Argo explanation of the model, sections 2.1 and 5.1. These are theoretical relationships, not measured company outcomes."
+      />
+      <H2>How can a human team outperform its members?</H2>
+      <P>
+        The authors give a small numerical example. A coder has coding skill 9 and writing skill 1. A writer has the reverse profile. These numbers define an imaginary economy; they are not scores collected from workers.
+      </P>
+      <P>
+        The model penalizes a team&apos;s weaker domain. Its competence measure is the harmonic mean of its average task skills. A lone coder or writer scores 1.8. A balanced mix averages 5 in coding and 5 in writing, giving competence 5. Neither individual has both strengths, but their combination does.
+      </P>
+      <P>
+        The authors call this <strong>mosaic intelligence</strong>: different capability profiles fit together. It explains why comparing an AI with an average individual can miss the advantage of a deliberately assembled team. Copying one model supplies more instances of its capability profile. Bringing together complementary people can change the profile itself.
+      </P>
+      <Figure
+        src="/blog/organizing-intelligence-3.jpg"
+        alt="Coder and writer profiles combine into a team with balanced average skills"
+        width={1600}
+        height={900}
+        caption="Illustrative model values, Table 1 and Figure 1. Competence is the harmonic mean of average task skills, not an empirical test score."
+      />
+      <P>
+        The advantage also needs coordination. Complementary specialists cannot contribute effectively if their outputs never connect. Figure 1 puts these two ingredients side by side: different combinations of skills on the left, and productivity at different organization sizes on the right.
+      </P>
+      <Figure
+        src="/blog/organizing-intelligence-4.jpg"
+        alt="Figure one plots complementary skill combinations and output per worker against firm size"
+        width={1513}
+        height={704}
+        caption="Figure 1 separates complementary task skills from the effect of coordination on scale. Source: Imas, Koh and Legg, Organizing Intelligence. Model illustration."
+      />
+      <H2>Why could AI change the size of companies?</H2>
+      <P>
+        Human expertise is scarce in the model. AI expertise can be reproduced by paying a compute cost. When a productive AI organization reaches its efficient size, another organization can copy that recipe. A large market can therefore be served by many similarly sized firms.
+      </P>
+      <P>
+        Coordination changes the picture. Human organizations eventually face costs from divided attention, information loss and conflicting incentives. The model allows AI to cross a different scaling threshold, called <strong>supercooperation</strong>. Above it, output per AI instance continues increasing as the organization grows, without a finite productivity ceiling in the assumed technology.
+      </P>
+      <P>
+        Under that condition, the authors show concentration emerging as market size becomes very large. Splitting production between smaller organizations gives up the scale advantage. This is a result about the model&apos;s large-market limit. The paper names regulation, competing AI providers, capacity constraints and supply contracts as reasons a real economy may behave differently.
+      </P>
+      <P>
+        Task improvements can also change staffing, which changes coordination indirectly. So the paper does not say every competence gain leaves actual company size unchanged. It separates a direct task effect from the consequences of reorganizing the team. Small niche markets can retain human firms even when AI dominates production in the large-market example.
+      </P>
+      <H2>How can employment change gradually or suddenly?</H2>
+      <P>
+        The paper describes two routes. In one, humans and AI work inside the same firm. As AI task skills improve, that firm adjusts its mix of inputs. In the illustrative example, specialist employment declines continuously until the firm uses only AI.
+      </P>
+      <P>
+        In the other route, human firms and AI firms compete separately. When AI production becomes cheaper at the wage people are willing to accept, human firms lose their position. Employment can then fall at a threshold, even though AI capability improved continuously.
+      </P>
+      <Figure
+        src="/blog/organizing-intelligence-5.jpg"
+        alt="Two panels contrast gradual replacement inside firms and threshold competition between firms"
+        width={1600}
+        height={900}
+        caption="Argo schematic of section 2.4. These are possible model paths; timing and real-world job losses are not estimated."
+      />
+      <P>
+        Figure 8 shows these routes using different assumptions. The left panel changes task skills while holding AI coordination fixed. The right changes coordination while holding task skills fixed. Their horizontal axes therefore describe different experiments within the model. Neither is a timeline of expected layoffs.
+      </P>
+      <Figure
+        src="/blog/organizing-intelligence-6.jpg"
+        alt="Two plotted model paths show gradual specialist displacement and a sudden employment drop"
+        width={1513}
+        height={561}
+        caption="Figure 8 uses different illustrative paths: AI task skills change on the left; coordination changes on the right. These are model outcomes, not observed layoffs. Source: Imas, Koh and Legg."
+      />
+      <P>
+        Wages have another moving part. Better AI task skills can make human coordinators more valuable relative to specialists because those coordinators help direct increasingly capable AI. Better AI coordination can remove that advantage. The paper separates a direct technology effect on a worker&apos;s value within a firm from a reorganization effect as firms change size and composition. Reorganization can reverse the direct effect.
+      </P>
+      <H2>What should builders measure?</H2>
+      <P>
+        The conclusion proposes measuring organizational performance alongside individual task scores. One test adds identical AI copies while keeping compute per copy fixed and measures how useful output scales. Another compares model generations while keeping total compute fixed. These answer different questions: whether adding resources supports productive scale, and whether a newer system uses a given resource budget better.
+      </P>
+      <Figure
+        src="/blog/organizing-intelligence-7.jpg"
+        alt="Two panels specify scaling and fixed total compute tests for organizational AI"
+        width={1600}
+        height={900}
+        caption="Adapted from the paper's conclusion. Also track payroll, AI spending and the distribution of firms."
+      />
+      <P>
+        For a working agent system, we can turn that proposal into an experiment: choose one real workflow, define acceptable completed work, and compare configurations under a stated budget. Record useful output, elapsed time and correction effort. This is an Argo application of the measurement idea, not a benchmark reported in the paper.
+      </P>
+      <P>
+        At the economic level, the authors also recommend tracking payroll relative to AI spending and how firms&apos; composition changes. That evidence would help distinguish people being replaced inside existing organizations from entire organizations losing their markets. For builders, the immediate next step is concrete: test whether another agent improves the finished work under the resource limit that matters to your users.
+      </P>
+      <P>
+        Follow Argo&apos;s explainers at <A href="https://myargoquest.com/blog">myargoquest.com/blog</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "organizing-intelligence",
+    title: "How AI coordination could reshape companies",
+    description: "A Google DeepMind paper explains how task skills, teamwork and reproducible AI can change company size, employment and wages.",
+    category: "ai-news",
+    date: "November 20, 2026",
+    isoDate: "2026-11-20T09:30",
+    readingTime: "6 min read",
+    image: "/blog/organizing-intelligence-1.jpg",
+    Content: OrganizingIntelligenceContent,
+  },
   {
     slug: "cybazaar-brief-to-paid-delivery",
     title: "\"Cybazaar: from an AI brief to a paid delivery\"",
