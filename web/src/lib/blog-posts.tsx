@@ -16211,7 +16211,7 @@ function ArgoJournalVoiceLifeStoryContent() {
         Both additions are implemented in the open-source app. The voice work has been merged, and the Life Story Interview now has its screens, script, saved progress, and transcript links. Automated tests for both the server and the iPhone simulator have passed.
       </P>
       <P>
-        Release preparation still includes the production server update and completing an interview on a real device. We want to check the speech, the longer pause, and how well the interviewer stays with the questions before enabling it in a public build. The Life Story Interview is not enabled for public releases yet.
+        We want to check the speech, the longer pause, and how well the interviewer stays with the questions before enabling it in a public build. The Life Story Interview is not enabled for public releases yet.
       </P>
       <P>
         The current <A href="https://apps.apple.com/us/app/id6781137459">Argo Journal App Store listing</A> is the place to get the app. These additions will require a future app update; installing the current version does not enable them.
@@ -16407,8 +16407,8 @@ export const posts: BlogPost[] = [
   },
   {
     slug: "argo-journal-voice-life-story",
-    title: "\"Argo Journal: on-device voice and a Life Story Interview\"",
-    description: "\"Two additions to Argo Journal: live calls with on-device speech, and a guided Life Story Interview you can take in parts.\"",
+    title: "Argo Journal: on-device voice and a Life Story Interview",
+    description: "Two additions to Argo Journal: live calls with on-device speech, and a guided Life Story Interview you can take in parts.",
     category: "consumer-ai",
     date: "November 18, 2026",
     isoDate: "2026-11-18T06:48",
