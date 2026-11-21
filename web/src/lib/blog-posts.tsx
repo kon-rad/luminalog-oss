@@ -17433,7 +17433,138 @@ function HowPhonegoMapsAndroidAppsForAgentsContent() {
   )
 }
 
+/* ── Post: How Gemini loads agent tools when they are needed ── */
+function HowGeminiLoadsAgentToolsWhenNeededContent() {
+  return (
+    <>
+      <P>
+        An assistant connected to a calendar, email account, files, and payment system may have dozens of tools available. Before it can use one, it needs to know what the tool is called and what arguments it accepts. Developers usually put all of those definitions into the model&apos;s context, even when a request needs only one.
+      </P>
+      <P>
+        Google introduced <A href="https://blog.google/innovation-and-ai/technology/developers-tools/gemini-api-tool-retrieval/">Tool Retrieval</A> for the Gemini Interactions API on November 19, 2026. The feature lets an agent see the names and descriptions of available tools while withholding their full parameter schemas until it selects one. The result is a smaller initial prompt for large tool libraries. It is a preview, and Google&apos;s <A href="https://aistudio.google.com/docs/tool-retrieval">documentation</A> says it requires the v1beta API.
+      </P>
+      <P>
+        This matters because a tool library is often much larger than the set a single task uses. The design changes when detailed instructions enter the model&apos;s context, not which real-world actions the developer has authorized.
+      </P>
+      <Figure
+        src="/blog/how-gemini-loads-agent-tools-when-needed-1.jpg"
+        alt="Google's Tool Retrieval announcement highlights the request's tool search setting"
+        width={1350}
+        height={930}
+        priority
+        caption="Google's launch post explains the server-side setup. Source: Google"
+      />
+      <H2>What is a tool schema?</H2>
+      <P>
+        A tool is a function an agent may ask an application to run. <code>convert_currency</code>, for example, might accept an amount and a target currency. Its schema describes those arguments, their types, and which ones are required. The model reads the schema to form a valid function call; the application executes the function and returns the result.
+      </P>
+      <P>
+        Now imagine fifty functions, each with several fields and descriptions. Sending every schema with every user request takes context space and input tokens. It also leaves the model choosing among many detailed definitions when most are irrelevant. Google&apos;s launch post says this can raise latency and lower selection accuracy as a library grows. It does not publish a general percentage improvement for Tool Retrieval.
+      </P>
+      <P>
+        The everyday analogy is a workshop with labeled drawers. A worker needs to know a drawer contains screwdrivers, but need not read the instructions for every screwdriver before deciding to open that drawer. The analogy stops at authorization: a label can help find a tool, but it cannot decide whether a person allowed the action.
+      </P>
+      <Figure
+        src="/blog/how-gemini-loads-agent-tools-when-needed-2.jpg"
+        alt="Diagram contrasts full tool schemas in the initial prompt with deferred parameter schemas"
+        width={900}
+        height={1200}
+        caption="Argo diagram based on Google Tool Retrieval documentation."
+      />
+      <H2>How does server-side retrieval work?</H2>
+      <P>
+        The server-side option starts with a <code>tool_search</code> entry in the request. A developer marks selected function definitions with <code>defer_loading: true</code>. The model still receives each deferred function&apos;s name and description. It does not initially receive the parameters, such as field types or required arguments.
+      </P>
+      <P>
+        When a request needs a tool, the model emits a <code>tool_search_call</code>. The Gemini API returns a <code>tool_search_result</code> with the matching full schema, and the model then emits an ordinary <code>function_call</code>. Google&apos;s example uses a refund function: the assistant identifies <code>issue_refund</code>, loads its argument schema, and proposes a call with an order ID and amount. The application still runs the refund function and returns a result. Tool search itself does not make a financial decision or perform the refund.
+      </P>
+      <P>
+        Google says the search and schema load happen inside one API call. Developers can inspect the separate steps in <code>interaction.steps</code>, which is useful when a model chose the wrong tool or misunderstood a description. A frequently used tool can remain loaded from the start while the long tail is deferred. The same option can defer tools from a remote MCP server, a standard way to expose tools to an agent.
+      </P>
+      <Figure
+        src="/blog/how-gemini-loads-agent-tools-when-needed-3.jpg"
+        alt="Diagram shows server search call, schema result, and ordinary function call within one API request"
+        width={900}
+        height={1200}
+        caption="Argo diagram based on Google announcement and example response."
+      />
+      <P>
+        The documentation provides Python, JavaScript, and REST examples. It also makes a version boundary explicit: this is for the Interactions API, and the older <code>generateContent</code> method does not support Tool Retrieval. A program using the latter cannot copy the new flag into an existing request and expect it to work.
+      </P>
+      <Figure
+        src="/blog/how-gemini-loads-agent-tools-when-needed-4.jpg"
+        alt="Google documentation marks Tool Retrieval as an Interactions API feature"
+        width={1350}
+        height={425}
+        caption="Google's setup guide names the API boundary. Source: Google AI Studio"
+      />
+      <H2>When would an application search its own registry?</H2>
+      <P>
+        Google offers a second mode for developers who maintain their own tool catalog. A client-side <code>tool_search</code> is a function the model calls. The application receives a query, searches its registry, and sends back complete tool definitions in a <code>function_result</code>. In this mode, the tools do not all need to be declared at the start of the conversation.
+      </P>
+      <P>
+        That matters for a service where each user has different integrations. A user might connect a new project-management account halfway through a session, or a company&apos;s permission system might restrict which functions a person can use. A client-side registry can return only the tools available in that context. The application owns its search and filtering logic, and it can inspect the match before giving it to the model.
+      </P>
+      <P>
+        The trade-off is an extra round trip: the model asks the application to search, the application responds, and only then can the model call the selected tool. Server-side search can be faster when the full declared library is stable and the API can do the lookup within one request. The official guide describes these as different modes for different registries, not a contest with one universal winner.
+      </P>
+      <Figure
+        src="/blog/how-gemini-loads-agent-tools-when-needed-5.jpg"
+        alt="Diagram shows model, application registry search, and follow-up function call"
+        width={900}
+        height={1200}
+        caption="Argo diagram based on Google client-side retrieval documentation."
+      />
+      <H2>Does deferred loading reduce cost?</H2>
+      <P>
+        It can reduce input tokens when many schemas stay unloaded. Google says Tool Retrieval has no separate fee. The model&apos;s usual input and output rates still apply; adding <code>tool_search</code> itself uses a small fixed block of input tokens, and any schema loaded later is billed as input for the rest of the conversation. A library with many rarely used functions is the obvious candidate for savings. A small set used on every turn may gain little.
+      </P>
+      <P>
+        Deferred schemas can also keep the beginning of a prompt stable for prefix caching, which avoids repeatedly processing unchanged input. Whether that helps depends on the application&apos;s conversation pattern. The <A href="https://aistudio.google.com/docs/tool-retrieval">documentation</A> suggests static loading for fewer than roughly twenty stable tools, but that is a design guideline, not a measured break-even point.
+      </P>
+      <Figure
+        src="/blog/how-gemini-loads-agent-tools-when-needed-6.jpg"
+        alt="Diagram separates initial search tokens, selected schemas, and schemas never loaded"
+        width={900}
+        height={1200}
+        caption="Argo diagram based on Google billing explanation."
+      />
+      <P>
+        There is a practical measurement to make before adopting this preview. Run a representative set of tasks both ways. Record input tokens, elapsed time, tool selection, invalid arguments, and task completion. Include failed searches and repeated calls, because a cheap first request can be expensive if the agent spends another turn finding the right function. Google&apos;s launch post does not provide a workload-wide benchmark that can stand in for that test.
+      </P>
+      <H2>What remains the application&apos;s job?</H2>
+      <P>
+        Tool Retrieval changes how the model finds a schema. It does not replace access control, confirmation for sensitive actions, or checks on tool results. If a user&apos;s request authorizes reading a calendar, a retrieved <code>send_email</code> function should still be governed by the application&apos;s permissions. A good description helps retrieval, but the backend must enforce the real boundary.
+      </P>
+      <Figure
+        src="/blog/how-gemini-loads-agent-tools-when-needed-7.jpg"
+        alt="Diagram separates retrieved tool schema from application permission and execution checks"
+        width={900}
+        height={1200}
+        caption="Argo schematic; application authorization is an editorial inference from Google function calling."
+      />
+      <P>
+        For teams building large agent integrations, the new API offers a concrete way to keep unused parameters out of context. Start with the <A href="https://blog.google/innovation-and-ai/technology/developers-tools/gemini-api-tool-retrieval/">launch post</A> and <A href="https://aistudio.google.com/docs/tool-retrieval">v1beta guide</A>, then measure on your own task mix. The useful question is which schemas the agent actually needs per task, and how accurately it finds them.
+      </P>
+      <P>
+        Follow Argo&apos;s agent coverage at https://myargoquest.com/blog.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "how-gemini-loads-agent-tools-when-needed",
+    title: "How Gemini loads agent tools when they are needed",
+    description: "Gemini API Tool Retrieval keeps tool schemas out of the initial prompt and loads selected functions during an agent request.",
+    category: "ai-news",
+    date: "November 20, 2026",
+    isoDate: "2026-11-20T12:54",
+    readingTime: "6 min read",
+    image: "/blog/how-gemini-loads-agent-tools-when-needed-1.jpg",
+    Content: HowGeminiLoadsAgentToolsWhenNeededContent,
+  },
   {
     slug: "how-phonego-maps-android-apps-for-agents",
     title: "How PhoneGo maps Android apps into reusable agent commands",
