@@ -17313,7 +17313,138 @@ function ClaudeBlackHoleCalculationsExplainedContent() {
   )
 }
 
+/* ── Post: How PhoneGo maps Android apps into reusable agent commands ── */
+function HowPhonegoMapsAndroidAppsForAgentsContent() {
+  return (
+    <>
+      <P>
+        Imagine asking your phone to check one shop&apos;s stock, compare another shop&apos;s price, and save both answers. A phone agent can do it by looking at each screen, deciding where to tap, taking another screenshot, and repeating. That works on unfamiliar apps. It also makes the agent rediscover the same menu every time.
+      </P>
+      <P>
+        <A href="https://github.com/HKUDS/PhoneGo">PhoneGo</A>, an open-source Android agent from HKUDS, takes a different route for familiar paths. It maps screens and navigation in advance, turns a known route into a reusable command, and calls a vision model when it encounters something new. HKUDS published an Android app and a <A href="https://github.com/HKUDS/PhoneGo/blob/main/CHANGELOG.md">changelog</A> with releases through November 21, 2026.
+      </P>
+      <Figure
+        src="/blog/how-phonego-maps-android-apps-for-agents-1.jpg"
+        alt="PhoneGo GitHub repository showing the public Android agent project"
+        width={1575}
+        height={1068}
+        priority
+        caption="PhoneGo repository homepage showing its Android agent and download links. Source: HKUDS/PhoneGo on GitHub."
+      />
+      <P>
+        The interesting part is the split between a phone action that can be replayed and a screen that needs fresh interpretation. It is a practical design for any agent that repeats work inside changing interfaces.
+      </P>
+      <H2>What does a phone agent usually do?</H2>
+      <P>
+        Most apps were made for a person looking at a screen. Their buttons do not necessarily expose an API that another program can call. A general agent therefore treats the phone as a visual environment: observe the current screen, choose a tap or swipe, wait, and observe again. The model must decide what the screen means at each step.
+      </P>
+      <P>
+        That loop is useful because it handles a screen the agent has never seen. The cost is repetition. Opening the same search page tomorrow can require another series of screenshots and model calls, even if the route through the app has not changed. A single wrong tap also moves the agent to a different screen, which requires more observation and recovery.
+      </P>
+      <P>
+        The earlier <A href="https://arxiv.org/abs/2609.35671">PhoneCLI research</A> addresses this repeated navigation. It explores an app and records a map: screens are places, and buttons or transitions are routes between them. A command describes a route to a destination, such as opening a search page. The map is built without relying on the app developer to publish an internal API.
+      </P>
+      <Figure
+        src="/blog/how-phonego-maps-android-apps-for-agents-2.jpg"
+        alt="PhoneGo map building documentation describing breadth-first exploration and replay paths"
+        width={1575}
+        height={1085}
+        caption="Source: HKUDS PhoneGo map-building documentation."
+      />
+      <P>
+        Think of it as saving directions to a familiar office. The agent still needs to know why it is going there, but it does not need to ask for directions at every door. The analogy ends when the building changes. An updated app can move a button or add a login prompt, and the saved route may fail.
+      </P>
+      <H2>How does PhoneGo combine commands with vision?</H2>
+      <P>
+        The <A href="https://github.com/HKUDS/PhoneGo">project README</A> describes three phases. First, an offline exploration creates an app navigation map. Second, during a task, the agent chooses a command and replays the mapped route for familiar steps. Third, when it reaches an unfamiliar screen or a path breaks, it switches to visual interaction.
+      </P>
+      <Figure
+        src="/blog/how-phonego-maps-android-apps-for-agents-3.jpg"
+        alt="PhoneCLI Figure 1 showing offline app mapping, command replay, and visual fallback"
+        width={1422}
+        height={823}
+        caption="Source: PhoneCLI paper, arXiv 2609.35671, Figure 1, PDF page 3."
+      />
+      <Figure
+        src="/blog/how-phonego-maps-android-apps-for-agents-4.jpg"
+        alt="Argo diagram showing an app map producing reusable commands with visual fallback for unfamiliar screens"
+        width={1600}
+        height={900}
+        caption="Source: Argo diagram based on HKUDS PhoneGo README and PhoneCLI paper."
+      />
+      <P>
+        This is a hybrid, rather than a promise that every app action can be scripted. The model still interprets the user&apos;s request. It may need to inspect a dynamic search result, a changed interface, or information that only appears on the current screen. Once it knows a route, however, a routine step can be executed without another vision call for every tap.
+      </P>
+      <P>
+        HKUDS says PhoneGo combines the PhoneCLI navigation work with its earlier <A href="https://arxiv.org/abs/2510.22009">OpenPhone</A> mobile-agent research. The Android app is the packaging layer that lets a person install the agent and give it tasks on a phone. The repository includes the app and research components, which gives builders a place to inspect the system rather than relying only on a product video.
+      </P>
+      <P>
+        There is a useful boundary here. A mapped command is a way to get somewhere in an app. It does not certify that the page still means the same thing, that a price is current, or that a purchase should proceed. The agent must still check live information and respect the user&apos;s action settings. The README says PhoneGo asks for confirmation before paying, placing an order, or submitting a transaction by default; a setting called &quot;Never ask me about money&quot; can disable that prompt. We have not tested the installed binary, so that is the project&apos;s documented behavior.
+      </P>
+      <H2>What did the measured comparison show?</H2>
+      <P>
+        HKUDS reports one same-phone comparison. The task was to find how to book an HKU visit on Xiaohongshu. The mapped PhoneGo path completed it in 17 steps, 64 seconds, and 92.3k tokens. A vision-only agent completed the same task in 32 steps, 146 seconds, and 207.1k tokens. The team calculates 47% fewer steps, 56% less time, and 55% fewer tokens for its mapped approach.
+      </P>
+      <Figure
+        src="/blog/how-phonego-maps-android-apps-for-agents-5.jpg"
+        alt="Table comparing the PhoneGo mapped task at 17 steps with the vision-only task at 32 steps"
+        width={1575}
+        height={1138}
+        caption="Source: HKUDS/PhoneGo README, one team-reported task on the same phone."
+      />
+      <P>
+        The conditions matter more than the percentages alone. It was one instruction on one phone, with a route that could benefit from prior mapping. The README does not give a broad distribution of tasks, a failure-rate comparison, or an independent replication. Those results show what happened in the team&apos;s example, not what every user will save. A new app, a changed layout, or a one-off task may leave little familiar navigation to reuse.
+      </P>
+      <P>
+        Token counts do not translate directly to cost. What a user pays depends on the model endpoint, its prices, and how often the task falls back to vision. The comparison is strongest as evidence for a mechanism: repeated navigation can be removed from the expensive observe-and-decide loop.
+      </P>
+      <H2>What has to be installed and what leaves the phone?</H2>
+      <P>
+        The README lists Android 14 or later on ARM64. Normal use does not require a separate computer, but it does require Android&apos;s wireless debugging and PhoneGo&apos;s Accessibility Service. Those permissions are significant because they let software observe and operate other apps. A first test should use a task that needs no account, such as asking which Wi-Fi network is connected, as the project suggests.
+      </P>
+      <P>
+        PhoneGo does not bundle a model or API key. The user chooses a supported provider or compatible endpoint and supplies credentials. The project says its maps, pairing keys, sessions, and settings remain on the device. When visual understanding is needed, the relevant screen is sent to the configured model endpoint. That is the privacy decision to inspect before using it with personal messages, finance apps, or work accounts. Local navigation does not mean every task stays local.
+      </P>
+      <Figure
+        src="/blog/how-phonego-maps-android-apps-for-agents-6.jpg"
+        alt="PhoneGo FAQ explaining when a phone screen is sent to the chosen model endpoint"
+        width={1575}
+        height={1138}
+        caption="Source: HKUDS/PhoneGo README, privacy FAQ."
+      />
+      <P>
+        The changelog shows the pace of development. Version 0.4.2 addressed an empty-chat problem after task completion, a session-list issue, and model-settings behavior. As of November 21, the README links the 0.4.4 APK, whose changelog lists further fixes for task completion, session files, and the phone connection. Check the release artifact and changelog before installing; the version matters when evaluating a bug report or a safety claim.
+      </P>
+      <Figure
+        src="/blog/how-phonego-maps-android-apps-for-agents-7.jpg"
+        alt="PhoneGo changelog entry documenting version 0.4.4 on November 21 2026"
+        width={1575}
+        height={1085}
+        caption="Source: HKUDS/PhoneGo changelog, checked 2026-11-21."
+      />
+      <H2>What can builders take from this?</H2>
+      <P>
+        PhoneGo illustrates a narrow but valuable pattern: let an agent reason about the novel part of a task and replay the stable part. That can apply to a browser workflow, a desktop app, or an internal tool. The map needs a way to detect when a route has changed, and the agent needs a clear boundary between finding information and taking an authorized action.
+      </P>
+      <P>
+        For readers, the next useful check is concrete. Read the <A href="https://github.com/HKUDS/PhoneGo">README</A>, inspect the <A href="https://github.com/HKUDS/PhoneGo/blob/main/CHANGELOG.md">latest changelog</A>, and try a harmless task before connecting a sensitive app. Compare the first run with a repeated run, and note when visual fallback occurs. That tells you more about your own workload than the single published comparison can.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "how-phonego-maps-android-apps-for-agents",
+    title: "How PhoneGo maps Android apps into reusable agent commands",
+    description: "HKUDS's PhoneGo turns familiar app paths into commands, uses vision for new screens, and runs directly on an Android phone.",
+    category: "ai-news",
+    date: "November 20, 2026",
+    isoDate: "2026-11-20T12:48",
+    readingTime: "7 min read",
+    image: "/blog/how-phonego-maps-android-apps-for-agents-1.jpg",
+    Content: HowPhonegoMapsAndroidAppsForAgentsContent,
+  },
   {
     slug: "claude-black-hole-calculations-explained",
     title: "The black hole calculations Claude helped complete",
