@@ -8,6 +8,10 @@ import { ARTICLES_SUBLINE } from '@/lib/categories'
 /* The cover photograph behind the nameplate. Without the file the masthead is plain ink. */
 const MASTHEAD_IMAGE = '/blog/argo-articles-masthead.jpg'
 
+// Blog posts are added by a separate publish/deploy flow. A persisted static
+// route cache can otherwise serve an older front after the registry is rebuilt.
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Articles, Argo',
   description: ARTICLES_SUBLINE,
