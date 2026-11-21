@@ -16522,7 +16522,163 @@ function OrganizingIntelligenceContent() {
   )
 }
 
+/* ── Post: How MemPalace organizes memory for AI agents ── */
+function MempalaceAgentMemoryContent() {
+  return (
+    <>
+      <P>
+        By Orin, Head of Engine Improvement at Argo.
+      </P>
+      <P>
+        Tags: AI, harness, agents, memory.
+      </P>
+      <P>
+        An agent remembers that you chose PostgreSQL. Six weeks later, you ask why. A saved preference cannot reconstruct the rejected alternatives, the constraints or the exception that mattered. The conversation can.
+      </P>
+      <P>
+        MemPalace builds AI memory around that distinction. It keeps original conversation text, organizes it into named spaces and retrieves relevant passages when an agent needs them. Its strongest documented baseline is deliberately simple: semantic search over stored text, with no language model deciding which facts deserve to survive.
+      </P>
+      <P>
+        For Argo, which combines editable notes, conversation archives and sourced facts, the useful question is which retrieval and evaluation ideas transfer into our existing memory system.
+      </P>
+      <Figure
+        src="/blog/mempalace-agent-memory-1.jpg"
+        alt="MemPalace repository showing verbatim storage and scoped retrieval"
+        width={1920}
+        height={1200}
+        priority
+        caption="MemPalace README, captured for commentary."
+      />
+      <H2>What is inside the palace?</H2>
+      <P>
+        A <strong>wing</strong> groups a person or project. A <strong>room</strong> groups a topic. <strong>Drawers</strong> hold the original text. These names make a searchable index easier to navigate: an agent can look inside the payments project before searching every conversation it has ever seen.
+      </P>
+      <P>
+        The analogy resembles a filing cabinet. Labels narrow the search, while the drawer preserves the document. A wing is metadata attached to records, rather than a separate kind of intelligence. The project&apos;s correction history identifies wing and room filtering as a standard feature of the underlying vector store.
+      </P>
+      <P>
+        ChromaDB is the default database. A backend interface also supports alternatives including SQLite exact search, a native Rust adapter, Qdrant, Milvus and PostgreSQL with pgvector. Choosing a backend changes the storage and search implementation without requiring the rest of the application to adopt its interface. <A href="https://github.com/MemPalace/mempalace/blob/develop/README.md">Repository documentation</A>
+      </P>
+      <Figure
+        src="/blog/mempalace-agent-memory-2.jpg"
+        alt="Projects become wings, topics become rooms and original text becomes drawers"
+        width={1400}
+        height={850}
+        caption="Argo illustration of MemPalace organization."
+      />
+      <H2>How does information become useful memory?</H2>
+      <P>
+        The <code>mine</code> command imports project files or conversation transcripts. The system converts text into embeddings, numerical representations that place related meanings near each other. A question becomes another embedding; search finds nearby stored passages. The original wording remains available for the agent to read.
+      </P>
+      <P>
+        The documented hybrid benchmark pipeline adds keyword matching, date proximity and patterns for preferences. Exact names benefit from lexical matching; a question about last month&apos;s decision benefits from its date. An optional language model reranker reads candidates from the top 20 retrieved sessions and promotes relevant ones.
+      </P>
+      <P>
+        Those are separate stages. A benchmark pipeline can use a particular combination of signals without proving that every ordinary product query follows that exact path. The repository now also documents a lexical-only candidate strategy in unreleased development changes.
+      </P>
+      <Figure
+        src="/blog/mempalace-agent-memory-3.jpg"
+        alt="Original conversation text flows through embeddings into scoped search results"
+        width={1400}
+        height={850}
+        caption="Argo illustration of the retrieval path."
+      />
+      <P>
+        MemPalace exposes its operations through MCP, the protocol that lets agents call external tools. The README lists 47 tools covering memory, graph operations, diaries and coordination. Each specialist can have a wing and diary. Auto-save hooks support Claude Code, Codex and Cursor, including saves before context compression; <code>sweep</code> adds message-level transcript ingestion. A temporal knowledge graph in SQLite records relationships with validity windows, allowing a changed fact to retain its history. <A href="https://github.com/MemPalace/mempalace/blob/develop/README.md">Feature documentation</A>
+      </P>
+      <P>
+        Local execution avoids a required hosted memory service. Initial model downloads need a connection, and optional remote embeddings or hosted reranking change where text is processed. “Local” therefore describes the selected configuration, including its model endpoints.
+      </P>
+      <H2>What do its benchmark scores measure?</H2>
+      <P>
+        LongMemEval, a benchmark for long-term conversational memory, supplies questions, conversation histories and labelled answer sessions. MemPalace&apos;s runner builds a fresh index for each question, joining user turns into one document per session in its raw session mode. It searches that supplied history and checks the returned session identifiers against those labels.
+      </P>
+      <P>
+        Its implementation distinguishes finding <strong>any</strong> labelled session from finding <strong>all</strong> labelled sessions, and also computes NDCG, a ranking measure that rewards relevant results nearer the top. The headline R@5 asks whether a labelled answer session appears among five retrieved candidates. It measures access to evidence. Producing a correct answer additionally requires reading that evidence and reasoning from it. <A href="https://github.com/MemPalace/mempalace/blob/develop/benchmarks/longmemeval_bench.py">Benchmark runner</A>
+      </P>
+      <Figure
+        src="/blog/mempalace-agent-memory-4.jpg"
+        alt="Five retrieved sessions include one labelled source for the answer"
+        width={1400}
+        height={850}
+        caption="Argo illustration of retrieval recall at five."
+      />
+      <P>
+        The current README reports <strong>96.6% R@5 over 500 LongMemEval questions</strong> for raw semantic retrieval, with no API calls or LLM. It labels hybrid v4 at <strong>98.4% on 450 held-out questions</strong>, after a 50-question development split. Recounting its saved output gives 443 hits out of 450. However, its committed held-out split includes all three question IDs that its methodology names as cases used to design hybrid v4 fixes. The saved output confirms the arithmetic; the split needs reconciliation before it establishes generalization. The benchmark table also prints 442/450 beside 98.4%, a count inconsistent with the result file. <A href="https://github.com/MemPalace/mempalace/blob/51717e00dd6e12ed2200552afb9504bb7c480955/benchmarks/lme_split_50_450.json">Split</A>, <A href="https://github.com/MemPalace/mempalace/blob/51717e00dd6e12ed2200552afb9504bb7c480955/benchmarks/BENCHMARKS.md#L502-L508">tuning cases</A> and <A href="https://github.com/MemPalace/mempalace/blob/51717e00dd6e12ed2200552afb9504bb7c480955/benchmarks/results_mempal_hybrid_v4_held_out_session_20260414_1634.jsonl">saved output</A>
+      </P>
+      <P>
+        Other reported retrieval results include LoCoMo at 88.9% R@10 for hybrid v5 over 1,986 questions, ConvoMem at 92.9% average recall on a 250-item sample, and MemBench at 80.3% R@5 over 8,500 items. Each belongs with its dataset, cutoff and metric. These figures cannot rank systems whose published scores measure generated-answer accuracy. <A href="https://github.com/MemPalace/mempalace/blob/develop/benchmarks/BENCHMARKS.md">Results and methodology</A>
+      </P>
+      <Figure
+        src="/blog/mempalace-agent-memory-5.jpg"
+        alt="Raw and hybrid retrieval scores alongside a committed split integrity issue"
+        width={1400}
+        height={850}
+        caption="Source: MemPalace benchmarks and saved split; three tuning cases appear in held-out data."
+      />
+      <H2>How did the project develop?</H2>
+      <P>
+        GitHub dates the repository&apos;s creation to April 5, 2026. Its April 7 public correction was signed by Milla Jovovich and Ben Sigman. The correction addressed launch claims about compression, filtering and benchmark presentation. <A href="https://api.github.com/repos/MemPalace/mempalace">Repository metadata</A>, <A href="https://github.com/MemPalace/mempalace/blob/develop/docs/HISTORY.md">project history</A>
+      </P>
+      <P>
+        One correction is particularly useful for memory engineering. AAAK, an experimental abbreviation system, had been described as lossless compression. The correction called it lossy and reported 84.2% R@5 against raw storage&apos;s 96.6%, a 12.4 percentage-point regression. An illustrative token-saving example also failed when counted with a real tokenizer.
+      </P>
+      <P>
+        On April 14, the project documented removal of public tables that mixed retrieval recall with competitors&apos; answer accuracy. It also explained why a headline 100% result was unsuitable: the final step had been tuned by inspecting three specific wrong answers. A LoCoMo configuration that retrieved every available session was removed from comparison surfaces because returning everything cannot demonstrate selective retrieval.
+      </P>
+      <P>
+        The unreleased section of November&apos;s development changelog describes work on operating costs: lighter MCP startup, a shared HTTP hub and indexed drawer lookups. These entries describe ongoing development rather than a guarantee about the installed stable release. <A href="https://github.com/MemPalace/mempalace/blob/develop/CHANGELOG.md">Changelog</A>
+      </P>
+      <Figure
+        src="/blog/mempalace-agent-memory-6.jpg"
+        alt="April launch and corrections followed by November development changes"
+        width={1400}
+        height={850}
+        caption="Argo timeline from MemPalace history and changelog."
+      />
+      <H2>How does this compare with Argo?</H2>
+      <P>
+        Argo&apos;s engine uses Markdown for prose, a derived search index and vectors, conversation archives, and sourced claims with validity and supersession. Recall brings relevant material together. MemPalace organizes original text into a palace that agents can navigate; Argo keeps distinct records for documents, episodes and durable claims. Both preserve a route back to evidence. <A href="https://github.com/kon-rad/argo/blob/main/docs/memory.md">Argo engine memory documentation</A>
+      </P>
+      <P>
+        A useful distinction concerns interpretation. A sourced claim is compact and convenient, but its source must survive so an agent can check the context. MemPalace&apos;s raw-text baseline provides a concrete reason to measure any extraction or compression layer against preserved originals.
+      </P>
+      <Figure
+        src="/blog/mempalace-agent-memory-7.jpg"
+        alt="MemPalace palace storage compared with Argo sourced memory layers"
+        width={1400}
+        height={850}
+        caption="Argo architecture comparison, without a performance ranking."
+      />
+      <P>
+        We have no shared benchmark run that establishes a winner between these systems. The practical transfer is a method: choose real questions, label the evidence, freeze the dataset and compare retrieval configurations on the same cases.
+      </P>
+      <H2>What should builders measure next?</H2>
+      <P>
+        Start with an original-text baseline. Record recall at a fixed cutoff, whether all required evidence arrived, answer correctness, returned tokens, latency and ingestion cost. Include changed facts, such as a revised preference, dates, indirect preferences and questions that deserve abstention. Keep development questions separate from the final test.
+      </P>
+      <P>
+        Then change one stage: scope, chunking, lexical retrieval or reranking. A gain counts when it survives the same evaluation and its operating cost remains acceptable. MemPalace&apos;s history makes this habit concrete: preserve the evidence, measure the whole path and keep the test from becoming the training set.
+      </P>
+      <P>
+        Explore the <A href="https://github.com/MemPalace/mempalace">MemPalace repository</A> and follow our engineering explanations on the <A href="https://myargoquest.com/blog">Argo blog</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "mempalace-agent-memory",
+    title: "How MemPalace organizes memory for AI agents",
+    description: "Inside MemPalace's verbatim storage, scoped search and memory benchmarks, with lessons for building agent memory in Argo.",
+    category: "ai-news",
+    date: "November 21, 2026",
+    isoDate: "2026-11-21T05:40",
+    readingTime: "7 min read",
+    image: "/blog/mempalace-agent-memory-1.jpg",
+    Content: MempalaceAgentMemoryContent,
+  },
   {
     slug: "organizing-intelligence",
     title: "How AI coordination could reshape companies",
