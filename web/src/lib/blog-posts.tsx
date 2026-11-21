@@ -16667,7 +16667,160 @@ function MempalaceAgentMemoryContent() {
   )
 }
 
+/* ── Post: How Songe teaches a local AI model from its own mistakes ── */
+function SongeLocalModelLearningContent() {
+  return (
+    <>
+      <P>
+        You ask a coding agent to fix a test. It edits the wrong file, sees the test fail, and eventually finds the right change. The lesson is in the conversation, but an ordinary model server does not learn from it.
+      </P>
+      <P>
+        <A href="https://github.com/sous-labs/songe">Songe</A> is an open-source attempt to close that loop on your own computer. It sits between an agent and a local model server, records the conversation, and examines what happened after each model action. When the computer is idle, it can use those recorded consequences to prepare and test an updated version of the model. The project is an alpha release. Its development notes say CPU and HTTP tests have run, while Metal training, calibration, LM Studio loading, and browser checks still need hardware validation.
+      </P>
+      <P>
+        The distinction matters: Songe offers a concrete design for local learning, with commands and code you can inspect. It has not published evidence that every supported machine and model will become better through a completed learning cycle.
+      </P>
+      <Figure
+        src="/blog/songe-local-model-learning-1.jpg"
+        alt="Songe GitHub repository showing the local learning project and installation instructions"
+        width={1920}
+        height={1080}
+        priority
+        caption="Source: sous-labs/songe on GitHub."
+      />
+      <H2>What does Songe see that the model missed?</H2>
+      <P>
+        A model chooses its next action from the conversation in front of it. It cannot see the test result or your correction until after that action. Songe calls the later evidence <strong>hindsight</strong>. It may be a tool result, an error, a failed test, or your next message. The <A href="https://github.com/sous-labs/songe/blob/main/DESIGN.md">project design</A> treats this evidence as the learning signal.
+      </P>
+      <P>
+        Imagine an agent runs a package command and gets an error because the project uses a different package manager. The useful lesson is not simply the agent&apos;s original answer. It is the relationship between the initial command, the error, and the correction that eventually worked. Songe aims to find those moments in the record and teach the model to anticipate them next time.
+      </P>
+      <P>
+        It also drops exchanges that do not teach anything, such as an interrupted request or a conversation that ends before any consequence appears. The <A href="https://github.com/sous-labs/songe/blob/main/docs/DEVELOPMENT.md">development guide</A> says conversations are linked by their message history and split into training and held-out groups. That separation matters because the model should be checked on conversations it did not train against.
+      </P>
+      <Figure
+        src="/blog/songe-local-model-learning-2.jpg"
+        alt="Songe design document explaining hindsight as a learning signal"
+        width={1920}
+        height={1080}
+        caption="Source: Songe design on GitHub."
+      />
+      <Figure
+        src="/blog/songe-local-model-learning-3.jpg"
+        alt="Vertical diagram showing how a mistake becomes a lesson through action, hindsight, and a recorded correction"
+        width={900}
+        height={1500}
+        caption="Argo diagram based on Songe design."
+      />
+      <H2>Where does it fit in an agent setup?</H2>
+      <P>
+        Songe presents an OpenAI-compatible local endpoint. Your agent sends requests to Songe, and Songe forwards them to the model server while recording the exchanges in a private SQLite database. It keeps a stable public model name, such as <code>songe/&lt;name&gt;</code>, while the underlying version can change after an accepted update. The <A href="https://github.com/sous-labs/songe">README</A> describes use with OpenCode, Pi, and other compatible clients, and names LM Studio, Ollama, llama.cpp, mlx-lm, and vLLM as local serving options.
+      </P>
+      <P>
+        This is a useful boundary. You keep the agent and model workflow you already use. Songe observes the requests, responses, and later tool results at the point where they pass through its proxy. It does not need the agent to send a thumbs-up rating after every answer.
+      </P>
+      <P>
+        The proxy and the trainer have different jobs. The proxy serves and records while you work. The trainer runs only when the scheduler admits it. The <A href="https://github.com/sous-labs/songe/blob/main/docs/DEVELOPMENT.md">current documentation</A> describes checks for idle time, power, available memory, and machine pressure. A new request signals the training process to yield, so the learning work should give the computer back to you.
+      </P>
+      <Figure
+        src="/blog/songe-local-model-learning-4.jpg"
+        alt="Diagram showing data flow from an agent through Songe to a local model server"
+        width={1600}
+        height={900}
+        caption="Argo diagram based on Songe README and development notes."
+      />
+      <H2>What is a Quick Dream?</H2>
+      <P>
+        Songe calls its learning sessions Dreams. A <strong>Quick Dream</strong> extracts preferences from recent conversations and adds them to the model&apos;s instructions. If you repeatedly correct an agent to use a particular test command, this path can make that rule visible to the model without changing its weights. The <A href="https://github.com/sous-labs/songe">README</A> says the dashboard shows what was added and an example of how the answer changes.
+      </P>
+      <P>
+        That is closer to updating a working notebook than training a new model. It can be immediately useful for explicit preferences. It also remains inspectable: a person can see the rule rather than guessing whether the model absorbed it.
+      </P>
+      <Figure
+        src="/blog/songe-local-model-learning-5.jpg"
+        alt="Comparison diagram for Quick Dream instruction updates and Deep Dream adapter training"
+        width={1600}
+        height={900}
+        caption="Argo diagram based on Songe README."
+      />
+      <H2>What happens in a Deep Dream?</H2>
+      <P>
+        A <strong>Deep Dream</strong> attempts a weight update. Songe turns selected lessons into practice, trains a small adapter, and compares the candidate with the model currently in use. An adapter is a compact set of learned changes attached to a larger base model. In Songe&apos;s design, the candidate can be fused into a model file for serving, but the original base remains available.
+      </P>
+      <P>
+        The training idea is called <strong>on-policy distillation</strong>. In plain terms, the current model produces a fresh answer for a recorded situation. A teacher copy of the model sees the same situation plus the hindsight that arrived later. Training nudges the candidate toward what the hindsight-aware teacher would have preferred. The <A href="https://github.com/sous-labs/songe/blob/main/DESIGN.md">design document</A> explains why this differs from merely feeding yesterday&apos;s model output back as a correct answer: the later consequence supplies information the model did not have when it acted.
+      </P>
+      <P>
+        Songe&apos;s <A href="https://github.com/sous-labs/songe/blob/main/docs/DEVELOPMENT.md">development notes</A> describe replay of earlier experience and general prompts alongside new lessons. The aim is to retain skills that already work while learning from recent failures. Recorded multimodal exchanges may pass through the proxy, but the notes say text-only training excludes them.
+      </P>
+      <H2>How does a new version earn its place?</H2>
+      <P>
+        Training is only the middle of the workflow. Songe checks a candidate against held-out conversations and a set of general prompts before it changes the version being served. Its gate looks for a measured improvement on the hindsight task, low drift from general behavior, valid tool calls, and no rise in empty or repetitive answers. The guide gives minimums of 32 training examples and 12 independent held-out conversations. Below those thresholds, the honest result is to wait for more experience.
+      </P>
+      <P>
+        Those tests are local safeguards, not a promise that the model has improved for every future task. A small or noisy history can teach a narrow habit. An evaluation drawn from the same user&apos;s work may miss failures elsewhere. The project exposes a diagnostic for whether hindsight helps the chosen model at all, and keeps the current version if the candidate does not pass its checks. The <A href="https://github.com/sous-labs/songe">README</A> also documents <code>songe undo</code> for returning to the previous version.
+      </P>
+      <P>
+        There is another limit: the <A href="https://github.com/sous-labs/songe/blob/main/docs/DEVELOPMENT.md">development guide</A> says the full local training and serving path has not yet been validated on the target hardware. Treat the gate as a described implementation and a testable design, then look for a real end-to-end result on your own machine before relying on it.
+      </P>
+      <Figure
+        src="/blog/songe-local-model-learning-6.jpg"
+        alt="Vertical diagram showing training, evaluation, and the decision to use a model update"
+        width={900}
+        height={1500}
+        caption="Argo diagram based on Songe development notes."
+      />
+      <Figure
+        src="/blog/songe-local-model-learning-7.jpg"
+        alt="Songe development notes describing validation status and learning controls"
+        width={1920}
+        height={1080}
+        caption="Source: Songe development notes on GitHub."
+      />
+      <H2>What stays on the computer?</H2>
+      <P>
+        Songe&apos;s promise is local processing. The <A href="https://github.com/sous-labs/songe">README</A> says no account is required and nothing leaves the machine. The <A href="https://github.com/sous-labs/songe/blob/main/docs/DEVELOPMENT.md">development guide</A> says conversations and learning records live in a local data directory, while model versions remain in the local model library. That is especially relevant because agent conversations often include code, tool output, and personal instructions.
+      </P>
+      <Figure
+        src="/blog/songe-local-model-learning-8.jpg"
+        alt="Diagram showing local storage, learned model weights, and outside backup copies"
+        width={900}
+        height={1500}
+        caption="Argo diagram based on Songe development and security notes."
+      />
+      <P>
+        Local storage still needs ordinary care. Anyone who can read the computer&apos;s files may be able to read a retained conversation. The guide says <code>songe forget</code> deletes recorded conversations and learning state, but it cannot remove information already present in retained model weights or outside backups. The project asks for private vulnerability reports covering data exposure, proxy access, and accidental tool execution in its <A href="https://github.com/sous-labs/songe/blob/main/SECURITY.md">security policy</A>.
+      </P>
+      <H2>How can you try it?</H2>
+      <P>
+        Songe&apos;s <A href="https://github.com/sous-labs/songe">install guide</A> lists Python 3.11 or later and a locally served model. Its installation sequence is:
+      </P>
+      <pre style={{ margin: '24px 0', padding: '18px 20px', background: 'var(--surfaceAlt)', border: '1px solid var(--hairline)', borderRadius: 12, fontSize: 13.5, lineHeight: 1.6, overflowX: 'auto', whiteSpace: 'pre-wrap', color: 'var(--text)' }}><code>{"uv tool install songe\nsonge init"}</code></pre>
+      <P>
+        The setup detects the model server and supported agents, shows proposed changes, and asks before applying them. <code>songe</code> reports status, <code>songe open</code> opens the local dashboard, and <code>songe sleep</code> starts a Deep Dream subject to the same machine checks.
+      </P>
+      <P>
+        Start with one model and a small, real workflow where you can recognize a correction the agent should remember. Inspect the recorded lesson, the before-and-after example, and the gate result. You can then see whether local learning improves the work you actually do.
+      </P>
+      <P>
+        Follow the <A href="https://github.com/sous-labs/songe">Songe repository</A> for release and validation updates.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "songe-local-model-learning",
+    title: "How Songe teaches a local AI model from its own mistakes",
+    description: "Songe records what happens after an agent acts, then uses idle compute to test a locally trained model update.",
+    category: "ai-news",
+    date: "November 21, 2026",
+    isoDate: "2026-11-21T06:26",
+    readingTime: "7 min read",
+    image: "/blog/songe-local-model-learning-1.jpg",
+    Content: SongeLocalModelLearningContent,
+  },
   {
     slug: "mempalace-agent-memory",
     title: "How MemPalace organizes memory for AI agents",
