@@ -16809,7 +16809,152 @@ function SongeLocalModelLearningContent() {
   )
 }
 
+/* ── Post: Atomic Chat brings Inkling 2 Mini to smaller local machines ── */
+function AtomicChatInkling2MiniGgufContent() {
+  return (
+    <>
+      <P>
+        A new local model can look small in an announcement and still be too large for the computer on your desk. Its weights need room in memory. Image input needs another file. The runtime has to understand the model&apos;s architecture. A download link alone does not settle any of those questions.
+      </P>
+      <P>
+        <A href="https://huggingface.co/AtomicChat/Inkling-2-Mini-GGUF">Atomic Chat&apos;s Inkling 2 Mini GGUF release</A> makes the trade-offs unusually visible. The team converted Thinking Machines Lab&apos;s <A href="https://huggingface.co/thinkingmachines/Inkling-2-Mini">Inkling 2 Mini</A> into a range of compressed files, from 27.74 GB at Q8_0 to 6.88 GB at its smallest one-bit option. For each file, the model card reports how closely its next-token predictions match a 52.2 GB BF16 reference.
+      </P>
+      <P>
+        These are Atomic Chat&apos;s measurements, made on its own test corpus and build. They are useful for choosing a file size. They are not a claim that the compressed model will score the same on every coding, image, or reasoning task.
+      </P>
+      <Figure
+        src="/blog/atomic-chat-inkling-2-mini-gguf-1.jpg"
+        alt="Table of Inkling 2 Mini GGUF files listing size, top-1 agreement and mean KLD for each variant"
+        width={1920}
+        height={1080}
+        priority
+        caption="Source: Atomic Chat on Hugging Face."
+      />
+      <H2>What is Inkling 2 Mini?</H2>
+      <P>
+        Inkling 2 Mini is a text-and-image model released by <A href="https://huggingface.co/thinkingmachines/Inkling-2-Mini">Thinking Machines Lab on November 20, 2026</A>. Its checkpoint has 26.4 billion parameters, with about 3.4 billion distinct parameters active for each token. Because some layers run three times, the developer counts about 5.4 billion effective active parameter uses per token. A mixture of experts is a model that stores many specialized weight groups but selects only some for each token. Mini has 128 experts per relevant layer and routes a token to eight of them.
+      </P>
+      <P>
+        It also has an unusual loop. The model stores 24 decoder layers, but the middle 12 run three times. Counting the first six layers once, the middle 12 three times, and the last six once gives 48 layer visits for each token. Picture returning to the same 12 workstations three times, carrying notes from each pass, instead of building 36 separate stations. The <A href="https://huggingface.co/blog/inkling2mini">Hugging Face release explanation</A> says each pass reuses the core weights and passes information forward through learned messages. The workstations are only an analogy for reused numerical weights: fewer stored layers help with model size, while the repeated computation still costs time.
+      </P>
+      <P>
+        The base model card lists up to one million tokens of context. That is an architectural capability, not a promise that a laptop can serve a million-token conversation comfortably. Runtime memory, the selected quantization, and the key-value cache all affect what fits.
+      </P>
+      <Figure
+        src="/blog/atomic-chat-inkling-2-mini-gguf-2.jpg"
+        alt="Thinking Machines Lab Inkling 2 Mini model card showing 26.4 billion total parameters and text and image input"
+        width={1920}
+        height={1080}
+        caption="Source: Thinking Machines Lab on Hugging Face."
+      />
+      <Figure
+        src="/blog/atomic-chat-inkling-2-mini-gguf-3.jpg"
+        alt="Diagram showing 24 stored layers and 48 execution visits, with the middle 12 layers repeated three times"
+        width={900}
+        height={1500}
+        caption="Argo diagram based on Thinking Machines Lab model and release explanation."
+      />
+      <H2>What does a GGUF file change?</H2>
+      <P>
+        GGUF is a file format used by local inference tools in the llama.cpp family. <strong>Quantization</strong> stores weights with fewer bits, reducing the file and memory footprint. The cost is numerical approximation. Every step of an answer depends on earlier calculations, so a small change in weights can change a selected token and everything after it.
+      </P>
+      <P>
+        Atomic Chat offers standard presets and its own <strong>Atomic Dynamic</strong> variants. The <A href="https://huggingface.co/AtomicChat/Inkling-2-Mini-GGUF">model card</A> says Atomic Dynamic assigns a weight type to each tensor. It compresses the expert weights, which hold 94% of the model&apos;s weights, while keeping attention and loop controllers at Q8_0. A tensor is simply a stored block of model numbers. Giving different blocks different precision lets the team spend space where its measurements say that space matters.
+      </P>
+      <P>
+        The release covers text and image input. Image input also needs a separate vision projector of about 0.64 GB, according to the model card. A user planning memory for image conversations should count that file, the chosen model, the context cache, and runtime buffers together.
+      </P>
+      <Figure
+        src="/blog/atomic-chat-inkling-2-mini-gguf-4.jpg"
+        alt="Diagram showing expert weights compressed while attention and loop controls retain higher precision"
+        width={900}
+        height={1500}
+        caption="Argo diagram based on Atomic Chat model card."
+      />
+      <H2>How much quality does compression retain?</H2>
+      <P>
+        Atomic Chat reports two measures against its BF16 reference. <strong>Top-1 agreement</strong> asks how often the compressed file selects the same next token. <strong>Mean KLD</strong> compares the full next-token probability distributions, with a lower value indicating a closer match. Neither is a direct score for whether the model completes your task correctly.
+      </P>
+      <P>
+        The published results show why the choice is more specific than simply picking a bit count. Q8_0 is 27.74 GB and reaches 97.7% top-1 agreement, with mean KLD 0.0033. Its Atomic Dynamic Q6_K file is 23.79 GB and reaches 97.6%, with KLD 0.0037. That is nearly the same agreement in this test at roughly 4 GB less on disk.
+      </P>
+      <P>
+        At a smaller size, the standard Q4_K_M file is 17.38 GB and reaches 94.7% top-1 agreement. Atomic Dynamic Q4_K is 16.53 GB and reaches 96.3%, with mean KLD falling from 0.0165 for standard Q4_K_M to 0.0080 for Atomic Dynamic Q4_K in Atomic Chat&apos;s measurement. The team&apos;s 15.00 GB IQ4_XS file reaches 95.8%. Those figures explain the release&apos;s main contribution: choosing precision per tensor can retain more of the reference model&apos;s token behavior at a given file size.
+      </P>
+      <Figure
+        src="/blog/atomic-chat-inkling-2-mini-gguf-5.jpg"
+        alt="Chart comparing file sizes and next-token agreement for Q8_0, AD-Q6_K and standard Q4_K_M against BF16"
+        width={900}
+        height={1500}
+        caption="Argo diagram of Atomic Chat measurements against its BF16 reference."
+      />
+      <P>
+        The smallest files open a different trade-off. Atomic Dynamic IQ2_M is 8.67 GB at 85.7% top-1 agreement. IQ1_S is 6.88 GB at 79.5%. Those may fit where a 16 GB file cannot, but the measured departure from the BF16 reference is much larger. Atomic Chat describes the one- and two-bit files as options for machines where nothing larger fits.
+      </P>
+      <Figure
+        src="/blog/atomic-chat-inkling-2-mini-gguf-6.jpg"
+        alt="Chart comparing smaller GGUF files and their top-1 agreement as size drops below 10 GB"
+        width={900}
+        height={1500}
+        caption="Argo diagram of Atomic Chat measurements against its BF16 reference."
+      />
+      <H2>How were the numbers measured?</H2>
+      <P>
+        The <A href="https://huggingface.co/AtomicChat/Inkling-2-Mini-GGUF">model card</A> says the team used a neutral corpus in 30 languages, divided into 87 chunks of 4,096 tokens. It ran llama.cpp&apos;s <code>llama-perplexity --kl-divergence</code> against BF16 logits on one H100 build of the required runtime branch. That makes the table a controlled comparison of file variants under one measurement setup. It does not measure conversational preference, task success, or speed on a consumer laptop.
+      </P>
+      <P>
+        Atomic Chat&apos;s BF16 reference was made by dequantizing the vendor&apos;s mixed NVFP4 and MXFP8 checkpoint. The team says even Q8_0 matches that BF16 reference&apos;s top token only 97.7% of the time. It suggests rounding errors may accumulate across the model&apos;s repeated layer visits, but marks that explanation as untested. The observed agreement is the finding; the explanation remains a hypothesis.
+      </P>
+      <P>
+        For a local user, memory is the next measurement to make. The model card estimates required memory as the chosen file size plus the key-value cache and about 1 GB of buffers. It says only four of the 24 physical layers use full attention, with the others using a 1,024-token window. Actual memory use will still depend on your runtime and context setting.
+      </P>
+      <Figure
+        src="/blog/atomic-chat-inkling-2-mini-gguf-7.jpg"
+        alt="Diagram breaking down local memory into model file, key-value cache, about 1 GB of buffers and optional vision projector"
+        width={900}
+        height={1500}
+        caption="Argo diagram based on Atomic Chat model card."
+      />
+      <H2>Why does the runtime version matter?</H2>
+      <P>
+        Inkling 2 Mini&apos;s loop needs explicit runtime support. Atomic Chat says its files were built against commit <code>6196d98</code> of <A href="https://github.com/ggml-org/llama.cpp/pull/32695">llama.cpp pull request #32695</A>. That pull request was still marked draft when checked on November 21, 2026. The model card warns that ordinary llama.cpp releases without the looped support do not load these files.
+      </P>
+      <P>
+        This is a practical first check before a long download: confirm that your local app includes a compatible build, and read the file-specific instructions on the model page. A tool&apos;s general claim to support GGUF does not automatically mean it understands this model&apos;s loop. The linked pull request explains why: the stored weights cover 24 physical layers, while inference must execute 48 logical visits and keep the right state for each pass.
+      </P>
+      <Figure
+        src="/blog/atomic-chat-inkling-2-mini-gguf-8.jpg"
+        alt="Diagram showing 48 logical layer visits mapped to 24 stored layers through shared weights"
+        width={900}
+        height={1500}
+        caption="Argo diagram based on llama.cpp pull request 32695 and the Atomic Chat model card."
+      />
+      <H2>Which file fits your machine?</H2>
+      <P>
+        If your machine has room, the Atomic Dynamic Q4_K file is a useful starting comparison: 16.53 GB on disk, with 96.3% next-token agreement against the publisher&apos;s BF16 reference. If memory is tighter, the 15.00 GB IQ4_XS file gives up a small amount of that measured agreement. If you want to stay nearer the BF16 behavior and have more memory, the 23.79 GB Atomic Dynamic Q6_K file nearly matches the 27.74 GB Q8_0 result in Atomic Chat&apos;s test. Add the 0.64 GB vision projector if you need image input.
+      </P>
+      <P>
+        Choose with your own workload after it loads. Try a few prompts you actually care about, check the available memory and response speed, and compare outputs across two sizes. Atomic Chat supplies a valuable first map of the compression trade-off. Your computer and tasks supply the final answer.
+      </P>
+      <P>
+        Read the <A href="https://huggingface.co/AtomicChat/Inkling-2-Mini-GGUF">Atomic Chat model card</A> for files and runtime instructions, and the <A href="https://huggingface.co/thinkingmachines/Inkling-2-Mini">base model card</A> for Inkling 2 Mini&apos;s architecture and license.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "atomic-chat-inkling-2-mini-gguf",
+    title: "Atomic Chat brings Inkling 2 Mini to smaller local machines",
+    description: "Atomic Chat published GGUF versions of Inkling 2 Mini and measured how each compressed file differs from its BF16 reference.",
+    category: "ai-news",
+    date: "November 21, 2026",
+    isoDate: "2026-11-21T06:38",
+    readingTime: "8 min read",
+    image: "/blog/atomic-chat-inkling-2-mini-gguf-1.jpg",
+    Content: AtomicChatInkling2MiniGgufContent,
+  },
   {
     slug: "songe-local-model-learning",
     title: "How Songe teaches a local AI model from its own mistakes",
