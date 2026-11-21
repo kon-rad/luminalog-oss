@@ -17074,7 +17074,134 @@ function HowAiAgentsTalkWhileTheyWorkContent() {
   )
 }
 
+/* ── Post: Gemini 4 Neon: release, cost, and measured results ── */
+function Gemini4NeonReleaseCostAndResultsContent() {
+  return (
+    <>
+      <P>
+        Choosing a model for an agent is a balance between the quality of its answers, the time a task takes, and what the task costs. A model that wins a difficult benchmark at its highest effort setting may be unnecessary for a quick lookup. A cheaper input-token price may also fail to predict the bill for a long task if the model writes many output tokens.
+      </P>
+      <P>
+        Google released <A href="https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/">Gemini 4 Neon</A> on November 18, 2026. It describes Neon as a model for complex software engineering, knowledge work, and scientific tasks, adapted from Gemini 4 Carbon. Google published an API price, a <A href="https://deepmind.google/models/model-cards/gemini-4-neon/">model card</A>, and benchmark comparisons. <A href="https://artificialanalysis.ai/articles/gemini-4-neon-intelligence-gain">Artificial Analysis</A> separately measured its Intelligence Index tasks.
+      </P>
+      <P>
+        The useful way to read this release is to keep three things separate: what is available, what each benchmark measured, and what it would cost on your own work.
+      </P>
+      <H2>What did Google release?</H2>
+      <P>
+        Neon is a multimodal model. The model card lists text, image, audio, and video inputs. It gives a combined input-output context window of up to one million tokens and a default synchronous output cap of 64,000 tokens. Context is the material a model can consider in one request. A large window can hold a long repository excerpt or a collection of documents, though size alone says nothing about how accurately it will use them.
+      </P>
+      <Figure
+        src="/blog/gemini-4-neon-release-cost-and-results-1.jpg"
+        alt="Diagram shows text image audio and video inputs flowing through Neon to text output"
+        width={1600}
+        height={900}
+        priority
+        caption="Google DeepMind lists text, image, audio and video inputs with text output. Diagram: Argo."
+      />
+      <P>
+        Google says Neon is adapted from Carbon. The public card points readers to Carbon&apos;s card for architecture and training details rather than providing a full standalone account of Neon&apos;s training data. That is a factual limit on what an outside builder can know from the release documents.
+      </P>
+      <P>
+        The launch describes four thinking levels: low, medium, high, and xhigh. They let a developer spend different amounts of inference time and tokens on different work. In an agent that handles both short questions and long code changes, that control can matter as much as a single flagship score. A result at xhigh must not be presented as the model&apos;s result at low.
+      </P>
+      <P>
+        Availability also depends on channel. Google says Neon rolled out in the Gemini API through AI Studio, Gemini for business, Google Antigravity for paid AI Pro and Ultra users, and the Gemini app for Pro and Ultra subscribers. A model being launched does not mean the same account can select it everywhere. The model card says access varies by product and subscription.
+      </P>
+      <Figure
+        src="/blog/gemini-4-neon-release-cost-and-results-2.jpg"
+        alt="Google comparison table lists Carbon, Neon and Hydrogen quality, prices and effort levels"
+        width={1600}
+        height={900}
+        caption="Google compares the Carbon, Neon and Hydrogen model family, including list prices and effort levels. Chart: Google."
+      />
+      <H2>How much is it to call?</H2>
+      <P>
+        The advertised API list price is USD 3 per million input tokens and USD 15 per million output tokens. Cached input is USD 0.15 per million tokens, a 95% reduction from the normal input price. Those are unit prices. They do not tell a developer the cost of a whole task until the task&apos;s prompt length, output length, retries, and effort setting are known.
+      </P>
+      <P>
+        Artificial Analysis reports a more task-shaped measurement. For its Intelligence Index at xhigh, Neon scored 61 and cost USD 6.44 per task, compared with USD 7.76 for Carbon at its standard, non-discounted price. Its article describes that as about 17% lower cost per task. The same evaluator reports about 21 minutes per Neon task versus about 36 minutes for Carbon in that comparison.
+      </P>
+      <Figure
+        src="/blog/gemini-4-neon-release-cost-and-results-3.jpg"
+        alt="Artificial Analysis article highlights its measured task cost for Neon"
+        width={1750}
+        height={1033}
+        caption="Artificial Analysis reports USD 6.44 per task for Neon xhigh on its Intelligence Index. Screenshot: Artificial Analysis."
+      />
+      <P>
+        The conditions are part of the claim. These are tasks in one independent index, at named effort settings and prices. They are useful for comparing models under a common test, but a coding agent that repeatedly reads files may have a different token mix. Cache behavior, output length, and tool calls can change the cost. The evaluator&apos;s own model page describes xhigh Neon as relatively slow and verbose among similar-priced models, even while it scores well on its Index.
+      </P>
+      <Figure
+        src="/blog/gemini-4-neon-release-cost-and-results-4.jpg"
+        alt="Two panels distinguish Google API token list prices from measured task cost"
+        width={1600}
+        height={900}
+        caption="Google lists USD 3 per million input and USD 15 per million output tokens; Artificial Analysis measured USD 6.44 per Neon xhigh Index task. Diagram: Argo."
+      />
+      <H2>What do the capability results say?</H2>
+      <P>
+        The <A href="https://deepmind.google/models/model-cards/gemini-4-neon/">DeepMind model card</A> gives a broad set of benchmark results. On Terminal-bench 4.1, its reported cheating-adjusted accuracy is 65.2%. The same table lists Claude Opus 5.5 at 65.8% and GPT-6.2 Sol at 61.5%. On AutomationBench, Neon is listed at 56.3% versus 42.5% for Opus and 41.3% for Sol. The card reports 70.9% on Vals Index v2.2, versus 70.1% and 66.1% for those two models.
+      </P>
+      <Figure
+        src="/blog/gemini-4-neon-release-cost-and-results-5.jpg"
+        alt="Three benchmark cards compare Neon Opus and Sol within each named test"
+        width={1600}
+        height={900}
+        caption="Google DeepMind reports results for Terminal-bench 4.1, AutomationBench and Vals Index v2.2. Diagram: Argo."
+      />
+      <P>
+        These tasks are different. Terminal-bench is a coding-agent evaluation. AutomationBench covers work automation. Vals Index covers a separate collection of tasks. A result in one column does not establish that Neon is the best choice for every agent. It is also important to read a benchmark&apos;s harness, the surrounding code and tools used to run a model. The model card shows both a provider harness and a mini harness for SWE-sweep, with quite different absolute percentages. Changing the harness can change the result substantially.
+      </P>
+      <P>
+        Artificial Analysis&apos;s Index provides another independent view. It reports 61 at xhigh, 60 at high, 55 at medium, and 44 at low. The evaluator&apos;s November 18 article says xhigh Neon is one point ahead of Carbon high. That is a small measured gain on that Index, paired with a lower measured cost and time per task under the stated comparison. It is more precise than calling the model an across-the-board jump.
+      </P>
+      <Figure
+        src="/blog/gemini-4-neon-release-cost-and-results-6.jpg"
+        alt="Google chart compares Neon Intelligence and task cost against other frontier models"
+        width={1600}
+        height={900}
+        caption="Google presents an Artificial Analysis Intelligence and cost comparison in its launch article. Chart: Google."
+      />
+      <P>
+        Google reports strong results on other specialized tasks in its launch post, including chart reading, science, and defensive security. Those matter to readers who have the corresponding workload. They should be read with the relevant benchmark definition, version, and evaluator, not stacked into an unsupported claim that one model dominates all work.
+      </P>
+      <Figure
+        src="/blog/gemini-4-neon-release-cost-and-results-7.jpg"
+        alt="Bar chart comparing Gemini 4 Neon's SEC-bench Pro score of 90.5% with other models"
+        width={1600}
+        height={900}
+        caption="Google reports Neon's SEC-bench Pro result in its launch article. Chart: Google."
+      />
+      <H2>How should a builder evaluate Neon?</H2>
+      <P>
+        Start with a small set of real tasks your application already performs. Keep prompts, tools, and success criteria fixed. Run each at a selected Neon effort level and at the comparison model&apos;s documented setting. Record whether the task completed, the number of corrections a person had to make, elapsed time, input and output tokens, cache use, and total USD cost. For a journal or personal assistant, include tasks involving long documents and sensitive action boundaries, because a public coding score will not cover them.
+      </P>
+      <P>
+        Think of the effort levels as gears on a bicycle. A higher gear can help on a demanding stretch but is wasteful on a short flat path. The analogy stops because inference effort does not guarantee success. A harder task may need better context, a safer tool boundary, or a human review, regardless of model setting.
+      </P>
+      <P>
+        The release offers developers a concrete model to test: a one-million-token multimodal window, four effort levels, and a published API price. The independent Index result gives a useful starting comparison, and the model card shows where some competing models still lead on named tasks. Use both, then measure the workload that actually matters to you.
+      </P>
+      <P>
+        Follow Argo&apos;s model and agent coverage at https://myargoquest.com/blog.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "gemini-4-neon-release-cost-and-results",
+    title: "Gemini 4 Neon: release, cost, and measured results",
+    description: "Google released Gemini 4 Neon with four effort levels, a one-million-token window, and published prices and evaluations.",
+    category: "ai-news",
+    date: "November 20, 2026",
+    isoDate: "2026-11-20T12:35",
+    readingTime: "6 min read",
+    image: "/blog/gemini-4-neon-release-cost-and-results-1.jpg",
+    Content: Gemini4NeonReleaseCostAndResultsContent,
+  },
   {
     slug: "how-ai-agents-talk-while-they-work",
     title: "How AI agents can talk while they work",
