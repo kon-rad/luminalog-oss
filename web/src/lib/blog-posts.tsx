@@ -17190,7 +17190,141 @@ function Gemini4NeonReleaseCostAndResultsContent() {
   )
 }
 
+/* ── Post: The black hole calculations Claude helped complete ── */
+function ClaudeBlackHoleCalculationsExplainedContent() {
+  return (
+    <>
+      <P>
+        A difficult research problem can remain open because the next calculation is too large to finish by hand. Another can remain open because nobody has found the right mathematical idea. In theoretical physics, both kinds of obstacle appear even when the underlying question is clearly stated.
+      </P>
+      <P>
+        Anthropic <A href="https://www.anthropic.com/research/claude-black-hole-physics">announced</A> on November 17, 2026 that Claude had helped complete two such problems in models used to study black holes and quantum gravity. The underlying preprints had appeared on Hexagon on November 7. One computes a long-missing correction in a phase-transition problem. The other proves the limit of a particular technique for ruling out candidate theories.
+      </P>
+      <P>
+        These results concern simplified theoretical universes, not observations of a black hole in ours. The papers are public, and their provenance statements describe Claude&apos;s role and physicist checks. That makes it possible to examine the actual claims instead of treating “AI solved physics” as a single undivided story.
+      </P>
+      <Figure
+        src="/blog/claude-black-hole-calculations-explained-1.jpg"
+        alt="Anthropic's explanation of the two Claude-assisted black hole theory papers"
+        width={1920}
+        height={1327}
+        priority
+        caption="Anthropic's November 17 explanation presents two distinct theoretical results. Source: Anthropic."
+      />
+      <H2>Why are black holes a useful test?</H2>
+      <P>
+        General relativity describes gravity and large-scale spacetime. Quantum mechanics describes small-scale matter. Each works well in its domain, but physicists do not have a complete theory that joins them. Black holes press both descriptions together: much mass in a small region, with questions about information and quantum behavior.
+      </P>
+      <P>
+        Physicists often study model universes that are easier to calculate than our own. One tool is holographic duality, in which a theory with gravity in a volume can also be described by a quantum theory on a lower-dimensional boundary. The two descriptions give different ways to ask the same mathematical question. If they agree, the result can teach physicists about a structure that a single description hides.
+      </P>
+      <Figure
+        src="/blog/claude-black-hole-calculations-explained-2.jpg"
+        alt="Diagram linking a model universe with gravity to a quantum boundary theory"
+        width={1600}
+        height={900}
+        caption="Schematic of the dual descriptions used in these theoretical models. Argo diagram; it does not depict our universe."
+      />
+      <P>
+        Think of the same city represented by a street map and a transit map. Each makes some routes easier to understand. The analogy ends because these theories are not simply two drawings of a real city; the duality and its assumptions are mathematical statements about particular model worlds.
+      </P>
+      <H2>What was missing from the first calculation?</H2>
+      <P>
+        The first paper, <A href="https://hexagonmath.org/pdf/2611.00175v1">The Hawking-Page transition at weak coupling</A>, studies what happens as one of those models is heated. At lower temperature, the dominant description resembles a gas of particles. At higher temperature, it resembles a black hole. Hawking and Page showed in 1983 that the change is abrupt in a regime where gravity has a classical spacetime description.
+      </P>
+      <Figure
+        src="/blog/claude-black-hole-calculations-explained-3.jpg"
+        alt="Two candidate phase diagrams for the weak-coupling Hawking-Page transition"
+        width={900}
+        height={1900}
+        caption="Figure 1 contrasts a continuous and an abrupt transition. Source: The Hawking-Page transition at weak coupling, p. 5."
+      />
+      <P>
+        The question here was whether the abrupt change persists at weak coupling, where the corresponding gravity picture is not a smooth classical geometry. A calculation proposed in the early 2000s could settle it, but the decisive coefficient appears only at three loops. A loop is a level in a series of corrections; three loops mean many interacting terms to track. The result depends on getting their combined sign right.
+      </P>
+      <Figure
+        src="/blog/claude-black-hole-calculations-explained-4.jpg"
+        alt="First paper's abstract reporting the negative three-loop coefficient"
+        width={945}
+        height={630}
+        caption="The abstract reports the coefficient whose negative sign implies an abrupt transition in this model. Source: The Hawking-Page transition at weak coupling, p. 1."
+      />
+      <P>
+        The preprint reports a quartic coefficient of <code>b = -1.48 × 10^-3 λ²</code>, where λ is a coupling parameter in the model. Its negative sign implies a first-order transition, meaning the change remains abrupt under the paper&apos;s conditions. The authors also report checks against known special cases and an independent calculation by a separate Claude process using another method. “Independent” here describes a separate computation within the project, not a replication by another research institution.
+      </P>
+      <P>
+        The paper&apos;s provenance statement says an internal Claude research model, prompted by a physicist, obtained the result, and the physicist checked it. The public document lets specialists inspect the derivation. Our review does not independently verify thousands of mathematical terms, so the finding should be attributed to the paper and its stated checks.
+      </P>
+      <H2>What did the second paper prove?</H2>
+      <P>
+        The second paper, <A href="https://hexagonmath.org/pdf/2611.00174v1">The spinless modular bootstrap at large central charge</A>, concerns a different problem. Physicists want to narrow the possible quantum theories that could describe a simplified three-dimensional gravity setting. Rather than build the correct theory outright, the bootstrap method rules out theories that violate consistency conditions.
+      </P>
+      <P>
+        This version asks how heavy the lightest allowed state could be. A mathematical tool called a linear functional gives an upper bound. Stronger functionals push the upper bound lower, excluding more candidate theories. The paper writes the leading bound in a form involving a slope, Λ. A larger Λ means a tighter bound.
+      </P>
+      <Figure
+        src="/blog/claude-black-hole-calculations-explained-5.jpg"
+        alt="Table comparing earlier modular bootstrap bounds with the new result"
+        width={900}
+        height={1120}
+        caption="Table 1 places the new bound beside earlier results under the paper's assumptions. Source: The spinless modular bootstrap at large central charge, p. 3."
+      />
+      <P>
+        Earlier proved analytic work had reached a slope of 8.503. Numerical results suggested that something near 9.1 might be possible, but a numerical hint was not a proof of the best achievable bound. The new paper gives an exact expression whose value is approximately 9.1266. It also proves an optimality statement for a specified class of functionals that contains finite combinations of derivatives. That scope matters: it says how far this version of the method can go, not that every possible way to study quantum gravity stops there.
+      </P>
+      <Figure
+        src="/blog/claude-black-hole-calculations-explained-6.jpg"
+        alt="Schematic curve and threshold in the modular bootstrap paper"
+        width={900}
+        height={755}
+        caption="Figure 1 is a schematic of an optimal functional at moderate central charge, drawn from formulas rather than data. Source: The spinless modular bootstrap at large central charge, p. 12."
+      />
+      <P>
+        The black-hole threshold in this setup corresponds to 12, so 9.1266 does not finish the search for a consistent theory. It clarifies which extra ingredients the next advance would need. The paper uses a spectral-curve idea, adapted from another mathematical setting, to understand the numerical pattern and construct the bound. Its provenance says an internal Claude model first reached the main result, a public Claude Opus 5.5 run obtained it independently, and a physicist checked every main result.
+      </P>
+      <H2>How was Claude used?</H2>
+      <P>
+        Anthropic describes several Claude agents working on candidate problems over weeks. For the phase-transition result, agents computed components independently and compared with known results. For the bootstrap result, one agent noticed a pattern in numerical work and another connected it to a method from elsewhere in mathematics. Anthropic says the final result was formally verified in Lean, a proof-checking system, before publication. The papers&apos; provenance statements specify which results came from models and what the human physicist checked.
+      </P>
+      <P>
+        This is stronger documentation than an unsupported demo, but the distinction between provenance and validation remains. The preprints are author-side releases on a platform that labels portions of the text primarily AI-generated. A human check and a proof checker can catch classes of mistakes; independent researchers still need to study the arguments and reproduce what matters. Neither preprint has become a general-purpose quantum-gravity theory.
+      </P>
+      <P>
+        The result also says little about how often this approach fails. Anthropic describes many candidate problems and a long research process, but these two finished papers cannot by themselves establish the success rate, compute cost, or typical level of human guidance for AI-led physics research.
+      </P>
+      <Figure
+        src="/blog/claude-black-hole-calculations-explained-7.jpg"
+        alt="Diagram separating the phase transition calculation from the modular bootstrap bound"
+        width={900}
+        height={1200}
+        caption="The two papers answer different questions in restricted mathematical models. Argo diagram based on the cited preprints."
+      />
+      <H2>What should a reader take from the papers?</H2>
+      <P>
+        Read the two problems separately. In the <A href="https://hexagonmath.org/pdf/2611.00175v1">first preprint</A>, look at the coefficient&apos;s sign, the model and the checks against known calculations. In the <A href="https://hexagonmath.org/pdf/2611.00174v1">second</A>, look at the bound&apos;s assumptions, prior slope, new slope, and optimality class. The <A href="https://www.anthropic.com/research/claude-black-hole-physics">Anthropic explanation</A> is useful for the physical picture, while the papers contain the technical claims.
+      </P>
+      <P>
+        The practical lesson for AI-assisted research is procedural: make the exact problem public, retain the derivation, record which parts a model produced, and state what a human or independent system checked. That allows others to test the result on its own terms.
+      </P>
+      <P>
+        Follow Argo&apos;s coverage of AI research at https://myargoquest.com/blog.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "claude-black-hole-calculations-explained",
+    title: "The black hole calculations Claude helped complete",
+    description: "Anthropic published two preprints on black hole theory, one completing a three-loop calculation and one tightening a mathematical bound.",
+    category: "ai-news",
+    date: "November 20, 2026",
+    isoDate: "2026-11-20T12:42",
+    readingTime: "7 min read",
+    image: "/blog/claude-black-hole-calculations-explained-1.jpg",
+    Content: ClaudeBlackHoleCalculationsExplainedContent,
+  },
   {
     slug: "gemini-4-neon-release-cost-and-results",
     title: "Gemini 4 Neon: release, cost, and measured results",
