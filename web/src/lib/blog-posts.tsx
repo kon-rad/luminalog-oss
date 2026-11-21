@@ -16943,7 +16943,149 @@ function AtomicChatInkling2MiniGgufContent() {
   )
 }
 
+/* ── Post: How AI agents can talk while they work ── */
+function HowAiAgentsTalkWhileTheyWorkContent() {
+  return (
+    <>
+      <P>
+        You ask an agent to find a note. It starts answering, then you remember the note was from last month. You say so while it is speaking. A good collaborator adjusts immediately. Many voice assistants instead finish the old answer, stop abruptly, or begin the whole exchange again.
+      </P>
+      <P>
+        That gap is about timing as much as intelligence. A natural conversation includes pauses, overlap, corrections and short signals like “right.” A useful voice agent also needs to keep working while the person continues talking. Recent systems approach that problem in different ways, from a chain of speech services to a model trained on a continuous stream.
+      </P>
+      <P>
+        By Merlin, principal engineer at Argo.
+      </P>
+      <Figure
+        src="/blog/how-ai-agents-talk-while-they-work-1.jpg"
+        alt="Highlighted Thinking Machines Lab passage explaining 200 millisecond micro-turns"
+        width={1085}
+        height={1050}
+        priority
+        caption="Source: Thinking Machines Lab, Interaction Models, May 2026; highlighted micro-turn passage."
+      />
+      <H2>What changes when a model can listen and speak together?</H2>
+      <P>
+        The ordinary voice-agent pipeline has three jobs. Speech recognition turns microphone audio into text. A language model reads that text and chooses a response or tool. Text-to-speech turns the answer back into sound. The system also needs a turn detector to decide when the person has finished speaking.
+      </P>
+      <P>
+        That design is useful because every stage can be inspected or replaced. Its awkward moment comes when the detector makes a human decision from a short silence: was that the end of the sentence, or did the person pause to think? While an answer is playing, a separate interruption rule has to decide whether a new sound means “stop” or merely “mm-hm.”
+      </P>
+      <P>
+        <strong>Full duplex</strong> means input and output can happen at the same time. Open models such as Kyutai’s <A href="https://github.com/kyutai-labs/moshi">Moshi</A> treat audio as a continuous stream. Moshi uses Mimi, a streaming neural audio codec that compresses sound into tokens the model can process. The codec carries sound efficiently; Moshi is the model that handles the dialogue. The official repository includes an MLX version for Macs, while its basic microphone example still needs echo cancellation and lag handling for a polished speakerphone experience.
+      </P>
+      <Figure
+        src="/blog/how-ai-agents-talk-while-they-work-2.jpg"
+        alt="Kyutai Moshi repository describing a full-duplex speech model and Mimi codec"
+        width={1920}
+        height={1327}
+        caption="Source: Kyutai Moshi GitHub repository, with the full-duplex model description."
+      />
+      <H2>What did Thinking Machines Lab build?</H2>
+      <P>
+        <A href="https://thinkingmachines.ai/blog/interaction-models/">Thinking Machines Lab’s interaction-model study</A> starts from a different unit of conversation: a <strong>micro-turn</strong>, a short slice of time that can contain incoming audio or video and outgoing speech. Its model interleaves roughly 200 milliseconds of input with 200 milliseconds of output. Silence, overlap and a correction remain events on the same timeline rather than separate completed chat messages.
+      </P>
+      <P>
+        The company pairs that live model with a background model. The live model stays with the person. When a request needs sustained reasoning, browsing or tools, it sends the conversation context to the background model and brings back results while the interaction continues. Think of a colleague who keeps discussing the problem while another colleague checks the records. The analogy stops at authority: an application still has to decide which system may perform an action and how a completed action is recorded.
+      </P>
+      <P>
+        Thinking Machines reports strong scores on its full-duplex benchmark and demonstrations of timed speech and responses to visual cues. Its published table reports a 0.40-second turn-taking latency for its small interaction model under that benchmark’s conditions. The May 2026 article presented a research preview without a public API price or deployable model weights. It said limited access was planned for the following months.
+      </P>
+      <Figure
+        src="/blog/how-ai-agents-talk-while-they-work-3.jpg"
+        alt="Parallel user input and model output lanes share four 200 millisecond windows"
+        width={900}
+        height={1400}
+        caption="Argo diagram based on the Thinking Machines Lab micro-turn explanation."
+      />
+      <H2>Which models can a builder use now?</H2>
+      <P>
+        Hosted systems offer two main shapes. A native speech model can handle audio and call application tools itself. A conversational front can handle the live exchange while delegating work to an existing agent. The second shape fits a product that already has memory, retrieval and permissions.
+      </P>
+      <P>
+        <A href="https://ai.google.dev/gemini-api/docs/pricing">Gemini 3.8 Live</A> is a strong price and quality candidate. Google lists audio at USD 0.005 per minute of input and USD 0.018 per minute of output, with other modalities and tools billed separately. In <A href="https://artificialanalysis.ai/speech-to-speech/arena">Artificial Analysis’s live Speech Agent Arena</A>, it ranks third in blind conversation preference and records 93.2% task success on the arena’s scenarios. That makes it worth testing on real product tasks rather than choosing from a price sheet alone.
+      </P>
+      <P>
+        <A href="https://developers.openai.com/api/docs/guides/live">GPT-Live</A> directly supports a separate backend. With client delegation, a product can keep its own agent service and return checked results to the voice conversation. OpenAI lists the voice session at USD 0.05 per minute, with backend model and tool use charged separately. The application has to assemble the task from transcript events and its own state; a delegation signal alone does not include the user’s full request.
+      </P>
+      <Figure
+        src="/blog/how-ai-agents-talk-while-they-work-4.jpg"
+        alt="OpenAI GPT-Live documentation describing voice conversation during backend work"
+        width={1155}
+        height={1015}
+        caption="Source: OpenAI GPT-Live developer documentation on backend delegation."
+      />
+      <P>
+        OpenAI’s <A href="https://developers.openai.com/api/docs/models/gpt-realtime-2.1-mini">GPT-Realtime 2.1 mini</A> lowers audio token prices to USD 10 per million input tokens and USD 20 per million output tokens. Its lower rate comes with a different quality result in the same live arena: 76.7% task success for the mini minimal configuration. These rankings reflect that evaluator’s conversations and settings, not a universal score for every voice agent.
+      </P>
+      <Figure
+        src="/blog/how-ai-agents-talk-while-they-work-5.jpg"
+        alt="Three model cards compare arena task success, Elo and sample count for Gemini Live, GPT-Live and Realtime mini"
+        width={900}
+        height={1400}
+        caption="Argo chart from Artificial Analysis Speech Agent Arena data, accessed 2026-11-21; the tested backend settings differ."
+      />
+      <H2>What makes an interruption work?</H2>
+      <P>
+        An agent should stop playback when a person genuinely cuts in, but keep going when they say “uh-huh.” This distinction is called <strong>backchannel handling</strong>. <A href="https://docs.livekit.io/agents/logic/turns/adaptive-interruption-handling/">LiveKit’s adaptive interruption system</A> adds an acoustic model after voice activity detection to separate the two. Endpointing makes a related judgment at the other edge of a turn: whether a pause means the person is finished.
+      </P>
+      <P>
+        The conversation also needs a record of what happened. A tool may finish writing a task after the person interrupts the spoken explanation. Stopping audio does not undo the write. A robust voice app tracks the task result, the speech it generated and the speech the client actually played. After reconnecting, it can report the real outcome without repeating the action.
+      </P>
+      <Figure
+        src="/blog/how-ai-agents-talk-while-they-work-6.jpg"
+        alt="LiveKit documentation describing adaptive interruption and backchannel handling"
+        width={1155}
+        height={1015}
+        caption="Source: LiveKit official documentation on adaptive interruption handling."
+      />
+      <H2>How would Argo use this architecture?</H2>
+      <P>
+        Argo already has a text agent with persona, retrieval and controlled tools. The voice interface we are evaluating would keep that agent as the authority for reading sources and performing actions. A local reference path would connect microphone audio to speech recognition, the existing agent, and speech generation. Open-source frameworks such as <A href="https://github.com/pipecat-ai/pipecat">Pipecat</A> can manage the streaming media and interruptions. That path gives us a transcript and a clear place to check each tool result.
+      </P>
+      <P>
+        We would compare it with two hosted paths on the same read-only tasks. Gemini Live tests the native voice model at its published audio rates. GPT-Live tests whether a live conversational front can delegate to our existing agent while the person continues talking. Every path needs the same source-linked answers, corrections and interrupted requests. For a later action test, a repeated utterance must never produce two writes.
+      </P>
+      <P>
+        The useful measurement is the time from a person finishing a request to hearing a meaningful answer, alongside task success and cost per successful task. Time to the first audio packet can reward a quick filler phrase while the actual answer is still pending. We would also measure premature cutoffs, false interruptions, recovery after a connection drop and which part of an answer the user heard.
+      </P>
+      <Figure
+        src="/blog/how-ai-agents-talk-while-they-work-7.jpg"
+        alt="A person connects to a live voice front which delegates work to one task agent"
+        width={1600}
+        height={900}
+        caption="Argo diagram of the conversational front and task backend pattern described by Thinking Machines Lab and OpenAI."
+      />
+      <H2>What&apos;s built and what&apos;s next?</H2>
+      <P>
+        Argo’s existing agent, retrieval and local speech components give us parts of the system. The continuous voice session and its task handoff are an engineering proposal, not a finished product. The next useful step is a browser comparison with real microphone input, source-linked questions and interruptions. That experiment will tell us whether the extra naturalness of a hosted live model is worth its ongoing audio cost and data route.
+      </P>
+      <Figure
+        src="/blog/how-ai-agents-talk-while-they-work-8.jpg"
+        alt="Three voice-agent paths compare local cascade, native live model and a live front with a task agent"
+        width={900}
+        height={1500}
+        caption="Argo architecture comparison for the implementation evaluation."
+      />
+      <P>
+        A voice agent becomes a collaborator when it can keep listening, use the right evidence, and tell the truth about what it has done. Follow the work on <A href="https://myargoquest.com/blog">the Argo blog</A> and <A href="https://github.com/kon-rad/argo">Argo’s open-source repository</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "how-ai-agents-talk-while-they-work",
+    title: "How AI agents can talk while they work",
+    description: "A guide to full-duplex models, live voice interaction, and the architecture Argo is evaluating for grounded conversations.",
+    category: "ai-news",
+    date: "November 21, 2026",
+    isoDate: "2026-11-21T06:53",
+    readingTime: "7 min read",
+    image: "/blog/how-ai-agents-talk-while-they-work-1.jpg",
+    Content: HowAiAgentsTalkWhileTheyWorkContent,
+  },
   {
     slug: "atomic-chat-inkling-2-mini-gguf",
     title: "Atomic Chat brings Inkling 2 Mini to smaller local machines",
