@@ -17682,7 +17682,158 @@ function OpenaiFrontierRiskControlsExplainedContent() {
   )
 }
 
+/* ── Post: What an agent platform needs beneath the chat ── */
+function AgentPlatformBeneathChatContent() {
+  return (
+    <>
+      <P>
+        An invoice arrives while its owner is away. An agent reads it, checks the purchase order, notices a mismatch and asks a person to approve the exception. The person sees one question and the relevant documents. Behind that small interaction, the system has to receive the invoice, decide which agent may handle it, give that agent access to the right files, preserve its work while it waits and resume after the reply.
+      </P>
+      <P>
+        That is a different design problem from making a chatbot answer well. In a <A href="https://x.com/john_ssuh/status/2124336124172935336">recent architecture sketch</A>, John Suh describes an agent platform built from runtimes, computers, permissioned files, conversations, inboxes, event listeners, workflows and apps. His prediction is that these pieces converge into an operating system for agent work. The useful question today is simpler: what does each piece do?
+      </P>
+      <Figure
+        src="/blog/agent-platform-beneath-chat-1.jpg"
+        alt="John Suh screenshot headed Agent platform 2027, showing sections on actors, environments and a permissioned filesystem"
+        width={1450}
+        height={1616}
+        priority
+        caption="John Suh, Agent platform 2027, first source screenshot. Original post: https://x.com/john_ssuh/status/2124336124172935336"
+      />
+      <H2>What sits beneath a conversation?</H2>
+      <P>
+        A message is one turn in a conversation. Sustained work needs much more. The agent needs a runtime that can wake up, a computer or sandbox in which to use tools, access to selected data, a record of what happened and a way to ask for help. It may also need to respond to events no person typed into chat. A useful platform makes those responsibilities explicit instead of hiding them inside one conversation thread.
+      </P>
+      <Figure
+        src="/blog/agent-platform-beneath-chat-2.jpg"
+        alt="Argo diagram mapping eight layers beneath an agent chat surface: runtime, workspace, files, conversation, inbox, events, workflow and apps"
+        width={1400}
+        height={790}
+        caption="The proposed platform is a stack of separable responsibilities. Argo synthesis from John Suh's post."
+      />
+      <P>
+        This separation matters because the pieces change at different speeds. A user may want to replace a model without moving company files. A team may add an approval rule without rewriting every agent. A workflow may continue for days while the visible conversation contains only three messages. The product can still feel simple, but the underlying system cannot treat all of these as the same object.
+      </P>
+      <H2>Who is the agent when no one is chatting?</H2>
+      <P>
+        It helps to distinguish an <strong>agent definition</strong> from an <strong>agent runtime</strong> and a <strong>session</strong>. The definition says which tools, instructions and limits apply. The runtime is the place where an instance keeps state and receives work. A session is one execution trace: the messages, decisions and tool calls associated with a bounded run. Reusing a definition does not mean every run should share the same state or permissions.
+      </P>
+      <Figure
+        src="/blog/agent-platform-beneath-chat-3.jpg"
+        alt="Three boxes distinguish reusable agent definition, independent runtime and one execution session"
+        width={1670}
+        height={942}
+        caption="Separating definition, runtime and session makes the proposed actor model legible. Argo diagram based on John Suh and Cloudflare Agents docs."
+      />
+      <P>
+        Suh describes actors, independent units that can receive messages and hold their own state, as a natural runtime for agents. This is not only a theoretical pattern. <A href="https://developers.cloudflare.com/agents/getting-started/learn-the-runtime/">Cloudflare&apos;s Agents documentation</A> describes an agent running inside a Durable Object, with a harness as one capability of that object. That implementation demonstrates one way to give an agent an identity and a durable place to work. It does not establish that every platform should use the same runtime.
+      </P>
+      <H2>Where does the work happen?</H2>
+      <P>
+        The runtime decides which agent is working. A <strong>workspace</strong> is the computer environment where it reads files, runs code or opens tools. One agent might test several configurations in separate sandboxes. Several agents might use different parts of one shared workspace. This is why Suh describes N agents working across M computers rather than assigning every agent a permanent machine.
+      </P>
+      <Figure
+        src="/blog/agent-platform-beneath-chat-4.jpg"
+        alt="Four agents map onto two workspaces, illustrating that agents and computers can be pooled independently"
+        width={1400}
+        height={790}
+        caption="Four illustrative agents use two illustrative workspaces. Suh's N-agent/M-computer idea, diagrammed by Argo."
+      />
+      <P>
+        The distinction already appears in shipping infrastructure. <A href="https://developers.cloudflare.com/changelog/post/2026-09-30-sandbox-sdk-1-0/">Cloudflare&apos;s Sandbox SDK 1.0</A> lets an application choose a sandbox image and size, run commands and save its files as a snapshot, a feature in public beta. A snapshot can become the starting point for later work. That is useful when an agent must test a change without rebuilding its environment every time. It also makes the question of who may create, clone and inspect a workspace more important.
+      </P>
+      <H2>Who gets to touch the files?</H2>
+      <P>
+        A shared filesystem is convenient: agents can pass documents and code through ordinary paths. It is also a place where authority can become confused. A file being reachable does not mean every agent should read it, and an agent allowed to read a draft should not automatically be allowed to publish it.
+      </P>
+      <Figure
+        src="/blog/agent-platform-beneath-chat-5.jpg"
+        alt="Identity passes through a policy check before file or tool access and may route to human approval"
+        width={1400}
+        height={790}
+        caption="A shared workspace still needs identity, scoped permissions and an approval path. Argo diagram of Suh's proposal."
+      />
+      <P>
+        Suh calls for role-based access control on files, separate from the computers that happen to run the agents. A practical version needs to answer three questions on every consequential action: who initiated this work, which agent is acting and what may it do now? The policy might allow a read, block a write or route a payment or publication to a person. Cloudflare&apos;s sandbox design shows one narrower boundary: credentials can remain in Worker code while commands run in a sandbox. The larger cross-agent file policy is a platform design choice, not something that follows automatically from using a sandbox.
+      </P>
+      <H2>What should the person see?</H2>
+      <P>
+        Suh proposes treating the <strong>conversation</strong> as its own product object, separate from the execution session. He argues that many coding-agent applications expose an agent&apos;s internal session, including tool calls, to the user. That can be valuable for debugging, but a person approving an invoice does not need to scroll past every search and file operation. In his design, the agent deliberately posts user-facing content through a tool call. The execution session remains available as an inspectable trace when someone needs to diagnose a mistake.
+      </P>
+      <Figure
+        src="/blog/agent-platform-beneath-chat-6.jpg"
+        alt="A user-facing conversation displays questions, answers and handoffs while a separate agent session holds tool calls and debugging traces"
+        width={1400}
+        height={790}
+        caption="Conversation and execution session serve different readers. Argo diagram of Suh's distinction."
+      />
+      <P>
+        That distinction creates a cleaner contract. An agent may perform several internal steps, but it has to deliberately post a result or question to the conversation. The person sees decisions and evidence at the right moment; operators can still inspect the underlying trace. The design also supports other surfaces, such as an approval inbox that collects questions from many workflows in one place.
+      </P>
+      <H2>What starts a task without a prompt?</H2>
+      <P>
+        The invoice example begins with an external event, not a chat message. A listener receives the event, a policy decides whether it matters, and a task is assigned. Suh imagines teams defining these listeners for their own email, data streams and business systems. The hard part is not receiving a webhook. It is turning a noisy stream into a scoped signal that the right agent may act on.
+      </P>
+      <Figure
+        src="/blog/agent-platform-beneath-chat-7.jpg"
+        alt="An external event enters a listener and policy filter, then starts a bounded agent task"
+        width={1400}
+        height={790}
+        caption="Event listeners turn external signals into scoped agent work. Argo architecture sketch based on Suh's proposal."
+      />
+      <P>
+        An event should carry enough context to explain why the run started. The platform should also record what filter matched, what agent was selected and what access it received. Otherwise, the human approval inbox becomes a queue of mysterious requests. Because the listener controls scope, it sits inside the platform&apos;s trust boundary, not just plumbing.
+      </P>
+      <H2>How does work survive a pause?</H2>
+      <P>
+        Some steps are predictable: validate an invoice number, wait for a reply, then record a decision. Others need an agent to interpret documents or investigate an exception. Suh argues for code-defined workflows that can mix both kinds of step and persist across long periods.
+      </P>
+      <Figure
+        src="/blog/agent-platform-beneath-chat-8.jpg"
+        alt="A five-stage task moves from event to deterministic check, agent reasoning, human approval and continuation"
+        width={1400}
+        height={790}
+        caption="A durable workflow can pause for human approval and resume. Argo diagram based on Suh's proposal and Temporal documentation."
+      />
+      <P>
+        This is a real engineering problem independent of any one agent model. <A href="https://docs.temporal.io/workflow-execution">Temporal&apos;s workflow documentation</A> describes durable execution with an event history, so application code can continue after interruptions. The agent&apos;s judgment inside a step may be uncertain, while the surrounding workflow still records which step ran, whether it failed and what should happen next. Keeping those two responsibilities separate makes recovery and review possible.
+      </P>
+      <H2>Does every task need to look like chat?</H2>
+      <P>
+        No. A quick question belongs in a message. A complicated review might need a work panel with files, comments and a decision button. A specialist team may need an editable interface for the objects it handles every day. Suh proposes domain-specific views and editable interfaces built on the same agent platform, instead of one fixed chat layout for every job.
+      </P>
+      <Figure
+        src="/blog/agent-platform-beneath-chat-9.jpg"
+        alt="A message, work panel and customizable app present different interfaces for the same underlying task"
+        width={1400}
+        height={790}
+        caption="The application layer can present one task in several interfaces. Argo diagram of Suh's proposal."
+      />
+      <P>
+        Existing systems show pieces of the stack, but no source here demonstrates that one platform will replace all business software. A more useful test is whether an agent can carry one real job across the layers: receive a signal, enter a scoped workspace, inspect only permitted data, complete a durable process and show a person the decision in the right interface. If any step relies on copying an entire internal session into chat, the platform is still missing a layer.
+      </P>
+      <P>
+        For a builder, start with one workflow and draw its boundaries before choosing the model. Mark the event that starts it, the files it may touch, the action that requires approval and the record that proves it finished. The agent&apos;s intelligence matters most when those boundaries let it work without making the person supervise every intermediate move.
+      </P>
+      <P>
+        Follow Argo at https://x.com/myargoquest for more grounded explanations of agent systems.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "agent-platform-beneath-chat",
+    title: "What an agent platform needs beneath the chat",
+    description: "A practical map of the runtimes, workspaces, permissions, events and apps that let AI agents do sustained work.",
+    category: "ai-news",
+    date: "November 22, 2026",
+    isoDate: "2026-11-22T06:32",
+    readingTime: "8 min read",
+    image: "/blog/agent-platform-beneath-chat-1.jpg",
+    Content: AgentPlatformBeneathChatContent,
+  },
   {
     slug: "openai-frontier-risk-controls-explained",
     title: "How OpenAI manages frontier model risk from training to release",
