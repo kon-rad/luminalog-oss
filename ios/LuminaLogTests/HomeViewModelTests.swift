@@ -10,7 +10,7 @@ final class HomeViewModelTests: XCTestCase {
     @MainActor
     private final class SpyAIService: AIService {
         private(set) var dailyPromptCalls = 0
-        var dailyPromptResult = [DailyPromptItem(area: "Inner World", text: "Spy daily prompt")]
+        var dailyPromptResult = StoryPromptType.allCases.map(\.fallback)
 
         func dailyPrompt() async throws -> [DailyPromptItem] {
             dailyPromptCalls += 1
@@ -66,7 +66,7 @@ final class HomeViewModelTests: XCTestCase {
     }
 
     @MainActor
-    func testStoryCardUsesExistingCacheAndMuteControlsKeepAreaPrompts() async throws {
+    func testOldAreaCacheIsReplacedWithEightStoryQuestions() async throws {
         let ai = SpyAIService()
         var profile = makeProfile(promptText: "Cached area?", promptDate: Date())
         profile.id = UUID().uuidString
@@ -76,19 +76,9 @@ final class HomeViewModelTests: XCTestCase {
             drafts: DraftStore(directory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
         )
         viewModel.start()
-        await waitUntil("profile loaded") { viewModel.profile != nil && viewModel.displayedPrompts.count == 2 }
-        let first = try XCTUnwrap(viewModel.displayedPrompts.first?.storyType)
-        XCTAssertEqual(viewModel.displayedPrompts.last?.text, "Cached area?")
-        XCTAssertEqual(ai.dailyPromptCalls, 0)
-        viewModel.muteStoryType(first)
-        XCTAssertNotEqual(viewModel.displayedPrompts.first?.storyType, first)
-        for type in StoryPromptType.allCases { viewModel.muteStoryType(type.rawValue) }
-        XCTAssertEqual(viewModel.displayedPrompts.map(\.text), ["Cached area?"])
-        XCTAssertTrue(viewModel.hasMutedStoryTypes)
-        viewModel.restoreStoryTypes()
-        XCTAssertEqual(viewModel.displayedPrompts.count, 2)
-        XCTAssertFalse(viewModel.hasMutedStoryTypes)
-        UserDefaults.standard.removeObject(forKey: "story-prompts.\(profile.id).history")
+        await waitUntil("eight Story questions loaded") { viewModel.displayedPrompts.count == 8 }
+        XCTAssertEqual(ai.dailyPromptCalls, 1)
+        XCTAssertEqual(viewModel.displayedPrompts.map(\.storyType), StoryPromptType.allCases.map(\.rawValue))
     }
 
     @MainActor
@@ -104,24 +94,24 @@ final class HomeViewModelTests: XCTestCase {
             promptNow: { clock }
         )
         model.start()
-        await waitUntil("cached profile loaded") { model.displayedPrompts.count == 2 }
-        await model.refreshPromptDay()
-        XCTAssertEqual(ai.dailyPromptCalls, 0)
-        clock = clock.addingTimeInterval(86400)
+        await waitUntil("first day loaded") { model.displayedPrompts.count == 8 }
         await model.refreshPromptDay()
         XCTAssertEqual(ai.dailyPromptCalls, 1)
-        await model.refreshPromptDay()
-        XCTAssertEqual(ai.dailyPromptCalls, 1, "same day uses the fetched cache")
         clock = clock.addingTimeInterval(86400)
         await model.refreshPromptDay()
-        XCTAssertEqual(ai.dailyPromptCalls, 2, "the in-memory cache expires too")
+        XCTAssertEqual(ai.dailyPromptCalls, 2)
+        await model.refreshPromptDay()
+        XCTAssertEqual(ai.dailyPromptCalls, 2, "same day uses the fetched cache")
+        clock = clock.addingTimeInterval(86400)
+        await model.refreshPromptDay()
+        XCTAssertEqual(ai.dailyPromptCalls, 3, "the in-memory cache expires too")
         UserDefaults.standard.removeObject(forKey: "story-prompts.\(profile.id).history")
     }
 
     // MARK: - Daily prompt
 
     @MainActor
-    func testUsesTodaysProfilePromptWithoutCallingAIService() async {
+    func testOldProfilePromptIsRefreshedOnce() async {
         let ai = SpyAIService()
         let profile = makeProfile(promptText: "Today's cached prompt", promptDate: Date())
         let viewModel = HomeViewModel(
@@ -135,13 +125,8 @@ final class HomeViewModelTests: XCTestCase {
 
         viewModel.start()
 
-        await waitUntil("Today's profile prompt is shown") {
-            viewModel.promptState == .loaded([DailyPromptItem(area: "Reflection", text: "Today's cached prompt")])
-        }
-        // Give a potential stray fetch a beat to surface before asserting.
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        XCTAssertEqual(ai.dailyPromptCalls, 0,
-                       "A fresh profile prompt must not trigger an AI call")
+        await waitUntil("Story questions replace the old cache") { viewModel.displayedPrompts.count == 8 }
+        XCTAssertEqual(ai.dailyPromptCalls, 1)
     }
 
     @MainActor

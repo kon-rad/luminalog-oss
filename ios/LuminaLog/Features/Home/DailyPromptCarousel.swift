@@ -8,19 +8,13 @@ private struct CardHeightKey: PreferenceKey {
     }
 }
 
-/// The daily-prompt hero on Home: a Story card followed by five area-anchored
-/// prompts (design §2). Each page shows the life-area chip and its personalized
-/// question; below sit ◀ / ▶ arrows, page dots (current highlighted), and a
-/// single "Start Journaling" button that seeds the Create flow with the
-/// currently visible prompt.
+/// Eight daily Story questions, one per type, with the same entry actions.
 struct DailyPromptCarousel: View {
 
     let prompts: [DailyPromptItem]
     /// Invoked with the visible prompt when "Start Journaling" is tapped.
     let onStart: (DailyPromptItem) -> Void
     var onTalk: ((DailyPromptItem) -> Void)? = nil
-    var onMute: ((String) -> Void)? = nil
-    var onRestore: (() -> Void)? = nil
 
     @State private var selection = 0
     /// Measured from the tallest card's natural content height; drives the TabView frame.
@@ -55,23 +49,15 @@ struct DailyPromptCarousel: View {
 
             controls
 
-            startButton
-            if current.storyType != nil {
+            HStack(spacing: Spacing.s) {
+                startButton
                 Button("Talk") { onTalk?(current) }
-                    .frame(minHeight: 44)
-                Button("Fewer like this") {
-                    if let type = current.storyType { onMute?(type) }
-                }
-                .font(.captionText)
-                .frame(minHeight: 44)
-            }
-            if let onRestore {
-                Button("Restore Story prompt types", action: onRestore)
-                    .font(.captionText)
-                    .frame(minHeight: 44)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .background(RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)
+                        .stroke(Color.accentWarm, lineWidth: 1))
             }
         }
-        .onChange(of: prompts.map(\.id)) { _, _ in
+        .onChange(of: prompts) { _, _ in
             selection = 0
             cardHeight = 160
         }
@@ -202,7 +188,7 @@ struct DailyPromptCarousel: View {
 
     private var startButton: some View {
         Button { onStart(current) } label: {
-            Text(current.storyType == nil ? "Start Journaling" : "Write")
+            Text("Start writing")
                 .font(.uiBody.weight(.semibold))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity, minHeight: 44)

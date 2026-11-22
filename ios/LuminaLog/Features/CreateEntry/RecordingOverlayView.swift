@@ -25,16 +25,17 @@ struct RecordingOverlayView: View {
 
             // Prompt reminder (only when answering a prompt)
             if let promptText {
-                HStack(alignment: .top, spacing: Spacing.s) {
-                    Rectangle()
-                        .fill(Color.accentWarm)
-                        .frame(width: 3)
-                    Text(promptText)
-                        .font(.promptQuoteCompact)
-                        .foregroundStyle(Color.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                Text(promptText)
+                    .font(.promptQuoteCompact)
+                    .foregroundStyle(Color.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, Spacing.s + 3)
+                    .overlay(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 1.5)
+                            .fill(Color.accentWarm)
+                            .frame(width: 3)
+                    }
                 .padding(.horizontal, Spacing.m)
                 .padding(.bottom, Spacing.s)
             }

@@ -10,6 +10,7 @@ export const STORY_TYPES = {
   yourself: { label: 'Most like yourself', text: 'When did you feel most like yourself today?' },
 } as const
 export type StoryType = keyof typeof STORY_TYPES
+export const STORY_TYPE_ORDER = Object.keys(STORY_TYPES) as StoryType[]
 export function isStoryType(value: unknown): value is StoryType {
   return typeof value === 'string' && Object.hasOwn(STORY_TYPES, value)
 }
@@ -25,4 +26,17 @@ export function storyPrompt(type: StoryType, raw?: string) {
     }
   } catch { /* Safe fallback, without another model call. */ }
   return { area: STORY_TYPES[type].label, text, storyType: type }
+}
+
+/** A missing or malformed model item falls back independently for that type. */
+export function storyPromptSet(raw?: string) {
+  let stories: unknown[] = []
+  try {
+    const parsed = JSON.parse(raw?.match(/\{[\s\S]*\}/)?.[0] ?? '')
+    stories = Array.isArray(parsed.stories) ? parsed.stories : []
+  } catch { /* Every type receives its safe fallback. */ }
+  return STORY_TYPE_ORDER.map(type => {
+    const item = stories.find((candidate: any) => candidate?.storyType === type) as any
+    return storyPrompt(type, JSON.stringify({ story: { question: item?.question ?? item?.text } }))
+  })
 }

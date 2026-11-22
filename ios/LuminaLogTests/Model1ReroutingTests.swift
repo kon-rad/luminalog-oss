@@ -60,6 +60,7 @@ final class Model1ReroutingTests: XCTestCase {
     override func setUp() {
         super.setUp()
         savedFlag = DevFlags.aiModel1
+        BodyCapturingURLProtocol.responseJSON = Data(#"{"text":"ok","model":"m"}"#.utf8)
     }
 
     override func tearDown() {
@@ -138,25 +139,20 @@ final class Model1ReroutingTests: XCTestCase {
     }
 
     @MainActor
-    func testStoryRequestSelectsTypeAndResponsePrependsItWithoutLosingAreas() async throws {
+    func testStoryRequestReturnsEightQuestionsWithoutAreaCards() async throws {
         DevFlags.aiModel1 = true
         var profile = MockData.profile
         profile.id = UUID().uuidString
-        var calendar = Calendar.current
-        calendar.timeZone = TimeZone(identifier: profile.timezone) ?? .current
-        let rotation = StoryPromptRotation(userID: profile.id, calendar: calendar)
-        let type = try XCTUnwrap(rotation.selection(on: Date()))
-        let story = type.fallback
         let payload: [String: Any] = [
-            "story": ["area": story.area, "text": story.text, "storyType": type.rawValue],
-            "prompts": [["area": "Work", "text": "Work question?"]], "text": "Work question?"
+            "stories": StoryPromptType.allCases.map { type in
+                ["area": type.fallback.area, "text": type.fallback.text, "storyType": type.rawValue]
+            }
         ]
         BodyCapturingURLProtocol.responseJSON = try JSONSerialization.data(withJSONObject: payload)
         let result = try await makeService(entries: [], profile: profile).dailyPrompt()
-        XCTAssertEqual(try capturedBody()["storyType"] as? String, type.rawValue)
-        XCTAssertEqual(result.first, story)
-        XCTAssertEqual(result.last?.text, "Work question?")
-        UserDefaults.standard.removeObject(forKey: "story-prompts.\(profile.id).history")
+        XCTAssertEqual(try capturedBody()["storySet"] as? Bool, true)
+        XCTAssertEqual(result.count, 8)
+        XCTAssertEqual(result.map(\.storyType), StoryPromptType.allCases.map(\.rawValue))
     }
 
     // MARK: Daily-prompt request-body construction (flag ON)

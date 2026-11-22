@@ -61,6 +61,21 @@ const entries = [{ id: 'e1', type: 'text', title: 'Monday', content: 'I kept avo
 beforeEach(() => { chatCompletion.mockReset() })
 
 describe('daily story prompts', () => {
+  it('returns eight personalized Story questions in one call for the new client', async () => {
+    chatCompletion.mockResolvedValue(modelReply(JSON.stringify({ stories: [
+      { storyType: 'scene', question: 'What did you notice before the hard call today?' },
+      { storyType: 'energy', question: 'What gave you energy after that call today?' },
+    ] })))
+    const res = mockRes()
+    await dailyPromptHandler({ uid: 'u', body: { entries, storySet: true } } as any, res)
+    expect(chatCompletion).toHaveBeenCalledTimes(1)
+    expect(res.body.stories).toHaveLength(8)
+    expect(res.body.stories[0].text).toBe('What did you notice before the hard call today?')
+    expect(res.body.stories[6].text).toBe('What gave you energy after that call today?')
+    expect(res.body.stories[1].text).toBe('If today were a chapter, what would you call it?')
+    expect(res.body).not.toHaveProperty('prompts')
+    expect(chatCompletion.mock.calls[0][0][0].content).toContain('eight distinct daily journaling questions')
+  })
   it('adds a story in the same call, preserving legacy fields and five areas', async () => {
     chatCompletion.mockResolvedValue(modelReply(JSON.stringify({ prompts: [], story: { question: 'What choice stood out for you today?' } })))
     const res = mockRes()
