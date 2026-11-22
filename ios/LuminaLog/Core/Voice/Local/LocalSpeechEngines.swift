@@ -77,23 +77,47 @@ actor ParakeetSpeechToText: VoiceSpeechToText {
 // MARK: - Text to speech (Kokoro-82M, Core ML)
 
 actor KokoroTextToSpeech: VoiceTextToSpeech {
-    /// Kokoro's default English voice. One constant so the voice is easy to change.
-    static let voice = "af_heart"
-
     private let manager: KokoroAneManager
+    private var prepared: Set<CallVoiceChoice> = []
+    private var preparing: [CallVoiceChoice: Task<Void, Error>] = [:]
 
-    init() async throws {
+    init() {
         // `.aneTailCpu` keeps every stage off Metal. A call must survive the screen
         // locking, and Metal work from the background gets an iPhone app killed.
-        let manager = KokoroAneManager(defaultVoice: Self.voice, computeUnits: .aneTailCpu, version: .legacy)
-        try await manager.initialize()
-        self.manager = manager
+        manager = KokoroAneManager(defaultVoice: CallVoiceChoice.heart.rawValue, computeUnits: .aneTailCpu, version: .legacy)
+    }
+
+    func prepareVoice(_ choice: CallVoiceChoice) async throws {
+        guard choice.isNeural else { return }
+        if prepared.contains(choice) { return }
+        if let task = preparing[choice] {
+            try await task.value
+            return
+        }
+        let manager = self.manager
+        let task = Task {
+            try await manager.initialize(preloadVoices: [choice.rawValue])
+        }
+        preparing[choice] = task
+        defer { preparing[choice] = nil }
+        try await task.value
+        prepared.insert(choice)
     }
 
     func synthesize(_ text: String) async throws -> [Float] {
-        let result = try await manager.synthesizeDetailed(text: text, voice: Self.voice)
+        try await synthesize(text, voice: .heart)
+    }
+
+    func synthesize(_ text: String, voice: CallVoiceChoice) async throws -> [Float] {
+        try await prepareVoice(voice)
+        let result = try await manager.synthesizeDetailed(text: text, voice: voice.rawValue)
         guard !result.samples.isEmpty else { throw LocalSpeechError.synthesisFailed }
         return result.samples
+    }
+
+    func cleanup() async {
+        prepared.removeAll()
+        await manager.cleanup()
     }
 }
 
@@ -172,6 +196,8 @@ protocol LocalVoiceEngineProviding: Sendable {
     /// Downloads (first use only) and loads the models. `status` receives short
     /// user-facing progress lines. Models stay loaded between calls.
     func prepare(status: @escaping @Sendable (String) -> Void) async throws -> LocalVoiceEngineSet
+    /// Fetches one curated Kokoro voice pack before it becomes the saved choice.
+    func prepareVoice(_ choice: CallVoiceChoice) async throws
     /// Frees the models (memory pressure while no call is live).
     func unload() async
 }
@@ -188,6 +214,30 @@ actor LocalVoiceEngines: LocalVoiceEngineProviding {
     static let neuralVoiceMinimumMemory: UInt64 = 5_500_000_000
 
     private var loaded: LocalVoiceEngineSet?
+    private let kokoro = KokoroTextToSpeech()
+
+    func prepareVoice(_ choice: CallVoiceChoice) async throws {
+        guard choice.isNeural else { return }
+        guard ProcessInfo.processInfo.physicalMemory >= Self.neuralVoiceMinimumMemory else {
+            throw CallVoicePreparationError.unsupportedDevice
+        }
+        try await kokoro.prepareVoice(choice)
+        if let set = loaded, set.neuralVoice == nil {
+            loaded = LocalVoiceEngineSet(
+                classifier: set.classifier,
+                speechToText: set.speechToText,
+                neuralVoice: kokoro,
+                systemVoice: set.systemVoice
+            )
+        }
+    }
+
+    func sample(_ choice: CallVoiceChoice) async throws -> [Float] {
+        let line = "Hello. I'm here to listen."
+        if choice == .device { return try await SystemTextToSpeech().synthesize(line) }
+        try await prepareVoice(choice)
+        return try await kokoro.synthesize(line, voice: choice)
+    }
 
     func prepare(status: @escaping @Sendable (String) -> Void) async throws -> LocalVoiceEngineSet {
         if let loaded { return loaded }
@@ -205,10 +255,12 @@ actor LocalVoiceEngines: LocalVoiceEngineProviding {
         })
 
         var neuralVoice: VoiceTextToSpeech?
-        if ProcessInfo.processInfo.physicalMemory >= Self.neuralVoiceMinimumMemory {
+        let preferred = await CallVoicePreference.shared.selected
+        if preferred.isNeural && ProcessInfo.processInfo.physicalMemory >= Self.neuralVoiceMinimumMemory {
             status("Preparing the voice…")
             do {
-                neuralVoice = try await KokoroTextToSpeech()
+                try await kokoro.prepareVoice(preferred)
+                neuralVoice = kokoro
             } catch {
                 // Fail down to the system voice, never to a cloud voice.
                 Self.logger.error("Kokoro load failed, using the system voice: \(error.localizedDescription, privacy: .public)")
@@ -229,7 +281,8 @@ actor LocalVoiceEngines: LocalVoiceEngineProviding {
         return set
     }
 
-    func unload() {
+    func unload() async {
         loaded = nil
+        await kokoro.cleanup()
     }
 }

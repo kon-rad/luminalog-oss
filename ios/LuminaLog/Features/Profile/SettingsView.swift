@@ -41,6 +41,7 @@ struct SettingsView: View {
     @State private var showPaywall = false
     @State private var showNotManageableAlert = false
     @State private var showCredits = false
+    @State private var showCallVoice = false
     @State private var showConfig = false
     @State private var showUsernameEditor = false
     @State private var showRecordings = false
@@ -986,6 +987,8 @@ struct SettingsView: View {
                 rowDivider
                 aiConfigRow
                 rowDivider
+                callVoiceRow
+                rowDivider
                 voiceCreditsRow
                 rowDivider
                 signOutRow
@@ -1620,6 +1623,33 @@ struct SettingsView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Voice Credits, \(viewModel.creditBalance) credits, buy minutes for voice conversations")
+    }
+
+    private var callVoiceRow: some View {
+        Button { showCallVoice = true } label: {
+            HStack(spacing: Spacing.m) {
+                settingsIcon("waveform", tint: .tintVoice)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Call voice")
+                        .font(.uiBody)
+                        .foregroundStyle(Color.textPrimary)
+                    Text("Choose how Argo speaks")
+                        .font(.captionText)
+                        .foregroundStyle(Color.textSecondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary.opacity(0.5))
+            }
+            .padding(Spacing.m)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Call voice, choose how Argo speaks")
+        .sheet(isPresented: $showCallVoice) {
+            CallVoiceSelectionView(inCall: false)
+        }
     }
 
     private var signOutRow: some View {

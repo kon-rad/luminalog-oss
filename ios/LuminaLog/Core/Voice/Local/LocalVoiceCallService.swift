@@ -156,6 +156,13 @@ final class LocalVoiceCallService: VoiceCallService {
         self.audio = audio
         self.pipeline = pipeline
         self.engines = engines
+        if CallVoicePreference.shared.selected == .device {
+            CallVoicePreference.shared.reportEffective(.device)
+        } else if engines.neuralVoice == nil {
+            CallVoicePreference.shared.reportEffective(.device, reason: "This iPhone is using the device voice.")
+        } else {
+            CallVoicePreference.shared.reportEffective(CallVoicePreference.shared.selected)
+        }
 
         captureTask = Task { [weak self] in
             for await chunk in microphone {
@@ -347,12 +354,14 @@ final class LocalVoiceCallService: VoiceCallService {
     /// is the audio hand-off and not the synthesis time.
     private func play(sentences: AsyncStream<String>, generation turnGeneration: Int, timings: TurnTimings) async {
         guard let audio else { return }
+        // A voice change made in the sheet waits for the next reply.
+        let replyVoice = CallVoicePreference.shared.selected
         let (clips, clipFeed) = AsyncStream<(text: String, samples: [Float])>.makeStream()
 
         let synthesis = Task { [weak self] in
             for await sentence in sentences {
                 guard let self, self.generation == turnGeneration else { break }
-                if let samples = await self.synthesize(sentence) {
+                if let samples = await self.synthesize(sentence, voice: replyVoice) {
                     clipFeed.yield((sentence, samples))
                 }
             }
@@ -371,18 +380,34 @@ final class LocalVoiceCallService: VoiceCallService {
 
     /// Kokoro when it is loaded and the phone is not hot; otherwise the system
     /// voice. Never a cloud voice.
-    private func synthesize(_ text: String) async -> [Float]? {
-        guard let engines else { return nil }
+    private func synthesize(_ text: String, voice choice: CallVoiceChoice) async -> [Float]? {
+        guard var engines else { return nil }
         let thermal = ProcessInfo.processInfo.thermalState
         let cool = thermal != .serious && thermal != .critical
-        if let neural = engines.neuralVoice, !neuralVoiceFailed, cool {
+        // A call that began with Device voice can adopt a newly prepared
+        // Kokoro voice without restarting the microphone or call.
+        if choice.isNeural, engines.neuralVoice == nil, cool,
+           ProcessInfo.processInfo.physicalMemory >= LocalVoiceEngines.neuralVoiceMinimumMemory,
+           let refreshed = try? await engineProvider.prepare(status: { _ in }) {
+            self.engines = refreshed
+            engines = refreshed
+        }
+        if choice.isNeural, let neural = engines.neuralVoice as? KokoroTextToSpeech, !neuralVoiceFailed, cool {
             do {
-                return try await neural.synthesize(text)
+                let samples = try await neural.synthesize(text, voice: choice)
+                CallVoicePreference.shared.reportEffective(choice)
+                return samples
             } catch {
                 neuralVoiceFailed = true
                 Self.logger.error("Kokoro failed, system voice for the rest of the call: \(error.localizedDescription, privacy: .public)")
             }
         }
+        let reason: String?
+        if !choice.isNeural { reason = nil }
+        else if !cool { reason = "The phone is warm, so this call is using the device voice." }
+        else if neuralVoiceFailed { reason = "The selected voice stopped working, so this call is using the device voice." }
+        else { reason = "This iPhone is using the device voice." }
+        CallVoicePreference.shared.reportEffective(.device, reason: reason)
         return try? await engines.systemVoice.synthesize(text)
     }
 
@@ -421,6 +446,7 @@ final class LocalVoiceCallService: VoiceCallService {
         pipeline = nil
         engines = nil
         assistantActive = false
+        CallVoicePreference.shared.clearCall()
     }
 
     private func resetCallState() {
