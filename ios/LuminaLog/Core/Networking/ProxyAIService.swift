@@ -388,7 +388,7 @@ final class ProxyAIService: AIService {
     /// persists none of it. Returns an all-nil batch when the week holds no
     /// entries, which the coordinator treats as "nothing to schedule" rather
     /// than an error.
-    func generateMirrorEchoes() async throws -> GeneratedMirrorEchoes {
+    func generateMirrorEchoes(previousMirrors: [String]) async throws -> GeneratedMirrorEchoes {
         let empty = GeneratedMirrorEchoes(morning: nil, afternoon: nil, evening: nil)
         guard let journals else { return empty }
         guard let since = Calendar(identifier: .gregorian)
@@ -399,10 +399,15 @@ final class ProxyAIService: AIService {
         guard !sources.isEmpty else { return empty }
 
         let profile = await loadProfile()
-        let body = Model1Requests.DailyEncouragementsBody(
-            name: profile?.displayName ?? "",
-            profile: profile.map { Model1Requests.profileFields(from: $0.details) } ?? [:],
-            entries: Model1Requests.encouragementEntries(from: recent, since: since)
+        let dateFormatter = DateFormatter()
+        dateFormatter.calendar = Calendar(identifier: .gregorian)
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.timeZone = TimeZone(identifier: profile?.timezone ?? "") ?? .current
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let body = Model1Requests.DailyMirrorBody(
+            entries: Model1Requests.encouragementEntries(from: recent, since: since),
+            previousMirrors: Array(previousMirrors.prefix(12)),
+            localDate: dateFormatter.string(from: now())
         )
         let response: DailyMirrorResponse =
             try await api.post(path: "/v1/ai/daily-mirror", body: body)

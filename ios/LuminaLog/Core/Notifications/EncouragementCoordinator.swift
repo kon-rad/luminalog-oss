@@ -71,7 +71,7 @@ final class EncouragementCoordinator: ObservableObject {
         let key = Self.dateKey(reference, timezone: timezone)
 
         do {
-            try await generateBatchIfNeeded(dateKey: key, reference: reference)
+            try await generateBatchIfNeeded(dateKey: key, reference: reference, profileId: profile?.id)
 
             let today = try await repository.messages(forDateKey: key)
             let plan = EncouragementPlanner.plan(
@@ -103,13 +103,17 @@ final class EncouragementCoordinator: ObservableObject {
         }
     }
 
-    /// Calls the AI at most once per local day. Nothing is written when the model
-    /// had nothing to ground any slot in, so the next foreground retries rather
-    /// than banking a day of silence.
-    private func generateBatchIfNeeded(dateKey: String, reference: Date) async throws {
+    /// Calls the AI at most once per local day when there is journal context.
+    /// A day with no entries can retry after the user writes an entry.
+    private func generateBatchIfNeeded(dateKey: String, reference: Date, profileId: String?) async throws {
         if try await repository.hasBatch(forDateKey: dateKey) { return }
+        let emptyKey = profileId.map { "ll-mirror.emptyBatch.\($0)" }
+        if let emptyKey, defaults.string(forKey: emptyKey) == dateKey { return }
 
-        let echoes = try await ai.generateMirrorEchoes()
+        // History is encrypted at rest and decrypted only on device. If it is
+        // unavailable, generation still proceeds with the week's entries.
+        let previous = (try? await repository.recentDelivered(limit: 12, before: reference, after: nil)) ?? []
+        let echoes = try await ai.generateMirrorEchoes(previousMirrors: previous.map(\.text))
         let messages = EncouragementSlot.all.compactMap { slot -> EncouragementMessage? in
             guard let text = echoes.text(for: slot.timeOfDay)?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !text.isEmpty else { return nil }
@@ -121,7 +125,12 @@ final class EncouragementCoordinator: ObservableObject {
                 deliveredAt: nil
             )
         }
-        guard !messages.isEmpty else { return }
+        guard !messages.isEmpty else {
+            // A grounded request with no fresh observation should stay quiet
+            // for the day, rather than repeat the AI call on every foreground.
+            if !echoes.sources.isEmpty, let emptyKey { defaults.set(dateKey, forKey: emptyKey) }
+            return
+        }
         let inputs: MirrorInputs? = echoes.sources.isEmpty ? nil : MirrorInputs(
             dateKey: dateKey,
             sources: echoes.sources,

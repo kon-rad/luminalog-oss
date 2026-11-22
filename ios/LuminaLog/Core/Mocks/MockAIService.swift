@@ -26,7 +26,7 @@ final class MockAIService: AIService {
         return MockData.cannedDailyPrompts
     }
 
-    func generateMirrorEchoes() async throws -> GeneratedMirrorEchoes {
+    func generateMirrorEchoes(previousMirrors: [String]) async throws -> GeneratedMirrorEchoes {
         try await Task.sleep(nanoseconds: generationDelay)
         return MockData.cannedMirrorEchoes
     }

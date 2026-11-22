@@ -123,7 +123,7 @@ protocol AIService: AnyObject {
     /// entries. A slot comes back nil when there is nothing to ground it in.
     /// Zero-knowledge: the client decrypts and sends plaintext, the server
     /// persists nothing.
-    func generateMirrorEchoes() async throws -> GeneratedMirrorEchoes
+    func generateMirrorEchoes(previousMirrors: [String]) async throws -> GeneratedMirrorEchoes
 
     /// Streaming assistant reply — yields token/word deltas as they arrive.
     func streamChatReply(chatId: String, message: String) -> AsyncThrowingStream<String, Error>
@@ -225,7 +225,7 @@ extension AIService {
     /// Default: only the zero-knowledge `ProxyAIService` gathers the week's
     /// entries and calls the server. Mocks and test stubs inherit the all-nil
     /// batch, which the coordinator treats as "nothing to schedule".
-    func generateMirrorEchoes() async throws -> GeneratedMirrorEchoes {
+    func generateMirrorEchoes(previousMirrors: [String]) async throws -> GeneratedMirrorEchoes {
         GeneratedMirrorEchoes(morning: nil, afternoon: nil, evening: nil)
     }
 }

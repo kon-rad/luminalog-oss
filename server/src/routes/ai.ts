@@ -24,7 +24,7 @@ import {
   parseEncouragements, fallbackEncouragements,
   ENCOURAGEMENT_COUNT, ENCOURAGEMENT_TITLE_MAX, ENCOURAGEMENT_BODY_MAX,
 } from '../services/dailyEncouragements'
-import { parseMirrorEchoes, fallbackMirrorEchoes, fallbackSlotsOf } from '../services/dailyMirror'
+import { parseMirrorEchoes, emptyMirrorEchoes } from '../services/dailyMirror'
 import { parsePeriodSummaryRequest, buildChildrenBlock, parsePeriodSummary } from '../services/periodSummary'
 import { dailyReportHandler } from './dailyReport'
 import { userFactsHandler } from './userFacts'
@@ -373,6 +373,7 @@ interface JournalContextEntry {
   type?: string
   title?: string
   content?: string
+  createdAt?: string
 }
 
 /** `[type · title]\nsnippet` blocks joined by a divider, one per entry. */
@@ -381,7 +382,8 @@ function buildJournalContext(entries: JournalContextEntry[]): string {
     .map(e => {
       const title = (e.title ?? '') || 'Untitled'
       const content = e.content ?? ''
-      return `[${e.type ?? 'text'} · ${title}]\n${content.slice(0, 800)}`
+      const date = typeof e.createdAt === 'string' ? e.createdAt.slice(0, 10) : ''
+      return `[${e.type ?? 'text'} · ${title}${date ? ` · ${date}` : ''}]\n${content.slice(0, 800)}`
     })
     .join('\n\n---\n\n')
 }
@@ -458,9 +460,11 @@ aiRouter.post('/daily-encouragements', firebaseAuth, requirePro, requireAiConsen
 export async function dailyMirrorHandler(req: Request, res: Response): Promise<void> {
   try {
     const body = (req.body ?? {}) as {
-      entries?: Array<{ id?: string; type?: string; title?: string; content?: string }>
+      entries?: JournalContextEntry[]
       profile?: ProfileFields
       name?: string
+      previousMirrors?: string[]
+      localDate?: string
     }
 
     if (!Array.isArray(body.entries)) {
@@ -477,14 +481,19 @@ export async function dailyMirrorHandler(req: Request, res: Response): Promise<v
     }
 
     const journalContext = buildJournalContext(entries)
-    const systemPrompt = PROMPTS.mirrorEchoes({ journalContext })
+    const previousMirrors = Array.isArray(body.previousMirrors)
+      ? body.previousMirrors.filter((value): value is string => typeof value === 'string').slice(0, 12).map(value => value.slice(0, 160))
+      : []
+    const localDate = typeof body.localDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.localDate)
+      ? body.localDate : undefined
+    const systemPrompt = PROMPTS.mirrorEchoes({ journalContext, previousMirrors, localDate })
     let attempts = 1
-    let echoes = parseMirrorEchoes(await generate(systemPrompt, MIRROR_TRIGGER))
+    let echoes = parseMirrorEchoes(await generate(systemPrompt, MIRROR_TRIGGER), previousMirrors)
     if (!echoes) {
       attempts = 2
-      echoes = parseMirrorEchoes(await generate(systemPrompt, MIRROR_TRIGGER))
+      echoes = parseMirrorEchoes(await generate(systemPrompt, MIRROR_TRIGGER), previousMirrors)
     }
-    if (!echoes) echoes = fallbackMirrorEchoes()
+    if (!echoes) echoes = emptyMirrorEchoes()
 
     // The exact strings sent to the model, so the client can show what it saw.
     // Built from plaintext the client sent; nothing is persisted here.
@@ -496,7 +505,7 @@ export async function dailyMirrorHandler(req: Request, res: Response): Promise<v
         user: MIRROR_TRIGGER,
         model: activeChatModel(),
         attempts,
-        fallbackSlots: fallbackSlotsOf(echoes),
+        fallbackSlots: [],
       },
     })
   } catch (err: any) {
