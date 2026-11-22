@@ -12,6 +12,9 @@ struct CopyButton: View {
     var label: String = "Copy"
     /// VoiceOver label describing what gets copied, e.g. "Copy entry".
     var accessibilityText: String = "Copy"
+    /// Keep the full tap target when a message needs only the copy icon.
+    var iconOnly: Bool = false
+    var tint: Color = .accentWarm
 
     @State private var didCopy = false
 
@@ -32,11 +35,13 @@ struct CopyButton: View {
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: didCopy ? "checkmark" : "doc.on.doc")
-                Text(didCopy ? "Copied" : label)
+                if !iconOnly {
+                    Text(didCopy ? "Copied" : label)
+                }
             }
             .font(.captionText.weight(.semibold))
-            .foregroundStyle(Color.accentWarm)
-            .frame(minHeight: 44)
+            .foregroundStyle(tint)
+            .frame(minWidth: iconOnly ? 44 : nil, minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
