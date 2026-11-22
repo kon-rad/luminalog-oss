@@ -29,7 +29,6 @@ struct JournalDetailView: View {
     @State private var isEditingTranscript = false
     @State private var isShowingOptions = false
     @State private var isEditingEntry = false
-    @State private var isShowingJournalChat = false
 
     @Environment(\.dismiss) private var dismiss
 
@@ -184,13 +183,6 @@ struct JournalDetailView: View {
                 EntryEditView(entry: entry, journals: journals, profiles: profiles, ai: ai)
             }
         }
-        .sheet(isPresented: $isShowingJournalChat) {
-            if let entry = viewModel.entry {
-                JournalChatPickerSheet(journalTitle: entry.title) { kind in
-                    onStartJournalChat?(entry.id, entry.title, kind)
-                }
-            }
-        }
         .onChange(of: viewModel.didDelete) { _, didDelete in
             if didDelete { dismiss() }
         }
@@ -248,11 +240,24 @@ struct JournalDetailView: View {
 
     private func titleHeader(_ entry: JournalEntry) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text(entry.title)
-                .font(.journalDetailTitle)
-                .foregroundStyle(Color.textPrimary)
-                .lineLimit(1)
-                .truncationMode(.tail)
+            HStack(spacing: Spacing.xs) {
+                Text(entry.title)
+                    .font(.journalDetailTitle)
+                    .foregroundStyle(Color.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Spacer(minLength: Spacing.xs)
+                if let onStartJournalChat {
+                    journalChatButton(
+                        entry: entry, kind: .text, systemImage: "bubble.left",
+                        label: "Chat about this entry", action: onStartJournalChat
+                    )
+                    journalChatButton(
+                        entry: entry, kind: .voice, systemImage: "phone.fill",
+                        label: "Call about this entry", action: onStartJournalChat
+                    )
+                }
+            }
 
             HStack(alignment: .firstTextBaseline) {
                 Text(entry.createdAt.formatted(date: .abbreviated, time: .shortened))
@@ -264,33 +269,30 @@ struct JournalDetailView: View {
                     .foregroundStyle(Color.textSecondary)
                     .accessibilityLabel("\(entry.wordCount) words")
             }
-
-            if onStartJournalChat != nil {
-                chatButton
-                    .padding(.top, Spacing.s)
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
     }
 
-    /// Prominent full-width action that opens the text/voice chat picker for
-    /// this entry (only shown when the caller supports journal-linked chats).
-    private var chatButton: some View {
+    private func journalChatButton(
+        entry: JournalEntry,
+        kind: ChatKind,
+        systemImage: String,
+        label: String,
+        action: @escaping (String, String, ChatKind) -> Void
+    ) -> some View {
         Button {
-            isShowingJournalChat = true
+            action(entry.id, entry.title, kind)
         } label: {
-            Label("Chat about this entry", systemImage: "bubble.left.and.text.bubble.right")
-                .font(.uiBody.weight(.semibold))
-                .foregroundStyle(Color.white)
-                .frame(maxWidth: .infinity, minHeight: 48)
-                .background(
-                    RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous)
-                        .fill(Color.accentWarm)
-                )
+            Image(systemName: systemImage)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Color.accentWarm)
+                .frame(width: 36, height: 36)
+                .background(Color.accentWarm.opacity(0.12), in: Circle())
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Chat about this entry")
+        .accessibilityLabel(label)
     }
 
     private func wordCountLabel(_ count: Int) -> String {

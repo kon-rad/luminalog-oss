@@ -25,7 +25,16 @@ struct MessageBubble: View {
         HStack {
             if isUser { Spacer(minLength: 48) }
 
-            bubbleContent
+            HStack(alignment: .bottom, spacing: Spacing.xs) {
+                bubbleContent
+                    .textSelection(.enabled)
+                CopyButton(
+                    text: text,
+                    accessibilityText: "Copy \(isUser ? "your" : "Argo's") message",
+                    iconOnly: true,
+                    tint: isUser ? .white : .accentWarm
+                )
+            }
                 .padding(.horizontal, Spacing.m)
                 .padding(.vertical, Spacing.s + Spacing.xs)
                 .background(bubbleShape.fill(fillColor))
@@ -38,8 +47,6 @@ struct MessageBubble: View {
 
             if !isUser { Spacer(minLength: 48) }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(isUser ? "You" : "Companion"): \(text)")
     }
 
     @ViewBuilder

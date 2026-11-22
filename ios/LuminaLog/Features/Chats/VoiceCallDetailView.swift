@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct VoiceCallDetailView: View {
     @StateObject private var viewModel: VoiceCallDetailViewModel
@@ -52,6 +53,13 @@ struct VoiceCallDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Button {
+                        UIPasteboard.general.string = transcriptText
+                    } label: {
+                        Label("Copy transcript", systemImage: "doc.on.doc")
+                    }
+                    .disabled(viewModel.messages.isEmpty)
+
                     Button(role: .destructive) {
                         isConfirmingDelete = true
                     } label: {
@@ -228,6 +236,12 @@ struct VoiceCallDetailView: View {
 
     // MARK: - Helpers
 
+    private var transcriptText: String {
+        viewModel.messages.map { message in
+            "\(message.role == .user ? "You" : "Argo"): \(message.text)"
+        }.joined(separator: "\n\n")
+    }
+
     private func formatTime(_ seconds: Double) -> String {
         let s = max(0, Int(seconds))
         return String(format: "%d:%02d", s / 60, s % 60)
@@ -274,9 +288,14 @@ private struct TranscriptMessageRow: View {
             Text(message.text)
                 .font(.uiBody)
                 .foregroundStyle(Color.textPrimary)
-            Text(message.createdAt, style: .time)
-                .font(.captionText)
-                .foregroundStyle(Color.textSecondary)
+                .textSelection(.enabled)
+            HStack {
+                Text(message.createdAt, style: .time)
+                    .font(.captionText)
+                    .foregroundStyle(Color.textSecondary)
+                Spacer()
+                CopyButton(text: message.text, accessibilityText: "Copy transcript message", iconOnly: true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Spacing.m)
