@@ -151,6 +151,7 @@ final class ProxyAIService: AIService {
 
     private struct DailyPromptResponse: Decodable {
         let story: DailyPromptItem?
+        let stories: [DailyPromptItem]?
         /// The five area-anchored prompts (new server). Optional so an older
         /// server that returns only `text` still decodes.
         let prompts: [DailyPromptItem]?
@@ -361,18 +362,16 @@ final class ProxyAIService: AIService {
         if DevFlags.aiModel1, let journals {
             let entries = await firstEmission(journals.recentEntries(limit: 5)) ?? []
             let profile = await loadProfile()
-            var calendar = Calendar.current
-            calendar.timeZone = TimeZone(identifier: profile?.timezone ?? "") ?? .current
-            let type = profile.flatMap { StoryPromptRotation(userID: $0.id, calendar: calendar).selection(on: now()) }
             body = Model1Requests.DailyPromptBody(
                 name: profile?.displayName ?? "",
                 profile: profile.map { Model1Requests.profileFields(from: $0.details) } ?? [:],
                 entries: Model1Requests.promptEntries(from: entries),
-                storyType: type?.rawValue
+                storySet: true
             )
         }
         let response: DailyPromptResponse =
             try await api.post(path: "/v1/ai/daily-prompt", body: body)
+        if let stories = response.stories, !stories.isEmpty { return stories }
         if let prompts = response.prompts, !prompts.isEmpty {
             return (response.story.map { [$0] } ?? []) + prompts
         }

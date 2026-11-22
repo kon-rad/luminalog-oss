@@ -111,7 +111,7 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         }
     }
 
-    /// Today's cached personalized prompts (five, one per life area).
+    /// Today's cached personalized questions (Story types on current clients).
     struct DailyPrompt: Codable, Equatable, Sendable {
         /// First prompt's text, kept for backward-compat with older docs that
         /// stored a single prompt and only have this field.
@@ -119,7 +119,7 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         var date: Date
         /// Journal entry ids the prompts were personalized from (proxy-written).
         var sourceEntryIds: [String]?
-        /// The five area-anchored prompts. Absent on legacy single-prompt docs.
+        /// The daily questions. Absent on legacy single-prompt docs.
         var prompts: [DailyPromptItem]?
 
         /// The prompts to show: the stored five, or a single-item fallback

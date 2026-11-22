@@ -89,7 +89,7 @@ struct CreateEntryView: View {
         .task {
             viewModel.configureRecording(recorder)
             viewModel.loadResumedDraftIfNeeded()
-            if viewModel.startWithAudio { isRecorderPresented = true }
+            if viewModel.startWithAudio { startRecording() }
         }
         .onDisappear {
             if isDiscarding {

@@ -18,7 +18,7 @@ import { decryptMedia } from '../crypto/mediaCipher'
 import { nextStats, dayIndex, type GoalStats } from '../services/dailyGoalStreak'
 import { updateConstellationForDay } from '../services/constellation/constellationService'
 import { ensureSoulMinted, refreshSoulImage } from '../services/chain/soulService'
-import { isStoryType, storyPrompt } from '../services/storyPrompts'
+import { isStoryType, storyPrompt, storyPromptSet } from '../services/storyPrompts'
 import { DAILY_PROMPT_AREAS, parseDailyPrompts, fallbackDailyPrompts } from '../services/dailyPrompts'
 import {
   parseEncouragements, fallbackEncouragements,
@@ -298,6 +298,7 @@ export async function dailyPromptHandler(req: Request, res: Response): Promise<v
       profile?: ProfileFields
       name?: string
       storyType?: unknown
+      storySet?: unknown
     }
 
     // ── Model 1 (zero-knowledge) branch ──────────────────────────────────────
@@ -324,6 +325,19 @@ export async function dailyPromptHandler(req: Request, res: Response): Promise<v
 
     if (body.storyType !== undefined && !isStoryType(body.storyType)) {
       res.status(400).json({ error: 'Invalid storyType' }); return
+    }
+    if (body.storySet !== undefined && body.storySet !== true) {
+      res.status(400).json({ error: 'Invalid storySet' }); return
+    }
+    if (body.storySet === true) {
+      const systemPrompt = PROMPTS.dailyStoryPrompts({ name, profile, journalContext: context })
+      let raw = await generate(systemPrompt, 'Generate the eight Story questions now.')
+      if (!raw.includes('"stories"')) {
+        raw = await generate(systemPrompt, 'Generate the eight Story questions now.')
+      }
+      const stories = storyPromptSet(raw)
+      res.json({ stories, sourceEntryIds })
+      return
     }
     const type = isStoryType(body.storyType) ? body.storyType : undefined
     const systemPrompt = PROMPTS.dailyPrompts({

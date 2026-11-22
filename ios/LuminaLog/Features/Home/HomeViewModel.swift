@@ -337,9 +337,7 @@ final class HomeViewModel: ObservableObject {
     }
 
     /// Shown when the AI service fails and there is no cached set for today.
-    private static let fallbackPrompts: [DailyPromptItem] = [
-        DailyPromptItem(area: "Reflection", text: "Take a moment to reflect, what thought or feeling has been quietly sitting with you that you haven't had a chance to put into words yet?"),
-    ]
+    private static let fallbackPrompts: [DailyPromptItem] = StoryPromptType.allCases.map(\.fallback)
 
     /// The profile's cached prompts, only if their date is today in the user's timezone.
     private func todaysProfilePrompts() -> [DailyPromptItem]? {
@@ -350,7 +348,9 @@ final class HomeViewModel: ObservableObject {
         }
         guard calendar.isDate(dailyPrompt.date, inSameDayAs: promptNow()) else { return nil }
         let items = dailyPrompt.items
-        return items.isEmpty ? nil : items
+        // An old cached area set must not hide the new Story carousel all day.
+        let types = Set(items.compactMap(\.storyType))
+        return types.count == StoryPromptType.allCases.count ? items : nil
     }
 
     /// The first resolved prompt's text, if any — used to seed the Create flow
@@ -369,24 +369,11 @@ final class HomeViewModel: ObservableObject {
         return StoryPromptRotation(userID: profile.id, calendar: calendar)
     }
 
-    var hasMutedStoryTypes: Bool { !(storyRotation?.muted.isEmpty ?? true) }
-
     var displayedPrompts: [DailyPromptItem] {
         guard case .loaded(let prompts) = promptState else { return [] }
-        let areas = prompts.filter { $0.storyType == nil }
-        guard let type = storyRotation?.selection(on: promptNow()) else { return areas }
-        let story = prompts.first { $0.storyType == type.rawValue } ?? type.fallback
-        return [story] + areas
-    }
-
-    func muteStoryType(_ type: String) {
-        storyRotation?.mute(type)
-        objectWillChange.send()
-    }
-
-    func restoreStoryTypes() {
-        storyRotation?.restore()
-        objectWillChange.send()
+        return StoryPromptType.allCases.map { type in
+            prompts.first { $0.storyType == type.rawValue } ?? type.fallback
+        }
     }
 
     private var lastPromptDay: String?

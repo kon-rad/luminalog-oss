@@ -257,9 +257,7 @@ struct HomeView: View {
             DailyPromptCarousel(
                 prompts: viewModel.displayedPrompts,
                 onStart: { onPrompt(CreateEntryRequest(promptText: $0.entryPrompt)) },
-                onTalk: { onPrompt(CreateEntryRequest(promptText: $0.entryPrompt, startWithAudio: true)) },
-                onMute: { viewModel.muteStoryType($0) },
-                onRestore: viewModel.hasMutedStoryTypes ? { viewModel.restoreStoryTypes() } : nil
+                onTalk: { onPrompt(CreateEntryRequest(promptText: $0.entryPrompt, startWithAudio: true)) }
             )
             .task { await viewModel.refreshPromptDay() }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
