@@ -31,4 +31,22 @@ final class FailedReportStoreTests: XCTestCase {
         store.record("2026-06-25")
         XCTAssertTrue(store.dates().isEmpty)
     }
+
+    func testSeenFailurePersistsUntilCleared() {
+        let dir = tempDir()
+        let auth = MockAuthService(signedIn: true)
+        let store = FailedReportStore(auth: auth, directory: dir)
+        store.record("2026-11-23")
+        XCTAssertFalse(store.hasSeen("2026-11-23"))
+
+        store.markSeen("2026-11-23")
+        let reopened = FailedReportStore(auth: auth, directory: dir)
+        XCTAssertEqual(reopened.dates(), ["2026-11-23"])
+        XCTAssertTrue(reopened.hasSeen("2026-11-23"))
+
+        reopened.clear("2026-11-23")
+        let cleared = FailedReportStore(auth: auth, directory: dir)
+        XCTAssertTrue(cleared.dates().isEmpty)
+        XCTAssertFalse(cleared.hasSeen("2026-11-23"))
+    }
 }

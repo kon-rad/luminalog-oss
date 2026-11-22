@@ -25,6 +25,9 @@ struct DailyInsightsReportView: View {
     /// Pre-loaded background photo — required so ImageRenderer captures it synchronously.
     @State private var backgroundImage: UIImage?
     @State private var showDeleteConfirmation = false
+    @State private var showCancelConfirmation = false
+    @State private var loadTask: Task<Void, Never>?
+    @State private var showFirstFailure = false
 
     enum Phase { case loading, loaded(DailyInsightsReport), failed }
     /// Distinguishes a genuine generation failure from "there's simply nothing to
@@ -94,11 +97,26 @@ struct DailyInsightsReportView: View {
         } message: {
             Text("This daily reflection will be permanently deleted and cannot be recovered.")
         }
-        .task { await load(force: initialForce) }
+        .confirmationDialog("Cancel this reflection?", isPresented: $showCancelConfirmation) {
+            Button("Cancel and delete generation", role: .destructive) {
+                guard case .loading = phase else { return }
+                loadTask?.cancel()
+                failedReports.clear(date ?? Self.todayKey())
+                dismiss()
+            }
+            Button("Keep generating", role: .cancel) {}
+        } message: {
+            Text("This unfinished reflection will be removed. You can generate it again later.")
+        }
+        .onAppear { startLoad(force: initialForce) }
+        .onDisappear { loadTask?.cancel() }
     }
 
     private var closeButton: some View {
-        Button { dismiss() } label: {
+        Button {
+            if case .loading = phase { showCancelConfirmation = true }
+            else { dismiss() }
+        } label: {
             Image(systemName: "xmark.circle.fill")
                 .font(.title2)
                 .symbolRenderingMode(.hierarchical)
@@ -115,6 +133,8 @@ struct DailyInsightsReportView: View {
         VStack(spacing: Spacing.m) {
             ProgressView().tint(Color.accentWarm)
             Text("Generating today's insights…").font(.uiBody).foregroundStyle(Color.textSecondary)
+            Button("Cancel generation") { showCancelConfirmation = true }
+                .buttonStyle(.bordered)
         }
         .multilineTextAlignment(.center)
         .padding(.horizontal, Spacing.xl)
@@ -124,11 +144,16 @@ struct DailyInsightsReportView: View {
         VStack(spacing: Spacing.m) {
             switch failureKind {
             case .generic:
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.largeTitle).foregroundStyle(Color.accentWarm)
-                Text("Couldn't generate your report.")
-                    .font(.uiBody).foregroundStyle(Color.textPrimary)
-                Button("Try again") { Task { await load(force: true) } }
+                if showFirstFailure {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.largeTitle).foregroundStyle(Color.accentWarm)
+                    Text("Couldn't generate your report.")
+                        .font(.uiBody).foregroundStyle(Color.textPrimary)
+                } else {
+                    Text("Your reflection isn't ready yet.")
+                        .font(.uiBody).foregroundStyle(Color.textPrimary)
+                }
+                Button("Try again") { startLoad(force: true) }
                     .buttonStyle(.borderedProminent).tint(Color.accentWarm)
             case .noEntries:
                 Image(systemName: "square.and.pencil")
@@ -144,6 +169,11 @@ struct DailyInsightsReportView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private func startLoad(force: Bool = false) {
+        loadTask?.cancel()
+        loadTask = Task { await load(force: force) }
+    }
+
     private func load(force: Bool = false) async {
         if let preloadedReport {
             phase = .loaded(preloadedReport); return
@@ -151,23 +181,33 @@ struct DailyInsightsReportView: View {
         phase = .loading
         let key = date ?? Self.todayKey()
         if !force, let cached = try? await reports.report(for: key) {
+            guard !Task.isCancelled else { return }
             failedReports.clear(key)
             phase = .loaded(cached); return
         }
+        guard !Task.isCancelled else { return }
+        // Keep the date before starting the request so an interrupted app launch
+        // can reconstruct the same report without storing journal plaintext.
+        failedReports.record(key)
         do {
             let report = try await ai.generateDailyReport(date: date, force: force)
+            try Task.checkCancellation()
             failedReports.clear(key)
             phase = .loaded(report)
             // A new report was saved — tell Home's feed to reload so it shows.
             NotificationCenter.default.post(name: .dailyReportGenerated, object: nil)
         } catch {
+            guard !Task.isCancelled else { return }
             // 409 = the day has no shareable entries yet. That isn't a failed
             // generation, so don't leave an error card on the home feed for it —
             // just show the friendly "nothing to reflect on" state.
             if case ProxyAPIError.httpError(409, _) = error {
+                failedReports.clear(key)
                 failureKind = .noEntries
             } else {
+                showFirstFailure = !failedReports.hasSeen(key)
                 failedReports.record(key)
+                failedReports.markSeen(key)
                 failureKind = .generic
             }
             phase = .failed

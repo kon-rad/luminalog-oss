@@ -746,6 +746,7 @@ final class ProxyAIService: AIService {
             )
         }
         var report: DailyInsightsReport = try await api.post(path: "/v1/ai/daily-report", body: body)
+        try Task.checkCancellation()
         // `id` is the Firestore document id and is intentionally NOT part of the
         // wire body, so it decodes as "". A day can hold several reports, so mint a
         // unique `{date}_{millis}` id (mirrors the server's doc-id format) before
@@ -761,6 +762,7 @@ final class ProxyAIService: AIService {
         // dead here (the server route requires `todayText`), but the flag guard
         // keeps this a no-op if it were ever reintroduced.
         if DevFlags.aiModel1, let dailyReports {
+            try Task.checkCancellation()
             do { try await dailyReports.save(report) }
             catch { Self.logger.error("daily report persist failed: \(error.localizedDescription, privacy: .public)") }
         }
