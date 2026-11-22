@@ -6,6 +6,8 @@ import SwiftUI
 struct VoiceCallView: View {
 
     @StateObject private var viewModel: VoiceCallViewModel
+    @ObservedObject private var voicePreference = CallVoicePreference.shared
+    @State private var showVoicePicker = false
 
     /// "View transcript" after the call: the parent dismisses this cover
     /// and pushes the saved `.voice` chat.
@@ -79,6 +81,9 @@ struct VoiceCallView: View {
                 onInsufficientCredits?()
             }
         }
+        .sheet(isPresented: $showVoicePicker) {
+            CallVoiceSelectionView(inCall: true)
+        }
     }
 
     // MARK: - Journal context label
@@ -121,18 +126,28 @@ struct VoiceCallView: View {
             closeButton
                 .padding(Spacing.m)
         }
+        .overlay(alignment: .topLeading) {
+            voiceButton
+                .disabled(true)
+                .padding(Spacing.m)
+        }
     }
 
     // MARK: - Active
 
     private var activeContent: some View {
         VStack(spacing: 0) {
-            // Duration up top.
-            Text(viewModel.durationText)
-                .font(.statValue.monospacedDigit())
-                .foregroundStyle(Color.textPrimary)
-                .padding(.top, Spacing.m)
-                .accessibilityLabel("Call duration \(viewModel.durationText)")
+            ZStack {
+                Text(viewModel.durationText)
+                    .font(.statValue.monospacedDigit())
+                    .foregroundStyle(Color.textPrimary)
+                    .accessibilityLabel("Call duration \(viewModel.durationText)")
+                HStack {
+                    voiceButton
+                    Spacer()
+                }
+            }
+            .padding(.top, Spacing.m)
 
             journalContextLabel
                 .padding(.top, Spacing.xs)
@@ -453,6 +468,21 @@ struct VoiceCallView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Cancel call")
+    }
+
+    private var voiceButton: some View {
+        Button {
+            showVoicePicker = true
+        } label: {
+            Label("Voice", systemImage: "waveform")
+                .font(.captionText.weight(.semibold))
+                .foregroundStyle(Color.textPrimary)
+                .frame(minWidth: 76, minHeight: 44)
+                .background(Capsule().fill(Color.white.opacity(0.1)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Call voice, \(voicePreference.effective?.title ?? voicePreference.selected.title)")
+        .accessibilityHint("Choose the voice for the next reply")
     }
 }
 
