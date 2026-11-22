@@ -15,7 +15,7 @@ struct DailyReflectionsScrollView: View {
     let today: String
     /// True when the user has met their daily word goal (unlock to generate).
     let goalMet: Bool
-    /// Device-local failed-generation records that drive the error cards.
+    /// Device-local failed-generation dates that keep retry cards available.
     @ObservedObject var failedReports: FailedReportStore
     /// Called when the user taps the lead generate/error card — opens the report sheet.
     let onTapToday: () -> Void
@@ -54,12 +54,12 @@ struct DailyReflectionsScrollView: View {
                         LazyHStack(spacing: Spacing.s) {
                             // Lead slot — always a generate affordance up front (no
                             // scrolling needed to reach it): today's failed
-                            // generation offers retry, a met goal offers the
+                            // generation offers a quiet retry card, a met goal offers the
                             // milestone generate card, otherwise "Generate new"
                             // forces a fresh report for today.
                             if todayFailed {
-                                Button { onTapToday() } label: {
-                                    ReflectionErrorCard(date: today, badge: "TODAY")
+                                Button { retryTarget = RetryTarget(id: today) } label: {
+                                    PendingReflectionCard(date: today, badge: "TODAY")
                                 }
                                 .buttonStyle(.plain)
                             } else if showGenerateCard {
@@ -74,10 +74,10 @@ struct DailyReflectionsScrollView: View {
                                 .buttonStyle(.plain)
                             }
 
-                            // Past failed dates (error cards) — retry regenerates that day.
+                            // Past failed dates remain available without a warning surface.
                             ForEach(pastFailedDates, id: \.self) { failedDate in
                                 Button { retryTarget = RetryTarget(id: failedDate) } label: {
-                                    ReflectionErrorCard(date: failedDate)
+                                    PendingReflectionCard(date: failedDate)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -137,7 +137,8 @@ struct DailyReflectionsScrollView: View {
             )
         }
         .fullScreenCover(item: $retryTarget) { target in
-            DailyInsightsReportView(ai: ai, reports: repository, date: target.date, failedReports: failedReports)
+            DailyInsightsReportView(ai: ai, reports: repository, date: target.date,
+                                    failedReports: failedReports, initialForce: true)
         }
         // "Generate new" forces a fresh report for today (in addition to any the
         // day already holds); on success it posts .dailyReportGenerated and the
