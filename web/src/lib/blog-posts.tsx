@@ -17953,7 +17953,136 @@ function OpenSourceAiGlassesContent() {
   )
 }
 
+/* ── Post: How PersonaPlex listens and speaks at the same time ── */
+function PersonaplexFullDuplexVoiceAiContent() {
+  return (
+    <>
+      <P>
+        You are explaining a problem to a voice assistant. Halfway through its answer, you remember a detail that changes the question. A familiar assistant makes you wait until it finishes speaking, or stops without understanding why you interrupted. A human listener can usually keep talking, hear the correction and adjust.
+      </P>
+      <P>
+        <A href="https://research.nvidia.com/labs/adlr/personaplex/">NVIDIA&apos;s PersonaPlex</A>, published on January 15, 2026, is a speech-to-speech model designed for that overlap. It listens to incoming audio while producing spoken audio of its own. It also accepts separate instructions for the role it should play and the voice it should use. The interesting change is not that an AI can talk. It is that listening, speaking and maintaining a character happen inside one live conversation.
+      </P>
+      <Figure
+        src="/blog/personaplex-full-duplex-voice-ai-1.jpg"
+        alt="NVIDIA PersonaPlex research page showing the January 15, 2026 publication date"
+        width={1920}
+        height={1257}
+        priority
+        caption="NVIDIA Research published PersonaPlex on January 15, 2026. Source: research.nvidia.com"
+      />
+      <H2>Why does an ordinary voice assistant pause?</H2>
+      <P>
+        Many voice systems use a chain: speech recognition turns your voice into text, a language model writes a response, and speech synthesis reads that response aloud. Each stage waits for useful output from the one before it. The chain is modular, which makes it convenient to swap a transcription model, reasoning model or voice. But the pauses between stages can make a conversation feel like alternating recordings.
+      </P>
+      <P>
+        A full-duplex system treats incoming and outgoing speech as active at the same time. Think of a phone call: the speaker channel does not close the listener channel. That analogy describes the timing, not the intelligence. A model still has to decide whether a sound is a correction, an interruption, a brief &quot;mm-hmm&quot; or background noise. Simply opening two audio channels does not solve turn-taking.
+      </P>
+      <P>
+        PersonaPlex builds on <A href="https://github.com/kyutai-labs/moshi">Kyutai&apos;s Moshi</A>, an earlier full-duplex speech model. Moshi provided the conversational foundation. NVIDIA&apos;s contribution is a way to steer the resulting voice and role without turning the exchange back into a stop-start pipeline.
+      </P>
+      <Figure
+        src="/blog/personaplex-full-duplex-voice-ai-2.jpg"
+        alt="Kyutai Moshi repository describing the speech-text foundation model behind PersonaPlex"
+        width={1920}
+        height={1257}
+        caption="PersonaPlex builds on Kyutai's Moshi architecture. Source: github.com/kyutai-labs/moshi"
+      />
+      <H2>What actually flows through the model?</H2>
+      <P>
+        The <A href="https://research.nvidia.com/labs/adlr/files/personaplex/personaplex_preprint.pdf">PersonaPlex paper</A> shows two ongoing streams: one for the person and one for the agent. A component called Mimi converts sound into compact audio tokens, small pieces the model can process, and later converts generated tokens back into sound. The audio runs at a 24 kHz sample rate. The model processes those tokens to produce the next pieces of its response. It has roughly seven billion parameters.
+      </P>
+      <P>
+        Instead of waiting for a complete transcript, the model receives new user audio as it arrives. It can update its working state while continuing to generate its own speech. An interruption can change a response before the original sentence finishes. It also enables a short acknowledgment while the person continues speaking, known as a backchannel. The system need not interrupt constantly; it has more timing choices available.
+      </P>
+      <Figure
+        src="/blog/personaplex-full-duplex-voice-ai-3.jpg"
+        alt="PersonaPlex paper Figure 1 showing concurrent user and agent audio streams around a hybrid system prompt"
+        width={1581}
+        height={1232}
+        caption="Figure 1 maps the duplex model and its hybrid role and voice prompt. Source: NVIDIA PersonaPlex preprint, page 2."
+      />
+      <Figure
+        src="/blog/personaplex-full-duplex-voice-ai-4.jpg"
+        alt="Argo diagram showing microphone input and model speech output flowing in parallel through PersonaPlex"
+        width={900}
+        height={1400}
+        caption="User audio flows in while agent speech streams out. Argo diagram based on NVIDIA Research, Figure 1."
+      />
+      <H2>How can the same model play different parts?</H2>
+      <P>
+        Before a conversation, PersonaPlex receives two prompts. A <strong>text prompt</strong> describes the role, background and situation. A <strong>voice prompt</strong> supplies audio tokens that establish how the response should sound, including vocal characteristics, speaking style and prosody, the rhythm and pitch of speech. NVIDIA calls their combination a hybrid system prompt.
+      </P>
+      <P>
+        Imagine a museum guide. The text prompt could tell the agent to explain an exhibit to a curious visitor and avoid assuming specialist vocabulary. The voice prompt could choose a measured speaking style. The role sets what the agent is trying to say; the voice shapes how it says it. Those are separate controls, even though the model processes them together.
+      </P>
+      <P>
+        This matters because a voice demo with a fixed persona is hard to reuse. A customer-service team, a language tutor and an interactive story all need different instructions and perhaps different voices. NVIDIA&apos;s <A href="https://huggingface.co/nvidia/personaplex-7b-v1">model card</A> describes the model as conditioned by both prompts throughout the interaction. The repository also documents an update that keeps the system prompt in context across an extended conversation. Its conversation memory still uses a sliding window of about 2.5 minutes, so a persistent role is not the same as long-term memory.
+      </P>
+      <Figure
+        src="/blog/personaplex-full-duplex-voice-ai-5.jpg"
+        alt="NVIDIA PersonaPlex model card on Hugging Face identifying the model license"
+        width={1920}
+        height={1257}
+        caption="The model weights use the NVIDIA Open Model License. Source: NVIDIA model card on Hugging Face."
+      />
+      <H2>What did NVIDIA test?</H2>
+      <P>
+        NVIDIA trained PersonaPlex on a blend of recorded human conversations and synthetic dialogues. Its research page names 7,303 real conversations from the Fisher English corpus, totaling 1,217 hours. Those recordings supply pauses, overlap and short acknowledgments that cleanly scripted dialogue can miss. Synthetic dialogues add scenarios and role instructions that the real corpus does not cover as broadly.
+      </P>
+      <P>
+        The <A href="https://research.nvidia.com/labs/adlr/files/personaplex/personaplex_preprint.pdf">paper</A> evaluates turn-taking, user interruptions and pause handling with FullDuplexBench. NVIDIA also created ServiceDuplexBench to examine whether an agent follows customer-service tasks. These are different questions: a voice can sound natural while missing a required instruction, or follow instructions while sounding awkward. NVIDIA separates the released checkpoint&apos;s evaluation from earlier study tables. Read the published results for the checkpoint you will download.
+      </P>
+      <Figure
+        src="/blog/personaplex-full-duplex-voice-ai-6.jpg"
+        alt="NVIDIA paper page with dialogue naturalness and Full Duplex Bench evaluation tables"
+        width={1720}
+        height={1283}
+        caption="The paper reports naturalness and Full Duplex Bench results for its study models. Source: NVIDIA PersonaPlex preprint, page 3."
+      />
+      <Figure
+        src="/blog/personaplex-full-duplex-voice-ai-7.jpg"
+        alt="NVIDIA preprint page with the separate Full Duplex Bench table for the released PersonaPlex checkpoint"
+        width={1720}
+        height={1210}
+        caption="Table 6 reports Full Duplex Bench results for the released checkpoint. Source: NVIDIA PersonaPlex preprint, page 5."
+      />
+      <P>
+        The practical question is whether those behaviors hold up with your microphones, rooms, accents and tasks. The published tests explain what NVIDIA measured. They are a starting point for a local test, not a measurement of a particular deployment.
+      </P>
+      <H2>What can a developer download and try?</H2>
+      <P>
+        The <A href="https://github.com/NVIDIA/personaplex">PersonaPlex repository</A> contains the code and installation instructions. The code uses the MIT license. The <A href="https://huggingface.co/nvidia/personaplex-7b-v1">model checkpoint</A> has separate terms under the NVIDIA Open Model License; Hugging Face requires users to accept the conditions before accessing its files. NVIDIA&apos;s model card says the model is ready for commercial use and currently describes English speech input and output. The base Moshi model has its own CC BY 4.0 license. These distinctions matter for teams planning to ship a product.
+      </P>
+      <Figure
+        src="/blog/personaplex-full-duplex-voice-ai-8.jpg"
+        alt="NVIDIA PersonaPlex GitHub repository with the code and project description"
+        width={1920}
+        height={1257}
+        caption="NVIDIA's MIT-licensed code repository introduces the model. Source: github.com/NVIDIA/personaplex"
+      />
+      <P>
+        The repository&apos;s path is concrete: install its Moshi package, accept the checkpoint&apos;s license, then run the documented server and connect a client. Try one conversation in which the user finishes each question, another with a genuine correction midway through the answer, and a third with a brief acknowledgment that should not take the floor. Record whether the agent preserves its role and voice across all three. That test reveals more about your use case than a single polished demo clip.
+      </P>
+      <P>
+        PersonaPlex makes one useful design choice visible: conversation is a continuous exchange, not a queue of complete turns. Its paper, model card and code give developers a way to study that choice, try the released model and test whether it fits their own setting. Follow <A href="https://x.com/myargoquest">Argo</A> for more practical explanations of AI systems.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "personaplex-full-duplex-voice-ai",
+    title: "How PersonaPlex listens and speaks at the same time",
+    description: "NVIDIA's PersonaPlex pairs live listening and speaking with a chosen role and voice. Here is how the model works and how to try it.",
+    category: "ai-news",
+    date: "November 23, 2026",
+    isoDate: "2026-11-23T12:18",
+    readingTime: "6 min read",
+    image: "/blog/personaplex-full-duplex-voice-ai-1.jpg",
+    Content: PersonaplexFullDuplexVoiceAiContent,
+  },
   {
     slug: "open-source-ai-glasses",
     title: "How open-source AI glasses expose camera, audio and apps",
