@@ -4,9 +4,8 @@ import XCTest
 @MainActor
 final class VoiceCallCreditTests: XCTestCase {
 
-    // Credit metering is gated behind !DevFlags.devMode. The test runner
-    // inherits the app's registered default (devMode = true), so we flip it
-    // off for the duration of each test and restore it in tearDown.
+    // Credit metering is gated behind !DevFlags.devMode. Set it explicitly
+    // off so these tests stay independent of local Debug preferences.
     override func setUp() async throws {
         try await super.setUp()
         UserDefaults.standard.set(false, forKey: DevFlags.devModeKey)

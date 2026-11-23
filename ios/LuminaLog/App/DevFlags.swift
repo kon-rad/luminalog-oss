@@ -4,10 +4,8 @@ import Foundation
 /// local development. Values are persisted in UserDefaults so they survive
 /// restarts and can be toggled without rebuilding.
 ///
-/// In debug builds the app registers `devMode = true` as the default
-/// (see LuminaLogApp.init), so the paywall and credit gates are off out of the
-/// box. Set `UserDefaults.standard.set(false, forKey: DevFlags.devModeKey)`
-/// (or toggle in a debug menu) to re-enable them.
+/// Debug builds default to the real paywall and credit gates. A developer can
+/// opt in to bypassing them locally; Release builds always ignore that flag.
 enum DevFlags {
 
     static let devModeKey = "ll-dev-mode"
@@ -44,10 +42,14 @@ enum DevFlags {
     }
 
     /// When true the paywall, credit balance check, and credit deduction are
-    /// all skipped. Intended for local dev; has no effect in release if never
-    /// set (UserDefaults returns false for unknown keys).
+    /// skipped in Debug. Release builds always enforce the real gates, even if
+    /// a prior Debug install persisted this key on the same device.
     static var devMode: Bool {
+        #if DEBUG
         UserDefaults.standard.bool(forKey: devModeKey)
+        #else
+        false
+        #endif
     }
 
     /// When true onboarding is always shown on sign-out; when false it is

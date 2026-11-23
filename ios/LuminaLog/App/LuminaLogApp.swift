@@ -42,10 +42,9 @@ struct LuminaLogApp: App {
         UserDefaults.standard.register(defaults: [DevFlags.userFactsKey: true])
 
         #if DEBUG
-        // Dev mode ON in DEBUG so the SettingsView developer tools (onboarding replay,
-        // daily-report generation, constellation rebuild) are available for testing.
-        // Release builds never reach this branch, so production is unaffected.
-        UserDefaults.standard.register(defaults: [DevFlags.devModeKey: true])
+        // Use the real paywall and credit gates by default on test devices.
+        // Developer bypass tools require an explicit local opt-in in Debug.
+        UserDefaults.standard.register(defaults: [DevFlags.devModeKey: false])
         // Life Story Interview: visible in debug builds until it is device-tested.
         UserDefaults.standard.register(defaults: [DevFlags.lifeInterviewKey: true])
         #endif
