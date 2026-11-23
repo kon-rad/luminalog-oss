@@ -1738,7 +1738,7 @@ struct SettingsView: View {
 
     private var versionFooter: some View {
         VStack(spacing: 2) {
-            Text("Argo v\(viewModel.appVersion)")
+            Text("Argo v\(viewModel.appVersion) (\(viewModel.appBuild))")
                 .font(.captionText)
                 .foregroundStyle(Color.textSecondary.opacity(0.8))
             Text(viewModel.gitCommit)
