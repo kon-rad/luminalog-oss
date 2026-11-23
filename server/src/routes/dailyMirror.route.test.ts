@@ -85,12 +85,13 @@ describe('dailyMirrorHandler', () => {
     expect(res.body.prompt.attempts).toBe(2)
   })
 
-  it('flags every slot as fallback when nothing parses', async () => {
+  it('returns empty slots when nothing parses', async () => {
     chatCompletion.mockResolvedValue(modelReply('still not json'))
     const res = mockRes()
     await dailyMirrorHandler({ uid: 'u1', body: { name: 'Kon', profile: {}, entries } } as any, res)
     expect(res.body.prompt.attempts).toBe(2)
-    expect(res.body.prompt.fallbackSlots).toEqual(['morning', 'afternoon', 'evening'])
+    expect(res.body.prompt.fallbackSlots).toEqual([])
+    expect([res.body.morning, res.body.afternoon, res.body.evening]).toEqual([null, null, null])
   })
 
   it('returns prompt null when there are no entries', async () => {
@@ -130,6 +131,25 @@ describe('dailyMirrorHandler', () => {
     expect(prompt).toContain('I kept avoiding the hard call.')
   })
 
+  it('passes dated entries and previous reflections, then removes repeated output', async () => {
+    chatCompletion.mockResolvedValue(modelReply(JSON.stringify({
+      morning: 'You named the hard call.',
+      afternoon: 'You named the hard call!',
+      evening: 'You made time for the difficult conversation.',
+    })))
+    const res = mockRes()
+    await dailyMirrorHandler({ uid: 'u1', body: {
+      entries: [{ ...entries[0], createdAt: '2026-11-22T08:00:00Z' }],
+      previousMirrors: ['You named the hard call.'],
+    } } as any, res)
+    const prompt = chatCompletion.mock.calls[0][0][0].content as string
+    expect(prompt).toContain('Monday · 2026-11-22')
+    expect(prompt).toContain('You named the hard call.')
+    expect(res.body.morning).toBeNull()
+    expect(res.body.afternoon).toBeNull()
+    expect(res.body.evening).toBe('You made time for the difficult conversation.')
+  })
+
   it('strips a wrapping quote pair from an individual slot value', async () => {
     chatCompletion.mockResolvedValue(modelReply(JSON.stringify({
       morning: '"A quoted sentence."', afternoon: 'B.', evening: 'C.',
@@ -141,7 +161,7 @@ describe('dailyMirrorHandler', () => {
     expect(res.body.morning).toBe('A quoted sentence.')
   })
 
-  it('retries the whole call once on an unparseable reply, then falls back for every slot', async () => {
+  it('retries the whole call once on an unparseable reply, then returns empty slots', async () => {
     chatCompletion
       .mockResolvedValueOnce(modelReply('not json'))
       .mockResolvedValueOnce(modelReply('still not json'))
@@ -151,9 +171,7 @@ describe('dailyMirrorHandler', () => {
 
     expect(chatCompletion).toHaveBeenCalledTimes(2)
     expect(res.statusCode).toBe(200)
-    expect(res.body.morning.length).toBeGreaterThan(0)
-    expect(res.body.afternoon.length).toBeGreaterThan(0)
-    expect(res.body.evening.length).toBeGreaterThan(0)
+    expect([res.body.morning, res.body.afternoon, res.body.evening]).toEqual([null, null, null])
   })
 
   it('recovers on the retry when the first call is unparseable', async () => {
@@ -172,7 +190,7 @@ describe('dailyMirrorHandler', () => {
     expect(res.body.evening).toBe('And this one.')
   })
 
-  it('falls back an individual blank slot without retrying the whole call', async () => {
+  it('leaves an individual blank slot empty without retrying the whole call', async () => {
     chatCompletion.mockResolvedValue(modelReply(JSON.stringify({
       morning: '', afternoon: 'Afternoon holds.', evening: 'Evening holds.',
     })))
@@ -181,7 +199,7 @@ describe('dailyMirrorHandler', () => {
     await dailyMirrorHandler({ uid: 'u1', body: { profile: {}, entries } } as any, res)
 
     expect(chatCompletion).toHaveBeenCalledTimes(1)
-    expect(res.body.morning.length).toBeGreaterThan(0) // fell back, non-empty
+    expect(res.body.morning).toBeNull()
     expect(res.body.afternoon).toBe('Afternoon holds.')
     expect(res.body.evening).toBe('Evening holds.')
   })

@@ -29,6 +29,7 @@ final class MirrorSourcesTests: XCTestCase {
         XCTAssertEqual(sources.count, 20)
         XCTAssertEqual(wire.map(\.id), sources.map(\.id))
         XCTAssertEqual(wire.map(\.content), sources.map(\.content))
+        XCTAssertEqual(wire.map(\.createdAt), sources.map { ISO8601DateFormatter().string(from: $0.createdAt) })
     }
 
     func testPromptDecodesFromServerJSON() throws {

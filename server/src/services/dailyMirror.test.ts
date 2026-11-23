@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  cleanEcho, fallbackEcho, fallbackMirrorEchoes, fallbackSlotsOf, parseMirrorEchoes,
+  cleanEcho, emptyMirrorEchoes, parseMirrorEchoes,
   MIRROR_TEXT_MAX, MIRROR_TIME_SLOTS,
 } from './dailyMirror'
 
@@ -33,24 +33,9 @@ describe('cleanEcho', () => {
     expect(cleanEcho('   ')).toBe('')
   })
 })
-
-describe('fallbackEcho', () => {
-  it('returns a distinct, non-empty sentence for each time of day', () => {
-    const sentences = MIRROR_TIME_SLOTS.map(fallbackEcho)
-    for (const s of sentences) {
-      expect(s.trim().length).toBeGreaterThan(0)
-      expect(s.length).toBeLessThanOrEqual(MIRROR_TEXT_MAX)
-    }
-    expect(new Set(sentences).size).toBe(sentences.length)
-  })
-})
-
-describe('fallbackMirrorEchoes', () => {
-  it('returns all three slots, each matching fallbackEcho', () => {
-    const echoes = fallbackMirrorEchoes()
-    for (const timeOfDay of MIRROR_TIME_SLOTS) {
-      expect(echoes[timeOfDay]).toBe(fallbackEcho(timeOfDay))
-    }
+describe('emptyMirrorEchoes', () => {
+  it('returns null for each slot', () => {
+    expect(MIRROR_TIME_SLOTS.map(slot => emptyMirrorEchoes()[slot])).toEqual([null, null, null])
   })
 })
 
@@ -82,11 +67,20 @@ describe('parseMirrorEchoes', () => {
     expect(echoes?.morning).toBe('Quoted morning.')
   })
 
-  it('falls back a slot individually when it is missing or blank, without failing the batch', () => {
+  it('leaves missing and blank slots empty instead of inventing text', () => {
     const echoes = parseMirrorEchoes(JSON.stringify({ morning: 'Only morning.', afternoon: '' }))
     expect(echoes?.morning).toBe('Only morning.')
-    expect(echoes?.afternoon).toBe(fallbackEcho('afternoon'))
-    expect(echoes?.evening).toBe(fallbackEcho('evening'))
+    expect(echoes?.afternoon).toBeNull()
+    expect(echoes?.evening).toBeNull()
+  })
+
+  it('drops exact repeats from history and within the new batch', () => {
+    const echoes = parseMirrorEchoes(JSON.stringify({
+      morning: 'You made the hard call.',
+      afternoon: 'You made the hard call!',
+      evening: 'You protected your writing time.',
+    }), ['YOU made the hard call'])
+    expect(echoes).toEqual({ morning: null, afternoon: null, evening: 'You protected your writing time.' })
   })
 
   it('returns null when no JSON object is present', () => {
@@ -113,14 +107,4 @@ describe('cleanEcho word-boundary clamp', () => {
     expect(cleanEcho(text)).toBe(text)
   })
   it('is 160', () => { expect(MIRROR_TEXT_MAX).toBe(160) })
-})
-
-describe('fallbackSlotsOf', () => {
-  it('lists slots whose text is the canned fallback', () => {
-    const echoes = { morning: 'Real one.', afternoon: fallbackEcho('afternoon'), evening: fallbackEcho('evening') }
-    expect(fallbackSlotsOf(echoes)).toEqual(['afternoon', 'evening'])
-  })
-  it('is empty when the model wrote every slot', () => {
-    expect(fallbackSlotsOf({ morning: 'a', afternoon: 'b', evening: 'c' })).toEqual([])
-  })
 })

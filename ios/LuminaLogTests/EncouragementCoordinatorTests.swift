@@ -11,11 +11,13 @@ final class EncouragementCoordinatorTests: XCTestCase {
     /// method under test carries behavior, everything else is inert.
     private final class StubAI: AIService {
         var callCount = 0
+        var receivedPrevious: [String] = []
         var result = GeneratedMirrorEchoes(morning: "T-morning", afternoon: "T-afternoon", evening: "T-evening")
         var error: Error?
 
-        func generateMirrorEchoes() async throws -> GeneratedMirrorEchoes {
+        func generateMirrorEchoes(previousMirrors: [String]) async throws -> GeneratedMirrorEchoes {
             callCount += 1
+            receivedPrevious = previousMirrors
             if let error { throw error }
             return result
         }
@@ -160,6 +162,30 @@ final class EncouragementCoordinatorTests: XCTestCase {
         XCTAssertEqual(armed.map(\.title), ["", "", ""])
         XCTAssertEqual(armed.map(\.body), ["T-morning", "T-afternoon", "T-evening"])
         XCTAssertEqual(repo.stored.filter(\.isDelivered).count, 3)
+    }
+
+    func testPassesDeliveredHistoryToGeneration() async {
+        let ai = StubAI(); let repo = InMemoryRepo(); let scheduler = SpyScheduler()
+        repo.stored = [EncouragementMessage(
+            id: "2026-08-23_morning", timeOfDay: .morning, text: "A past observation",
+            createdAt: date("2026-08-23T05:00:00Z"), deliveredAt: date("2026-08-23T09:00:00Z")
+        )]
+        await makeCoordinator(ai: ai, repo: repo, scheduler: scheduler).runCycle(profile: utcProfile())
+        XCTAssertEqual(ai.receivedPrevious, ["A past observation"])
+    }
+
+    func testGroundedEmptyBatchDoesNotRegenerateOnSameDay() async {
+        let ai = StubAI()
+        ai.result = GeneratedMirrorEchoes(
+            morning: nil, afternoon: nil, evening: nil,
+            sources: [MirrorSource(id: "e1", type: "text", title: "T", createdAt: date("2026-08-23T08:00:00Z"), content: "A real entry")]
+        )
+        let repo = InMemoryRepo(); let scheduler = SpyScheduler()
+        let coordinator = makeCoordinator(ai: ai, repo: repo, scheduler: scheduler)
+        await coordinator.runCycle(profile: utcProfile())
+        await coordinator.runCycle(profile: utcProfile())
+        XCTAssertEqual(ai.callCount, 1)
+        XCTAssertTrue(repo.stored.isEmpty)
     }
 
     func testDoesNothingWhenTheFeatureIsDisabled() async {

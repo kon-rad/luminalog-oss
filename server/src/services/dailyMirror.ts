@@ -37,7 +37,7 @@ function stripWrappingQuotes(text: string): string {
  * quote pair the model added despite being told not to, trims, and clamps
  * to the notification-safe length at a word boundary. No JSON parsing: the prompt is instructed to
  * return the bare sentence and nothing else. Returns '' when nothing usable
- * came back, so the caller can retry once before falling back.
+ * came back, so the caller can leave that slot empty.
  */
 export function cleanEcho(raw: string): string {
   let text = stripWrappingQuotes(raw.trim()).trim()
@@ -45,42 +45,18 @@ export function cleanEcho(raw: string): string {
   return text
 }
 
-/**
- * Generic sentences used when the model returns nothing parseable twice.
- * Deliberately gentle and non-specific: they should read as calm rather than
- * as a personalized message that failed.
- */
-const FALLBACKS: Record<MirrorTimeOfDay, string> = {
-  morning: 'Whatever is looping in your head right now can wait until you have written the first line of today.',
-  afternoon: 'The friction you are feeling this afternoon is information, not a verdict on how the day is going.',
-  evening: 'One honest sentence about today is enough; let the rest close on its own.',
-}
+export type MirrorEchoes = Record<MirrorTimeOfDay, string | null>
 
-export function fallbackEcho(timeOfDay: MirrorTimeOfDay): string {
-  return FALLBACKS[timeOfDay]
-}
-
-/** Slots whose text is the canned fallback rather than model output. */
-export function fallbackSlotsOf(echoes: Record<MirrorTimeOfDay, string>): MirrorTimeOfDay[] {
-  return MIRROR_TIME_SLOTS.filter(slot => echoes[slot] === fallbackEcho(slot))
-}
-
-/** All three slots' fallback sentences at once, for when the batch call never parses. */
-export function fallbackMirrorEchoes(): Record<MirrorTimeOfDay, string> {
-  const echoes = {} as Record<MirrorTimeOfDay, string>
-  for (const timeOfDay of MIRROR_TIME_SLOTS) echoes[timeOfDay] = fallbackEcho(timeOfDay)
-  return echoes
+/** Empty slots are preferable to repeating a canned or previously delivered message. */
+export function emptyMirrorEchoes(): MirrorEchoes {
+  return { morning: null, afternoon: null, evening: null }
 }
 
 /**
- * Parses the LLM's single JSON reply into all three Echoes at once. Tolerant
- * of prose around the JSON object. A slot missing from the JSON, or whose
- * value cleans to '', falls back to that slot's `fallbackEcho` individually
- * rather than failing the whole batch. Returns null only when no JSON object
- * is present or it fails to parse at all, so the caller can retry the single
- * call once before falling back entirely.
+ * Parses one JSON reply into all three slots. Missing, blank, and repeated
+ * values become null. Returns null for unparseable JSON so the route can retry.
  */
-export function parseMirrorEchoes(raw: string): Record<MirrorTimeOfDay, string> | null {
+export function parseMirrorEchoes(raw: string, previous: readonly string[] = []): MirrorEchoes | null {
   let parsed: any
   try {
     const match = raw.match(/\{[\s\S]*\}/)
@@ -89,9 +65,20 @@ export function parseMirrorEchoes(raw: string): Record<MirrorTimeOfDay, string> 
   } catch {
     return null
   }
-  const echoes = {} as Record<MirrorTimeOfDay, string>
+  const echoes = emptyMirrorEchoes()
+  const seen = new Set(previous.map(normalizeEcho))
   for (const timeOfDay of MIRROR_TIME_SLOTS) {
-    echoes[timeOfDay] = cleanEcho((parsed?.[timeOfDay] ?? '').toString()) || fallbackEcho(timeOfDay)
+    const value = parsed?.[timeOfDay]
+    const candidate = typeof value === 'string' ? cleanEcho(value) : ''
+    const normalized = normalizeEcho(candidate)
+    if (candidate && !seen.has(normalized)) {
+      echoes[timeOfDay] = candidate
+      seen.add(normalized)
+    }
   }
   return echoes
+}
+
+function normalizeEcho(text: string): string {
+  return text.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
 }

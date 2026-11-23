@@ -130,19 +130,19 @@ enum Model1Requests {
         let sourceEntryIds: [String]
     }
 
-    /// Body for `POST /v1/ai/daily-mirror` (and the legacy `/v1/ai/daily-encouragements`
-    /// an older client build may still call). Zero-knowledge: the entries, name
-    /// and profile are all PLAINTEXT, decrypted on device.
-    struct DailyEncouragementsBody: Encodable {
-        let name: String
-        let profile: [String: String]
+    /// Body for `POST /v1/ai/daily-mirror`. Only the inputs the prompt uses
+    /// leave the device; the profile and name remain local.
+    struct DailyMirrorBody: Encodable {
         let entries: [Entry]
+        let previousMirrors: [String]
+        let localDate: String
 
         struct Entry: Encodable {
             let id: String
             let type: String
             let title: String
             let content: String
+            let createdAt: String
         }
     }
 
@@ -212,9 +212,12 @@ enum Model1Requests {
         since: Date,
         limit: Int = 20,
         snippetChars: Int = 800
-    ) -> [DailyEncouragementsBody.Entry] {
+    ) -> [DailyMirrorBody.Entry] {
         mirrorSources(from: entries, since: since, limit: limit, snippetChars: snippetChars).map {
-            DailyEncouragementsBody.Entry(id: $0.id, type: $0.type, title: $0.title, content: $0.content)
+            DailyMirrorBody.Entry(
+                id: $0.id, type: $0.type, title: $0.title, content: $0.content,
+                createdAt: ISO8601DateFormatter().string(from: $0.createdAt)
+            )
         }
     }
 
