@@ -17822,7 +17822,149 @@ function AgentPlatformBeneathChatContent() {
   )
 }
 
+/* ── Post: How open-source AI glasses expose camera, audio and apps ── */
+function OpenSourceAiGlassesContent() {
+  return (
+    <>
+      <P>
+        Building an application that sees through smart glasses starts with hardware access. The first challenge is getting a camera frame without breaking voice interaction, handling a button press, and deciding where the video may travel.
+      </P>
+      <P>
+        <A href="https://github.com/Iam5tillLearning/OpenSource-Ai-Glasses">OpenSource-Ai-Glasses</A> approaches them as a Linux platform. The project provides system software and an application stack for smart glasses, plus an integrated hardware kit for faster setup. Developers can also start with a compatible RV1106B-based board and adapt its peripherals. The open-source scope is primarily software, not a promise that every piece of hardware is open.
+      </P>
+      <P>
+        The repository&apos;s README still foregrounds firmware v0.7.0. Its <A href="https://github.com/Iam5tillLearning/OpenSource-Ai-Glasses/releases/tag/v0.7.2">latest GitHub release</A> is v0.7.2, published on August 24, 2026. That release emphasizes connection ownership and traceable builds. To understand why, we need to follow an application from its first hardware request to the service that handles it.
+      </P>
+      <Figure
+        src="/blog/open-source-ai-glasses-1.jpg"
+        alt="GitHub repository page for the open-source Linux smart glasses project"
+        width={1920}
+        height={1168}
+        priority
+        caption="Source: Iam5tillLearning/OpenSource-Ai-Glasses on GitHub."
+      />
+      <H2>What is actually open to a developer?</H2>
+      <P>
+        A developer can work with the project&apos;s system and application software, its documented C/C++ SDK, example programs and firmware build process. The repository describes two hardware paths: use an RV1106B board and do the peripheral adaptation yourself, or use the integrated glasses kit with its prewired parts and preloaded firmware. The first path offers more freedom and more bring-up work. The second saves integration time but is not required for software development.
+      </P>
+      <P>
+        This distinction matters because “open-source glasses” can sound like a complete set of printable frames, board designs, optics and manufacturing files. The README makes the narrower software scope explicit. It also calls the project early-stage and says documentation is still being added. Treat the kit as a reference implementation of the stack, not a universal specification for every frame or sensor arrangement.
+      </P>
+      <Figure
+        src="/blog/open-source-ai-glasses-2.jpg"
+        alt="Project image showing the assembled smart glasses hardware"
+        width={1024}
+        height={747}
+        caption="Project image from the OpenSource-Ai-Glasses README."
+      />
+      <Figure
+        src="/blog/open-source-ai-glasses-3.jpg"
+        alt="Project hardware layout diagram locating the glasses components"
+        width={1920}
+        height={1288}
+        caption="Hardware layout from the OpenSource-Ai-Glasses repository."
+      />
+      <Figure
+        src="/blog/open-source-ai-glasses-4.jpg"
+        alt="Black rounded smart glasses frame resting on a wooden workbench"
+        width={1920}
+        height={1280}
+        caption="Black glasses frame from the OpenSource-Ai-Glasses repository, showing the exterior form."
+      />
+      <H2>Where does an application touch the device?</H2>
+      <P>
+        The <A href="https://github.com/Iam5tillLearning/OpenSource-Ai-Glasses/blob/main/SDK/ai_glass_sdk/docs/README.en.md">SDK documentation</A> places a client application above an SDK and a device media service. The application does not have to open each peripheral directly. It calls interfaces for GPIO button events, camera capture, audio, optional display, Bluetooth messaging and text events. The service layer coordinates access to the underlying resources.
+      </P>
+      <P>
+        Think of the SDK as a reception desk for shared equipment. An application asks for a camera image or a screen update through a known interface. But a camera frame is more like a large package than a short note. The analogy stops where timing and memory matter: the documented paths use shared memory and explicit cleanup rather than handing every pixel through ordinary text messages.
+      </P>
+      <P>
+        The examples are concrete. A camera client initializes a handle, requests a frame, uses the result, frees its data and cleans up the client. The <A href="https://github.com/Iam5tillLearning/OpenSource-Ai-Glasses/blob/main/SDK/ai_glass_sdk/docs/Camera_Client_API.en.md">camera API guide</A> documents JPEG and NV12 image formats, a configurable timeout and multi-client access. That sequence is useful even if your eventual application is more sophisticated than taking one still photo. It makes resource ownership visible in code.
+      </P>
+      <P>
+        Audio has its own client path. The <A href="https://github.com/Iam5tillLearning/OpenSource-Ai-Glasses/blob/main/SDK/ai_glass_sdk/docs/Audio_Client_API.en.md">audio API guide</A> documents PCM playback and text-to-speech, with a choice between queuing a sound and interrupting the current one. Its small example initializes an audio client, plays a sound and cleans up. For a voice interface, that choice affects whether a prompt waits behind another sound or takes priority. It is application behavior built on the device&apos;s audio service, not a property of the language model.
+      </P>
+      <Figure
+        src="/blog/open-source-ai-glasses-5.jpg"
+        alt="Argo diagram showing an app calling the SDK, media service and glasses hardware"
+        width={1600}
+        height={900}
+        caption="An app reaches glasses hardware through the SDK and media services, based on project documentation."
+      />
+      <Figure
+        src="/blog/open-source-ai-glasses-6.jpg"
+        alt="Argo diagram showing the camera SDK initialization, capture and memory cleanup sequence"
+        width={1600}
+        height={900}
+        caption="A camera request initializes a client, captures an image, uses its data and releases resources, based on the camera API."
+      />
+      <H2>How does live video leave the glasses?</H2>
+      <P>
+        A single captured still is different from a continuous video feed. In the project&apos;s <A href="https://github.com/Iam5tillLearning/OpenSource-Ai-Glasses/blob/main/docs/RTSP_VIDEO_STREAMING.en.md">RTSP guide</A>, <code>ai-core</code> owns the camera and produces an encoded stream. A separate <code>rkipc</code> process subscribes to that stream and serves it over RTSP, a protocol for receiving live audio and video. The streaming process does not take camera ownership away from <code>ai-core</code>.
+      </P>
+      <P>
+        The guide gives a main stream at <code>/live/0</code> and a substream at <code>/live/1</code>. It describes an H.265 reference stream, while warning that codec and resolution depend on the firmware configuration. The practical check is <code>ffprobe</code> against the running device, not a hard-coded expectation copied from a README. Developers can preview with <code>ffplay</code> or extract frames for a vision pipeline with <code>ffmpeg</code>.
+      </P>
+      <P>
+        The route to a remote model needs another boundary. The guide&apos;s topology is glasses to LAN, VPN or controlled gateway, then frame extraction or transcoding, then AI inference. It explicitly says not to expose the device&apos;s RTSP port directly to the public Internet. A gateway can decide who connects and how many frames leave the local network. That is a deployment design choice, not something RTSP alone provides.
+      </P>
+      <Figure
+        src="/blog/open-source-ai-glasses-7.jpg"
+        alt="Argo diagram showing the camera stream from ai-core through rkipc and a controlled gateway"
+        width={1600}
+        height={900}
+        caption="Camera stream moves from ai-core through rkipc and a controlled gateway, based on the RTSP guide."
+      />
+      <H2>What changes when the glasses have a display?</H2>
+      <P>
+        The display is optional in this project. When present, an application talks to <code>ai_display_service</code> through the <A href="https://github.com/Iam5tillLearning/OpenSource-Ai-Glasses/blob/main/SDK/ai_glass_sdk/docs/Display_Client_API.en.md">display client API</A>. Shared memory carries framebuffer pixels. A Unix-domain socket carries control messages such as committing a frame or requesting display focus. A framebuffer is a memory buffer holding the pixels the screen will show next.
+      </P>
+      <P>
+        These are two paths for two kinds of data. Bulk pixels stay in a memory buffer; a small command tells the service when to use them. The API documents both a main application buffer and an overlay slot, plus focus management that decides which client&apos;s content appears when several want the screen. A developer building an audio-only experience can leave this entire path out. Someone building a heads-up interface must think about both drawing and which application is currently allowed to be visible.
+      </P>
+      <Figure
+        src="/blog/open-source-ai-glasses-8.jpg"
+        alt="Argo diagram showing framebuffer and control paths into the optional display service"
+        width={1600}
+        height={900}
+        caption="Pixels travel through shared memory while commit and focus commands use a Unix socket, based on the display client API."
+      />
+      <H2>Why did the latest release focus on connection ownership?</H2>
+      <P>
+        A wearable may have several ways to ask for the same change. An Android client, a Bluetooth command and an on-device application can all request Wi-Fi operations. If each component treats itself as the authority, a “connect” from one path can collide with a “disconnect” from another. Version 0.7.2 addresses that by making Guard the single owner of Wi-Fi state and by standardizing status, connect and disconnect controls across BLE, classic Bluetooth SPP and the SDK.
+      </P>
+      <P>
+        The same <A href="https://github.com/Iam5tillLearning/OpenSource-Ai-Glasses/releases/tag/v0.7.2">release notes</A> describe deterministic SDK packaging, builds for both device variants, freshness checks and checksums for release artifacts. Those are release-engineering controls rather than a new sensor feature. They matter when an application is tested against a specific firmware image: the developer needs to know which SDK package and device build belong together.
+      </P>
+      <P>
+        The README also carries a hardware compatibility rule. Its v0.6.x and v0.7.x reference firmware builds are for integrated hardware produced after January 1, 2026. For earlier official or same-reference hardware, the project directs users to v0.6.0 or earlier. Check the hardware revision before choosing a firmware image. A release being newer does not make it suitable for every unit.
+      </P>
+      <H2>How can you start building?</H2>
+      <P>
+        Begin with the <A href="https://github.com/Iam5tillLearning/OpenSource-Ai-Glasses/blob/main/README.md">repository&apos;s development guide</A> and decide whether you are bringing up your own RV1106B board or using the integrated kit. The documented host path uses Debian or Ubuntu and a separate AIGLASS_DEV_ENV build environment. Then choose the smallest SDK example that exercises the capability you need: a button event, one camera capture, audio playback or a display frame. Verify that before adding a model or a network service.
+      </P>
+      <P>
+        For video AI, first confirm the device&apos;s live stream locally and inspect its actual codec and resolution. Put a controlled gateway between the glasses and any remote inference service. For a heads-up interface, test focus and framebuffer updates on the display variant. The useful starting point is not “add AI”; it is to prove one resource path works end to end on your hardware and firmware combination.
+      </P>
+      <P>
+        Follow the <A href="https://github.com/Iam5tillLearning/OpenSource-Ai-Glasses">OpenSource-Ai-Glasses repository</A> for the current release and the application examples.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "open-source-ai-glasses",
+    title: "How open-source AI glasses expose camera, audio and apps",
+    description: "A practical tour of the Linux smart-glasses stack, its developer SDK, video stream, optional display and current release.",
+    category: "ai-news",
+    date: "November 23, 2026",
+    isoDate: "2026-11-23T05:30",
+    readingTime: "7 min read",
+    image: "/blog/open-source-ai-glasses-1.jpg",
+    Content: OpenSourceAiGlassesContent,
+  },
   {
     slug: "agent-platform-beneath-chat",
     title: "What an agent platform needs beneath the chat",
