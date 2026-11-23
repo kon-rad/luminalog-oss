@@ -2,7 +2,7 @@ import Foundation
 import OSLog
 
 /// Drives the Journal list (design §3): pagination, live updates of the
-/// newest page, client-side type filter + search, and date grouping.
+/// newest page, client-side type filtering, and date grouping.
 @MainActor
 final class JournalListViewModel: ObservableObject {
 
@@ -41,6 +41,7 @@ final class JournalListViewModel: ObservableObject {
     /// All loaded entries, newest first (paginated + live-merged).
     @Published private(set) var entries: [JournalEntry] = []
     @Published private(set) var isLoadingFirstPage = true
+    @Published private(set) var isLoadingFilter = false
     @Published private(set) var isLoadingNextPage = false
     /// True when the first page failed to load — the view shows an error
     /// state with Retry instead of "No entries yet".
@@ -54,6 +55,7 @@ final class JournalListViewModel: ObservableObject {
     private let pageSize: Int
     private var liveTask: Task<Void, Never>?
     private var hasStarted = false
+    private var fetchGeneration = 0
 
     init(journals: JournalRepository, pageSize: Int = 20) {
         self.journals = journals
@@ -76,13 +78,18 @@ final class JournalListViewModel: ObservableObject {
     }
 
     private func loadFirstPage() async {
-        defer { isLoadingFirstPage = false }
+        let generation = fetchGeneration
+        defer {
+            if generation == fetchGeneration { isLoadingFirstPage = false }
+        }
         do {
             let page = try await journals.entries(after: nil, limit: pageSize)
+            guard generation == fetchGeneration else { return }
             hasMorePages = page.count == pageSize
             loadFailed = false
             mergeLatest(page)
         } catch {
+            guard generation == fetchGeneration else { return }
             Self.logger.error("first page failed: \(error.localizedDescription, privacy: .public)")
             loadFailed = true
         }
@@ -102,6 +109,7 @@ final class JournalListViewModel: ObservableObject {
             guard let stream = self?.journals.recentEntries(limit: self?.pageSize ?? 20) else { return }
             for await latest in stream {
                 guard let self, !Task.isCancelled else { return }
+                guard !self.isLoadingFilter else { continue }
                 self.mergeLatest(latest)
             }
         }
@@ -111,29 +119,36 @@ final class JournalListViewModel: ObservableObject {
 
     /// Call when `entry` (the last displayed row) appears.
     ///
-    /// With an active filter/search, a fetched page can add zero new
-    /// *displayed* rows — `onAppear` then never fires again and pagination
-    /// stalls. Keep fetching until the visible list grows, bounded to 3
-    /// auto-chained pages per trigger to avoid runaway fetching.
+    /// A page can add no displayed rows. Keep paging until the list grows
+    /// or the backend has no more pages, so later matches stay reachable.
     func loadNextPageIfNeeded(after entry: JournalEntry) async {
         guard entry.id == displayedEntries.last?.id else { return }
-        for _ in 0..<3 {
+        while hasMorePages {
             let displayedBefore = displayedEntries.count
-            await loadNextPage()
+            guard await loadNextPage() else { return }
             guard hasMorePages, displayedEntries.count == displayedBefore else { return }
         }
     }
 
-    func loadNextPage() async {
-        guard hasMorePages, !isLoadingNextPage, !isLoadingFirstPage else { return }
+    @discardableResult
+    func loadNextPage() async -> Bool {
+        guard hasMorePages, !isLoadingNextPage, !isLoadingFirstPage, !isLoadingFilter else { return false }
+        let generation = fetchGeneration
+        let cursor = entries.last?.createdAt
         isLoadingNextPage = true
-        defer { isLoadingNextPage = false }
+        defer {
+            if generation == fetchGeneration { isLoadingNextPage = false }
+        }
         do {
-            let page = try await journals.entries(after: entries.last?.createdAt, limit: pageSize)
+            let page = try await journals.entries(after: cursor, limit: pageSize)
+            guard generation == fetchGeneration else { return false }
             hasMorePages = page.count == pageSize
             append(page)
+            return true
         } catch {
+            guard generation == fetchGeneration else { return false }
             Self.logger.error("next page failed: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 
@@ -171,6 +186,41 @@ final class JournalListViewModel: ObservableObject {
 
     // MARK: - Filtering & search
 
+    /// Start a fresh paged read. Continue past unmatched pages so the empty
+    /// state is shown only after the selected type is conclusively absent.
+    func selectFilter(_ selected: TypeFilter) async {
+        guard filter != selected || loadFailed else { return }
+        fetchGeneration += 1
+        let generation = fetchGeneration
+        filter = selected
+        entries = []
+        hasMorePages = true
+        loadFailed = false
+        isLoadingNextPage = false
+        isLoadingFirstPage = false
+        isLoadingFilter = true
+        defer {
+            if generation == fetchGeneration { isLoadingFilter = false }
+        }
+
+        var cursor: Date?
+        repeat {
+            do {
+                let page = try await journals.entries(after: cursor, limit: pageSize)
+                guard generation == fetchGeneration else { return }
+                hasMorePages = page.count == pageSize
+                append(page)
+                cursor = page.last?.createdAt
+                if page.isEmpty { hasMorePages = false }
+            } catch {
+                guard generation == fetchGeneration else { return }
+                Self.logger.error("filter load failed: \(error.localizedDescription, privacy: .public)")
+                loadFailed = true
+                return
+            }
+        } while hasMorePages && displayedEntries.isEmpty
+    }
+
     /// Loaded entries after the type filter is applied.
     var displayedEntries: [JournalEntry] {
         entries.filter { matchesFilter($0) }
@@ -178,7 +228,7 @@ final class JournalListViewModel: ObservableObject {
 
     /// True when the empty result comes from an active filter rather than an empty journal.
     var isFilteredEmpty: Bool {
-        displayedEntries.isEmpty && !entries.isEmpty
+        displayedEntries.isEmpty && !entries.isEmpty && !hasMorePages && !isLoadingFilter && !loadFailed
     }
 
     private func matchesFilter(_ entry: JournalEntry) -> Bool {

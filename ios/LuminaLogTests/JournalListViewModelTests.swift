@@ -10,6 +10,8 @@ final class JournalListViewModelTests: XCTestCase {
         struct PageError: Error {}
 
         var pagesShouldFail = true
+        var pageDelayNanos: UInt64 = 0
+        var pageCallCount = 0
         var seed: [JournalEntry]
 
         init(seed: [JournalEntry] = MockData.journalEntries) {
@@ -25,6 +27,8 @@ final class JournalListViewModelTests: XCTestCase {
         }
 
         func entries(after: Date?, limit: Int) async throws -> [JournalEntry] {
+            pageCallCount += 1
+            if pageDelayNanos > 0 { try await Task.sleep(nanoseconds: pageDelayNanos) }
             if pagesShouldFail { throw PageError() }
             let sorted = seed.sorted { $0.createdAt > $1.createdAt }
             let filtered = after.map { date in sorted.filter { $0.createdAt < date } } ?? sorted
@@ -88,6 +92,41 @@ final class JournalListViewModelTests: XCTestCase {
     // searchText tests were dropped with it.
 
     // MARK: - Pagination
+
+    @MainActor
+    func testSelectingFilterFetchesPastUnmatchedPages() async {
+        let repository = FailingJournalRepository()
+        repository.pagesShouldFail = false
+        let viewModel = JournalListViewModel(journals: repository, pageSize: 1)
+        await viewModel.start()
+
+        repository.pageDelayNanos = 50_000_000
+        let selection = Task { await viewModel.selectFilter(.type(.image)) }
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        XCTAssertTrue(viewModel.isLoadingFilter)
+        XCTAssertFalse(viewModel.isFilteredEmpty)
+
+        await selection.value
+        XCTAssertFalse(viewModel.isLoadingFilter)
+        XCTAssertTrue(viewModel.displayedEntries.allSatisfy { $0.type == .image })
+        XCTAssertFalse(viewModel.displayedEntries.isEmpty,
+                       "A matching entry beyond the first page must be found")
+        XCTAssertGreaterThan(repository.pageCallCount, 2,
+                             "Selecting a filter must start a new read and pass unmatched pages")
+    }
+
+    @MainActor
+    func testNoMatchesRequiresExhaustingFilteredRead() async {
+        let textEntries = MockData.journalEntries.filter { $0.type == .text }
+        let viewModel = makeViewModel(entries: textEntries, pageSize: 2)
+        await viewModel.start()
+
+        await viewModel.selectFilter(.type(.image))
+
+        XCTAssertTrue(viewModel.isFilteredEmpty)
+        XCTAssertFalse(viewModel.hasMorePages)
+        XCTAssertFalse(viewModel.isLoadingFilter)
+    }
 
     @MainActor
     func testPaginationAppendsWithoutDuplicates() async {

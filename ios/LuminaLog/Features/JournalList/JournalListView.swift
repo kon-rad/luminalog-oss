@@ -125,15 +125,19 @@ struct JournalListView: View {
 
     @ViewBuilder
     private var content: some View {
-        if viewModel.isLoadingFirstPage {
+        if viewModel.isLoadingFilter {
+            ProgressView("Loading entries…")
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Spacing.m)
+        } else if viewModel.isLoadingFirstPage {
             skeletonRows
-        } else if viewModel.loadFailed && viewModel.entries.isEmpty {
+        } else if viewModel.loadFailed && viewModel.displayedEntries.isEmpty {
             EmptyStateView(
                 systemImage: "wifi.exclamationmark",
                 title: "Couldn't load your journal",
                 message: "Something went wrong loading your entries. Check your connection and try again.",
                 actionTitle: "Retry",
-                action: { Task { await viewModel.retryFirstPage() } }
+                action: { Task { await viewModel.selectFilter(viewModel.filter) } }
             )
         } else if viewModel.entries.isEmpty {
             EmptyStateView(
@@ -200,7 +204,7 @@ struct JournalListView: View {
                     FilterChip(
                         filter: filter,
                         isSelected: viewModel.filter == filter,
-                        action: { viewModel.filter = filter }
+                        action: { Task { await viewModel.selectFilter(filter) } }
                     )
                 }
             }
