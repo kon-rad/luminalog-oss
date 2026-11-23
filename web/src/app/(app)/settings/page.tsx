@@ -11,7 +11,7 @@ import SubscriptionCard from '@/components/app/SubscriptionCard'
 
 // Settings tab root: Appearance, Subscription, Encryption, and Sign Out. The
 // rest of design B.17's cards (Profile, Leaderboard, User Information, Daily
-// Reminder, AI Summary Config, Voice Credits, Delete Account, Legal) are later
+// Reminder, AI Summary Config, Delete Account, Legal) are later
 // milestones.
 export default function SettingsPage() {
   const { signOut } = useAuth()
@@ -79,7 +79,7 @@ export default function SettingsPage() {
       <SubscriptionCard />
 
       {/* Later milestones: Profile, Leaderboard, User Information, Daily
-          Reminder, AI Summary Config, Voice Credits, Delete Account, Legal
+          Reminder, AI Summary Config, Delete Account, Legal
           (design B.17). */}
 
       <section className="card flex flex-col gap-2 p-4">

@@ -283,7 +283,7 @@ struct SettingsView: View {
             SubscriptionPaywall()
         }
         .sheet(isPresented: $showCredits) {
-            CreditsView(credits: credits)
+            if VoiceCreditPolicy.isEnabled { CreditsView(credits: credits) }
         }
         .sheet(isPresented: $showConfig) {
             if let profile = viewModel.profile {
@@ -989,8 +989,12 @@ struct SettingsView: View {
                 rowDivider
                 callVoiceRow
                 rowDivider
-                voiceCreditsRow
-                rowDivider
+                // Voice Credits are paused. Keep the row and purchase sheet
+                // below for a deliberate future re-enable.
+                if VoiceCreditPolicy.isEnabled {
+                    voiceCreditsRow
+                    rowDivider
+                }
                 signOutRow
                 rowDivider
                 deleteAccountRow

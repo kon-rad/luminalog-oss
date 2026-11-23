@@ -162,7 +162,7 @@ struct VoiceCallView: View {
                     .padding(.top, Spacing.xs)
             }
 
-            if viewModel.lowCreditWarning {
+            if VoiceCreditPolicy.isEnabled && viewModel.lowCreditWarning {
                 Label("Low on credits, call will end soon", systemImage: "exclamationmark.circle.fill")
                     .font(.captionText.weight(.medium))
                     .foregroundStyle(Color.tintVoice)
@@ -367,7 +367,7 @@ struct VoiceCallView: View {
             }
 
             VStack(spacing: Spacing.s) {
-                if viewModel.outOfCredits {
+                if VoiceCreditPolicy.isEnabled && viewModel.outOfCredits {
                     Button {
                         dismiss()
                         onInsufficientCredits?()

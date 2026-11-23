@@ -8,10 +8,10 @@ import SocialLinks from '@/components/SocialLinks'
  * Content is intentionally generic and reflects Argo's shipped
  * functionality: AI-assisted journaling in text/voice/video/photo, on-device
  * OCR, encrypted storage, third-party AI processing of content you choose to
- * share, a no-training pledge, App Store subscriptions, and Voice Credits.
+ * share, a no-training pledge, and App Store subscriptions.
  * ────────────────────────────────────────────────────────────────────────── */
 
-export const LEGAL_UPDATED = 'August 31, 2026'
+export const LEGAL_UPDATED = 'November 23, 2026'
 
 export function LegalLayout({
   title,
@@ -144,7 +144,7 @@ export function PrivacyContent() {
       </P>
       <H3>Payment information</H3>
       <P>
-        Subscriptions and Voice Credit purchases are processed by Apple through the App Store.
+        Subscriptions are processed by Apple through the App Store.
         We do not collect or store your payment-card details; we receive only the transaction
         and entitlement status needed to unlock features you have purchased.
       </P>
@@ -382,11 +382,10 @@ export function TermsContent({ heading }: { heading?: string }) {
         promptly of any unauthorized use.
       </P>
 
-      <H2>4. Subscriptions, billing &amp; Voice Credits</H2>
+      <H2>4. Subscriptions and billing</H2>
       <UL items={[
         'The Service is offered as a monthly or annual subscription. Subscriptions are sold and managed through the Apple App Store and are billed to your Apple account.',
         'Subscriptions renew automatically unless cancelled at least 24 hours before the end of the current period. Manage or cancel your subscription in your App Store account settings.',
-        'Live voice calls are powered by consumable Voice Credits purchased separately. Credits are consumed as you use them and are generally non-refundable once used, except where required by law.',
         'Prices may change; we will give notice as required. Refunds, where applicable, are handled according to Apple’s policies.',
       ]} />
 
