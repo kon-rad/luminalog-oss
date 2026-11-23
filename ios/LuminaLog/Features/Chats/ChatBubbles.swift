@@ -13,6 +13,8 @@ struct MessageBubble: View {
     var isStreaming: Bool = false
     /// Failed sends render dimmed with a warning tint.
     var isFailed: Bool = false
+    /// Tighter spacing for the voice call Messages tab.
+    var compact: Bool = false
 
     private var isUser: Bool { role == .user }
 
@@ -32,11 +34,12 @@ struct MessageBubble: View {
                     text: text,
                     accessibilityText: "Copy \(isUser ? "your" : "Argo's") message",
                     iconOnly: true,
+                    compact: compact,
                     tint: isUser ? .white : .accentWarm
                 )
             }
-                .padding(.horizontal, Spacing.m)
-                .padding(.vertical, Spacing.s + Spacing.xs)
+                .padding(.horizontal, compact ? Spacing.s + Spacing.xs : Spacing.m)
+                .padding(.vertical, compact ? Spacing.s : Spacing.s + Spacing.xs)
                 .background(bubbleShape.fill(fillColor))
                 .overlay {
                     if isFailed {

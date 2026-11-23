@@ -8,9 +8,6 @@ import UIKit
 struct RecordingOverlayView: View {
 
     @ObservedObject var recorder: RecordingSession
-    /// If non-nil, the answered prompt is shown at the top of the panel so the
-    /// user can read it while speaking.
-    let promptText: String?
     let onStop: () -> Void
     let onResume: () -> Void
 
@@ -22,23 +19,6 @@ struct RecordingOverlayView: View {
                 .frame(width: 36, height: 5)
                 .padding(.top, Spacing.s)
                 .padding(.bottom, Spacing.xs)
-
-            // Prompt reminder (only when answering a prompt)
-            if let promptText {
-                Text(promptText)
-                    .font(.promptQuoteCompact)
-                    .foregroundStyle(Color.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, Spacing.s + 3)
-                    .overlay(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 1.5)
-                            .fill(Color.accentWarm)
-                            .frame(width: 3)
-                    }
-                .padding(.horizontal, Spacing.m)
-                .padding(.bottom, Spacing.s)
-            }
 
             if case .paused = recorder.state {
                 Text("Paused, tap the mic to resume")

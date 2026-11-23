@@ -74,7 +74,6 @@ struct CreateEntryView: View {
             if isRecorderPresented {
                 RecordingOverlayView(
                     recorder: recorder,
-                    promptText: viewModel.promptText,
                     onStop: stopAndAttach,
                     onResume: { Task { _ = await recorder.resume() } }
                 )
@@ -89,7 +88,13 @@ struct CreateEntryView: View {
         .task {
             viewModel.configureRecording(recorder)
             viewModel.loadResumedDraftIfNeeded()
-            if viewModel.startWithAudio { startRecording() }
+            if viewModel.startWithAudio {
+                startRecording()
+            } else if viewModel.promptText != nil {
+                // Let the presented editor mount before asking iOS for the keyboard.
+                await Task.yield()
+                if !Task.isCancelled { editorFocused = true }
+            }
         }
         .onDisappear {
             if isDiscarding {
