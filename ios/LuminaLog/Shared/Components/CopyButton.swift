@@ -14,6 +14,8 @@ struct CopyButton: View {
     var accessibilityText: String = "Copy"
     /// Keep the full tap target when a message needs only the copy icon.
     var iconOnly: Bool = false
+    /// Tighter control for message cards in the voice call detail view.
+    var compact: Bool = false
     var tint: Color = .accentWarm
 
     @State private var didCopy = false
@@ -41,7 +43,8 @@ struct CopyButton: View {
             }
             .font(.captionText.weight(.semibold))
             .foregroundStyle(tint)
-            .frame(minWidth: iconOnly ? 44 : nil, minHeight: 44)
+            .frame(minWidth: iconOnly ? (compact ? 36 : 44) : nil,
+                   minHeight: compact && iconOnly ? 36 : 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

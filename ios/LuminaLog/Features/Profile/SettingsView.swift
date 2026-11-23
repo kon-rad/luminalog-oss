@@ -172,44 +172,44 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.l) {
-                    profileCard
-                    leaderboardRow
+                    AnyView(profileCard)
+                    AnyView(leaderboardRow)
                     if DevFlags.periodSummaries {
-                        storyRow
+                        AnyView(storyRow)
                         if DevFlags.storyMap {
-                            storyMapRow
+                            AnyView(storyMapRow)
                         }
                     }
                     if DevFlags.userFacts {
-                        userFactsRow
+                        AnyView(userFactsRow)
                     }
                     if DevFlags.lifeInterview {
-                        lifeStoryRow
+                        AnyView(lifeStoryRow)
                     }
-                    inboxRow
+                    AnyView(inboxRow)
                     if let message = viewModel.errorMessage {
-                        errorBanner(message)
+                        AnyView(errorBanner(message))
                     }
-                    userInfoCard
-                    walletCard
+                    AnyView(userInfoCard)
+                    AnyView(walletCard)
                     if AppConfig.reownProjectId != nil {
-                        walletLinkCard
+                        AnyView(walletLinkCard)
                         // Only once a wallet is actually linked: enrolling a
                         // key-wrap with no wallet to sign it makes no sense.
                         if linkedWalletAddress != nil {
-                            eoaKeyWrapCard
+                            AnyView(eoaKeyWrapCard)
                         }
                     }
-                    appearanceCard
-                    reminderCard
-                    settingsCard
-                    legalCard
+                    AnyView(appearanceCard)
+                    AnyView(reminderCard)
+                    AnyView(settingsCard)
+                    AnyView(legalCard)
                     #if DEBUG
                     if DevFlags.devMode {
-                        developerCard
+                        AnyView(developerCard)
                     }
                     #endif
-                    versionFooter
+                    AnyView(versionFooter)
                 }
                 .padding(.horizontal, Spacing.m)
                 .padding(.top, Spacing.s)
@@ -1738,7 +1738,7 @@ struct SettingsView: View {
 
     private var versionFooter: some View {
         VStack(spacing: 2) {
-            Text("Argo v\(viewModel.appVersion)")
+            Text("Argo v\(viewModel.appVersion) (\(viewModel.appBuild))")
                 .font(.captionText)
                 .foregroundStyle(Color.textSecondary.opacity(0.8))
             Text(viewModel.gitCommit)

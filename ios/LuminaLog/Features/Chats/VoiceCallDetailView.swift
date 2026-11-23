@@ -208,12 +208,12 @@ struct VoiceCallDetailView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.s) {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
                     ForEach(viewModel.messages) { message in
                         TranscriptMessageRow(message: message)
                     }
                 }
-                .padding(Spacing.m)
+                .padding(Spacing.s)
             }
         }
     }
@@ -224,13 +224,13 @@ struct VoiceCallDetailView: View {
         ScrollView {
             VStack(spacing: Spacing.s) {
                 ForEach(viewModel.messages) { message in
-                    MessageBubble(text: message.text, role: message.role)
+                    MessageBubble(text: message.text, role: message.role, compact: true)
                     if let sources = message.sources, !sources.isEmpty {
                         SourcesDisclosure(sources: sources)
                     }
                 }
             }
-            .padding(Spacing.m)
+            .padding(Spacing.s)
         }
     }
 
@@ -294,11 +294,11 @@ private struct TranscriptMessageRow: View {
                     .font(.captionText)
                     .foregroundStyle(Color.textSecondary)
                 Spacer()
-                CopyButton(text: message.text, accessibilityText: "Copy transcript message", iconOnly: true)
+                CopyButton(text: message.text, accessibilityText: "Copy transcript message", iconOnly: true, compact: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Spacing.m)
+        .padding(Spacing.s + Spacing.xs)
         .background(Color.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadius.medium, style: .continuous))
     }
