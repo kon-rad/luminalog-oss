@@ -124,13 +124,12 @@ final class VoiceCallViewModel: ObservableObject {
 
     /// Creates the voice chat, subscribes to call events (before starting,
     /// so `connecting` is observed), then starts the call. Idempotent.
-    /// Transitions to `.insufficientCredits` when balance is zero so the view
-    /// can dismiss and present the credit store.
+    /// The retained credit gate is dormant while VoiceCreditPolicy is off.
     func start() async {
         guard !hasStarted else { return }
         hasStarted = true
 
-        if !DevFlags.devMode {
+        if VoiceCreditPolicy.isEnabled && !DevFlags.devMode {
             let balance = await credits.currentBalance()
             guard balance >= 1 else {
                 phase = .insufficientCredits
@@ -195,7 +194,7 @@ final class VoiceCallViewModel: ObservableObject {
             speakingState = .listening
             callWasConnected = true
             setScreenAwake(true)
-            if !DevFlags.devMode { startBudgetTracking() }
+            if VoiceCreditPolicy.isEnabled && !DevFlags.devMode { startBudgetTracking() }
             startTimer()
 
         case .listening:
@@ -270,6 +269,7 @@ final class VoiceCallViewModel: ObservableObject {
     /// Called each timer tick: raises the low-credit warning near the end and
     /// auto-ends the call once the budget is exhausted.
     private func checkBudget() {
+        guard VoiceCreditPolicy.isEnabled else { return }
         guard budgetSeconds > 0 else { return }
         let remaining = budgetSeconds - elapsedSeconds
         lowCreditWarning = remaining > 0 && remaining <= 60
@@ -295,7 +295,7 @@ final class VoiceCallViewModel: ObservableObject {
     // MARK: - Credit deduction
 
     private func deductCreditsForCall() {
-        guard !DevFlags.devMode, callWasConnected, elapsedSeconds > 0 else { return }
+        guard VoiceCreditPolicy.isEnabled, !DevFlags.devMode, callWasConnected, elapsedSeconds > 0 else { return }
         callWasConnected = false
         // 1 credit = 6 minutes (docs/PRICING.md); round partial blocks up, min 1.
         let secondsPerCredit = Double(CreditPack.minutesPerCredit * 60)

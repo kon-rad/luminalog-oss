@@ -145,12 +145,12 @@ struct ChatListView: View {
                     path.append(ChatRoute(chat: chat))
                 },
                 onInsufficientCredits: {
-                    isCreditsPresented = true
+                    if VoiceCreditPolicy.isEnabled { isCreditsPresented = true }
                 }
             )
         }
         .sheet(isPresented: $isCreditsPresented) {
-            CreditsView(credits: credits)
+            if VoiceCreditPolicy.isEnabled { CreditsView(credits: credits) }
         }
     }
 

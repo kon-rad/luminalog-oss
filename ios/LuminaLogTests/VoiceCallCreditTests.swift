@@ -56,7 +56,8 @@ final class VoiceCallCreditTests: XCTestCase {
     }
 
     // 1 credit = 6 minutes -> 400s rounds up to ceil(400/360) = 2 credits.
-    func testDeductionUsesSixMinutesPerCredit() async {
+    func testDeductionUsesSixMinutesPerCredit() async throws {
+        try XCTSkipIf(!VoiceCreditPolicy.isEnabled, "Legacy credit policy is paused")
         let (vm, voice, credits) = await makeStarted(balance: 10)
         vm.setElapsedForTesting(400)
         voice.emit(.ended(reason: nil))
@@ -65,7 +66,8 @@ final class VoiceCallCreditTests: XCTestCase {
     }
 
     // A short connected call still costs the 1-credit minimum.
-    func testShortCallCostsOneCredit() async {
+    func testShortCallCostsOneCredit() async throws {
+        try XCTSkipIf(!VoiceCreditPolicy.isEnabled, "Legacy credit policy is paused")
         let (vm, voice, credits) = await makeStarted(balance: 10)
         vm.setElapsedForTesting(30)
         voice.emit(.ended(reason: nil))
@@ -73,7 +75,8 @@ final class VoiceCallCreditTests: XCTestCase {
         XCTAssertEqual(bal, 9)
     }
 
-    func testLowCreditWarningRaisedNearBudgetEnd() async {
+    func testLowCreditWarningRaisedNearBudgetEnd() async throws {
+        try XCTSkipIf(!VoiceCreditPolicy.isEnabled, "Legacy credit policy is paused")
         let (vm, _, _) = await makeStarted(balance: 1)   // 360s budget
         vm.primeBudgetForTesting(360)
         vm.setElapsedForTesting(310)                      // 50s remaining
@@ -81,7 +84,8 @@ final class VoiceCallCreditTests: XCTestCase {
         XCTAssertTrue(vm.lowCreditWarning)
     }
 
-    func testAutoEndsWhenBudgetExhausted() async {
+    func testAutoEndsWhenBudgetExhausted() async throws {
+        try XCTSkipIf(!VoiceCreditPolicy.isEnabled, "Legacy credit policy is paused")
         let (vm, voice, _) = await makeStarted(balance: 1)
         vm.primeBudgetForTesting(360)
         vm.setElapsedForTesting(360)
@@ -89,5 +93,26 @@ final class VoiceCallCreditTests: XCTestCase {
         await waitUntil { voice.endCalls >= 1 }
         XCTAssertGreaterThanOrEqual(voice.endCalls, 1)
         XCTAssertTrue(vm.outOfCredits)
+    }
+
+    func testPausedPolicyAllowsCallWithZeroCreditsAndDoesNotDeduct() async {
+        let (vm, voice, credits) = await makeStarted(balance: 0)
+        XCTAssertEqual(vm.phase, .active)
+        vm.setElapsedForTesting(400)
+        voice.emit(.ended(reason: nil))
+        await waitUntil { vm.phase == .ended(reason: nil) }
+        let balance = await credits.currentBalance()
+        XCTAssertEqual(balance, 0)
+        XCTAssertFalse(vm.outOfCredits)
+    }
+
+    func testPausedPolicyDoesNotWarnOrEndAtOldBudget() async {
+        let (vm, voice, _) = await makeStarted(balance: 0)
+        vm.primeBudgetForTesting(360)
+        vm.setElapsedForTesting(360)
+        vm.checkBudgetForTesting()
+        XCTAssertFalse(vm.lowCreditWarning)
+        XCTAssertFalse(vm.outOfCredits)
+        XCTAssertEqual(voice.endCalls, 0)
     }
 }

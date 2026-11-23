@@ -238,12 +238,12 @@ struct LifeInterviewDetailView: View {
                     transcriptChatId = chat.id
                 },
                 onInsufficientCredits: {
-                    isCreditsPresented = true
+                    if VoiceCreditPolicy.isEnabled { isCreditsPresented = true }
                 }
             )
         }
         .sheet(isPresented: $isCreditsPresented) {
-            CreditsView(credits: services.credits)
+            if VoiceCreditPolicy.isEnabled { CreditsView(credits: services.credits) }
         }
         .alert(
             "This part asks about hard times",
