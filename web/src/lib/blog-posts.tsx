@@ -18583,7 +18583,143 @@ function HowShirudoProtectsRunningLinuxServicesContent() {
   )
 }
 
+/* ── Post: How RoboTrack tests point tracking during robot manipulation ── */
+function RobotrackTestsPointTrackingInManipulationContent() {
+  return (
+    <>
+      <P>
+        A robot carrying a pipette needs to keep the tip aligned with a small vial opening. The camera view may be cluttered, the arm can hide the vial, and the vial may sit somewhere new on the next attempt. Recognizing a vial in one still image is not enough. The robot needs to follow where the same physical points move through time.
+      </P>
+      <Figure
+        src="/blog/robotrack-tests-point-tracking-in-manipulation-1.jpg"
+        alt="Ai2 RoboTrack announcement on Hugging Face"
+        width={1920}
+        height={1327}
+        priority
+        caption="Ai2 RoboTrack release, November 23, 2026"
+      />
+      <P>
+        On November 23, 2026, Ai2 <A href="https://huggingface.co/blog/allenai/robotrack">released RoboTrack</A>, a benchmark and training suite for that problem. It includes human-annotated videos of real manipulation, simulated tracks for training, and two fine-tuned point trackers. The <A href="https://allenai.org/papers/robotrack">full paper</A> reports both benchmark scores and a wet-lab robot experiment. The release asks a useful question: do trackers that look strong on established video tests still work when a robot handles objects in varied scenes?
+      </P>
+      <Figure
+        src="/blog/robotrack-tests-point-tracking-in-manipulation-2.jpg"
+        alt="Overview diagram connecting simulated training data, real-video benchmarks, fine-tuned trackers, and a pipette robot application"
+        width={1920}
+        height={1372}
+        caption="Ai2 release, RoboTrack suite overview"
+      />
+      <H2>What does point tracking provide?</H2>
+      <P>
+        A point tracker starts with a location in one video frame and estimates where that same location appears in later frames. It also predicts when the point is hidden. A sequence of these locations is a trajectory. For manipulation, trajectories can describe the motion of a gripper, an object being held, or a target such as a vial.
+      </P>
+      <P>
+        Imagine marking one tiny dot on the vial and following it as a hand moves across a room. A single object detector may say that a vial is present in each frame, but the tracked dot preserves identity across the motion. The analogy breaks down during occlusion: the actual dot may disappear, and the tracker must infer where it should reappear from the video and its learned behavior.
+      </P>
+      <P>
+        Robots already use tracked points to learn from demonstrations and adjust movement. Ai2 argues that familiar benchmarks can understate the difficulty of real manipulation, where viewpoints change and a gripper often blocks the very object the system needs to follow. RoboTrack therefore changes both what is measured and what examples a tracker sees during training.
+      </P>
+      <H2>What is in the new benchmark?</H2>
+      <Figure
+        src="/blog/robotrack-tests-point-tracking-in-manipulation-3.jpg"
+        alt="Examples of human-verified point tracks from four real manipulation video datasets"
+        width={1920}
+        height={1028}
+        caption="Ai2 release, RoboTrack-Bench examples"
+      />
+      <P>
+        <strong>RoboTrack-Bench</strong> contains 307 clips and 2,522 human-verified point tracks. The clips come from four source datasets, including DROID, Ego-Exo4D, MolmoAct 2 and EgoVerse. They cover robot arms and human hands, first-person and outside views, clutter and partial occlusion. A subset of 33 paired videos records the same interaction from two cameras and annotates corresponding physical points in both views.
+      </P>
+      <P>
+        The <A href="https://allenai.org/papers/robotrack">paper&apos;s method section</A> explains how annotators chose points that move or become hidden, rather than filling the set with easy static background points. A motion tool proposed a path, and people refined it and checked each track frame by frame. Tracks are labeled according to whether they belong to a body, a manipulated object or a static object under camera motion. That design gives researchers a way to ask which parts of the scene their model follows well.
+      </P>
+      <Figure
+        src="/blog/robotrack-tests-point-tracking-in-manipulation-4.jpg"
+        alt="Chart comparing Average Jaccard scores across four shown video benchmarks. CoWTracker scores 63.9 on RoboTrack-Bench and 70.5 on RoboTAP"
+        width={1920}
+        height={954}
+        caption="Ai2 release, authors’ benchmark comparison"
+      />
+      <P>
+        Ai2 evaluated four existing trackers on RoboTrack-Bench and four other benchmarks. It used Average Jaccard, a metric combining point location and visibility prediction, where higher is better. CoWTracker, the strongest off-the-shelf model on the new benchmark, scored 63.9 there versus 70.5 on RoboTAP, another real robot-video benchmark. The release reports that each tested final tracker scored lower on RoboTrack-Bench than on RoboTAP. This is evidence about the tested models and videos, not a claim that every future robot scene is harder.
+      </P>
+      <H2>How did the team train new trackers?</H2>
+      <Figure
+        src="/blog/robotrack-tests-point-tracking-in-manipulation-5.jpg"
+        alt="Diagram showing RoboTrack-15M simulation of robot pickups, point sampling, and filtering through wrist and outside camera views"
+        width={1920}
+        height={1042}
+        caption="Ai2 release, RoboTrack-15M generation figure"
+      />
+      <P>
+        Collecting millions of human-traced paths through robot videos would be expensive. Ai2 extended its MolmoSpaces simulator to create <strong>RoboTrack-15M</strong>, a synthetic training set. It contains 15 million tracks from 3,000 videos across 300 simulated homes. A robot arm picks up everyday objects, while wrist and base cameras record the scene. The simulator knows the objects&apos; geometry and positions, so it can calculate point locations and visibility across frames.
+      </P>
+      <P>
+        The team found that its first synthetic data version did not improve the new benchmark. Many sampled points sat on walls, floors or other static background. Those examples taught tracking, but not the kind of moving contact and occlusion central to manipulation. The authors then concentrated samples on the robot and the objects it handled and adjusted points around the fixed robot base. Their <A href="https://allenai.org/papers/robotrack">paper</A> uses this iteration to explain why matching the training motions to the target task mattered.
+      </P>
+      <P>
+        Ai2 fine-tuned two existing trackers using RoboTrack-15M and their original training data. RoboTracker builds on 17-million-parameter AllTracker. RoboTracker-Warp builds on the much larger CoWTracker, described as roughly one billion parameters. The team <A href="https://github.com/allenai/robotrack">released code</A>, data and checkpoints; the RoboTracker-Warp weights are for noncommercial use.
+      </P>
+      <H2>What changed in the measured results?</H2>
+      <Figure
+        src="/blog/robotrack-tests-point-tracking-in-manipulation-6.jpg"
+        alt="Bar chart comparing baseline and fine-tuned tracker Average Jaccard scores. RoboTracker-Warp reaches 66.0 on RoboTrack-Bench"
+        width={1920}
+        height={1299}
+        caption="Ai2 release, authors’ fine-tuning comparison"
+      />
+      <P>
+        On RoboTrack-Bench, the paper reports that RoboTracker rose from its AllTracker baseline&apos;s 62.6 to 63.4 Average Jaccard. RoboTracker-Warp rose from CoWTracker&apos;s 63.9 to 66.0. The authors say the fine-tuned models also improved average scores across the three robotics benchmarks compared with their respective baselines, while remaining roughly on par on general video tests.
+      </P>
+      <P>
+        The larger tracker reached the top reported score on four of the five benchmarks the team evaluated. That ranking combines architecture, original training and the new fine-tuning data, so the cleaner evidence for the added dataset is each model&apos;s before-and-after comparison. The absolute scores also depend on the paper&apos;s evaluation protocol. Ai2 notes, for example, that it corrected a scoring bug in released AllTracker evaluation code, which makes direct comparison with older published numbers less simple.
+      </P>
+      <H2>Did it help a real robot?</H2>
+      <Figure
+        src="/blog/robotrack-tests-point-tracking-in-manipulation-7.jpg"
+        alt="Wet-lab robot workflow aligning a pipette to a vial from a point-tracking demonstration"
+        width={1920}
+        height={573}
+        caption="Ai2 release, pipette alignment workflow"
+      />
+      <P>
+        Ai2 used point tracking to guide a robot arm through a pipette transfer after one teleoperated demonstration. The team tested 20 vial layouts, half with a clear view and half with partial occlusion. Its point-tracking alignment completed the full transfer in 17 trials. Object-mask alignment completed 8, and optical-flow alignment completed 5, on the same layouts. The robot&apos;s subsequent motion ran without further feedback, so the initial alignment mattered.
+      </P>
+      <Figure
+        src="/blog/robotrack-tests-point-tracking-in-manipulation-8.jpg"
+        alt="Bar chart comparing pipette transfer success under clear and occluded layouts for point tracking, object masks, and optical flow"
+        width={1920}
+        height={431}
+        caption="Ai2 release, authors’ 20-layout pipette test"
+      />
+      <P>
+        That is a concrete manipulation result under one task setup. The authors still describe failures with long occlusion, points reappearing after they are hidden, and small objects against busy backgrounds. Their synthetic training also concentrates on everyday pickups rather than the fine motions of pipetting. Those details show where a next experiment should be aimed.
+      </P>
+      <Figure
+        src="/blog/robotrack-tests-point-tracking-in-manipulation-9.jpg"
+        alt="Ai2 RoboTrack source code repository"
+        width={1920}
+        height={1327}
+        caption="Source: Ai2 RoboTrack repository"
+      />
+      <P>
+        A researcher can now run the released trackers on the <A href="https://huggingface.co/datasets/allenai/RoboTrack-Bench">benchmark</A>, inspect which point categories fail, and test whether new training videos help on the same clips. RoboTrack&apos;s contribution is a more demanding view of motion during real manipulation, paired with data and a robot task that make the measurement useful. Follow Argo&apos;s robotics coverage at https://myargoquest.com/blog.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "robotrack-tests-point-tracking-in-manipulation",
+    title: "How RoboTrack tests point tracking during robot manipulation",
+    description: "Ai2 released real manipulation videos, simulated training tracks and two trackers, then tested point tracking on a pipetting task.",
+    category: "ai-news",
+    date: "November 24, 2026",
+    isoDate: "2026-11-24T09:25",
+    readingTime: "6 min read",
+    image: "/blog/robotrack-tests-point-tracking-in-manipulation-1.jpg",
+    Content: RobotrackTestsPointTrackingInManipulationContent,
+  },
   {
     slug: "how-shirudo-protects-running-linux-services",
     title: "How Shirudo protects a running Linux service",
