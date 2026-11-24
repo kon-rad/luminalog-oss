@@ -18708,7 +18708,137 @@ function RobotrackTestsPointTrackingInManipulationContent() {
   )
 }
 
+/* ── Post: How FreeVideo runs video generation on consumer hardware ── */
+function HowFreevideoRunsVideoGenerationLocallyContent() {
+  return (
+    <>
+      <P>
+        A ten-second AI video can ask more of a computer than the computer can hold in graphics memory. A large model needs its weights, working image sequence and intermediate calculations available at once. If they do not fit together, generation stops before the first frame appears.
+      </P>
+      <P>
+        <A href="https://github.com/FlashML-org/FreeVideo">FreeVideo</A> changes where those pieces wait. The open-source inference engine runs a version of MiniMax H3 on consumer hardware by moving model weights between graphics memory, system memory and disk. Its documented minimum is 8 GB of VRAM and 16 GB of RAM on NVIDIA GPUs with compute capability 8.0 or higher. That describes a supported configuration, not a promise that every video will render quickly at those limits.
+      </P>
+      <Figure
+        src="/blog/how-freevideo-runs-video-generation-locally-1.jpg"
+        alt="FreeVideo's GitHub repository introduction describing local MiniMax H3 video generation"
+        width={1575}
+        height={1050}
+        priority
+        caption="FreeVideo is a local MiniMax H3 inference engine built on OpenVDN. Source: FlashML-org GitHub repository."
+      />
+      <H2>What does FreeVideo actually run?</H2>
+      <P>
+        FreeVideo is the local execution layer. The underlying video model is <A href="https://github.com/OpenVDN/vdn-minimax-h3">VDN-H3</A>, an adaptation of MiniMax H3 from OpenVDN. FreeVideo provides the installation and generation workflow around that model, including a ComfyUI plugin and launchers for Windows, Linux and Apple silicon Macs. ComfyUI provides a visual workspace where inputs and model operations form an editable graph.
+      </P>
+      <P>
+        A creator can start with a text prompt, supply a first or last frame, or use image, video and audio references in the documented workflow. Those inputs steer what the model generates; they do not turn a reference video into an ordinary timeline edit. For detailed control, FreeVideo also exposes the underlying ComfyUI nodes.
+      </P>
+      <Figure
+        src="/blog/how-freevideo-runs-video-generation-locally-2.jpg"
+        alt="FreeVideo README showing text prompts, frames and other references that steer local video generation"
+        width={1575}
+        height={1050}
+        caption="The project lists several conditioning inputs for its ComfyUI workflow. Source: FlashML-org FreeVideo README."
+      />
+      <H2>Why can the model fit on a smaller GPU?</H2>
+      <P>
+        The key idea is that a GPU need not hold every model block at once. FreeVideo&apos;s <A href="https://github.com/FlashML-org/FreeVideo/blob/main/docs/execution-planning.md">execution planner</A> measures free VRAM, available RAM and the size of the requested video before each job. It chooses where the model&apos;s 50 transformer blocks live and which attention and arithmetic paths to use. A transformer block is one stage that processes the developing video representation.
+      </P>
+      <P>
+        The planner keeps active blocks in VRAM, where the GPU can reach them quickly. It places others in system RAM and copies them across when their turn comes. Under tighter memory budgets, some blocks remain on disk and are read again during each generation step. Think of a workbench, nearby shelves and a storage room. A smaller workbench can still complete the job if materials arrive in time, but each extra trip costs time. The analogy stops at the arithmetic: these are repeated model computations, not physical assembly.
+      </P>
+      <Figure
+        src="/blog/how-freevideo-runs-video-generation-locally-3.jpg"
+        alt="FreeVideo planner placing 50 transformer blocks across VRAM, host memory and disk"
+        width={1575}
+        height={1050}
+        caption="The execution planner places model blocks across VRAM, host memory and disk. Source: FlashML-org FreeVideo technical documentation."
+      />
+      <Figure
+        src="/blog/how-freevideo-runs-video-generation-locally-4.jpg"
+        alt="Diagram of FreeVideo moving model blocks between GPU memory, system RAM and disk"
+        width={1920}
+        height={1080}
+        caption="Argo concept diagram: VRAM holds active blocks, RAM holds others, and disk holds the rest when memory is tight. Based on FreeVideo documentation."
+      />
+      <P>
+        The planner also prefetches blocks, divides large calculations into chunks and selects an attention kernel that works on the current GPU. Below a 10 GiB VRAM budget, it can stage some intermediate data in host memory. If the minimum working set still cannot fit, the request is rejected before the main model loads. FreeVideo can retry an out-of-memory request with lighter placement and smaller compute partitions. These choices make access possible at lower memory sizes, with transfer and disk-read time as the trade-off.
+      </P>
+      <Figure
+        src="/blog/how-freevideo-runs-video-generation-locally-5.jpg"
+        alt="FreeVideo planner documentation explaining when model blocks stream repeatedly from disk"
+        width={1575}
+        height={1050}
+        caption="Lower memory use can require disk reads at each generation step. Source: FlashML-org FreeVideo technical documentation."
+      />
+      <H2>What does VDN-H3 contribute?</H2>
+      <P>
+        OpenVDN&apos;s VDN-H3 changes the model&apos;s attention, the operation that connects parts of a generated sequence. Its hybrid design pairs a frame-wise linear-attention branch, built for efficiency, with a softmax branch that helps preserve visual quality and consistency. The project also describes an eight-step generation path. FreeVideo builds on that model, then solves the separate problem of placing and running it on a particular machine.
+      </P>
+      <P>
+        Those are two different advances. Video DeltaNet reduces work in the model&apos;s attention path. FreeVideo manages the remaining work within the memory and compute resources at hand. OpenVDN reports a 14.4-second clip produced in about 9 seconds end to end with SGLang Diffusion on eight B200 data-center GPUs. That result demonstrates the upstream model in a very different setting; it is not a consumer-card FreeVideo benchmark.
+      </P>
+      <Figure
+        src="/blog/how-freevideo-runs-video-generation-locally-6.jpg"
+        alt="OpenVDN's description of its hybrid linear and softmax attention architecture"
+        width={1575}
+        height={1050}
+        caption="VDN-H3 combines a fast linear-attention branch with a softmax branch for visual quality. Source: OpenVDN GitHub repository."
+      />
+      <H2>What does a local render take?</H2>
+      <P>
+        The project&apos;s Windows measurements show why the memory minimum and the waiting time must be read separately. For a 10-second, 1344 x 768 video with two-pass sampling, FreeVideo reports 122 seconds on an RTX 5090 with 32 GB VRAM and 64 GB RAM. It reports 486 seconds on an RTX 5060 Ti with 16 GB VRAM and 32 GB RAM, and 558 seconds on an RTX 4060 Ti with the same memory capacities. A community-reported RTX 4060 Ti result with 8 GB VRAM and 64 GB RAM is 603 seconds. That last test has much more system RAM than the documented 16 GB minimum, so it cannot be used as a speed estimate for the minimum setup.
+      </P>
+      <Figure
+        src="/blog/how-freevideo-runs-video-generation-locally-7.jpg"
+        alt="Project-reported render times for 10-second Windows videos range from 122 seconds on an RTX 5090 to 603 seconds on an 8 GB RTX 4060 Ti"
+        width={1575}
+        height={1050}
+        caption="Lower-memory configurations can take longer: these are project-reported Windows timings for 1344 x 768, 10-second, two-pass videos. Source: FlashML-org FreeVideo technical documentation."
+      />
+      <P>
+        Apple silicon support is an experimental preview with a different performance profile. On an M5 with 24 GB of unified memory and about 14 GB available, FreeVideo&apos;s <A href="https://github.com/FlashML-org/FreeVideo/blob/main/docs/Mac.md">Mac guide</A> reports about 42 minutes for a 10-second, 1344 x 768 video at Light quality. A 960 x 544, 10-second render takes about 22 minutes in the same guide. Earlier Macs use a slower compute path. The Mac preview currently lists text prompts, first-frame input and two-pass sampling, not the full set of inputs listed for the main workflow.
+      </P>
+      <Figure
+        src="/blog/how-freevideo-runs-video-generation-locally-8.jpg"
+        alt="FreeVideo Mac guide showing a 10-second 1344 by 768 Light render taking about 42 minutes on an M5"
+        width={1575}
+        height={1050}
+        caption="The experimental Mac guide reports about 42 minutes for a 10-second 1344 x 768 Light render on an M5 with 24 GB unified memory. Source: FlashML-org FreeVideo Mac guide."
+      />
+      <H2>What has changed since the first release?</H2>
+      <P>
+        FreeVideo became open source on 2 October 2026. Its 13 October v0.4.0 release added agent workflows, videos over a minute long and a timeline editing view. The 10 November v0.5.0 release added H3 Image, with project-reported local image output up to 16 megapixels from 8 GB of VRAM. These are separate product features, not capabilities introduced by the social post that recently recirculated the project. As of 24 November, the latest GitHub release checked for this article is v0.6.10, a maintenance update for Presets generation, Preview-first handling and update reports.
+      </P>
+      <Figure
+        src="/blog/how-freevideo-runs-video-generation-locally-9.jpg"
+        alt="FreeVideo v0.5.0 release note adding H3 Image generation up to 16 megapixels locally from 8 GB VRAM"
+        width={1575}
+        height={1050}
+        caption="H3 Image was added in FreeVideo v0.5.0 on 10 November 2026. Source: FlashML-org FreeVideo README news."
+      />
+      <P>
+        The code is under Apache 2.0, but the model weights have a separate MiniMax H3 Community License with territorial and acceptable-use restrictions. Local generation also requires the model download, storage, suitable hardware and electricity. Running on your own machine is a control choice, not a statement that the whole system has no cost or unrestricted terms.
+      </P>
+      <P>
+        For a first test, start with the <A href="https://github.com/FlashML-org/FreeVideo/releases">official release</A>, read the guide for your operating system, and choose a short clip before trying the timeline or longer sequences. The useful question is not simply whether the model launches. It is whether the output quality and waiting time make sense on the machine you actually own.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "how-freevideo-runs-video-generation-locally",
+    title: "How FreeVideo runs video generation on consumer hardware",
+    description: "FreeVideo moves model weights between GPU memory, RAM and disk so MiniMax H3 can run on smaller machines.",
+    category: "ai-news",
+    date: "November 24, 2026",
+    isoDate: "2026-11-24T09:50",
+    readingTime: "7 min read",
+    image: "/blog/how-freevideo-runs-video-generation-locally-1.jpg",
+    Content: HowFreevideoRunsVideoGenerationLocallyContent,
+  },
   {
     slug: "robotrack-tests-point-tracking-in-manipulation",
     title: "How RoboTrack tests point tracking during robot manipulation",
