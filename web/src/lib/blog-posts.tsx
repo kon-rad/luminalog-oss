@@ -18232,7 +18232,133 @@ function HowClaudeShipHandlesPullRequestsContent() {
   )
 }
 
+/* ── Post: How OCRia-nano-1 parses documents on a CPU ── */
+function OcriaNanoLocalDocumentParsingContent() {
+  return (
+    <>
+      <P>
+        A document agent needs text it can search and cite. A digital PDF may already contain that text; a scan may offer only pixels. Even when the words are recognized, a flat stream of text can lose which cells belong to a table or which heading introduces a section. That is the gap a document parser has to close before the agent can reason over the page.
+      </P>
+      <Figure
+        src="/blog/ocria-nano-local-document-parsing-1.jpg"
+        alt="Paper documents on a desk, illustrating the kind of scans a local parser can process"
+        width={1880}
+        height={1253}
+        priority
+        caption="Illustrative photo: kaboompics / Pexels, Pexels License; not a benchmark document"
+      />
+      <P>
+        On November 23, 2026, LlamaIndex <A href="https://www.llamaindex.ai/blog/introducing-ocria-nano-1">released OCRia-nano-1</A>, a collection of seven small models that work with its open-source LiteParse parser on local CPUs. The combined models have 8.1 million parameters. The company published the <A href="https://huggingface.co/llamaindex/OCRia-nano-1">weights</A>, a <A href="https://www.llamaindex.ai/ocria/ocria-nano-1-report.pdf">technical report</A>, and a route for trying them on a file. The release targets everyday documents that need fast local processing, while larger models remain the choice for difficult pages.
+      </P>
+      <Figure
+        src="/blog/ocria-nano-local-document-parsing-2.jpg"
+        alt="LlamaIndex announcement page introducing OCRia-nano-1 as a CPU document parser"
+        width={1920}
+        height={1327}
+        caption="Source: LlamaIndex, November 23, 2026"
+      />
+      <H2>What happens to a page?</H2>
+      <P>
+        LiteParse starts with what the file already contains. If a digital PDF has usable text, it reads that text directly. For scanned parts or embedded images, OCRia-nano-1 detects lines and recognizes characters. A small script router helps select a recognizer for Latin, Chinese/Japanese/Korean, right-to-left and other scripts. This step turns visible marks into words and positions on the page.
+      </P>
+      <P>
+        Words alone do not tell an agent whether a number is an invoice total, a table entry or a page number. OCRia&apos;s LayoutNet combines recognized text, its position and visual features to recover content blocks and table structure. The <A href="https://www.llamaindex.ai/ocria/ocria-nano-1-report.pdf">report</A> describes the component models and the training process, which used OCRia-1 to help label text, tables and layout. It also describes synthetic scan effects used to teach the smaller system about blur, compression and skew.
+      </P>
+      <P>
+        The result can be Markdown, JSON or plain text through LiteParse. Markdown keeps headings, lists and reconstructed tables in a form a text-based agent can read. JSON includes bounding boxes, so an application can point back to where an extracted piece of text appeared. That grounding matters when a user needs to check a value against the original page.
+      </P>
+      <Figure
+        src="/blog/ocria-nano-local-document-parsing-3.jpg"
+        alt="OCRia-nano-1 pipeline figure showing native PDF text, OCR, script routing, and LayoutNet flowing to Markdown and JSON"
+        width={1785}
+        height={660}
+        caption="OCRia-nano-1 technical report, Figure 2"
+      />
+      <H2>How did LlamaIndex measure quality?</H2>
+      <P>
+        The team&apos;s <A href="https://www.llamaindex.ai/ocria/ocria-nano-1-report.pdf">technical report</A> evaluates the release on ParseBench-2, a benchmark for document parsing across text, formatting, tables, charts, layout, grounding and forms. In its CPU comparison, LiteParse with OCRia-nano-1 scored 59.2 overall. LiteParse with its Tesseract configuration scored 48.7, Indra 1.1.2 scored 55.1 and Marker fast scored 52.5 under the team&apos;s test setup.
+      </P>
+      <Figure
+        src="/blog/ocria-nano-local-document-parsing-4.jpg"
+        alt="Table 3 from the report comparing OCRia-nano-1 and other parsers on accuracy and CPU throughput"
+        width={1785}
+        height={770}
+        caption="LlamaIndex technical report, Table 3; authors’ benchmark runs"
+      />
+      <P>
+        The component scores show where the 59.2 comes from. OCRia-nano-1 scored 59.5 on tables and 72.4 on layout grounding. Indra scored 47.6 and 65.2 on those dimensions in the same comparison. OCRia-nano-1 also scored 82.2 on formatting. The table results are especially relevant to an agent reading invoices or reports where row and column relationships matter more than a perfect-looking text dump.
+      </P>
+      <Figure
+        src="/blog/ocria-nano-local-document-parsing-5.jpg"
+        alt="Table 4 comparing OCRia-nano-1 text, formatting, table, chart, layout, and forms scores"
+        width={1764}
+        height={797}
+        caption="LlamaIndex technical report, Table 4; authors’ benchmark runs"
+      />
+      <P>
+        The report includes GPU and cloud parsers as reference points. Its larger OCRia-1 teacher scored 87.0 overall on ParseBench-2. That number describes a different model and serving class, so it should not be read as a matched CPU speed comparison. The smaller release is a choice about local deployment and throughput, with less ability on complex documents.
+      </P>
+      <H2>What does the speed figure mean?</H2>
+      <P>
+        On the report&apos;s single-core test, OCRia-nano-1 took an average of 426 milliseconds per page, and 90% of measured pages finished within 862 milliseconds. With 16 single-core workers on a 300-page sample, the team measured 27.8 pages per second. Its Tesseract baseline reached 14.2 pages per second in that throughput setup. The report attributes the measurements to the complete LiteParse pipeline, including text recognition and structure recovery.
+      </P>
+      <Figure
+        src="/blog/ocria-nano-local-document-parsing-6.jpg"
+        alt="Table 5 showing OCRia-nano-1 mean latency of 426 milliseconds per page on one CPU core"
+        width={935}
+        height={549}
+        caption="LlamaIndex technical report, Table 5; authors’ measured setup"
+      />
+      <P>
+        A page-per-second number depends on the page mix, CPU, parallel workers and file structure. An archive of clean digital PDFs can behave differently from an archive of faint scans. The useful comparison for a builder is to run the same representative files through a baseline parser and the Nano pipeline, then measure both extraction quality and elapsed time. A fast parser that loses the one table a workflow needs can still be the wrong first pass.
+      </P>
+      <H2>Which documents fit the small model?</H2>
+      <P>
+        LlamaIndex positions OCRia-nano-1 for digitally generated reports, straightforward contracts, invoices with simple tables and routine scans. It calls out OCRia-1 for harder material such as complex tables, handwriting, degraded scans and mathematical notation. The report gives a concrete reason for the split: Nano has no chart-to-table model and scores only 3.1 on ParseBench-2&apos;s chart dimension. It can retain a chart as an image, but it does not turn the chart into a dependable data table.
+      </P>
+      <P>
+        The report also identifies handwriting and scripts with little training data as weak areas. Its authors found that increasing one text recognizer&apos;s size could improve text scores, but at a much larger CPU cost per line. Those conditions suggest a routing pattern: use the small local parser for ordinary pages, inspect low-confidence or complex pages, and send the difficult subset to a more capable parser when accuracy matters.
+      </P>
+      <P>
+        The technical report also explains how the team constructed training examples for page structure. It aligned extracted text units with annotated table cells using their positions and matching words, then learned row and column relationships from those assignments. For scan recognition, it transformed digital pages with effects such as blur, paper texture and compression. This is a useful reminder that a small parser is a pipeline, not one model that guesses everything at once. The text reader, script choice and layout model each solve a narrower problem; errors in an early step can still reach the final Markdown. <A href="https://www.llamaindex.ai/ocria/ocria-nano-1-report.pdf">The report</A> documents those steps in its method section.
+      </P>
+      <H2>How can a builder try it?</H2>
+      <P>
+        The <A href="https://www.llamaindex.ai/blog/introducing-ocria-nano-1">release</A> gives three commands: install <code>liteparse</code>, pull <code>ocria-nano</code>, and parse a document with <code>lit parse doc.pdf --format markdown</code>. The <A href="https://github.com/run-llama/liteparse">LiteParse repository</A> contains the parser, and the <A href="https://huggingface.co/llamaindex/OCRia-nano-1">model card</A> provides the released weights. Check the licenses separately: the software is Apache 2.0, while the model weights use a modified Open RAIL-M license.
+      </P>
+      <Figure
+        src="/blog/ocria-nano-local-document-parsing-7.jpg"
+        alt="Hugging Face model page for the released OCRia-nano-1 weights"
+        width={1920}
+        height={1327}
+        caption="Source: LlamaIndex model card on Hugging Face"
+      />
+      <P>
+        Choose a small sample that includes the documents your agent really receives. Compare extracted text, table rows and page references with the originals. Measure time on the machine that will run the pipeline. OCRia-nano-1 makes a local CPU first pass practical; the decision to use it should turn on whether its output preserves the facts your application needs. Follow Argo&apos;s AI model coverage at https://myargoquest.com/blog.
+      </P>
+      <Figure
+        src="/blog/ocria-nano-local-document-parsing-8.jpg"
+        alt="LiteParse open-source repository showing its document parser implementation"
+        width={1920}
+        height={1327}
+        caption="Source: LlamaIndex LiteParse repository"
+      />
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "ocria-nano-local-document-parsing",
+    title: "How OCRia-nano-1 parses documents on a CPU",
+    description: "LlamaIndex released a small local parser that combines text recognition with table and layout recovery for everyday documents.",
+    category: "ai-news",
+    date: "November 24, 2026",
+    isoDate: "2026-11-24T08:55",
+    readingTime: "6 min read",
+    image: "/blog/ocria-nano-local-document-parsing-1.jpg",
+    Content: OcriaNanoLocalDocumentParsingContent,
+  },
   {
     slug: "how-claude-ship-handles-pull-requests",
     title: "How Claude Ship handles review, fixes and approval",
