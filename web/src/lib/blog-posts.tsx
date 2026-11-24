@@ -18118,7 +18118,132 @@ function ArgoBuildLogDay42Content() {
   )
 }
 
+/* ── Post: How Claude Ship handles review, fixes and approval ── */
+function HowClaudeShipHandlesPullRequestsContent() {
+  return (
+    <>
+      <P>
+        A developer opens a pull request and starts another task. A check fails. A reviewer finds an edge case. The developer returns to the old change, pushes a fix and waits again. That cycle can take longer than writing the original code, especially when agents produce pull requests faster than people can review them.
+      </P>
+      <Figure
+        src="/blog/how-claude-ship-handles-pull-requests-1.jpg"
+        alt="Two developers in an office looking at code on a large monitor."
+        width={1880}
+        height={1255}
+        priority
+        caption="Editorial photo: Mikhail Nilov / Pexels"
+      />
+      <P>
+        On November 23, 2026, Anthropic <A href="https://claude.com/resources/articles/introducing-claude-ship">introduced Claude Ship</A>, a set of agents for the work after a GitHub pull request opens. It combines an existing Code Review product with two new beta components, PR Steward and Claude Approvals. One reads the change, one helps fix it, and one applies a repository&apos;s approval rules. The distinction matters because the three agents have different powers.
+      </P>
+      <H2>What happens when a pull request opens?</H2>
+      <P>
+        A pull request proposes a code change for review before it reaches a protected branch. Checks might run tests, check formatting or scan for security problems. People may also leave comments. Anthropic&apos;s <A href="https://code.claude.com/docs/en/claude-ship">product documentation</A> places Claude Ship in that existing GitHub flow rather than replacing the repository&apos;s branch rules.
+      </P>
+      <Figure
+        src="/blog/how-claude-ship-handles-pull-requests-2.jpg"
+        alt="Anthropic diagram showing Code Review, PR Steward and Claude Approvals in the pull request workflow."
+        width={1920}
+        height={979}
+        caption="Anthropic diagram: Code Review, PR Steward, and Approvals in three connected stages"
+      />
+      <P>
+        Code Review reads a proposed change alongside surrounding code. It looks for logic errors, security vulnerabilities and broken edge cases, then posts findings as comments on the relevant lines. Anthropic says it verifies findings and ranks them by severity. An administrator can select Quick, Standard or Deep review for a repository. That selection affects how much review work the service performs and, because usage is billed on tokens, can affect its cost.
+      </P>
+      <Figure
+        src="/blog/how-claude-ship-handles-pull-requests-3.jpg"
+        alt="Anthropic screenshot of Code Review findings posted on a pull request."
+        width={1920}
+        height={1361}
+        caption="Anthropic example: Code Review comments on a Retry-After parsing issue in a pull request"
+      />
+      <P>
+        A review comment is information for the next step, not a fix by itself. Anthropic reports that its own Claude Code team more than doubled merged pull requests from June to September while the share reverted fell by more than 40%. The team used Code Review as one part of a broader process, so those internal numbers describe that team&apos;s period rather than a result every customer can expect.
+      </P>
+      <H2>Who makes the fixes?</H2>
+      <P>
+        PR Steward works on failed automated checks, merge conflicts and comments from both people and review tools. It can push commits to the pull request. After a push, it comments with what it changed and how to undo the change, giving the author a way to inspect the intervention. A contributor can steer it with an <code>@claude</code> comment or ask it to stop with <code>@claude stop</code>.
+      </P>
+      <P>
+        Consider a test that fails because a renamed function still appears in one call site. Code Review might flag the mismatch, or the test might reveal it first. Steward can inspect the failure, edit the call, run checks and push a follow-up commit. The exact result still depends on the repository and its tests. The useful design point is that feedback returns to the same pull request, where the author and reviewers can see the new diff.
+      </P>
+      <Figure
+        src="/blog/how-claude-ship-handles-pull-requests-4.jpg"
+        alt="Anthropic screenshot of PR Steward responding to pull request feedback."
+        width={1920}
+        height={1680}
+        caption="Anthropic example: PR Steward posts a fix for Retry-After parsing and describes how to undo it"
+      />
+      <P>
+        The <A href="https://code.claude.com/docs/en/claude-ship">docs</A> state a firm boundary: Steward is designed neither to approve nor to merge pull requests. A team that requires a human approval can retain that rule while letting Steward handle mechanical follow-up work. A team can also start Steward manually on a single repository, see how its changes behave, and then choose wider triggers.
+      </P>
+      <H2>Who decides that a change is ready?</H2>
+      <P>
+        Claude Approvals reads an approval policy stored in the repository as <code>.claude/approvals.yml</code>. Anthropic describes it as a more flexible version of a CODEOWNERS file. The policy can require people for particular paths or situations and allow Claude to post an approving review for routine changes. It can also use signals from Code Review or other classifiers chosen by the team.
+      </P>
+      <Figure
+        src="/blog/how-claude-ship-handles-pull-requests-5.jpg"
+        alt="Anthropic screenshot of a Claude Approvals policy file."
+        width={1920}
+        height={1509}
+        caption="Anthropic example: approvals.yml rules for different paths and approval seats"
+      />
+      <P>
+        A policy file is only one part of enforcement. GitHub still controls whether a check is required before merging. According to Anthropic&apos;s <A href="https://code.claude.com/docs/en/claude-ship">documentation</A>, the Claude Approvals check blocks a merge only when an administrator makes it a required check in branch protection. In observe mode it reports what the policy would decide without enforcing that decision. Anthropic recommends beginning there while the team examines the outcomes.
+      </P>
+      <P>
+        The same documentation describes a consequence of permissive rules. If a repository uses auto-merge or a merge queue, and its policy permits approval without a person, a change can merge without a person acting. That outcome follows from the team&apos;s policy and GitHub settings. A team should write the approval rule to match which changes its people want to inspect, then test that rule against real pull requests before relying on it.
+      </P>
+      <Figure
+        src="/blog/how-claude-ship-handles-pull-requests-6.jpg"
+        alt="Anthropic screenshot of a pull request that met its approval policy."
+        width={1920}
+        height={1705}
+        caption="Anthropic example: a pull request passes Claude Approvals alongside other checks"
+      />
+      <H2>How does a developer or team start?</H2>
+      <P>
+        For a developer working on an individual change, <code>/ship</code> in Claude Code can push the work, open a pull request, review it and work on feedback and failed checks. The developer&apos;s permissions and the repository&apos;s branch rules still determine what can merge. Anthropic says <code>/ship</code> is rolling out in Claude Code and its desktop app.
+      </P>
+      <Figure
+        src="/blog/how-claude-ship-handles-pull-requests-7.jpg"
+        alt="Anthropic screenshot showing the slash ship command in Claude Code."
+        width={1920}
+        height={620}
+        caption="Anthropic example: slash ship starts review and watches a pull request in Claude Code"
+      />
+      <P>
+        An administrator can also turn the agents on for a GitHub repository so they act across the team&apos;s pull requests. The setup is per repository. Admins choose which agents run, when reviews start, the review level and spend limits. The <A href="https://code.claude.com/docs/en/claude-ship">docs</A> suggest starting with Code Review, enabling Steward manually, then adding an approval policy in observe mode. Existing required checks and branch protection remain part of the decision.
+      </P>
+      <P>
+        Claude Ship is available on Claude Team and Enterprise plans for GitHub repositories. Code Review is generally available; Steward and Approvals are in public beta. The release excludes organizations using Zero Data Retention, the HIPAA configuration or customer-managed encryption keys. It also adds token-billed usage. Anthropic says administrator spend limits are available for Code Review and Steward, while policy classifiers and reviews requested by a policy can add billed work. Those details matter when choosing a pilot repository and budget.
+      </P>
+      <H2>What should a team measure?</H2>
+      <P>
+        Start with one repository whose review process is already understood. Record how long pull requests wait for first review, how many cycles they need after failed checks, how often Steward&apos;s commits need correction, and which approval decisions people override. Keep the existing tests and branch rules in place during the pilot. These measurements show whether the agent&apos;s work is actually removing delay for that team.
+      </P>
+      <P>
+        Read a sample of review findings, not only the final green check. Anthropic itself notes that AI review can miss bugs. A review tool is most useful when its findings are specific enough for a developer to verify and its approval policy points unusual changes toward people who know the code. A quiet check can mean a clean change, but it can also mean the reviewer missed something.
+      </P>
+      <P>
+        Claude Ship&apos;s new step is the coordinated path from review to a visible fix and then to a policy decision. The practical way to evaluate it is in a repository with clear tests, explicit approval rules and a record of what the agents changed. Follow Argo&apos;s coverage of agent engineering at https://myargoquest.com/blog.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "how-claude-ship-handles-pull-requests",
+    title: "How Claude Ship handles review, fixes and approval",
+    description: "Anthropic's Claude Ship brings three agents into GitHub pull requests, with repository policies deciding when people still approve.",
+    category: "ai-news",
+    date: "November 24, 2026",
+    isoDate: "2026-11-24T08:45",
+    readingTime: "6 min read",
+    image: "/blog/how-claude-ship-handles-pull-requests-1.jpg",
+    Content: HowClaudeShipHandlesPullRequestsContent,
+  },
   {
     slug: "argo-build-log-day-42",
     title: "Argo build log, Day 42: Journal build 17 gets release settings",
