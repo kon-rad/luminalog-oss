@@ -18827,7 +18827,148 @@ function HowFreevideoRunsVideoGenerationLocallyContent() {
   )
 }
 
+/* ── Post: How Lean checked a Riemann Hypothesis proof ── */
+function HowLeanCheckedARiemannHypothesisProofContent() {
+  return (
+    <>
+      <P>
+        A mathematician can announce a proof of a famous problem and still leave two different questions open. Does the argument hold? And does it actually prove the statement everyone thinks it proves? With a computer-checked proof, a third question follows: did the software accept the result for the right reasons?
+      </P>
+      <P>
+        On November 21, 2026, the <A href="https://leanprover-community.github.io/blog/posts/riemann-hypothesis/">Lean and Mathlib communities issued a joint statement</A> certifying both the statement and the formal proof of the Riemann Hypothesis submitted by mathematician Levent Alpöge. Alpöge had <A href="https://alpo.ge/remark.pdf">released the Lean library and a short account</A> the previous day, describing work with Claude. The library runs to 17 million lines of code, according to the community statement.
+      </P>
+      <P>
+        The verification is an important technical story in its own right. It combines a match to the intended theorem, a check of assumptions, reproducible builds and independent proof checkers. A readable mathematical explanation is still being developed, and Clay still lists the prize problem as active.
+      </P>
+      <Figure
+        src="/blog/how-lean-checked-a-riemann-hypothesis-proof-1.jpg"
+        alt="Lean community statement certifying Alpöge’s formal proof"
+        width={1920}
+        height={1327}
+        priority
+        caption="Lean FRO and Mathlib Initiative, November 21, 2026"
+      />
+      <H2>What is the theorem being checked?</H2>
+      <P>
+        The Riemann Hypothesis concerns the zeros of the Riemann zeta function, a mathematical object closely tied to the distribution of prime numbers. Some are the known trivial zeros at negative even integers. The hypothesis says every other zero lies on one vertical line in the complex plane: the line whose real coordinate is one half.
+      </P>
+      <Figure
+        src="/blog/how-lean-checked-a-riemann-hypothesis-proof-2.jpg"
+        alt="Original diagram showing the critical line and the universal quantifier"
+        width={1920}
+        height={1080}
+        caption="Argo diagram based on the Clay problem statement"
+      />
+      <P>
+        That sentence is the target. A program can compile a proof of a weaker or accidentally altered proposition without resolving the target. For example, a theorem could have the right name while excluding an important case in its definitions. This is why the Lean community&apos;s statement spends time on the exact formal statement, not only on whether code compiled.
+      </P>
+      <P>
+        <strong>Mathlib</strong> is Lean&apos;s shared library of formal mathematics. The community says Alpöge&apos;s code proves Mathlib&apos;s definition of the Riemann Hypothesis. A separate challenge file imported Mathlib and wrote down the theorem to be checked. Two comparison tools matched the submitted proof&apos;s conclusions to that challenge. That step addresses the plain-language question: did the code prove the intended proposition?
+      </P>
+      <Figure
+        src="/blog/how-lean-checked-a-riemann-hypothesis-proof-3.jpg"
+        alt="Original diagram of the Mathlib definition and independent statement comparison"
+        width={1920}
+        height={1080}
+        caption="Argo diagram based on Lean community and MIT verification records"
+      />
+      <P>
+        Think of a contract checked by two teams. One team verifies that the signature is genuine. The other verifies that the signed page contains the terms everyone agreed to. The analogy stops at the mathematics: a formal proof checker evaluates logical derivations, while a contract needs human interpretation. Statement matching and proof checking are distinct jobs here.
+      </P>
+      <H2>How does a formal proof checker decide?</H2>
+      <P>
+        Lean represents mathematical statements and proofs in a precise language. Its <strong>kernel</strong> is the small part of the system that checks whether each proof step follows from accepted rules. A large development may use tactics and automation to discover steps, but the final result must be accepted by the kernel under the relevant assumptions.
+      </P>
+      <P>
+        The <A href="https://leanprover-community.github.io/blog/posts/riemann-hypothesis/">community certification</A> says the proof&apos;s dependencies are Mathlib and standard axioms. An axiom is an assumption accepted as a starting point. If a submitted file quietly introduced a new axiom equivalent to the theorem, the software might accept a circular-looking result that teaches us nothing. The axiom audit checks for that failure mode.
+      </P>
+      <Figure
+        src="/blog/how-lean-checked-a-riemann-hypothesis-proof-4.jpg"
+        alt="Original diagram of the three standard axioms reported by the audit"
+        width={1920}
+        height={1080}
+        caption="Argo diagram based on MIT axiom audit"
+      />
+      <P>
+        Andrew Sutherland&apos;s <A href="https://math.mit.edu/~drew/grh/">public verification page</A> records a specific audit. Its November 24 snapshot says all 175,187 modules compiled under the named Lean and Mathlib versions. The five headline theorems depended only on three standard axioms in the report&apos;s check. Mathlib files matched the official cache byte for byte, and a separate sandboxed build reproduced the proof export. These details matter because an audit needs to know which code and dependencies it actually checked.
+      </P>
+      <Figure
+        src="/blog/how-lean-checked-a-riemann-hypothesis-proof-5.jpg"
+        alt="MIT audit summary showing compiled modules, standard axioms and accepted kernel routes"
+        width={1920}
+        height={1080}
+        caption="Argo diagram based on Andrew Sutherland’s November 24 verification log"
+      />
+      <P>
+        The same page records acceptance by independent proof-checking implementations, including nanoda and con-leche. Separate implementations can catch an error in one checker or one route through the build. The statement-comparison modes of con-leche and con-ron also accepted the five theorems against the challenge. By its November 24 03:30 UTC update, both the ordinary and paranoid Lean kernels had accepted the full export. Comparator v4.33.0 had passed end to end. A separate <code>lake comparator</code> v4.36.0 run was still in progress; the completed stages had passed.
+      </P>
+      <P>
+        The evidence is therefore more specific than saying that a computer showed a green checkmark. It includes matching the intended theorem, checking assumptions, rebuilding in isolation and asking more than one checker to accept the resulting proof.
+      </P>
+      <Figure
+        src="/blog/how-lean-checked-a-riemann-hypothesis-proof-6.jpg"
+        alt="Original diagram of compilation, proof export and independent kernel replay"
+        width={1920}
+        height={1080}
+        caption="Argo diagram based on Lean community and MIT verification records"
+      />
+      <H2>Where did Claude enter the work?</H2>
+      <P>
+        Alpöge&apos;s <A href="https://alpo.ge/remark.pdf">four-page remark</A> credits collaboration with Claude. He describes guiding the search through number-theoretic ideas and says Claude moved quickly near the end, suggesting a length for a chain of theta lifts. Theta lifts are part of the advanced mathematical machinery in his account. Their role cannot be explained responsibly from a short announcement alone, so the present story follows the published collaboration account without pretending to reconstruct every discovery step.
+      </P>
+      <P>
+        This distinction matters for both mathematics and AI. The formal checks evaluate whether the finished proof establishes its statements. They do not measure how many ideas came from the person, how many from the model, or whether another team would have found the argument in the same way. The author is the source for the development narrative. The community&apos;s certification is the source for the proof-checking result.
+      </P>
+      <Figure
+        src="/blog/how-lean-checked-a-riemann-hypothesis-proof-7.jpg"
+        alt="Page one of Alpöge’s account of work with Claude"
+        width={1530}
+        height={1276}
+        caption="Levent Alpöge, author remark, page one"
+      />
+      <P>
+        Alpöge also writes that the argument is currently very long and that he plans a proper exposition. A formal object can be verified before its ideas are easy for other mathematicians to read, teach and reuse. The next work is explanatory as well as mathematical: understand the structure of the argument and make its central insight visible.
+      </P>
+      <H2>What has Clay recognized?</H2>
+      <P>
+        The <A href="https://www.claymath.org/millennium/Riemann-Hypothesis/">Clay Mathematics Institute</A> still marks the Riemann Hypothesis as an active Millennium Prize Problem. That status is not a rebuttal to the Lean community’s formal certification. It reflects a different, slower institutional process. Under <A href="https://www.claymath.org/millennium-problems/rules/">Clay’s rules</A>, a proposed solution must appear in a qualifying outlet, at least two years must pass, and the global mathematics community must generally accept it before the institute considers it. The formal proof and prize recognition are therefore separate processes.
+      </P>
+      <Figure
+        src="/blog/how-lean-checked-a-riemann-hypothesis-proof-8.jpg"
+        alt="Original diagram separating formal verification from Clay prize recognition"
+        width={1920}
+        height={1080}
+        caption="Argo diagram based on the Lean statement and Clay’s current status and rules"
+      />
+      <H2>What remains for readers to watch?</H2>
+      <P>
+        The <A href="https://leanprover-community.github.io/blog/posts/riemann-hypothesis/">Lean and Mathlib statement</A> is strong, dated evidence that a community of formal-methods experts certified the statement and proof. Sutherland&apos;s <A href="https://math.mit.edu/~drew/grh/">verification log</A> shows how that conclusion was tested and identifies the one end-to-end run still in progress at its November 24 03:30 UTC snapshot. Readers following the story can check the log for updates and look for the fuller exposition Alpöge says he will write.
+      </P>
+      <P>
+        There is also a precise boundary on the broader result. The MIT log lists five checked headline theorems. Alongside the usual Riemann Hypothesis, some cover Dirichlet L-functions, a family of functions that extends the same kind of zero question. In that log, “generalized Riemann hypothesis” means this Dirichlet family for all moduli and characters. It does not mean that every version involving Dedekind zeta functions, Hecke L-functions or general automorphic L-functions was checked. That distinction matters because the author’s short account anticipates broader reach than the five certified statements.
+      </P>
+      <P>
+        The practical lesson extends beyond one theorem. For a machine-assisted result, ask which exact proposition was checked, which assumptions it used, which checker accepted it, and whether independent routes reached the same result. Those questions turn an impressive claim into inspectable evidence. In this case, the published verification gives unusually concrete answers.
+      </P>
+      <P>
+        Follow Argo&apos;s coverage of AI and research at https://myargoquest.com/blog.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "how-lean-checked-a-riemann-hypothesis-proof",
+    title: "How Lean checked a Riemann Hypothesis proof",
+    description: "How experts checked a 17-million-line Lean proof, why statement matching matters, and why Clay still lists the problem as active.",
+    category: "ai-news",
+    date: "November 24, 2026",
+    isoDate: "2026-11-24T10:07",
+    readingTime: "7 min read",
+    image: "/blog/how-lean-checked-a-riemann-hypothesis-proof-1.jpg",
+    Content: HowLeanCheckedARiemannHypothesisProofContent,
+  },
   {
     slug: "how-freevideo-runs-video-generation-locally",
     title: "How FreeVideo runs video generation on consumer hardware",
