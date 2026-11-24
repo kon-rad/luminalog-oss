@@ -18347,7 +18347,136 @@ function OcriaNanoLocalDocumentParsingContent() {
   )
 }
 
+/* ── Post: How GLM-5.4 reuses transformer layers to reason deeper ── */
+function HowGlm54ReusesTransformerLayersContent() {
+  return (
+    <>
+      <P>
+        A language model has a fixed set of layers that transform its internal representation as it generates each token. If a difficult step needs more reasoning, one way to give the model more capacity is to add layers and parameters. That also makes the model larger to store and serve. Another route is to let some layers run again, giving the same weights another pass over the evolving representation.
+      </P>
+      <Figure
+        src="/blog/how-glm-5-4-reuses-transformer-layers-1.jpg"
+        alt="Z.ai GLM-5.4 Loop release hero artwork with the model name and three luminous loop curves"
+        width={1280}
+        height={720}
+        priority
+        caption="Z.ai GLM-5.4 release artwork. Source: Z.ai."
+      />
+      <P>
+        Z.ai&apos;s <A href="https://z.ai/blog/glm-5.4">November 23, 2026 GLM-5.4 release</A> takes that second route. The company calls it its first flagship Loop Transformer. A group of 28 layers from its GLM-5 base runs twice, so the second pass can refine what the first pass produced. Z.ai reports a 750-billion-parameter flagship and explains three engineering changes that make repeated depth practical. The model is available through its coding plan and ZCode today; an API and open weights are planned later.
+      </P>
+      <Figure
+        src="/blog/how-glm-5-4-reuses-transformer-layers-2.jpg"
+        alt="Z.ai GLM-5.4 technical article headline and opening explanation of the Loop Transformer"
+        width={1920}
+        height={1327}
+        caption="Source: z.ai"
+      />
+      <H2>What is a loop in a transformer?</H2>
+      <P>
+        In a standard transformer, data passes through a sequence of layers once. Each layer reads the current representation and changes it for the next. A Loop Transformer reuses the same layer weights over more than one pass. The model gains computational depth without storing another independent copy of those layers.
+      </P>
+      <Figure
+        src="/blog/how-glm-5-4-reuses-transformer-layers-3.jpg"
+        alt="Close-up photograph of a computer chip on a circuit board"
+        width={1880}
+        height={1253}
+        caption="Processor hardware illustrates the cost of additional model computation. Photo: Jeremy Waterhouse / Pexels."
+      />
+      <P>
+        Think of a person reading a paragraph twice. The first pass establishes the topic; the second can resolve a detail that only became clear after seeing the whole sentence. The analogy has a limit: a model does not deliberately reread text as a person does. Its learned computation updates hidden states, the numeric representation from which it predicts the next token.
+      </P>
+      <P>
+        Z.ai says simply repeating layers can make those hidden states unstable. Earlier work on weight sharing existed, but its release explains that models trained with a loop from scratch can trail conventional models at the same pretraining compute budget. The team instead adapted a pretrained base through continued training. The key claim is an architecture route to more effective depth using a model that already learned general representations.
+      </P>
+      <H2>What changes between the first and second pass?</H2>
+      <P>
+        The <A href="https://z.ai/blog/glm-5.4">technical announcement</A> describes three changes. First, each pass uses a learned gate that controls how much new information is written into the residual stream, the running representation carried between layers. Directly overwriting it during a loop had caused activation values to grow out of range. The gate lets the first pass write conservatively and the second pass make a fuller update. The company says gate behavior varies with token difficulty.
+      </P>
+      <Figure
+        src="/blog/how-glm-5-4-reuses-transformer-layers-4.jpg"
+        alt="Z.ai architecture diagram showing a shared 28-layer block used in two loop passes, gates, and cache reuse"
+        width={1280}
+        height={960}
+        caption="Z.ai architecture diagram of its proposed two-pass loop. Source: Z.ai; vendor illustration."
+      />
+      <P>
+        Second, the model avoids storing a full duplicate of its key-value cache for the repeated pass. A key-value cache keeps attention information from prior tokens so generation need not recompute every earlier step. GLM-5.4 reuses selected entries from the first pass and adds a sliding window of newly generated entries for the second. This reduces the memory cost of repeating depth, especially with long context.
+      </P>
+      <Figure
+        src="/blog/how-glm-5-4-reuses-transformer-layers-5.jpg"
+        alt="Rows of server cabinets in a data center"
+        width={1880}
+        height={1251}
+        caption="Server racks illustrate the deployment memory trade-off discussed in the article. Photo: Brett Sayles / Pexels."
+      />
+      <P>
+        Third, the second pass reuses sparse-attention indices chosen by the first. Sparse attention selects a subset of positions to inspect rather than treating every past token identically. Reusing the selection avoids another indexing step. Z.ai reports that this behaved nearly like recomputing indices in its experiments. Together, the gates, cache design and index reuse address stability, memory and compute separately.
+      </P>
+      <H2>What did the controlled comparison measure?</H2>
+      <P>
+        Z.ai says it tested the loop design at several scales before using it in the flagship. Its most clearly controlled architecture comparison in the <A href="https://z.ai/blog/glm-5.4">release</A> uses a 30-billion-parameter base with the same parameter count in the conventional and looped versions. The looped model received about 10% more total training compute. The results shown follow a long-context supervised fine-tuning stage with thinking mode enabled.
+      </P>
+      <P>
+        The team reports stronger results on math, scientific reasoning and long-context tasks in that study. It also says average reasoning output length fell by 10% to 14% across several benchmarks, including GPQA-Diamond and MMLU-Pro. Its table is more precise: MMLU-Pro fell 14.9%, GPQA-Diamond 11.7% and IFBench 13.0%, while AIME25 fell only 2.0%. Those observations are about output length under the stated tests, not a universal token-saving rate for every task. They suggest that some computation which would otherwise appear as generated reasoning text can happen inside the repeated layers.
+      </P>
+      <Figure
+        src="/blog/how-glm-5-4-reuses-transformer-layers-6.jpg"
+        alt="Z.ai table comparing a 30B baseline with its looped variant on five named benchmarks and average output length"
+        width={1789}
+        height={729}
+        caption="Z.ai reported 30B controlled comparison; the looped run used about 10% more training compute. Source: Z.ai."
+      />
+      <P>
+        The comparison does not use equal training compute, and it is at 30B rather than the 750B flagship scale. Those conditions define what it demonstrates. It provides evidence that the architecture can help under one matched-parameter experiment. A direct judgement about GLM-5.4&apos;s production value also needs task quality, output length, latency and price under the deployment people will actually use.
+      </P>
+      <H2>How is GLM-5.4 available?</H2>
+      <P>
+        The release directs users to the GLM Coding Plan, ZCode and Z.ai Chat. The <A href="https://zcode.z.ai/en/docs/qa">ZCode FAQ</A> lists GLM-5.4 on current Lite, Pro, Max and Team coding plans, with Low, High and Max thinking levels and a one-million-token context window. It says the current plans offer 1.5 times as many usable GLM-5.4 tokens on the same quota compared with GLM-5.3; legacy V1 plans do not receive that change.
+      </P>
+      <Figure
+        src="/blog/how-glm-5-4-reuses-transformer-layers-7.jpg"
+        alt="ZCode FAQ page listing GLM-5.4 availability and model questions"
+        width={1920}
+        height={1327}
+        caption="Source: zcode.z.ai"
+      />
+      <P>
+        The same FAQ says ZCode compacts context near the model&apos;s limit rather than carrying an entire million-token conversation forever. A large context window is capacity, not a guarantee that every earlier detail will remain equally salient. Developers testing long coding sessions should watch when compaction happens and whether the resulting answer still cites the files that matter.
+      </P>
+      <P>
+        Z.ai&apos;s release says API access is coming soon. It plans to publish weights after safety hardening. For now, a reader can try the hosted model but cannot download official GLM-5.4 weights from the release. That distinction matters to people comparing a hosted coding plan with a local model they can run and inspect themselves.
+      </P>
+      <H2>What should a developer compare?</H2>
+      <P>
+        Use a small set of real coding tasks from the intended workflow. Keep tool permissions, prompts and evaluation checks the same across models. Record whether each task succeeds, how many turns it takes, how much text it emits and how long it runs. A looped architecture may change quality and the length of visible reasoning, but the useful result is the completed task under a known budget.
+      </P>
+      <Figure
+        src="/blog/how-glm-5-4-reuses-transformer-layers-8.jpg"
+        alt="Close-up photograph of source code on a screen"
+        width={1880}
+        height={1253}
+        caption="Code screen illustrates the hosted coding workflow, not a GLM-5.4 benchmark. Photo: Godfrey Atima / Pexels."
+      />
+      <P>
+        GLM-5.4 is a concrete experiment in reusing depth at flagship scale. Its technical explanation shows where the second pass gets its information and how the serving stack limits overhead. The next evidence to watch is an independent, matched task comparison once access broadens. Follow Argo&apos;s model coverage at https://myargoquest.com/blog.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "how-glm-5-4-reuses-transformer-layers",
+    title: "How GLM-5.4 reuses transformer layers to reason deeper",
+    description: "Z.ai's GLM-5.4 runs a shared layer block twice, combining deeper computation with new controls for memory and serving cost.",
+    category: "ai-news",
+    date: "November 24, 2026",
+    isoDate: "2026-11-24T09:04",
+    readingTime: "6 min read",
+    image: "/blog/how-glm-5-4-reuses-transformer-layers-1.jpg",
+    Content: HowGlm54ReusesTransformerLayersContent,
+  },
   {
     slug: "ocria-nano-local-document-parsing",
     title: "How OCRia-nano-1 parses documents on a CPU",
