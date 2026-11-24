@@ -18465,7 +18465,136 @@ function HowGlm54ReusesTransformerLayersContent() {
   )
 }
 
+/* ── Post: How Shirudo protects a running Linux service ── */
+function HowShirudoProtectsRunningLinuxServicesContent() {
+  return (
+    <>
+      <P>
+        A service may be exposed to a newly disclosed vulnerability before its operators can install a permanent fix. A patch can require testing, a maintenance window and a restart. During that gap, a broad firewall rule may stop the attack but also break ordinary requests. The operator needs a narrower way to protect the running service.
+      </P>
+      <Figure
+        src="/blog/how-shirudo-protects-running-linux-services-1.jpg"
+        alt="Blue-lit rack servers in a data center"
+        width={1880}
+        height={1255}
+        priority
+        caption="Illustrative server photo: panumas nikhomkhai / Pexels"
+      />
+      <P>
+        On November 23, 2026, OpenAI and Cisco <A href="https://openai.com/index/introducing-shirudo">introduced Shirudo</A>, an open-source Linux runtime for temporary, targeted protections. It uses small programs that can observe or block activity at defined points in the system, and it records which protections are active. The project is pre-release. Its <A href="https://github.com/shirudo-dev/shirudo">repository</A> makes the code and production prerequisites public, so the release can be understood as a concrete runtime rather than a promise of automatic security.
+      </P>
+      <H2>What is a shield?</H2>
+      <P>
+        Shirudo calls a packaged protection an <strong>upatch</strong>. A BPF upatch can attach at a Linux hook and block a specific vulnerable path. BPF is a way to run small, constrained programs inside the operating system at selected events. Instead of stopping all activity of one type, a shield can inspect the particular behavior associated with an exploit and apply a targeted response.
+      </P>
+      <P>
+        The analogy is a temporary guard at one doorway while a damaged lock is replaced. The guard can stop a known path of entry without closing the entire building. The analogy ends at the software boundary: an incorrect program can still block legitimate requests or miss a different route to the same vulnerability. That is why Shirudo&apos;s design includes observation before enforcement and a human approval step.
+      </P>
+      <P>
+        OpenAI says operators can test a proposed shield against applications, watch its effect and approve deployment while the service continues to run. The project also supports Java upatches, which follow a different path: the <A href="https://github.com/shirudo-dev/shirudo">README</A> says Shirudo verifies them in userspace and configured Java virtual machines load the agents at startup. The specific load path matters when evaluating whether a particular service can receive a protection without a restart.
+      </P>
+      <Figure
+        src="/blog/how-shirudo-protects-running-linux-services-2.jpg"
+        alt="Shirudo documentation guiding a first upatch"
+        width={1920}
+        height={1327}
+        caption="Source: Shirudo documentation"
+      />
+      <H2>How does it decide what may load?</H2>
+      <P>
+        A security tool that loads code into a running system needs its own boundary. The Shirudo <A href="https://github.com/shirudo-dev/shirudo">repository</A> describes signed loaders for BPF upatches. On production targets, boot-time initialization restricts later BPF program loads from userspace to loaders verified against a sealed keyring. The Linux BPF verifier also checks programs against kernel safety rules. These mechanisms address who can introduce a protection and what form it may take.
+      </P>
+      <Figure
+        src="/blog/how-shirudo-protects-running-linux-services-3.jpg"
+        alt="Shirudo documentation explaining the signing, loading and attestation flow"
+        width={1920}
+        height={1327}
+        caption="Source: Shirudo documentation"
+      />
+      <Figure
+        src="/blog/how-shirudo-protects-running-linux-services-4.jpg"
+        alt="The Shirudo GitHub README states that production targets require kernel patches and TPM 2.0"
+        width={1920}
+        height={1327}
+        caption="Source: github.com/shirudo-dev/shirudo"
+      />
+      <P>
+        Shirudo also uses a Trusted Platform Module, or TPM, to measure changes to the loaded set of protections. A TPM is a hardware component that can sign evidence about system state. The <code>shirudo attest</code> command returns evidence an operator can verify offline. The point is operational: after a mitigation is applied, the team can check what the target says is loaded instead of relying only on a deployment log or a chat message.
+      </P>
+      <P>
+        The README describes pull-based package delivery through OCI registries and structured commands for operators and agents. Those mechanisms make the runtime inspectable and scriptable. They do not remove the need to validate a shield against the real workload and the service&apos;s threat model. The project&apos;s published security model and threat model set boundaries for what its signatures and measurements can establish.
+      </P>
+      <Figure
+        src="/blog/how-shirudo-protects-running-linux-services-5.jpg"
+        alt="Shirudo security model documentation explaining its protection boundary"
+        width={1920}
+        height={1327}
+        caption="Source: Shirudo documentation"
+      />
+      <H2>What did the Java4Shell test show?</H2>
+      <P>
+        OpenAI reports a <A href="https://isovalent.com/blog/post/cisco-openai-shirudo/">controlled test</A> involving the Java4Shell vulnerability and a running Elasticsearch service. Using Codex, the team generated a shield that added an input check to Java&apos;s Base64 decoder and attached it to the running process. In the reported test, the shield rejected the exploit attempt while the service continued running. The example shows the kind of narrow intervention the runtime is designed to support.
+      </P>
+      <Figure
+        src="/blog/how-shirudo-protects-running-linux-services-6.jpg"
+        alt="Cisco and Isovalent describe a controlled Java4Shell test on Elasticsearch 9.5.5"
+        width={1920}
+        height={1327}
+        caption="Source: isovalent.com"
+      />
+      <P>
+        One successful controlled attempt does not establish an effectiveness rate across different applications, exploit variants or ordinary traffic. For an operator, the relevant questions are whether the shield blocks the demonstrated path, whether legitimate requests still work, and whether the system can recover cleanly if the shield is withdrawn. The release&apos;s monitor-before-enforce approach exists because both parts of that test matter.
+      </P>
+      <P>
+        OpenAI and Cisco describe agent assistance for investigating vulnerabilities, generating candidate protections and validating them. The announcement also sets out a longer-term goal of systems that detect and contain compromises and restore a known-good state. The current public evidence is the runtime, its code and documentation, and the cited controlled demonstration. The broader automatic defense loop remains a direction to evaluate as it is built.
+      </P>
+      <H2>What does a production target need?</H2>
+      <P>
+        The <A href="https://github.com/shirudo-dev/shirudo">project README</A> labels Shirudo pre-release. It says production targets require a Linux kernel with the signed-loader ABI and Shirudo kernel patches, plus TPM 2.0. That is a material installation condition. A stock server should not be assumed ready merely because the source repository is public.
+      </P>
+      <P>
+        The <A href="https://docs.shirudo.dev/start/quickstart.html">VM quickstart</A> provides a way to test signing, loading and verification in a local virtual machine. It uses a software TPM for the demonstration, which differs from the hardware requirement stated for production targets. The runtime is licensed under BSD 2-Clause, with BPF programs dual-licensed under BSD and GPL. An operator evaluating it can inspect the code, the threat model and the required kernel support before deciding whether a pilot is feasible.
+      </P>
+      <Figure
+        src="/blog/how-shirudo-protects-running-linux-services-7.jpg"
+        alt="Shirudo threat model documentation with its scope and limits"
+        width={1920}
+        height={1327}
+        caption="Source: Shirudo documentation"
+      />
+      <Figure
+        src="/blog/how-shirudo-protects-running-linux-services-8.jpg"
+        alt="Shirudo quickstart documentation lists steps for a protected test virtual machine"
+        width={1920}
+        height={1327}
+        caption="Source: Shirudo quickstart documentation"
+      />
+      <P>
+        The README also distinguishes observability from mitigation. Its included <code>kernel-obs</code> package can observe process executions, network activity and privilege changes; an upatch is the part that changes behavior. Keeping those functions separate helps operators inspect a candidate protection before enforcement.
+      </P>
+      <H2>What can a security team try?</H2>
+      <P>
+        Begin with a disposable VM and the project&apos;s quickstart. Load a test protection, verify the recorded state, remove it and verify the state again. Then read the threat model and the production checklist against the intended Linux fleet. A real vulnerability pilot needs representative legitimate traffic alongside a safely reproduced exploit path, because blocking the exploit while breaking normal service is not an acceptable result.
+      </P>
+      <P>
+        Shirudo gives a team a concrete way to test a temporary protection during the wait for a permanent patch. Its strongest current story is the combination of targeted code, explicit operator approval and verifiable state on a running system. Follow Argo&apos;s coverage of agent tools and infrastructure at https://myargoquest.com/blog.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "how-shirudo-protects-running-linux-services",
+    title: "How Shirudo protects a running Linux service",
+    description: "OpenAI and Cisco released a pre-release runtime for signed, temporary Linux protections while operators prepare permanent patches.",
+    category: "ai-news",
+    date: "November 24, 2026",
+    isoDate: "2026-11-24T09:14",
+    readingTime: "6 min read",
+    image: "/blog/how-shirudo-protects-running-linux-services-1.jpg",
+    Content: HowShirudoProtectsRunningLinuxServicesContent,
+  },
   {
     slug: "how-glm-5-4-reuses-transformer-layers",
     title: "How GLM-5.4 reuses transformer layers to reason deeper",
