@@ -18071,7 +18071,64 @@ function PersonaplexFullDuplexVoiceAiContent() {
   )
 }
 
+/* ── Post: Argo build log, Day 42: Journal build 17 gets release settings ── */
+function ArgoBuildLogDay42Content() {
+  return (
+    <>
+      <P>
+        Argo is a private AI journal built so people can own their data, memory and life story. Our goals for 2027 are USD 1 million in monthly recurring revenue, 100,000 followers across Instagram and YouTube, and a modular, hackable wearable built in public. We want ordinary people to have more say over the tools that shape their lives. Today, shipping in public means showing the release preparation and the work added to the website repository, without treating a commit as a release.
+      </P>
+      <H2>Highlights</H2>
+      <UL items={[
+        <>Journal commits set release version 1.0.3, build 17, and turn development mode off for release.</>,
+        <>Two explainers were added to the website repository, one about open-source AI glasses and one about PersonaPlex.</>,
+        <>The November 23 livestream ran for 157 minutes across overlapping X, Kick and Twitch sessions.</>,
+      ]} />
+      <H2>The journal app</H2>
+      <P>
+        The iOS repository now names version 1.0.3, build 17, as its release build. Another commit disables development mode for release and makes off its default. Those are preparation steps in the code. We still need to verify an available App Store version before saying that people have the update.
+      </P>
+      <P>
+        Other commits addressed the iPhone startup screen, Story and voice layouts, journal list refresh when a filter is selected, and Mirror reflection grounding and repetition. A filter should change which entries you see; refreshing the list after a selection is the small piece that makes the displayed list match the choice. The commit shows the fix landed in the repository, while a device check is still needed to describe the finished experience.
+      </P>
+      <H2>On stream</H2>
+      <P>
+        The collector recorded 157 minutes on air on November 23, with overlapping sessions on X, Kick and Twitch. X reached a peak of 14 viewers, Kick reached two, and Twitch recorded zero. These are platform peaks, not a combined audience count. The stream titles were Argo Vibecoding, AI Agent Pro Module 6 and AI Founder Coding. The session records do not say which features were built on camera, so we will not claim one here.
+      </P>
+      <H2>Content and classes</H2>
+      <P>
+        The website repository gained two posts: &quot;How open-source AI glasses expose camera, audio and apps&quot; and &quot;How PersonaPlex listens and speaks at the same time.&quot; Their commit titles tell us the subjects and confirm that the files were added. They do not establish that either page is live, so we will check the public pages before sharing them as published articles. The broader lesson is the same as with the journal build: a committed file and a public release are two separate checks.
+      </P>
+      <H2>Numbers</H2>
+      <UL items={[
+        <>157 minutes on air on November 23, counting overlapping platform sessions once.</>,
+        <>Peak viewers by platform: X 14, Kick 2, Twitch 0.</>,
+        <>Two article commits in the public website repository.</>,
+      ]} />
+      <H2>Next</H2>
+      <UL items={[
+        <>Verify which journal version is available to App Store users.</>,
+        <>Test the Story, voice and filtered journal list changes on a device.</>,
+        <>Check whether the two new article pages are live and appear on the public Articles front page.</>,
+      ]} />
+      <P>
+        Follow the next build on <A href="https://myargoquest.com/livestream">Argo&apos;s livestream page</A>.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "argo-build-log-day-42",
+    title: "Argo build log, Day 42: Journal build 17 gets release settings",
+    description: "Journal commits set build 17 for release, while two explainers joined the website repository and the team streamed for 157 minutes.",
+    category: "product-updates",
+    date: "November 24, 2026",
+    isoDate: "2026-11-24T04:55",
+    readingTime: "3 min read",
+    Content: ArgoBuildLogDay42Content,
+  },
   {
     slug: "personaplex-full-duplex-voice-ai",
     title: "How PersonaPlex listens and speaks at the same time",
