@@ -18957,7 +18957,145 @@ function HowLeanCheckedARiemannHypothesisProofContent() {
   )
 }
 
+/* ── Post: How Squid5090 runs Inkling 2 Mini on one RTX 5090 ── */
+function HowSquid5090RunsInkling2MiniContent() {
+  return (
+    <>
+      <P>
+        A long conversation with a local AI model eventually runs into a physical limit: every new word may need to consult a growing record of what came before. On a single graphics card, that record competes with model weights for memory, making speed, context length and fidelity one engineering problem.
+      </P>
+      <P>
+        <A href="https://github.com/tensorfish/squid5090">Squid5090</A> is a new, open-source answer for <A href="https://huggingface.co/thinkingmachines/Inkling-2-Mini">Thinking Machines Lab&apos;s Inkling 2 Mini</A> on one NVIDIA RTX 5090. Its serving engine is written in Zig and CUDA, produces a single executable, and exposes an OpenAI-compatible HTTP streaming interface. The repository reports fast single-user generation and real long-context recall through about 512,000 tokens. Understanding those results requires separating the model, the precision of its numbers, and the work done at each generated token.
+      </P>
+      <P>
+        In the <A href="https://x.com/tensorfish/status/2124975715141689818">X post that introduced the project</A>, its author says Gemini 4 Neon helped build it under direction from an inference-optimization skill. That is the author&apos;s account of the development process. The public repository documents the resulting code, measurements and <A href="https://github.com/tensorfish/squid5090/blob/main/NOTICE">specific upstream projects it adapted</A>; it does not establish that an AI system invented every kernel from scratch.
+      </P>
+      <Figure
+        src="/blog/how-squid5090-runs-inkling-2-mini-1.jpg"
+        alt="Squid5090 GitHub README introducing the Zig and CUDA inference engine"
+        width={1920}
+        height={1080}
+        priority
+        caption="Source: tensorfish/squid5090 GitHub repository."
+      />
+      <H2>Why this model needs a tailored engine</H2>
+      <P>
+        Inkling 2 Mini has 26.4 billion stored parameters, but it does not use every parameter for each token. Its mixture-of-experts layers select eight of 128 expert groups. A token touches about 3.4 billion distinct parameters, according to the model card. The middle 12 of its 24 stored layers run three times with shared weights, so the effective number of active parameter uses is about 5.4 billion per token. This loop makes the model&apos;s execution pattern different from a standard one-pass transformer.
+      </P>
+      <Figure
+        src="/blog/how-squid5090-runs-inkling-2-mini-2.jpg"
+        alt="Thinking Machines Lab model card for Inkling 2 Mini"
+        width={1920}
+        height={1080}
+        caption="Source: Thinking Machines Lab on Hugging Face."
+      />
+      <P>
+        An inference engine turns that architecture into GPU work: read the right weights, run the repeated layers in order, keep the conversation&apos;s attention state, and choose the next token. A generic runtime can support many models. Squid5090 instead targets this one model and NVIDIA&apos;s Blackwell architecture. Its CUDA kernels handle the GPU calculations while Zig coordinates loading, memory, tokenization and the server.
+      </P>
+      <Figure
+        src="/blog/how-squid5090-runs-inkling-2-mini-3.jpg"
+        alt="Diagram of the model's stored layers, repeated visits and the RTX 5090-targeted engine"
+        width={1600}
+        height={900}
+        caption="Argo diagram based on Thinking Machines Lab's model card and the Squid5090 README."
+      />
+      <P>
+        The repository <A href="https://github.com/tensorfish/squid5090/blob/main/NOTICE">credits earlier work</A> for several kernel designs. These include Blackwell matrix operations, overlapping GPU launches, a prefill pipeline and adaptive speculative decoding from satellitedown&apos;s Inkling engine. It credits AtomicBot&apos;s engine for prompt-lookup inspiration and <A href="https://github.com/sybil-solutions/inference-optimisation-skill">Sybil Solutions&apos; optimization skill</A> for its roofline workflow. Squid5090&apos;s contribution is an integrated, model-specific implementation and its measured progression, not a claim that every underlying technique began here.
+      </P>
+      <H2>How it makes a token faster</H2>
+      <P>
+        A model normally generates one token, then starts the next. <strong>Speculative decoding</strong> changes that rhythm: a smaller or cheaper drafter proposes several tokens, and the main model verifies them together. The verifier keeps candidates that match its distribution and corrects rejected positions. When the draft is good, one main-model pass advances several tokens. When the draft is poor, the extra drafting work may not pay off.
+      </P>
+      <P>
+        Squid5090 combines a DSpark drafter with <strong>prompt lookup</strong>, which searches the existing prompt for a matching text sequence. This especially suits copying code or quoted passages: the likely continuation may already be in the context. Its adaptive CUDA Graph chooses verification widths of two, four or eight tokens. A CUDA Graph is a prearranged sequence of GPU operations, useful when repeatedly launching tiny kernels would cost time.
+      </P>
+      <Figure
+        src="/blog/how-squid5090-runs-inkling-2-mini-4.jpg"
+        alt="Three stages of speculative decoding: draft, verify and accept"
+        width={1600}
+        height={900}
+        caption="Argo simplified diagram based on the Squid5090 README and NOTICE."
+      />
+      <P>
+        The measured speed depends on the task. In the repository&apos;s dedicated-GPU P0 memory-clock runs, the author reports 589.5 tokens per second for code, 771.6 for code-copy, and 332.5 for chat with the fastest NVFP4/Q4 configuration. Those are different workloads, not a general speed for any prompt. The README&apos;s unified shared-GPU P1 memory-clock table reports 547.0 code tokens per second with greedy decoding, versus 444.9 at temperature 1.0. Temperature changes how the next token is sampled; the serving default is temperature 1.0, while the benchmark CLI defaults to greedy decoding.
+      </P>
+      <Figure
+        src="/blog/how-squid5090-runs-inkling-2-mini-5.jpg"
+        alt="Bar chart of Squid5090 tokens-per-second throughput across precision modes and workloads"
+        width={1920}
+        height={974}
+        caption="Source: tensorfish/squid5090 repository. Results are author-reported on one RTX 5090."
+      />
+      <H2>What precision buys and costs</H2>
+      <P>
+        The weights and attention cache are large collections of numbers. Squid5090 can store them in smaller formats: FP8 uses eight-bit floating-point numbers; NVFP4 uses four-bit weight representation; Q4 compresses the attention key-value cache. Smaller values reduce memory traffic, but can alter the model&apos;s next-token probabilities.
+      </P>
+      <P>
+        The project&apos;s one-RTX-5090, single-user P1 tests show the trade. With FP8 weights and Q4 cache, greedy code generation reached 356.2 tokens per second and mean KL divergence of 0.0050 against the exact BF16 reference. With NVFP4 weights and Q4 cache, it reached 547.0 tokens per second and divergence of 0.0184. KL divergence measures how much the next-token probability distribution differs from the reference on the repository&apos;s 529-token, multi-domain evaluation set; lower means closer to BF16 on that set. It is a local fidelity measure, not a complete evaluation of downstream coding or reasoning quality.
+      </P>
+      <Figure
+        src="/blog/how-squid5090-runs-inkling-2-mini-6.jpg"
+        alt="Diagram comparing exact BF16, FP8/Q4 and NVFP4/Q4 engine modes"
+        width={1600}
+        height={900}
+        caption="Argo diagram of author-reported P1 greedy code results at concurrency one."
+      />
+      <P>
+        Choosing a mode is therefore a concrete decision. A developer can favor higher precision for closer next-token agreement, or smaller weights for more throughput and cache headroom. Neither setting makes all prompts equally fast. The repository&apos;s code-copy result is higher partly because prompt lookup finds repeated material; chat follows a different path through the drafter.
+      </P>
+      <H2>How much context has actually run</H2>
+      <P>
+        The model card describes support for up to one million tokens. A runtime still has to allocate the attention cache, fill it with a real prompt, retrieve information and generate reliably. Those are separate tests. In Squid5090&apos;s real needle-in-a-haystack tests, the engine prefilled prompts at 64K, 128K, 256K and 512K token depths and recovered a hidden passkey. At 523,961 tokens, the reported prefill took 171.13 seconds, followed by 74.4 generated tokens per second and 20.3 GiB total GPU memory use.
+      </P>
+      <P>
+        The repository&apos;s one-million-token row measures something narrower: it allocates the real cache but fills it with zeroes to time a synthetic decode step. It reports 23.23 GiB allocated and a step rate of 45.7 tokens per second at verification width one. That establishes memory capacity and step latency, not a real one-million-token prompt or successful recall at that depth. The engineering notes say a full real one-million-token, three-needle retrieval test remains to be run.
+      </P>
+      <Figure
+        src="/blog/how-squid5090-runs-inkling-2-mini-7.jpg"
+        alt="Diagram comparing real 512K-token recall with synthetic 1M-token cache scaling"
+        width={1600}
+        height={900}
+        caption="Real 512K recall versus synthetic zeroed-KV 1M scaling. Argo diagram based on the Squid5090 README."
+      />
+      <P>
+        This distinction matters when sizing a machine. The cache may fit while filling it takes minutes, and decode speed can fall as the history grows. A claimed maximum window is a capacity target. A real prefilled retrieval test asks whether the system can use that window for a task.
+      </P>
+      <H2>What a developer can use today</H2>
+      <P>
+        The single-binary engine currently serves text, even though the underlying Inkling 2 Mini model also accepts images. It has one active user slot, not continuous multi-user batching. The README lists standard tool-call streaming but no constrained JSON-schema decoding yet. These boundaries make the project useful for a local, single-user experiment without presenting it as a universal server.
+      </P>
+      <P>
+        “Zero-Python” refers to that serving binary, not to an installation with no dependencies. Building it requires Linux x86_64, a supported Blackwell GPU, a recent NVIDIA driver, CUDA toolkit and Zig. The runtime still links NVIDIA&apos;s CUDA libraries. The repository&apos;s quickstart shows how to build the binary, download the official model and start its HTTP server.
+      </P>
+      <Figure
+        src="/blog/how-squid5090-runs-inkling-2-mini-8.jpg"
+        alt="Diagram separating the zero-Python serving runtime from build and GPU dependencies"
+        width={1600}
+        height={900}
+        caption="Argo diagram based on the Squid5090 README requirements and quickstart."
+      />
+      <P>
+        For a local test, start with the <A href="https://github.com/tensorfish/squid5090#3-run-the-openai-api-server-cli-or-kld-evaluator">repository&apos;s benchmark command</A> and record the prompt, precision mode, cache format, temperature, context length, GPU clock state and concurrency. Run the same conditions in a comparison engine before making a speed-ratio claim. The viral “4x llama.cpp” comparison does not include a reproducible same-configuration baseline in the current repository. The strongest reading of this release is simpler: a focused Zig and CUDA runtime demonstrates how model-specific kernels, drafting and compressed cache design can turn one workstation GPU into a capable long-context text server.
+      </P>
+      <P>
+        Follow the <A href="https://github.com/tensorfish/squid5090">Squid5090 repository</A> for the implementation and test ledger.
+      </P>
+    </>
+  )
+}
+
 export const posts: BlogPost[] = [
+  {
+    slug: "how-squid5090-runs-inkling-2-mini",
+    title: "How Squid5090 runs Inkling 2 Mini on one RTX 5090",
+    description: "A Zig and CUDA engine shows how precision, speculative decoding and cache design shape local Inkling 2 Mini performance.",
+    category: "ai-news",
+    date: "November 24, 2026",
+    isoDate: "2026-11-24T11:38",
+    readingTime: "7 min read",
+    image: "/blog/how-squid5090-runs-inkling-2-mini-1.jpg",
+    Content: HowSquid5090RunsInkling2MiniContent,
+  },
   {
     slug: "how-lean-checked-a-riemann-hypothesis-proof",
     title: "How Lean checked a Riemann Hypothesis proof",
