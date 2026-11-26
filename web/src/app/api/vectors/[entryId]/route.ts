@@ -4,11 +4,12 @@ const API_URL = process.env.API_URL ?? 'https://api.luminalog.com'
 
 // Same-origin proxy: delete one entry's opaque vector blob → backend
 // DELETE /v1/vectors/:entryId. Ownership is enforced server-side from the token.
-export async function DELETE(req: NextRequest, { params }: { params: { entryId: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ entryId: string }> }) {
+  const { entryId } = await params
   const auth = req.headers.get('authorization')
   if (!auth) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
   try {
-    const res = await fetch(`${API_URL}/v1/vectors/${encodeURIComponent(params.entryId)}`, {
+    const res = await fetch(`${API_URL}/v1/vectors/${encodeURIComponent(entryId)}`, {
       method: 'DELETE',
       headers: { authorization: auth },
       cache: 'no-store',

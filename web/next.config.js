@@ -6,13 +6,11 @@ const nextConfig = {
   //   NEXT_DIST_DIR=.next-dev npm run dev
   distDir: process.env.NEXT_DIST_DIR || '.next',
   images: {
-    domains: ['lh3.googleusercontent.com'],
+    remotePatterns: [{ protocol: 'https', hostname: 'lh3.googleusercontent.com' }],
   },
-  experimental: {
-    // Keep native ONNX runtime + transformers out of the webpack bundle; they are
-    // required at runtime from node_modules (bundling their .node binaries fails).
-    serverComponentsExternalPackages: ['onnxruntime-node', '@huggingface/transformers'],
-  },
+  // Keep native ONNX runtime + transformers out of the bundle; they are required
+  // at runtime from node_modules because bundling their .node binaries fails.
+  serverExternalPackages: ['onnxruntime-node', '@huggingface/transformers'],
   async headers() {
     return [{ source: '/cybazaar/slides/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' }] }]
   },
