@@ -9,11 +9,12 @@ const API_URL = process.env.API_URL ?? 'https://api.luminalog.com'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
-export async function POST(req: NextRequest, { params }: { params: { code: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
+  const { code: rawCode } = await params
   const auth = req.headers.get('authorization')
   if (!auth) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
 
-  const code = encodeURIComponent(params.code)
+  const code = encodeURIComponent(rawCode)
   try {
     const body = await req.text()
     const res = await fetch(`${API_URL}/v1/cardgame/rooms/${code}/answers`, {

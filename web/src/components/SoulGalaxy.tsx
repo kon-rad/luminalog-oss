@@ -92,7 +92,7 @@ function Backdrop({ count = 260 }: { count?: number }) {
   return (
     <points>
       <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
       <pointsMaterial color="#c7cdf5" size={0.014} sizeAttenuation transparent opacity={0.4} depthWrite={false} />
     </points>
@@ -137,7 +137,7 @@ function ConstellationLines({ points }: { points: GalaxyPoint[] }) {
   return (
     <lineSegments>
       <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={positions.length / 3} array={positions} itemSize={3} />
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
       <lineBasicMaterial color={AMBER} transparent opacity={0.22} depthWrite={false} />
     </lineSegments>

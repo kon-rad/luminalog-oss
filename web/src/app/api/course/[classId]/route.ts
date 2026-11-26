@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const API_URL = process.env.API_URL ?? 'https://api.luminalog.com'
 
-export async function GET(req: NextRequest, { params }: { params: { classId: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ classId: string }> }) {
+  const { classId } = await params
   const auth = req.headers.get('authorization')
   if (!auth) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
   try {
-    const res = await fetch(`${API_URL}/v1/course/${encodeURIComponent(params.classId)}`, {
+    const res = await fetch(`${API_URL}/v1/course/${encodeURIComponent(classId)}`, {
       headers: { authorization: auth },
       cache: 'no-store',
     })

@@ -9,10 +9,11 @@ export function generateStaticParams() {
   return posts.map((p) => ({ slug: p.slug }))
 }
 
-export function GET(_req: Request, { params }: { params: { slug: string } }) {
-  const post = getPost(params.slug)
+export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const post = getPost(slug)
   if (!post) {
-    return new Response(`No post with slug "${params.slug}". The list is at /blog/agents.json\n`, {
+    return new Response(`No post with slug "${slug}". The list is at /blog/agents.json\n`, {
       status: 404,
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     })
