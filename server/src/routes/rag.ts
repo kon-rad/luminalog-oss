@@ -88,7 +88,7 @@ export async function indexHandler(req: Request, res: Response): Promise<void> {
 // DELETE /v1/rag/:entryId: purge an entry's chunks.
 export async function deleteHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
-  const entryId = req.params.entryId
+  const entryId = String(req.params.entryId)
   if (!entryId) { res.status(400).json({ error: 'Missing entryId' }); return }
   try {
     // Capture the entry's days BEFORE purging its chunks so we can recompute them

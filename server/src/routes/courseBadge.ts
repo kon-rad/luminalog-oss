@@ -79,7 +79,7 @@ export const courseBadgeRouter = Router()
 // GET /v1/course-badge/:file — matches the on-chain tokenURI (baseURI + id + ".json").
 // Public (no auth): wallets + marketplaces fetch it.
 courseBadgeRouter.get('/:file', async (req: Request, res: Response) => {
-  const m = /^(\d+)\.json$/.exec(req.params.file)
+  const m = /^(\d+)\.json$/.exec(String(req.params.file))
   if (!m) return res.status(404).json({ error: 'not found' })
   try {
     const meta = await getCourseBadgeMetadata(m[1])

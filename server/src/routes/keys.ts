@@ -109,7 +109,7 @@ export async function getWrappedKeysHandler(req: Request, res: Response): Promis
 // DELETE /v1/keys/wrapped/:method — remove one wrap slot for the caller.
 export async function deleteWrappedKeyHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
-  const method = req.params.method
+  const method = String(req.params.method)
   if (!WRAP_METHODS.includes(method as WrapMethod)) {
     res.status(400).json({ error: `Unknown wrap method '${method}'` })
     return

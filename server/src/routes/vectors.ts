@@ -102,7 +102,7 @@ function buildStored(uid: string, entryId: string, body: {
 // PUT /v1/vectors/:entryId — upsert one encrypted blob for (uid, entryId).
 export async function putVectorHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
-  const entryId = req.params.entryId
+  const entryId = String(req.params.entryId ?? '')
   if (!entryId) {
     res.status(400).json({ error: 'Missing entryId' })
     return
@@ -141,7 +141,7 @@ export async function listVectorsHandler(req: Request, res: Response): Promise<v
 // DELETE /v1/vectors/:entryId — delete the caller's blob for that entry.
 export async function deleteVectorHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
-  const entryId = req.params.entryId
+  const entryId = String(req.params.entryId ?? '')
   if (!entryId) {
     res.status(400).json({ error: 'Missing entryId' })
     return

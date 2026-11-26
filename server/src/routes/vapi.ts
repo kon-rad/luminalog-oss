@@ -379,7 +379,7 @@ export async function llmProxyHandler(req: Request, res: Response, database = db
   // filler timer if something throws unexpectedly after that point.
   let cancelFiller: (() => void) | undefined
   try {
-    const session = getSession(req.params.token)
+    const session = getSession(String(req.params.token))
     if (!session) {
       res.status(401).json({ error: 'invalid or expired call token' })
       return
