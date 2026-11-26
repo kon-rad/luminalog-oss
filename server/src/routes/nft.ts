@@ -96,9 +96,9 @@ export const nftRouter = Router()
 
 // GET /v1/nft/:tokenId/points — public coordinates-only point-set for the galaxy.
 nftRouter.get('/:tokenId/points', async (req: Request, res: Response) => {
-  if (!/^\d+$/.test(req.params.tokenId)) return res.status(404).json({ error: 'not found' })
+  if (!/^\d+$/.test(String(req.params.tokenId))) return res.status(404).json({ error: 'not found' })
   try {
-    const soul = await getPublicPoints(req.params.tokenId)
+    const soul = await getPublicPoints(String(req.params.tokenId))
     if (!soul) return res.status(404).json({ error: 'not found' })
     res.setHeader('Cache-Control', 'public, max-age=300')
     res.json(soul)
@@ -111,7 +111,7 @@ nftRouter.get('/:tokenId/points', async (req: Request, res: Response) => {
 // GET /v1/nft/:tokenId.json — matches the on-chain tokenURI (baseURI + id + ".json").
 // Public: no firebaseAuth. Parse the ".json" suffix ourselves for robustness.
 nftRouter.get('/:file', async (req: Request, res: Response) => {
-  const m = /^(\d+)\.json$/.exec(req.params.file)
+  const m = /^(\d+)\.json$/.exec(String(req.params.file))
   if (!m) return res.status(404).json({ error: 'not found' })
   try {
     const meta = await getNftMetadata(m[1])

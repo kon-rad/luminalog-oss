@@ -114,4 +114,4 @@ export async function posthogProxyHandler(
   res.status(202).json({ status: 1 })
 }
 
-analyticsRouter.post('/*', (req: Request, res: Response) => posthogProxyHandler(req, res))
+analyticsRouter.post('/*splat', (req: Request, res: Response) => posthogProxyHandler(req, res))

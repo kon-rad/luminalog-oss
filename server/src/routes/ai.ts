@@ -161,7 +161,7 @@ export async function entryMapHandler(req: Request, res: Response): Promise<void
 // user's job is a 404, so a leaked id is indistinguishable from a wrong one.
 export async function entryMapJobHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
-  const job = getMapJob(uid, req.params.jobId)
+  const job = getMapJob(uid, String(req.params.jobId))
 
   if (!job) {
     res.status(404).json({ error: 'Unknown job' }); return
@@ -233,7 +233,7 @@ aiRouter.post('/period-narrative', firebaseAuth, requirePro, requireAiConsent, p
 // same 404-for-anything-not-yours behavior, as /entry-map/:jobId.
 export async function periodNarrativeJobHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
-  const job = getPeriodNarrativeJob(uid, req.params.jobId)
+  const job = getPeriodNarrativeJob(uid, String(req.params.jobId))
 
   if (!job) {
     res.status(404).json({ error: 'Unknown job' }); return
@@ -256,7 +256,7 @@ aiRouter.get('/period-narrative/:jobId', firebaseAuth, requirePro, requireAiCons
 // gate: no LLM ever sees journal text on this path.
 export async function periodPositionsHandler(req: Request, res: Response): Promise<void> {
   const uid = (req as any).uid as string
-  const periodType = req.params.periodType
+  const periodType = String(req.params.periodType)
 
   if (!PERIOD_TYPES.includes(periodType as RoutePeriodType)) {
     res.status(400).json({ error: 'Invalid periodType' }); return

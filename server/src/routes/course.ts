@@ -46,11 +46,11 @@ courseRouter.use(firebaseAuth)
 courseRouter.get('/:classId', async (req: Request, res: Response) => {
   const uid = (req as any).uid as string
   try {
-    const snap = await db.collection('courseBadges').doc(req.params.classId).get()
+    const snap = await db.collection('courseBadges').doc(String(req.params.classId)).get()
     if (!snap.exists) return res.status(404).json({ error: 'not found' })
     const pSnap = await db
       .collection('courseBadges')
-      .doc(req.params.classId)
+      .doc(String(req.params.classId))
       .collection('participants')
       .doc(uid)
       .get()
@@ -71,7 +71,7 @@ courseRouter.get('/:classId', async (req: Request, res: Response) => {
 courseRouter.post('/:classId/submit', async (req: Request, res: Response) => {
   const uid = (req as any).uid as string
   try {
-    const snap = await db.collection('courseBadges').doc(req.params.classId).get()
+    const snap = await db.collection('courseBadges').doc(String(req.params.classId)).get()
     if (!snap.exists) return res.status(404).json({ error: 'not found' })
     const data = snap.data() as any
     if (data.active === false) return res.status(403).json({ error: 'class closed' })
@@ -87,7 +87,7 @@ courseRouter.post('/:classId/submit', async (req: Request, res: Response) => {
 
     await db
       .collection('courseBadges')
-      .doc(req.params.classId)
+      .doc(String(req.params.classId))
       .collection('participants')
       .doc(uid)
       .set(
@@ -105,7 +105,7 @@ courseRouter.post('/:classId/submit', async (req: Request, res: Response) => {
 courseRouter.post('/:classId/mint', async (req: Request, res: Response) => {
   const uid = (req as any).uid as string
   try {
-    const result = await mintCourseBadge(uid, req.params.classId)
+    const result = await mintCourseBadge(uid, String(req.params.classId))
     res.json(result)
   } catch (err: any) {
     const msg = err?.message ?? 'internal'
