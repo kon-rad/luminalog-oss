@@ -77,6 +77,6 @@ process.on('uncaughtException', err => {
   console.error('[uncaughtException]', err)
 })
 
-app.listen(Number(config.PORT), () => {
-  console.log(`[luminalog-api] running on port ${config.PORT} (${config.NODE_ENV})`)
+app.listen(Number(config.PORT), config.HOST, () => {
+  console.log(`[luminalog-api] running on ${config.HOST}:${config.PORT} (${config.NODE_ENV})`)
 })

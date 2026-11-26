@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 export const schema = z.object({
+  HOST: z.string().default('127.0.0.1'),
   PORT: z.string().default('3200'),
   NODE_ENV: z.string().default('development'),
   FIREBASE_SERVICE_ACCOUNT_JSON: z.string(),
